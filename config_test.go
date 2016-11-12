@@ -1,4 +1,4 @@
-package vv
+package main
 
 import (
 	"io/ioutil"
@@ -11,10 +11,13 @@ func TestReadConfig(t *testing.T) {
 	input := []byte(
 		"[mpd]\n" +
 			"host = \"localhost\"\n" +
-			"port = \"6600\"\n")
+			"port = \"6600\"\n" +
+			"[server]\n" +
+			"port = \"8080\"\n",
+	)
 	ioutil.WriteFile(path, input, os.ModePerm)
-	expected := Config{Mpd: MpdConfig{Host: "localhost", Port: "6600"}}
-	actual, err := readConfig(path)
+	expected := Config{Mpd: MpdConfig{Host: "localhost", Port: "6600"}, Server: ServerConfig{Port: "8080"}}
+	actual, err := ReadConfig(path)
 	if err != nil {
 		t.Errorf("got unexpected err: %v", err)
 	}

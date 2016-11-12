@@ -1,0 +1,6 @@
+[mpd]
+host = "localhost"
+port = "6600"
+
+[server]
+port = "8080"
