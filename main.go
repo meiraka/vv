@@ -8,7 +8,7 @@ import (
 func main() {
 	config, err := ReadConfig("./vvrc")
 	if err != nil {
-		fmt.Printf("faied to load config file: %s", err)
+		fmt.Printf("faied to load config file: %s\n", err)
 		os.Exit(1)
 	}
 	App(config.Server)
