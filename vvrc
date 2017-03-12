@@ -1,5 +1,5 @@
 [mpd]
-host = "localhost"
+host = "music.local"
 port = "6600"
 
 [server]

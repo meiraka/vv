@@ -11,5 +11,11 @@ func main() {
 		fmt.Printf("faied to load config file: %s\n", err)
 		os.Exit(1)
 	}
-	App(config.Server)
+	addr := config.Mpd.Host + ":" + config.Mpd.Port
+	player, err := Dial("tcp", addr)
+	if err != nil {
+		fmt.Printf("faied to connect/initialize mpd: %s\n", err)
+		os.Exit(1)
+	}
+	App(player, config.Server)
 }
