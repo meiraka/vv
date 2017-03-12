@@ -40,7 +40,7 @@ func App(p *Player, config ServerConfig) {
 	var api = new(apiHandler)
 	api.player = p
 	http.HandleFunc("/", handler)
-	http.HandleFunc("/playlist", api.playlist)
-	http.HandleFunc("/library", api.library)
+	http.HandleFunc("/api/playlist", api.playlist)
+	http.HandleFunc("/api/library", api.library)
 	http.ListenAndServe(fmt.Sprintf(":%s", config.Port), nil)
 }
