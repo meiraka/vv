@@ -10,13 +10,18 @@ footer {
     width: 100%;
 }
 
-footer, footer nav, footer nav input {
+footer, footer nav, footer nav button {
     border: 0px;
     margin: 0px;
     padding: 0px;
 }
 
-footer nav input {
-    width: 33%;
+footer nav button {
+    background-color: #db7093;
+    width: 33.3333%;
     height: 40px;
+}
+
+footer nav button:hover {
+    background-color: #ff1493;
 }
