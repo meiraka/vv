@@ -48,23 +48,28 @@ func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
 	writeJSONAttrList(w, library, nil)
 }
 
-func (h *apiHandler) prev(w http.ResponseWriter, r *http.Request) {
-	err := h.player.Prev()
-	writeJSON(w, err)
-}
-
-func (h *apiHandler) next(w http.ResponseWriter, r *http.Request) {
-	err := h.player.Next()
-	writeJSON(w, err)
+func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
+	method := r.FormValue("action")
+	if method == "prev" {
+		writeJSON(w, h.player.Prev())
+	} else if method == "play" {
+		writeJSON(w, h.player.Play())
+	} else if method == "pause" {
+		writeJSON(w, h.player.Pause())
+	} else if method == "next" {
+		writeJSON(w, h.player.Next())
+	} else {
+		// show song info
+	}
 }
 
 // App serves http request.
 func App(p *Player, config ServerConfig) {
 	var api = new(apiHandler)
 	api.player = p
-	http.HandleFunc("/api/playlist", api.playlist)
 	http.HandleFunc("/api/library", api.library)
-	http.HandleFunc("/api/prev", api.prev)
+	http.HandleFunc("/api/songs", api.playlist)
+	http.HandleFunc("/api/songs/current", api.current)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "app.html")
 	})

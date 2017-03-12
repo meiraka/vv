@@ -67,9 +67,14 @@ func (p *Player) Prev() error {
 	return p.conn.Previous()
 }
 
-/*Play song.*/
+/*Play or resume song.*/
 func (p *Player) Play() error {
 	return p.conn.Play(-1)
+}
+
+/*Pause song.*/
+func (p *Player) Pause() error {
+	return p.conn.Pause(true)
 }
 
 /*Next song.*/
