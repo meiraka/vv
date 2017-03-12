@@ -62,6 +62,21 @@ func (p *Player) Playlist() []mpd.Attrs {
 	return p.playlist
 }
 
+/*Prev song.*/
+func (p *Player) Prev() error {
+	return p.conn.Previous()
+}
+
+/*Play song.*/
+func (p *Player) Play() error {
+	return p.conn.Play(-1)
+}
+
+/*Next song.*/
+func (p *Player) Next() error {
+	return p.conn.Next()
+}
+
 /*Close mpd connection.*/
 func (p *Player) Close() error {
 	return p.conn.Close()

@@ -1,0 +1,22 @@
+header {
+    position: fixed;
+    top: 10px;
+}
+
+footer {
+    position: fixed;
+    left: 0px;
+    bottom: 0px;
+    width: 100%;
+}
+
+footer, footer nav, footer nav input {
+    border: 0px;
+    margin: 0px;
+    padding: 0px;
+}
+
+footer nav input {
+    width: 33%;
+    height: 40px;
+}
