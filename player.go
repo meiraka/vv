@@ -2,34 +2,94 @@ package main
 
 import "github.com/fhs/gompd/mpd"
 
+type playerRequestType int
+
+const (
+	syncLibrary playerRequestType = iota
+	syncPlaylist
+	prev
+	play
+	next
+)
+
+type playerRequest struct {
+	request     playerRequestType
+	response    chan bool
+	responseErr error
+}
+
+func makeRequest(req playerRequestType) (r *playerRequest) {
+	r = new(playerRequest)
+	r.request = req
+	r.response = make(chan bool)
+	return
+}
+
 /*Dial Connects to mpd server.*/
 func Dial(network, addr string) (p *Player, err error) {
 	// connect to mpd
-	conn, err := mpd.Dial(network, addr)
-	if err != nil {
-		return nil, err
-	}
 	p = new(Player)
-	p.conn = conn
+	p.stop = make(chan bool)
+	p.daemonRequest = make(chan *playerRequest)
+	p.network = network
+	p.addr = addr
+	err = p.connect()
+	if err != nil {
+		return p, err
+	}
 
 	// initialize library
 	err = p.SyncLibrary()
 	if err != nil {
-		return nil, err
+		p.Close()
+		return
 	}
 	// initialize playlist
 	err = p.SyncPlaylist()
-	if err != nil {
-		return nil, err
-	}
+	go p.daemon()
 	return
 }
 
 /*Player represents mpd control interface.*/
 type Player struct {
-	conn     *mpd.Client
-	library  []mpd.Attrs
-	playlist []mpd.Attrs
+	network       string
+	addr          string
+	conn          *mpd.Client
+	stop          chan bool
+	daemonRequest chan *playerRequest
+	library       []mpd.Attrs
+	playlist      []mpd.Attrs
+}
+
+func (p *Player) daemon() {
+loop:
+	for {
+		select {
+		case <-p.stop:
+			break loop
+		case r := <-p.daemonRequest:
+			switch r.request {
+			case prev:
+				r.responseErr = p.conn.Previous()
+				r.response <- true
+			case play:
+				r.responseErr = p.conn.Play(-1)
+				r.response <- true
+			case next:
+				r.responseErr = p.conn.Next()
+				r.response <- true
+			}
+		}
+	}
+}
+
+func (p *Player) connect() error {
+	conn, err := mpd.Dial(p.network, p.addr)
+	if err != nil {
+		return err
+	}
+	p.conn = conn
+	return nil
 }
 
 /*SyncLibrary updates Player.library*/
@@ -64,12 +124,18 @@ func (p *Player) Playlist() []mpd.Attrs {
 
 /*Prev song.*/
 func (p *Player) Prev() error {
-	return p.conn.Previous()
+	r := makeRequest(prev)
+	p.daemonRequest <- r
+	<-r.response
+	return r.responseErr
 }
 
 /*Play or resume song.*/
 func (p *Player) Play() error {
-	return p.conn.Play(-1)
+	r := makeRequest(play)
+	p.daemonRequest <- r
+	<-r.response
+	return r.responseErr
 }
 
 /*Pause song.*/
@@ -79,10 +145,14 @@ func (p *Player) Pause() error {
 
 /*Next song.*/
 func (p *Player) Next() error {
-	return p.conn.Next()
+	r := makeRequest(next)
+	p.daemonRequest <- r
+	<-r.response
+	return r.responseErr
 }
 
 /*Close mpd connection.*/
 func (p *Player) Close() error {
+	p.stop <- true
 	return p.conn.Close()
 }
