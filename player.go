@@ -13,16 +13,8 @@ const (
 )
 
 type playerRequest struct {
-	request     playerRequestType
-	response    chan bool
-	responseErr error
-}
-
-func makeRequest(req playerRequestType) (r *playerRequest) {
-	r = new(playerRequest)
-	r.request = req
-	r.response = make(chan bool)
-	return
+	request playerRequestType
+	err     chan error
 }
 
 /*Dial Connects to mpd server.*/
@@ -30,7 +22,7 @@ func Dial(network, addr string) (p *Player, err error) {
 	// connect to mpd
 	p = new(Player)
 	p.stop = make(chan bool)
-	p.daemonRequest = make(chan *playerRequest)
+	p.requestChannel = make(chan *playerRequest)
 	p.network = network
 	p.addr = addr
 	err = p.connect()
@@ -52,13 +44,13 @@ func Dial(network, addr string) (p *Player, err error) {
 
 /*Player represents mpd control interface.*/
 type Player struct {
-	network       string
-	addr          string
-	conn          *mpd.Client
-	stop          chan bool
-	daemonRequest chan *playerRequest
-	library       []mpd.Attrs
-	playlist      []mpd.Attrs
+	network        string
+	addr           string
+	conn           *mpd.Client
+	stop           chan bool
+	requestChannel chan *playerRequest
+	library        []mpd.Attrs
+	playlist       []mpd.Attrs
 }
 
 func (p *Player) daemon() {
@@ -67,17 +59,14 @@ loop:
 		select {
 		case <-p.stop:
 			break loop
-		case r := <-p.daemonRequest:
+		case r := <-p.requestChannel:
 			switch r.request {
 			case prev:
-				r.responseErr = p.conn.Previous()
-				r.response <- true
+				r.err <- p.conn.Previous()
 			case play:
-				r.responseErr = p.conn.Play(-1)
-				r.response <- true
+				r.err <- p.conn.Play(-1)
 			case next:
-				r.responseErr = p.conn.Next()
-				r.response <- true
+				r.err <- p.conn.Next()
 			}
 		}
 	}
@@ -122,20 +111,22 @@ func (p *Player) Playlist() []mpd.Attrs {
 	return p.playlist
 }
 
+func (p *Player) request(req playerRequestType) error {
+	r := new(playerRequest)
+	r.request = req
+	r.err = make(chan error)
+	p.requestChannel <- r
+	return <-r.err
+}
+
 /*Prev song.*/
 func (p *Player) Prev() error {
-	r := makeRequest(prev)
-	p.daemonRequest <- r
-	<-r.response
-	return r.responseErr
+	return p.request(prev)
 }
 
 /*Play or resume song.*/
 func (p *Player) Play() error {
-	r := makeRequest(play)
-	p.daemonRequest <- r
-	<-r.response
-	return r.responseErr
+	return p.request(play)
 }
 
 /*Pause song.*/
@@ -145,10 +136,7 @@ func (p *Player) Pause() error {
 
 /*Next song.*/
 func (p *Player) Next() error {
-	r := makeRequest(next)
-	p.daemonRequest <- r
-	<-r.response
-	return r.responseErr
+	return p.request(next)
 }
 
 /*Close mpd connection.*/
