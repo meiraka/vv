@@ -12,6 +12,7 @@ type m map[string]interface{}
 
 func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 	v := m{"errors": err, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
@@ -23,6 +24,7 @@ func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l time.Time, err er
 
 func writeJSONAttr(w http.ResponseWriter, d mpd.Attrs, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+	w.Header().Add("Content-Type", "application/json")
 	v := m{"errors": err, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
@@ -33,6 +35,7 @@ func writeJSONAttr(w http.ResponseWriter, d mpd.Attrs, l time.Time, err error) {
 }
 
 func writeJSON(w http.ResponseWriter, err error) {
+	w.Header().Add("Content-Type", "application/json")
 	v := m{"errors": err}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
@@ -43,6 +46,7 @@ func writeJSON(w http.ResponseWriter, err error) {
 }
 
 func notModified(w http.ResponseWriter, l time.Time) {
+	w.Header().Add("Content-Type", "application/json")
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	w.WriteHeader(304)
 	return
