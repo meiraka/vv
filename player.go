@@ -11,6 +11,7 @@ type connMessageType int
 const (
 	syncLibrary connMessageType = iota
 	syncPlaylist
+	syncCurrent
 	prev
 	play
 	next
@@ -20,6 +21,8 @@ type connMessage struct {
 	request connMessageType
 	err     chan error
 }
+
+type connRequest int
 
 /*Dial Connects to mpd server.*/
 func Dial(network, addr string) (p *Player, err error) {
@@ -43,7 +46,17 @@ func Dial(network, addr string) (p *Player, err error) {
 	}
 	// initialize playlist
 	err = p.syncPlaylist()
+	if err != nil {
+		p.Close()
+		return
+	}
+	err = p.syncCurrent()
+	if err != nil {
+		p.Close()
+		return
+	}
 	go p.connDaemon()
+	go p.watch()
 	return
 }
 
@@ -52,9 +65,15 @@ type Player struct {
 	network          string
 	addr             string
 	conn             *mpd.Client
+	w                *mpd.Watcher
 	m                *sync.Mutex
 	stop             chan bool
 	c                chan *connMessage
+	r                chan *connRequest
+	current          mpd.Attrs
+	currentModified  int64
+	comments         mpd.Attrs
+	commentsModified int64
 	library          []mpd.Attrs
 	libraryModified  int64
 	playlist         []mpd.Attrs
@@ -79,12 +98,17 @@ loop:
 				m.err <- p.syncLibrary()
 			case syncPlaylist:
 				m.err <- p.syncPlaylist()
+			case syncCurrent:
+				m.err <- p.syncCurrent()
 			}
 		}
 	}
 }
 
 func (p *Player) connect() error {
+	if p.w != nil {
+		p.w.Close()
+	}
 	if p.conn != nil {
 		p.conn.Close()
 	}
@@ -93,6 +117,44 @@ func (p *Player) connect() error {
 		return err
 	}
 	p.conn = conn
+	w, err := mpd.NewWatcher(p.network, p.addr, "")
+	if err != nil {
+		return err
+	}
+	p.w = w
+	return nil
+}
+
+func (p *Player) watch() {
+	for subsystem := range p.w.Event {
+		switch subsystem {
+		case "database":
+			p.request(syncLibrary)
+		case "playlist":
+			p.request(syncPlaylist)
+		case "player":
+			p.request(syncCurrent)
+		}
+	}
+}
+
+func (p *Player) syncCurrent() error {
+	p.m.Lock()
+	defer p.m.Unlock()
+	song, err := p.conn.CurrentSong()
+	if err != nil {
+		return err
+	}
+	p.currentModified = time.Now().Unix()
+	if p.comments == nil || p.current["file"] != song["file"] {
+		comments, err := p.conn.ReadComments(song["file"])
+		if err != nil {
+			return err
+		}
+		p.commentsModified = time.Now().Unix()
+		p.comments = comments
+	}
+	p.current = song
 	return nil
 }
 
@@ -132,6 +194,20 @@ func (p *Player) Playlist() ([]mpd.Attrs, int64) {
 	p.m.Lock()
 	defer p.m.Unlock()
 	return p.playlist, p.playlistModified
+}
+
+/*Current returns json string mpd current song.*/
+func (p *Player) Current() (mpd.Attrs, int64) {
+	p.m.Lock()
+	defer p.m.Unlock()
+	return p.current, p.currentModified
+}
+
+/*Comments returns json string mpd current song comments.*/
+func (p *Player) Comments() (mpd.Attrs, int64) {
+	p.m.Lock()
+	defer p.m.Unlock()
+	return p.comments, p.commentsModified
 }
 
 func (p *Player) request(req connMessageType) error {

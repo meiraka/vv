@@ -21,6 +21,17 @@ func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l int64, err error)
 	return
 }
 
+func writeJSONAttr(w http.ResponseWriter, d mpd.Attrs, l int64, err error) {
+	w.Header().Add("Last-Modified", strconv.FormatInt(l, 10))
+	v := m{"errors": err, "data": d}
+	b, jsonerr := json.Marshal(v)
+	if jsonerr != nil {
+		return
+	}
+	fmt.Fprintf(w, string(b))
+	return
+}
+
 func writeJSON(w http.ResponseWriter, err error) {
 	v := m{"errors": err}
 	b, jsonerr := json.Marshal(v)
@@ -60,8 +71,12 @@ func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, h.player.Pause())
 	} else if method == "next" {
 		writeJSON(w, h.player.Next())
+	} else if method == "detail" {
+		d, l := h.player.Comments()
+		writeJSONAttr(w, d, l, nil)
 	} else {
-		// show song info
+		d, l := h.player.Current()
+		writeJSONAttr(w, d, l, nil)
 	}
 }
 
