@@ -22,15 +22,13 @@ type mpcMessage struct {
 	err     chan error
 }
 
-type mpcRequest int
-
 /*Dial Connects to mpd server.*/
 func Dial(network, addr string) (p *Player, err error) {
 	// connect to mpd
 	p = new(Player)
-	p.m = new(sync.Mutex)
-	p.stop = make(chan bool)
-	p.c = make(chan *mpcMessage)
+	p.mutex = new(sync.Mutex)
+	p.daemonStop = make(chan bool)
+	p.daemonRequest = make(chan *mpcMessage)
 	p.network = network
 	p.addr = addr
 	err = p.connect()
@@ -55,7 +53,7 @@ func Dial(network, addr string) (p *Player, err error) {
 		p.Close()
 		return
 	}
-	go p.mpcDaemon()
+	go p.daemon()
 	go p.watch()
 	return
 }
@@ -66,10 +64,9 @@ type Player struct {
 	addr             string
 	mpc              mpd.Client
 	watcher          mpd.Watcher
-	m                *sync.Mutex
-	stop             chan bool
-	c                chan *mpcMessage
-	r                chan *mpcRequest
+	daemonStop       chan bool
+	daemonRequest    chan *mpcMessage
+	mutex            *sync.Mutex
 	current          mpd.Attrs
 	currentModified  time.Time
 	comments         mpd.Attrs
@@ -80,13 +77,13 @@ type Player struct {
 	playlistModified time.Time
 }
 
-func (p *Player) mpcDaemon() {
+func (p *Player) daemon() {
 loop:
 	for {
 		select {
-		case <-p.stop:
+		case <-p.daemonStop:
 			break loop
-		case m := <-p.c:
+		case m := <-p.daemonRequest:
 			switch m.request {
 			case prev:
 				m.err <- p.mpc.Previous()
@@ -139,8 +136,8 @@ func (p *Player) watch() {
 }
 
 func (p *Player) syncCurrent() error {
-	p.m.Lock()
-	defer p.m.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	song, err := p.mpc.CurrentSong()
 	if err != nil {
 		return err
@@ -167,8 +164,8 @@ func (p *Player) syncCurrent() error {
 }
 
 func (p *Player) syncLibrary() error {
-	p.m.Lock()
-	defer p.m.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	library, err := p.mpc.ListAllInfo("/")
 	if err != nil {
 		return err
@@ -180,14 +177,14 @@ func (p *Player) syncLibrary() error {
 
 /*Library returns mpd library song list.*/
 func (p *Player) Library() ([]mpd.Attrs, time.Time) {
-	p.m.Lock()
-	defer p.m.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.library, p.libraryModified
 }
 
 func (p *Player) syncPlaylist() error {
-	p.m.Lock()
-	defer p.m.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	playlist, err := p.mpc.PlaylistInfo(-1, -1)
 	if err != nil {
 		return err
@@ -199,22 +196,22 @@ func (p *Player) syncPlaylist() error {
 
 /*Playlist returns json string mpd playlist.*/
 func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
-	p.m.Lock()
-	defer p.m.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.playlist, p.playlistModified
 }
 
 /*Current returns json string mpd current song.*/
 func (p *Player) Current() (mpd.Attrs, time.Time) {
-	p.m.Lock()
-	defer p.m.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.current, p.currentModified
 }
 
 /*Comments returns json string mpd current song comments.*/
 func (p *Player) Comments() (mpd.Attrs, time.Time) {
-	p.m.Lock()
-	defer p.m.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.comments, p.commentsModified
 }
 
@@ -222,7 +219,7 @@ func (p *Player) request(req mpcMessageType) error {
 	r := new(mpcMessage)
 	r.request = req
 	r.err = make(chan error)
-	p.c <- r
+	p.daemonRequest <- r
 	return <-r.err
 }
 
@@ -248,6 +245,6 @@ func (p *Player) Next() error {
 
 /*Close mpd connection.*/
 func (p *Player) Close() error {
-	p.stop <- true
+	p.daemonStop <- true
 	return p.mpc.Close()
 }
