@@ -23,17 +23,40 @@ type mpcMessage struct {
 }
 
 /*Dial Connects to mpd server.*/
-func Dial(network, addr string) (p *Player, err error) {
+func Dial(network, addr string) (*Player, error) {
 	// connect to mpd
-	p = new(Player)
+	p := new(Player)
 	p.mutex = new(sync.Mutex)
 	p.daemonStop = make(chan bool)
 	p.daemonRequest = make(chan *mpcMessage)
 	p.network = network
 	p.addr = addr
+	return p, p.start()
+}
+
+/*Player represents mpd control interface.*/
+type Player struct {
+	network          string
+	addr             string
+	mpc              mpd.Client
+	watcher          mpd.Watcher
+	daemonStop       chan bool
+	daemonRequest    chan *mpcMessage
+	mutex            *sync.Mutex
+	current          mpd.Attrs
+	currentModified  time.Time
+	comments         mpd.Attrs
+	commentsModified time.Time
+	library          []mpd.Attrs
+	libraryModified  time.Time
+	playlist         []mpd.Attrs
+	playlistModified time.Time
+}
+
+func (p *Player) start() (err error) {
 	err = p.connect()
 	if err != nil {
-		return p, err
+		return err
 	}
 
 	// initialize library
@@ -56,25 +79,6 @@ func Dial(network, addr string) (p *Player, err error) {
 	go p.daemon()
 	go p.watch()
 	return
-}
-
-/*Player represents mpd control interface.*/
-type Player struct {
-	network          string
-	addr             string
-	mpc              mpd.Client
-	watcher          mpd.Watcher
-	daemonStop       chan bool
-	daemonRequest    chan *mpcMessage
-	mutex            *sync.Mutex
-	current          mpd.Attrs
-	currentModified  time.Time
-	comments         mpd.Attrs
-	commentsModified time.Time
-	library          []mpd.Attrs
-	libraryModified  time.Time
-	playlist         []mpd.Attrs
-	playlistModified time.Time
 }
 
 func (p *Player) daemon() {
@@ -116,6 +120,7 @@ func (p *Player) connect() error {
 	p.mpc = *mpc
 	watcher, err := mpd.NewWatcher(p.network, p.addr, "")
 	if err != nil {
+		mpc.Close()
 		return err
 	}
 	p.watcher = *watcher
@@ -246,5 +251,6 @@ func (p *Player) Next() error {
 /*Close mpd connection.*/
 func (p *Player) Close() error {
 	p.daemonStop <- true
-	return p.mpc.Close()
+	p.mpc.Close()
+	return p.watcher.Close()
 }
