@@ -22,7 +22,7 @@ func Dial(network, addr string) (p *Player, err error) {
 	// connect to mpd
 	p = new(Player)
 	p.stop = make(chan bool)
-	p.connC = make(chan *connMessage)
+	p.c = make(chan *connMessage)
 	p.network = network
 	p.addr = addr
 	err = p.connect()
@@ -31,13 +31,13 @@ func Dial(network, addr string) (p *Player, err error) {
 	}
 
 	// initialize library
-	err = p.SyncLibrary()
+	err = p.syncLibrary()
 	if err != nil {
 		p.Close()
 		return
 	}
 	// initialize playlist
-	err = p.SyncPlaylist()
+	err = p.syncPlaylist()
 	go p.connDaemon()
 	return
 }
@@ -48,7 +48,7 @@ type Player struct {
 	addr     string
 	conn     *mpd.Client
 	stop     chan bool
-	connC    chan *connMessage
+	c        chan *connMessage
 	library  []mpd.Attrs
 	playlist []mpd.Attrs
 }
@@ -59,7 +59,7 @@ loop:
 		select {
 		case <-p.stop:
 			break loop
-		case m := <-p.connC:
+		case m := <-p.c:
 			switch m.request {
 			case prev:
 				m.err <- p.conn.Previous()
@@ -67,6 +67,10 @@ loop:
 				m.err <- p.conn.Play(-1)
 			case next:
 				m.err <- p.conn.Next()
+			case syncLibrary:
+				m.err <- p.syncLibrary()
+			case syncPlaylist:
+				m.err <- p.syncPlaylist()
 			}
 		}
 	}
@@ -81,8 +85,7 @@ func (p *Player) connect() error {
 	return nil
 }
 
-/*SyncLibrary updates Player.library*/
-func (p *Player) SyncLibrary() error {
+func (p *Player) syncLibrary() error {
 	library, err := p.conn.ListAllInfo("/")
 	if err != nil {
 		return err
@@ -96,8 +99,7 @@ func (p *Player) Library() []mpd.Attrs {
 	return p.library
 }
 
-/*SyncPlaylist updates Player.playlist*/
-func (p *Player) SyncPlaylist() error {
+func (p *Player) syncPlaylist() error {
 	playlist, err := p.conn.PlaylistInfo(-1, -1)
 	if err != nil {
 		return err
@@ -115,7 +117,7 @@ func (p *Player) request(req connMessageType) error {
 	r := new(connMessage)
 	r.request = req
 	r.err = make(chan error)
-	p.connC <- r
+	p.c <- r
 	return <-r.err
 }
 
