@@ -1,6 +1,9 @@
 package main
 
-import "github.com/fhs/gompd/mpd"
+import (
+	"github.com/fhs/gompd/mpd"
+	"sync"
+)
 
 type connMessageType int
 
@@ -21,6 +24,7 @@ type connMessage struct {
 func Dial(network, addr string) (p *Player, err error) {
 	// connect to mpd
 	p = new(Player)
+	p.m = new(sync.Mutex)
 	p.stop = make(chan bool)
 	p.c = make(chan *connMessage)
 	p.network = network
@@ -47,6 +51,7 @@ type Player struct {
 	network  string
 	addr     string
 	conn     *mpd.Client
+	m        *sync.Mutex
 	stop     chan bool
 	c        chan *connMessage
 	library  []mpd.Attrs
@@ -89,6 +94,8 @@ func (p *Player) connect() error {
 }
 
 func (p *Player) syncLibrary() error {
+	p.m.Lock()
+	defer p.m.Unlock()
 	library, err := p.conn.ListAllInfo("/")
 	if err != nil {
 		return err
@@ -99,10 +106,14 @@ func (p *Player) syncLibrary() error {
 
 /*Library returns mpd library song list.*/
 func (p *Player) Library() []mpd.Attrs {
+	p.m.Lock()
+	defer p.m.Unlock()
 	return p.library
 }
 
 func (p *Player) syncPlaylist() error {
+	p.m.Lock()
+	defer p.m.Unlock()
 	playlist, err := p.conn.PlaylistInfo(-1, -1)
 	if err != nil {
 		return err
@@ -113,6 +124,8 @@ func (p *Player) syncPlaylist() error {
 
 /*Playlist returns json string mpd playlist.*/
 func (p *Player) Playlist() []mpd.Attrs {
+	p.m.Lock()
+	defer p.m.Unlock()
 	return p.playlist
 }
 
