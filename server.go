@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"net/http"
+	"strconv"
 )
 
 type m map[string]interface{}
 
-func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, err error) {
+func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l int64, err error) {
+	w.Header().Add("Last-Modified", strconv.FormatInt(l, 10))
 	v := m{"errors": err, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
@@ -38,14 +40,14 @@ type apiHandler struct {
 }
 
 func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
-	playlist := h.player.Playlist()
-	writeJSONAttrList(w, playlist, nil)
+	d, l := h.player.Playlist()
+	writeJSONAttrList(w, d, l, nil)
 
 }
 
 func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
-	library := h.player.Library()
-	writeJSONAttrList(w, library, nil)
+	d, l := h.player.Library()
+	writeJSONAttrList(w, d, l, nil)
 }
 
 func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {

@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/fhs/gompd/mpd"
 	"sync"
+	"time"
 )
 
 type connMessageType int
@@ -48,14 +49,16 @@ func Dial(network, addr string) (p *Player, err error) {
 
 /*Player represents mpd control interface.*/
 type Player struct {
-	network  string
-	addr     string
-	conn     *mpd.Client
-	m        *sync.Mutex
-	stop     chan bool
-	c        chan *connMessage
-	library  []mpd.Attrs
-	playlist []mpd.Attrs
+	network          string
+	addr             string
+	conn             *mpd.Client
+	m                *sync.Mutex
+	stop             chan bool
+	c                chan *connMessage
+	library          []mpd.Attrs
+	libraryModified  int64
+	playlist         []mpd.Attrs
+	playlistModified int64
 }
 
 func (p *Player) connDaemon() {
@@ -101,14 +104,15 @@ func (p *Player) syncLibrary() error {
 		return err
 	}
 	p.library = library
+	p.libraryModified = time.Now().Unix()
 	return nil
 }
 
 /*Library returns mpd library song list.*/
-func (p *Player) Library() []mpd.Attrs {
+func (p *Player) Library() ([]mpd.Attrs, int64) {
 	p.m.Lock()
 	defer p.m.Unlock()
-	return p.library
+	return p.library, p.libraryModified
 }
 
 func (p *Player) syncPlaylist() error {
@@ -119,14 +123,15 @@ func (p *Player) syncPlaylist() error {
 		return err
 	}
 	p.playlist = playlist
+	p.playlistModified = time.Now().Unix()
 	return nil
 }
 
 /*Playlist returns json string mpd playlist.*/
-func (p *Player) Playlist() []mpd.Attrs {
+func (p *Player) Playlist() ([]mpd.Attrs, int64) {
 	p.m.Lock()
 	defer p.m.Unlock()
-	return p.playlist
+	return p.playlist, p.playlistModified
 }
 
 func (p *Player) request(req connMessageType) error {
