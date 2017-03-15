@@ -145,6 +145,13 @@ func (p *Player) syncCurrent() error {
 	if err != nil {
 		return err
 	}
+	status, err := p.conn.Status()
+	if err != nil {
+		return err
+	}
+	for k, v := range status {
+		song[k] = v
+	}
 	p.currentModified = time.Now().Unix()
 	if p.comments == nil || p.current["file"] != song["file"] {
 		comments, err := p.conn.ReadComments(song["file"])
@@ -154,6 +161,7 @@ func (p *Player) syncCurrent() error {
 		p.commentsModified = time.Now().Unix()
 		p.comments = comments
 	}
+
 	p.current = song
 	return nil
 }
