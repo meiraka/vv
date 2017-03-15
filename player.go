@@ -24,7 +24,6 @@ type mpcMessage struct {
 
 /*Dial Connects to mpd server.*/
 func Dial(network, addr string) (*Player, error) {
-	// connect to mpd
 	p := new(Player)
 	p.mutex = new(sync.Mutex)
 	p.daemonStop = make(chan bool)
@@ -53,19 +52,71 @@ type Player struct {
 	playlistModified time.Time
 }
 
+/*Close mpd connection.*/
+func (p *Player) Close() error {
+	p.daemonStop <- true
+	p.mpc.Close()
+	return p.watcher.Close()
+}
+
+/*Comments returns mpd current song raw meta data.*/
+func (p *Player) Comments() (mpd.Attrs, time.Time) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.comments, p.commentsModified
+}
+
+/*Current returns mpd current song data.*/
+func (p *Player) Current() (mpd.Attrs, time.Time) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.current, p.currentModified
+}
+
+/*Library returns mpd library song data list.*/
+func (p *Player) Library() ([]mpd.Attrs, time.Time) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.library, p.libraryModified
+}
+
+/*Playlist returns mpd playlist song data list.*/
+func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.playlist, p.playlistModified
+}
+
+/*Pause song.*/
+func (p *Player) Pause() error {
+	return p.mpc.Pause(true)
+}
+
+/*Play or resume song.*/
+func (p *Player) Play() error {
+	return p.request(play)
+}
+
+/*Prev song.*/
+func (p *Player) Prev() error {
+	return p.request(prev)
+}
+
+/*Next song.*/
+func (p *Player) Next() error {
+	return p.request(next)
+}
+
 func (p *Player) start() (err error) {
 	err = p.connect()
 	if err != nil {
 		return err
 	}
-
-	// initialize library
 	err = p.syncLibrary()
 	if err != nil {
 		p.Close()
 		return
 	}
-	// initialize playlist
 	err = p.syncPlaylist()
 	if err != nil {
 		p.Close()
@@ -106,6 +157,19 @@ loop:
 	}
 }
 
+func (p *Player) watch() {
+	for subsystem := range p.watcher.Event {
+		switch subsystem {
+		case "database":
+			p.request(syncLibrary)
+		case "playlist":
+			p.request(syncPlaylist)
+		case "player":
+			p.request(syncCurrent)
+		}
+	}
+}
+
 func (p *Player) reconnect() error {
 	p.watcher.Close()
 	p.mpc.Close()
@@ -127,17 +191,12 @@ func (p *Player) connect() error {
 	return nil
 }
 
-func (p *Player) watch() {
-	for subsystem := range p.watcher.Event {
-		switch subsystem {
-		case "database":
-			p.request(syncLibrary)
-		case "playlist":
-			p.request(syncPlaylist)
-		case "player":
-			p.request(syncCurrent)
-		}
-	}
+func (p *Player) request(req mpcMessageType) error {
+	r := new(mpcMessage)
+	r.request = req
+	r.err = make(chan error)
+	p.daemonRequest <- r
+	return <-r.err
 }
 
 func (p *Player) syncCurrent() error {
@@ -180,13 +239,6 @@ func (p *Player) syncLibrary() error {
 	return nil
 }
 
-/*Library returns mpd library song list.*/
-func (p *Player) Library() ([]mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.library, p.libraryModified
-}
-
 func (p *Player) syncPlaylist() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -197,60 +249,4 @@ func (p *Player) syncPlaylist() error {
 	p.playlist = playlist
 	p.playlistModified = time.Now()
 	return nil
-}
-
-/*Playlist returns json string mpd playlist.*/
-func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.playlist, p.playlistModified
-}
-
-/*Current returns json string mpd current song.*/
-func (p *Player) Current() (mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.current, p.currentModified
-}
-
-/*Comments returns json string mpd current song comments.*/
-func (p *Player) Comments() (mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.comments, p.commentsModified
-}
-
-func (p *Player) request(req mpcMessageType) error {
-	r := new(mpcMessage)
-	r.request = req
-	r.err = make(chan error)
-	p.daemonRequest <- r
-	return <-r.err
-}
-
-/*Prev song.*/
-func (p *Player) Prev() error {
-	return p.request(prev)
-}
-
-/*Play or resume song.*/
-func (p *Player) Play() error {
-	return p.request(play)
-}
-
-/*Pause song.*/
-func (p *Player) Pause() error {
-	return p.mpc.Pause(true)
-}
-
-/*Next song.*/
-func (p *Player) Next() error {
-	return p.request(next)
-}
-
-/*Close mpd connection.*/
-func (p *Player) Close() error {
-	p.daemonStop <- true
-	p.mpc.Close()
-	return p.watcher.Close()
 }
