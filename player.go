@@ -64,8 +64,8 @@ func Dial(network, addr string) (p *Player, err error) {
 type Player struct {
 	network          string
 	addr             string
-	conn             *mpd.Client
-	w                *mpd.Watcher
+	conn             mpd.Client
+	w                mpd.Watcher
 	m                *sync.Mutex
 	stop             chan bool
 	c                chan *connMessage
@@ -105,23 +105,23 @@ loop:
 	}
 }
 
+func (p *Player) reconnect() error {
+	p.w.Close()
+	p.conn.Close()
+	return p.connect()
+}
+
 func (p *Player) connect() error {
-	if p.w != nil {
-		p.w.Close()
-	}
-	if p.conn != nil {
-		p.conn.Close()
-	}
 	conn, err := mpd.Dial(p.network, p.addr)
 	if err != nil {
 		return err
 	}
-	p.conn = conn
+	p.conn = *conn
 	w, err := mpd.NewWatcher(p.network, p.addr, "")
 	if err != nil {
 		return err
 	}
-	p.w = w
+	p.w = *w
 	return nil
 }
 
