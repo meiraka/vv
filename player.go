@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-type connMessageType int
+type mpcMessageType int
 
 const (
-	syncLibrary connMessageType = iota
+	syncLibrary mpcMessageType = iota
 	syncPlaylist
 	syncCurrent
 	prev
@@ -17,12 +17,12 @@ const (
 	next
 )
 
-type connMessage struct {
-	request connMessageType
+type mpcMessage struct {
+	request mpcMessageType
 	err     chan error
 }
 
-type connRequest int
+type mpcRequest int
 
 /*Dial Connects to mpd server.*/
 func Dial(network, addr string) (p *Player, err error) {
@@ -30,7 +30,7 @@ func Dial(network, addr string) (p *Player, err error) {
 	p = new(Player)
 	p.m = new(sync.Mutex)
 	p.stop = make(chan bool)
-	p.c = make(chan *connMessage)
+	p.c = make(chan *mpcMessage)
 	p.network = network
 	p.addr = addr
 	err = p.connect()
@@ -55,7 +55,7 @@ func Dial(network, addr string) (p *Player, err error) {
 		p.Close()
 		return
 	}
-	go p.connDaemon()
+	go p.mpcDaemon()
 	go p.watch()
 	return
 }
@@ -64,12 +64,12 @@ func Dial(network, addr string) (p *Player, err error) {
 type Player struct {
 	network          string
 	addr             string
-	conn             mpd.Client
-	w                mpd.Watcher
+	mpc              mpd.Client
+	watcher          mpd.Watcher
 	m                *sync.Mutex
 	stop             chan bool
-	c                chan *connMessage
-	r                chan *connRequest
+	c                chan *mpcMessage
+	r                chan *mpcRequest
 	current          mpd.Attrs
 	currentModified  time.Time
 	comments         mpd.Attrs
@@ -80,7 +80,7 @@ type Player struct {
 	playlistModified time.Time
 }
 
-func (p *Player) connDaemon() {
+func (p *Player) mpcDaemon() {
 loop:
 	for {
 		select {
@@ -89,11 +89,11 @@ loop:
 		case m := <-p.c:
 			switch m.request {
 			case prev:
-				m.err <- p.conn.Previous()
+				m.err <- p.mpc.Previous()
 			case play:
-				m.err <- p.conn.Play(-1)
+				m.err <- p.mpc.Play(-1)
 			case next:
-				m.err <- p.conn.Next()
+				m.err <- p.mpc.Next()
 			case syncLibrary:
 				m.err <- p.syncLibrary()
 			case syncPlaylist:
@@ -106,27 +106,27 @@ loop:
 }
 
 func (p *Player) reconnect() error {
-	p.w.Close()
-	p.conn.Close()
+	p.watcher.Close()
+	p.mpc.Close()
 	return p.connect()
 }
 
 func (p *Player) connect() error {
-	conn, err := mpd.Dial(p.network, p.addr)
+	mpc, err := mpd.Dial(p.network, p.addr)
 	if err != nil {
 		return err
 	}
-	p.conn = *conn
-	w, err := mpd.NewWatcher(p.network, p.addr, "")
+	p.mpc = *mpc
+	watcher, err := mpd.NewWatcher(p.network, p.addr, "")
 	if err != nil {
 		return err
 	}
-	p.w = *w
+	p.watcher = *watcher
 	return nil
 }
 
 func (p *Player) watch() {
-	for subsystem := range p.w.Event {
+	for subsystem := range p.watcher.Event {
 		switch subsystem {
 		case "database":
 			p.request(syncLibrary)
@@ -141,11 +141,11 @@ func (p *Player) watch() {
 func (p *Player) syncCurrent() error {
 	p.m.Lock()
 	defer p.m.Unlock()
-	song, err := p.conn.CurrentSong()
+	song, err := p.mpc.CurrentSong()
 	if err != nil {
 		return err
 	}
-	status, err := p.conn.Status()
+	status, err := p.mpc.Status()
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (p *Player) syncCurrent() error {
 	}
 	p.currentModified = time.Now()
 	if p.comments == nil || p.current["file"] != song["file"] {
-		comments, err := p.conn.ReadComments(song["file"])
+		comments, err := p.mpc.ReadComments(song["file"])
 		if err != nil {
 			return err
 		}
@@ -169,7 +169,7 @@ func (p *Player) syncCurrent() error {
 func (p *Player) syncLibrary() error {
 	p.m.Lock()
 	defer p.m.Unlock()
-	library, err := p.conn.ListAllInfo("/")
+	library, err := p.mpc.ListAllInfo("/")
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (p *Player) Library() ([]mpd.Attrs, time.Time) {
 func (p *Player) syncPlaylist() error {
 	p.m.Lock()
 	defer p.m.Unlock()
-	playlist, err := p.conn.PlaylistInfo(-1, -1)
+	playlist, err := p.mpc.PlaylistInfo(-1, -1)
 	if err != nil {
 		return err
 	}
@@ -218,8 +218,8 @@ func (p *Player) Comments() (mpd.Attrs, time.Time) {
 	return p.comments, p.commentsModified
 }
 
-func (p *Player) request(req connMessageType) error {
-	r := new(connMessage)
+func (p *Player) request(req mpcMessageType) error {
+	r := new(mpcMessage)
 	r.request = req
 	r.err = make(chan error)
 	p.c <- r
@@ -238,7 +238,7 @@ func (p *Player) Play() error {
 
 /*Pause song.*/
 func (p *Player) Pause() error {
-	return p.conn.Pause(true)
+	return p.mpc.Pause(true)
 }
 
 /*Next song.*/
@@ -249,5 +249,5 @@ func (p *Player) Next() error {
 /*Close mpd connection.*/
 func (p *Player) Close() error {
 	p.stop <- true
-	return p.conn.Close()
+	return p.mpc.Close()
 }
