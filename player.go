@@ -2,18 +2,18 @@ package main
 
 import "github.com/fhs/gompd/mpd"
 
-type playerRequestType int
+type connMessageType int
 
 const (
-	syncLibrary playerRequestType = iota
+	syncLibrary connMessageType = iota
 	syncPlaylist
 	prev
 	play
 	next
 )
 
-type playerRequest struct {
-	request playerRequestType
+type connMessage struct {
+	request connMessageType
 	err     chan error
 }
 
@@ -22,7 +22,7 @@ func Dial(network, addr string) (p *Player, err error) {
 	// connect to mpd
 	p = new(Player)
 	p.stop = make(chan bool)
-	p.requestChannel = make(chan *playerRequest)
+	p.connC = make(chan *connMessage)
 	p.network = network
 	p.addr = addr
 	err = p.connect()
@@ -38,35 +38,35 @@ func Dial(network, addr string) (p *Player, err error) {
 	}
 	// initialize playlist
 	err = p.SyncPlaylist()
-	go p.daemon()
+	go p.connDaemon()
 	return
 }
 
 /*Player represents mpd control interface.*/
 type Player struct {
-	network        string
-	addr           string
-	conn           *mpd.Client
-	stop           chan bool
-	requestChannel chan *playerRequest
-	library        []mpd.Attrs
-	playlist       []mpd.Attrs
+	network  string
+	addr     string
+	conn     *mpd.Client
+	stop     chan bool
+	connC    chan *connMessage
+	library  []mpd.Attrs
+	playlist []mpd.Attrs
 }
 
-func (p *Player) daemon() {
+func (p *Player) connDaemon() {
 loop:
 	for {
 		select {
 		case <-p.stop:
 			break loop
-		case r := <-p.requestChannel:
-			switch r.request {
+		case m := <-p.connC:
+			switch m.request {
 			case prev:
-				r.err <- p.conn.Previous()
+				m.err <- p.conn.Previous()
 			case play:
-				r.err <- p.conn.Play(-1)
+				m.err <- p.conn.Play(-1)
 			case next:
-				r.err <- p.conn.Next()
+				m.err <- p.conn.Next()
 			}
 		}
 	}
@@ -111,11 +111,11 @@ func (p *Player) Playlist() []mpd.Attrs {
 	return p.playlist
 }
 
-func (p *Player) request(req playerRequestType) error {
-	r := new(playerRequest)
+func (p *Player) request(req connMessageType) error {
+	r := new(connMessage)
 	r.request = req
 	r.err = make(chan error)
-	p.requestChannel <- r
+	p.connC <- r
 	return <-r.err
 }
 
