@@ -77,6 +77,9 @@ loop:
 }
 
 func (p *Player) connect() error {
+	if p.conn != nil {
+		p.conn.Close()
+	}
 	conn, err := mpd.Dial(p.network, p.addr)
 	if err != nil {
 		return err
