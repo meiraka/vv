@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"net/http"
-	"strconv"
+	"time"
 )
 
 type m map[string]interface{}
 
-func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l int64, err error) {
-	w.Header().Add("Last-Modified", strconv.FormatInt(l, 10))
+func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l time.Time, err error) {
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	v := m{"errors": err, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
@@ -21,8 +21,8 @@ func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l int64, err error)
 	return
 }
 
-func writeJSONAttr(w http.ResponseWriter, d mpd.Attrs, l int64, err error) {
-	w.Header().Add("Last-Modified", strconv.FormatInt(l, 10))
+func writeJSONAttr(w http.ResponseWriter, d mpd.Attrs, l time.Time, err error) {
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	v := m{"errors": err, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
@@ -42,6 +42,12 @@ func writeJSON(w http.ResponseWriter, err error) {
 	return
 }
 
+func notModified(w http.ResponseWriter, l time.Time) {
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+	w.WriteHeader(304)
+	return
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, World")
 }
@@ -52,13 +58,20 @@ type apiHandler struct {
 
 func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
 	d, l := h.player.Playlist()
-	writeJSONAttrList(w, d, l, nil)
-
+	if modified(r, l) {
+		writeJSONAttrList(w, d, l, nil)
+	} else {
+		notModified(w, l)
+	}
 }
 
 func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
 	d, l := h.player.Library()
-	writeJSONAttrList(w, d, l, nil)
+	if modified(r, l) {
+		writeJSONAttrList(w, d, l, nil)
+	} else {
+		notModified(w, l)
+	}
 }
 
 func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
@@ -73,11 +86,23 @@ func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, h.player.Next())
 	} else if method == "detail" {
 		d, l := h.player.Comments()
-		writeJSONAttr(w, d, l, nil)
+		if modified(r, l) {
+			writeJSONAttr(w, d, l, nil)
+		} else {
+			notModified(w, l)
+		}
 	} else {
 		d, l := h.player.Current()
-		writeJSONAttr(w, d, l, nil)
+		if modified(r, l) {
+			writeJSONAttr(w, d, l, nil)
+		} else {
+			notModified(w, l)
+		}
 	}
+}
+
+func modified(r *http.Request, l time.Time) bool {
+	return r.Header.Get("If-Modified-Since") != l.Format(http.TimeFormat)
 }
 
 // App serves http request.

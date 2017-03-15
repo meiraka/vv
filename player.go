@@ -71,13 +71,13 @@ type Player struct {
 	c                chan *connMessage
 	r                chan *connRequest
 	current          mpd.Attrs
-	currentModified  int64
+	currentModified  time.Time
 	comments         mpd.Attrs
-	commentsModified int64
+	commentsModified time.Time
 	library          []mpd.Attrs
-	libraryModified  int64
+	libraryModified  time.Time
 	playlist         []mpd.Attrs
-	playlistModified int64
+	playlistModified time.Time
 }
 
 func (p *Player) connDaemon() {
@@ -152,13 +152,13 @@ func (p *Player) syncCurrent() error {
 	for k, v := range status {
 		song[k] = v
 	}
-	p.currentModified = time.Now().Unix()
+	p.currentModified = time.Now()
 	if p.comments == nil || p.current["file"] != song["file"] {
 		comments, err := p.conn.ReadComments(song["file"])
 		if err != nil {
 			return err
 		}
-		p.commentsModified = time.Now().Unix()
+		p.commentsModified = time.Now()
 		p.comments = comments
 	}
 
@@ -174,12 +174,12 @@ func (p *Player) syncLibrary() error {
 		return err
 	}
 	p.library = library
-	p.libraryModified = time.Now().Unix()
+	p.libraryModified = time.Now()
 	return nil
 }
 
 /*Library returns mpd library song list.*/
-func (p *Player) Library() ([]mpd.Attrs, int64) {
+func (p *Player) Library() ([]mpd.Attrs, time.Time) {
 	p.m.Lock()
 	defer p.m.Unlock()
 	return p.library, p.libraryModified
@@ -193,26 +193,26 @@ func (p *Player) syncPlaylist() error {
 		return err
 	}
 	p.playlist = playlist
-	p.playlistModified = time.Now().Unix()
+	p.playlistModified = time.Now()
 	return nil
 }
 
 /*Playlist returns json string mpd playlist.*/
-func (p *Player) Playlist() ([]mpd.Attrs, int64) {
+func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
 	p.m.Lock()
 	defer p.m.Unlock()
 	return p.playlist, p.playlistModified
 }
 
 /*Current returns json string mpd current song.*/
-func (p *Player) Current() (mpd.Attrs, int64) {
+func (p *Player) Current() (mpd.Attrs, time.Time) {
 	p.m.Lock()
 	defer p.m.Unlock()
 	return p.current, p.currentModified
 }
 
 /*Comments returns json string mpd current song comments.*/
-func (p *Player) Comments() (mpd.Attrs, int64) {
+func (p *Player) Comments() (mpd.Attrs, time.Time) {
 	p.m.Lock()
 	defer p.m.Unlock()
 	return p.comments, p.commentsModified
