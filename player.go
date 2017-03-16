@@ -37,7 +37,7 @@ func Dial(network, addr string) (*Player, error) {
 type Player struct {
 	network          string
 	addr             string
-	mpc              mpd.Client
+	mpc              MpdClient
 	watcher          mpd.Watcher
 	daemonStop       chan bool
 	daemonRequest    chan *mpcMessage
@@ -50,6 +50,20 @@ type Player struct {
 	libraryModified  time.Time
 	playlist         []mpd.Attrs
 	playlistModified time.Time
+}
+
+/*MpdClient represents mpd.Client for Player.*/
+type MpdClient interface {
+	Play(int) error
+	Pause(bool) error
+	Previous() error
+	Next() error
+	Close() error
+	ReadComments(string) (mpd.Attrs, error)
+	CurrentSong() (mpd.Attrs, error)
+	Status() (mpd.Attrs, error)
+	ListAllInfo(string) ([]mpd.Attrs, error)
+	PlaylistInfo(int, int) ([]mpd.Attrs, error)
 }
 
 /*Close mpd connection.*/
@@ -181,7 +195,7 @@ func (p *Player) connect() error {
 	if err != nil {
 		return err
 	}
-	p.mpc = *mpc
+	p.mpc = mpc
 	watcher, err := mpd.NewWatcher(p.network, p.addr, "")
 	if err != nil {
 		mpc.Close()
