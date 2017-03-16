@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/fhs/gompd/mpd"
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -26,11 +27,123 @@ func TestPlayerPlay(t *testing.T) {
 	if m.playcalled != 2 {
 		t.Errorf("Client.Play does not called")
 	}
-	if p.Play() != m.err {
+	if err != m.err {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
 	if m.playarg1 != -1 {
 		t.Errorf("unexpected Client.Play arguments: %d", m.playarg1)
+	}
+}
+
+func TestPlayerPause(t *testing.T) {
+	p, m := mockDial("tcp", "localhost:6600")
+	m.err = new(mockError)
+	err := p.Pause()
+	if m.pausecalled != 1 {
+		t.Errorf("Client.Pause does not called")
+	}
+	if err != m.err {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+	if m.pausearg1 != true {
+		t.Errorf("unexpected Client.Pause arguments: %t", m.pausearg1)
+	}
+
+	m.err = nil
+	err = p.Pause()
+
+	if m.pausecalled != 2 {
+		t.Errorf("Client.Pause does not called")
+	}
+	if err != m.err {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+	if m.pausearg1 != true {
+		t.Errorf("unexpected Client.Pause arguments: %t", m.pausearg1)
+	}
+}
+
+func TestPlayerNext(t *testing.T) {
+	p, m := mockDial("tcp", "localhost:6600")
+	m.err = new(mockError)
+	err := p.Next()
+	if m.nextcalled != 1 {
+		t.Errorf("Client.Next does not called")
+	}
+	if err != m.err {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+	m.err = nil
+	err = p.Next()
+	if m.nextcalled != 2 {
+		t.Errorf("Client.Next does not called")
+	}
+	if err != m.err {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+}
+
+func TestPlayerPrevious(t *testing.T) {
+	p, m := mockDial("tcp", "localhost:6600")
+	m.err = new(mockError)
+	err := p.Prev()
+	if m.previouscalled != 1 {
+		t.Errorf("Client.Previous does not called")
+	}
+	if err != m.err {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+	m.err = nil
+	err = p.Prev()
+	if m.previouscalled != 2 {
+		t.Errorf("Client.Previous does not called")
+	}
+	if err != m.err {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+}
+
+func TestPlayerPlaylist(t *testing.T) {
+	p, m := mockDial("tcp", "localhost:6600")
+	m.err = nil
+	m.playlistinforet = []mpd.Attrs{{"foo": "bar"}}
+	p.watcher.Event <- "playlist"
+	p.Nop()
+
+	if m.playlistinfocalled != 1 {
+		t.Errorf("Client.PlaylistInfo does not called")
+	}
+	if m.playlistinfoarg1 != -1 || m.playlistinfoarg2 != -1 {
+		t.Errorf("unexpected Client.PlaylistInfo arguments: %d %d", m.playlistinfoarg1, m.playlistinfoarg2)
+	}
+	if !reflect.DeepEqual(m.playlistinforet, p.playlist) {
+		t.Errorf("unexpected stored playlist")
+	}
+	playlist, _ := p.Playlist()
+	if !reflect.DeepEqual(m.playlistinforet, playlist) {
+		t.Errorf("unexpected get playlist")
+	}
+}
+
+func TestPlayerLibrary(t *testing.T) {
+	p, m := mockDial("tcp", "localhost:6600")
+	m.err = nil
+	m.listallinforet = []mpd.Attrs{{"foo": "bar"}}
+	p.watcher.Event <- "database"
+	p.Nop()
+
+	if m.listallinfocalled != 1 {
+		t.Errorf("Client.ListAllInfo does not called")
+	}
+	if m.listallinfoarg1 != "/" {
+		t.Errorf("unexpected Client.ListAllInfo arguments: %s", m.listallinfoarg1)
+	}
+	if !reflect.DeepEqual(m.listallinforet, p.library) {
+		t.Errorf("unexpected stored library")
+	}
+	library, _ := p.Library()
+	if !reflect.DeepEqual(m.listallinforet, library) {
+		t.Errorf("unexpected get library")
 	}
 }
 
@@ -44,6 +157,7 @@ func mockDial(network, addr string) (p *Player, m *mockMpc) {
 	m = new(mockMpc)
 	p.mpc = m
 	p.watcher = *new(mpd.Watcher)
+	p.watcher.Event = make(chan string)
 	go p.daemon()
 	go p.watch()
 	return
