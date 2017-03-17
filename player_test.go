@@ -107,9 +107,11 @@ func TestPlayerPlaylist(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
 	m.playlistinforet = []mpd.Attrs{{"foo": "bar"}}
+	// if mpd.Watcher.Event recieve "playlist"
 	p.watcher.Event <- "playlist"
 	p.Nop()
 
+	// mpd.Client.PlaylistInfo was called
 	if m.playlistinfocalled != 1 {
 		t.Errorf("Client.PlaylistInfo does not called")
 	}
@@ -119,6 +121,7 @@ func TestPlayerPlaylist(t *testing.T) {
 	if !reflect.DeepEqual(m.playlistinforet, p.playlist) {
 		t.Errorf("unexpected stored playlist")
 	}
+	// Player.Playlist returns mpd.Client.PlaylistInfo result
 	playlist, _ := p.Playlist()
 	if !reflect.DeepEqual(m.playlistinforet, playlist) {
 		t.Errorf("unexpected get playlist")
@@ -129,9 +132,11 @@ func TestPlayerLibrary(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
 	m.listallinforet = []mpd.Attrs{{"foo": "bar"}}
+	// if mpd.Watcher.Event recieve "database"
 	p.watcher.Event <- "database"
 	p.Nop()
 
+	// mpd.Client.ListAllInfo was called
 	if m.listallinfocalled != 1 {
 		t.Errorf("Client.ListAllInfo does not called")
 	}
@@ -141,9 +146,50 @@ func TestPlayerLibrary(t *testing.T) {
 	if !reflect.DeepEqual(m.listallinforet, p.library) {
 		t.Errorf("unexpected stored library")
 	}
+	// Player.Library returns mpd.Client.ListAllInfo result
 	library, _ := p.Library()
 	if !reflect.DeepEqual(m.listallinforet, library) {
 		t.Errorf("unexpected get library")
+	}
+}
+
+func TestPlayerCurrent(t *testing.T) {
+	p, m := mockDial("tcp", "localhost:6600")
+	m.err = nil
+	m.currentsongret = mpd.Attrs{"foo": "bar"}
+	m.statusret = mpd.Attrs{"hoge": "fuga"}
+	m.readcommentsret = mpd.Attrs{"baz": "piyo"}
+	// if mpd.Watcher.Event recieve "database"
+	p.watcher.Event <- "player"
+	p.Nop()
+
+	// mpd.Client.CurrentSong was called
+	if m.currentsongcalled != 1 {
+		t.Errorf("Client.CurrentSong does not called")
+	}
+	// mpd.Client.Status was called
+	if m.statuscalled != 1 {
+		t.Errorf("Client.Status does not called")
+	}
+	// mpd.Client.ReadComments was called
+	if m.readcommentscalled != 1 {
+		t.Errorf("Client.ReadComments does not called")
+	}
+	if !reflect.DeepEqual(mpd.Attrs{"foo": "bar", "hoge": "fuga"}, p.current) {
+		t.Errorf("unexpected stored current")
+	}
+	// Player.Current returns merged mpd.Client.CurrentSong and mpd.Client.Status result
+	current, _ := p.Current()
+	if !reflect.DeepEqual(mpd.Attrs{"foo": "bar", "hoge": "fuga"}, current) {
+		t.Errorf("unexpected get Current")
+	}
+	if !reflect.DeepEqual(m.readcommentsret, p.comments) {
+		t.Errorf("unexpected stored comments")
+	}
+	// Player.Current returns mpd.Client.ReadComments result
+	comments, _ := p.Comments()
+	if !reflect.DeepEqual(m.readcommentsret, comments) {
+		t.Errorf("unexpected get comments")
 	}
 }
 
