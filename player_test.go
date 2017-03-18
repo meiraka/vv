@@ -37,6 +37,9 @@ func TestConvSong(t *testing.T) {
 	if r.Title != "foo" {
 		t.Errorf("unexpected Song.Title: %s", r.Title)
 	}
+	if r.ID != -1 {
+		t.Errorf("unexpected Song.ID: %d", r.ID)
+	}
 }
 
 func TestPlayerPlay(t *testing.T) {
