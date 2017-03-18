@@ -1,12 +1,12 @@
 var Mpd = (function() {
     TREE = [
-        [["AlbumArtist", ["AlbumArtist"]],
-         ["Album", ["Date", "Album"]],
-         ["Title", ["Track", "Title"]]
+        [["albumartist", ["albumartist"]],
+         ["album", ["date", "album"]],
+         ["title", ["track", "title"]]
         ],
-        [["Genre", ["Genre"]],
-         ["Album", ["Date", "Album"]],
-         ["Title", ["Track", "Title"]]
+        [["genre", ["genre"]],
+         ["album", ["date", "album"]],
+         ["title", ["track", "title"]]
         ]
     ]
     var mpd = function() {
@@ -30,8 +30,8 @@ var Mpd = (function() {
     };
     p.update_song = function(data) {
         sessionStorage.current = JSON.stringify(data)
-        $("#current .title").text(data["Title"])
-        $("#current .artist").text(data["Artist"])
+        $("#current .title").text(data["title"])
+        $("#current .artist").text(data["artist"])
     };
 
 

@@ -22,6 +22,30 @@ func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l time.Time, err er
 	return
 }
 
+func writeJSONSongList(w http.ResponseWriter, d []Song, l time.Time, err error) {
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+	v := m{"errors": err, "data": d}
+	b, jsonerr := json.Marshal(v)
+	if jsonerr != nil {
+		return
+	}
+	fmt.Fprintf(w, string(b))
+	return
+}
+
+func writeJSONSong(w http.ResponseWriter, d Song, l time.Time, err error) {
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+	w.Header().Add("Content-Type", "application/json")
+	v := m{"errors": err, "data": d}
+	b, jsonerr := json.Marshal(v)
+	if jsonerr != nil {
+		return
+	}
+	fmt.Fprintf(w, string(b))
+	return
+}
+
 func writeJSONAttr(w http.ResponseWriter, d mpd.Attrs, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	w.Header().Add("Content-Type", "application/json")
@@ -75,7 +99,7 @@ type apiHandler struct {
 func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
 	d, l := h.player.Playlist()
 	if modified(r, l) {
-		writeJSONAttrList(w, d, l, nil)
+		writeJSONSongList(w, d, l, nil)
 	} else {
 		notModified(w, l)
 	}
@@ -84,7 +108,7 @@ func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
 func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
 	d, l := h.player.Library()
 	if modified(r, l) {
-		writeJSONAttrList(w, d, l, nil)
+		writeJSONSongList(w, d, l, nil)
 	} else {
 		notModified(w, l)
 	}
@@ -110,7 +134,7 @@ func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
 	} else {
 		d, l := h.player.Current()
 		if modified(r, l) {
-			writeJSONAttr(w, d, l, nil)
+			writeJSONSong(w, d, l, nil)
 		} else {
 			notModified(w, l)
 		}

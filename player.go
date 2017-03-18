@@ -45,14 +45,14 @@ type Player struct {
 	daemonStop       chan bool
 	daemonRequest    chan *mpcMessage
 	mutex            *sync.Mutex
-	current          mpd.Attrs
+	current          Song
 	currentModified  time.Time
 	status           PlayerStatus
 	comments         mpd.Attrs
 	commentsModified time.Time
-	library          []mpd.Attrs
+	library          []Song
 	libraryModified  time.Time
-	playlist         []mpd.Attrs
+	playlist         []Song
 	playlistModified time.Time
 }
 
@@ -68,6 +68,54 @@ type PlayerStatus struct {
 	SongElapsed  float32 `json:"song_elapsed"`
 	SongLength   int     `json:"song_length"`
 	LastModified int64   `json:"last_modified"`
+}
+
+/*Song represents mpd song data.*/
+type Song struct {
+	AlbumArtist string `json:"albumartist"`
+	Album       string `json:"album"`
+	Artist      string `json:"artist"`
+	Genre       string `json:"genre"`
+	Track       int    `json:"track"`
+	TrackNo     string `json:"trackno"`
+	Title       string `json:"title"`
+	File        string `json:"file"`
+}
+
+func convSong(d mpd.Attrs) (s Song) {
+	checks := []string{
+		"AlbumArtist",
+		"Album",
+		"Artist",
+		"Genre",
+		"Track",
+		"Title",
+	}
+	for i := range checks {
+		if _, ok := d[checks[i]]; !ok {
+			d[checks[i]] = "[no " + checks[i] + "]"
+		}
+	}
+	s.AlbumArtist = d["AlbumArtist"]
+	s.Album = d["Album"]
+	s.Artist = d["Artist"]
+	s.Genre = d["Genre"]
+	track, err := strconv.Atoi(d["Track"])
+	if err != nil {
+		track = -1
+	}
+	s.Track = track
+	s.TrackNo = d["Track"]
+	s.Title = d["Title"]
+	return
+}
+
+func convSongs(d []mpd.Attrs) []Song {
+	ret := make([]Song, len(d), len(d)*12)
+	for i := range d {
+		ret[i] = convSong(d[i])
+	}
+	return ret
 }
 
 /*MpdClient represents mpd.Client for Player.*/
@@ -100,7 +148,7 @@ func (p *Player) Comments() (mpd.Attrs, time.Time) {
 }
 
 /*Current returns mpd current song data.*/
-func (p *Player) Current() (mpd.Attrs, time.Time) {
+func (p *Player) Current() (Song, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.current, p.currentModified
@@ -114,14 +162,14 @@ func (p *Player) Status() (PlayerStatus, time.Time) {
 }
 
 /*Library returns mpd library song data list.*/
-func (p *Player) Library() ([]mpd.Attrs, time.Time) {
+func (p *Player) Library() ([]Song, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.library, p.libraryModified
 }
 
 /*Playlist returns mpd playlist song data list.*/
-func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
+func (p *Player) Playlist() ([]Song, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.playlist, p.playlistModified
@@ -302,7 +350,7 @@ func (p *Player) syncCurrent() error {
 		return err
 	}
 	convStatus(song, status, &p.status)
-	if p.comments == nil || p.current["file"] != song["file"] {
+	if p.comments == nil || p.current.File != song["file"] {
 		comments, err := p.mpc.ReadComments(song["file"])
 		if err != nil {
 			return err
@@ -311,7 +359,7 @@ func (p *Player) syncCurrent() error {
 		p.comments = comments
 	}
 
-	p.current = song
+	p.current = convSong(song)
 	return nil
 }
 
@@ -322,7 +370,7 @@ func (p *Player) syncLibrary() error {
 	if err != nil {
 		return err
 	}
-	p.library = library
+	p.library = convSongs(library)
 	p.libraryModified = time.Now()
 	return nil
 }
@@ -334,7 +382,7 @@ func (p *Player) syncPlaylist() error {
 	if err != nil {
 		return err
 	}
-	p.playlist = playlist
+	p.playlist = convSongs(playlist)
 	p.playlistModified = time.Now()
 	return nil
 }

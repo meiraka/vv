@@ -107,6 +107,7 @@ func TestPlayerPlaylist(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
 	m.playlistinforet = []mpd.Attrs{{"foo": "bar"}}
+	expect := convSongs(m.playlistinforet)
 	// if mpd.Watcher.Event recieve "playlist"
 	p.watcher.Event <- "playlist"
 	p.Nop()
@@ -118,12 +119,12 @@ func TestPlayerPlaylist(t *testing.T) {
 	if m.playlistinfoarg1 != -1 || m.playlistinfoarg2 != -1 {
 		t.Errorf("unexpected Client.PlaylistInfo arguments: %d %d", m.playlistinfoarg1, m.playlistinfoarg2)
 	}
-	if !reflect.DeepEqual(m.playlistinforet, p.playlist) {
+	if !reflect.DeepEqual(expect, p.playlist) {
 		t.Errorf("unexpected stored playlist")
 	}
 	// Player.Playlist returns mpd.Client.PlaylistInfo result
 	playlist, _ := p.Playlist()
-	if !reflect.DeepEqual(m.playlistinforet, playlist) {
+	if !reflect.DeepEqual(expect, playlist) {
 		t.Errorf("unexpected get playlist")
 	}
 }
@@ -132,6 +133,7 @@ func TestPlayerLibrary(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
 	m.listallinforet = []mpd.Attrs{{"foo": "bar"}}
+	expect := convSongs(m.listallinforet)
 	// if mpd.Watcher.Event recieve "database"
 	p.watcher.Event <- "database"
 	p.Nop()
@@ -143,12 +145,12 @@ func TestPlayerLibrary(t *testing.T) {
 	if m.listallinfoarg1 != "/" {
 		t.Errorf("unexpected Client.ListAllInfo arguments: %s", m.listallinfoarg1)
 	}
-	if !reflect.DeepEqual(m.listallinforet, p.library) {
+	if !reflect.DeepEqual(expect, p.library) {
 		t.Errorf("unexpected stored library")
 	}
 	// Player.Library returns mpd.Client.ListAllInfo result
 	library, _ := p.Library()
-	if !reflect.DeepEqual(m.listallinforet, library) {
+	if !reflect.DeepEqual(expect, library) {
 		t.Errorf("unexpected get library")
 	}
 }
@@ -175,9 +177,9 @@ func TestPlayerCurrent(t *testing.T) {
 	if m.readcommentscalled != 1 {
 		t.Errorf("Client.ReadComments does not called")
 	}
-	// Player.Current returns mpd.Client.CurrentSong result
+	// Player.Current returns converted mpd.Client.CurrentSong result
 	current, _ := p.Current()
-	if !reflect.DeepEqual(m.currentsongret, current) {
+	if !reflect.DeepEqual(convSong(m.currentsongret), current) {
 		t.Errorf("unexpected get Current")
 	}
 	// Player.Status returns converted mpd.Client.Status result
