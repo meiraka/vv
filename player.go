@@ -84,7 +84,6 @@ type Song struct {
 
 func convSong(d mpd.Attrs) (s Song) {
 	checks := []string{
-		"AlbumArtist",
 		"Album",
 		"Artist",
 		"Genre",
@@ -97,6 +96,9 @@ func convSong(d mpd.Attrs) (s Song) {
 		}
 	}
 	s.AlbumArtist = d["AlbumArtist"]
+	if s.AlbumArtist == "" {
+		s.AlbumArtist = d["Artist"]
+	}
 	s.Album = d["Album"]
 	s.Artist = d["Artist"]
 	s.Genre = d["Genre"]

@@ -10,7 +10,7 @@ import (
 func TestConvSong(t *testing.T) {
 	i := mpd.Attrs{"Title": "foo", "file": "path"}
 	r := convSong(i)
-	if r.AlbumArtist != "[no AlbumArtist]" {
+	if r.AlbumArtist != "[no Artist]" {
 		t.Errorf("unexpected Song.AlbumArtist: %s", r.AlbumArtist)
 	}
 	if r.Album != "[no Album]" {
