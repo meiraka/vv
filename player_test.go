@@ -232,6 +232,7 @@ type mockMpc struct {
 	currentsongret     mpd.Attrs
 	statuscalled       int
 	statusret          mpd.Attrs
+	pingcalled         int
 }
 
 func (p *mockMpc) Play(playarg1 int) error {
@@ -254,6 +255,10 @@ func (p *mockMpc) Previous() error {
 }
 func (p *mockMpc) Close() error {
 	p.closecalled++
+	return p.err
+}
+func (p *mockMpc) Ping() error {
+	p.pingcalled++
 	return p.err
 }
 func (p *mockMpc) CurrentSong() (mpd.Attrs, error) {

@@ -15,6 +15,7 @@ const (
 	prev
 	play
 	next
+	ping
 	nop
 )
 
@@ -59,6 +60,7 @@ type MpdClient interface {
 	Pause(bool) error
 	Previous() error
 	Next() error
+	Ping() error
 	Close() error
 	ReadComments(string) (mpd.Attrs, error)
 	CurrentSong() (mpd.Attrs, error)
@@ -149,6 +151,7 @@ func (p *Player) start() (err error) {
 	}
 	go p.daemon()
 	go p.watch()
+	go p.ping()
 	return
 }
 
@@ -172,10 +175,19 @@ loop:
 				m.err <- p.syncPlaylist()
 			case syncCurrent:
 				m.err <- p.syncCurrent()
+			case ping:
+				m.err <- p.mpc.Ping()
 			case nop:
 				m.err <- nil
 			}
 		}
+	}
+}
+
+func (p *Player) ping() {
+	for {
+		time.Sleep(1)
+		p.request(ping)
 	}
 }
 
