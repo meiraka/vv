@@ -67,7 +67,7 @@ type PlayerStatus struct {
 	SongPos      int     `json:"song_pos"`
 	SongElapsed  float32 `json:"song_elapsed"`
 	SongLength   int     `json:"song_length"`
-	LastModified float32 `json:"last_modified"`
+	LastModified int64   `json:"last_modified"`
 }
 
 /*MpdClient represents mpd.Client for Player.*/
@@ -281,8 +281,7 @@ func convStatus(a mpd.Attrs, s *PlayerStatus) {
 	s.State = state
 	s.SongPos = songpos
 	s.SongElapsed = float32(elapsed)
-	millisec := float32(time.Now().UnixNano()/int64(time.Millisecond)) / 1000.0
-	s.LastModified = millisec
+	s.LastModified = time.Now().Unix()
 }
 
 func (p *Player) syncCurrent() error {
