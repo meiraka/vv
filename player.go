@@ -83,7 +83,7 @@ type Song struct {
 	TrackNo     string `json:"trackno"`
 	Title       string `json:"title"`
 	File        string `json:"file"`
-	ID          int    `json:"id"`
+	Disc        int    `json:"disc"`
 }
 
 func convSong(d mpd.Attrs) (s Song) {
@@ -94,7 +94,6 @@ func convSong(d mpd.Attrs) (s Song) {
 		"Genre",
 		"Track",
 		"Title",
-		"Id",
 	}
 	for i := range checks {
 		if _, ok := d[checks[i]]; !ok {
@@ -116,11 +115,11 @@ func convSong(d mpd.Attrs) (s Song) {
 	s.Track = track
 	s.TrackNo = d["Track"]
 	s.Title = d["Title"]
-	id, err := strconv.Atoi(d["Id"])
+	disc, err := strconv.Atoi(d["disc"])
 	if err != nil {
-		id = -1
+		disc = 1
 	}
-	s.ID = id
+	s.Disc = disc
 	return
 }
 
