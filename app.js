@@ -83,14 +83,23 @@ var Mpd = (function() {
 			},
         })
     }
+
+    p.show_current = function() {
+        $("#list").hide();
+        $("#current").show();
+    }
+
     p.show_root = function() {
-        var data = JSON.parse(sessionStorage.tree)
-        if (data.length > 0) {
-            data.pop();
+        if ($("#current").css("display") == "none") {
+            var data = JSON.parse(sessionStorage.tree)
+            if (data.length > 0) {
+                data.pop();
+            }
+            sessionStorage.tree = JSON.stringify(data)
         }
-        sessionStorage.tree = JSON.stringify(data)
         p.show_list();
     }
+
     p.show_list = function() {
         tree = JSON.parse(sessionStorage.tree)
         $("#current").hide()
@@ -177,8 +186,12 @@ function getOrElse(m, k, v) {
 
 $(document).ready(function(){
     mpc = new Mpd()
-    $("#menu .left").bind("click", function() {
+    $("#menu .up").bind("click", function() {
         mpc.show_root()
+        return false;
+    });
+    $("#menu .back").bind("click", function() {
+        mpc.show_current()
         return false;
     });
     $("#playback .prev").bind("click", function() {
