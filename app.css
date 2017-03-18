@@ -10,6 +10,26 @@ footer {
     width: 100%;
 }
 
+#current {
+    position: fixed;
+    top: 100px;
+}
+
+#current .title {
+    position: fixed;
+    top: 100px;
+}
+
+#current .artist {
+    position: fixed;
+    top: 120px;
+}
+
+#current .elapsed {
+    position: fixed;
+    top: 140px;
+}
+
 footer, footer nav, footer nav button {
     border: 0px;
     margin: 0px;
