@@ -13,6 +13,7 @@ const (
 	syncLibrary mpcMessageType = iota
 	syncPlaylist
 	syncCurrent
+	pause
 	prev
 	play
 	next
@@ -189,7 +190,7 @@ func (p *Player) Playlist() ([]Song, time.Time) {
 
 /*Pause song.*/
 func (p *Player) Pause() error {
-	return p.mpc.Pause(true)
+	return p.request(pause)
 }
 
 /*Play or resume song.*/
@@ -248,6 +249,8 @@ loop:
 			switch m.request {
 			case prev:
 				m.err <- p.mpc.Previous()
+			case pause:
+				m.err <- p.mpc.Pause(true)
 			case play:
 				m.err <- p.mpc.Play(-1)
 			case next:
