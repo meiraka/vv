@@ -7,6 +7,35 @@ import (
 	"testing"
 )
 
+func TestConvSong(t *testing.T) {
+	i := mpd.Attrs{"Title": "foo", "file": "path"}
+	r := convSong(i)
+	if r.AlbumArtist != "[no AlbumArtist]" {
+		t.Errorf("unexpected Song.AlbumArtist: %s", r.AlbumArtist)
+	}
+	if r.Album != "[no Album]" {
+		t.Errorf("unexpected Song.Album: %s", r.Album)
+	}
+	if r.Artist != "[no Artist]" {
+		t.Errorf("unexpected Song.Artist: %s", r.Artist)
+	}
+	if r.Genre != "[no Genre]" {
+		t.Errorf("unexpected Song.Genre: %s", r.Genre)
+	}
+	if r.Track != -1 {
+		t.Errorf("unexpected Song.Track: %d", r.Track)
+	}
+	if r.TrackNo != "[no Track]" {
+		t.Errorf("unexpected Song.TrackNo: %s", r.TrackNo)
+	}
+	if r.Album != "[no Album]" {
+		t.Errorf("unexpected Song.Album: %s", r.Album)
+	}
+	if r.Title != "foo" {
+		t.Errorf("unexpected Song.Title: %s", r.Title)
+	}
+}
+
 func TestPlayerPlay(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = new(mockError)
