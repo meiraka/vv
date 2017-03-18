@@ -43,6 +43,7 @@ type Player struct {
 	addr             string
 	mpc              MpdClient
 	watcher          mpd.Watcher
+	watcherResponse  chan error
 	daemonStop       chan bool
 	daemonRequest    chan *mpcMessage
 	mutex            *sync.Mutex
@@ -278,14 +279,19 @@ func (p *Player) ping() {
 }
 
 func (p *Player) watch() {
+	watchBack := func(err error) {
+		if p.watcherResponse != nil {
+			p.watcherResponse <- err
+		}
+	}
 	for subsystem := range p.watcher.Event {
 		switch subsystem {
 		case "database":
-			p.request(syncLibrary)
+			watchBack(p.request(syncLibrary))
 		case "playlist":
-			p.request(syncPlaylist)
+			watchBack(p.request(syncPlaylist))
 		case "player":
-			p.request(syncCurrent)
+			watchBack(p.request(syncCurrent))
 		}
 	}
 }

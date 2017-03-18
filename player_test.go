@@ -145,7 +145,9 @@ func TestPlayerPlaylist(t *testing.T) {
 	expect := convSongs(m.playlistinforet)
 	// if mpd.Watcher.Event recieve "playlist"
 	p.watcher.Event <- "playlist"
-	p.Nop()
+	if err := <-p.watcherResponse; err != nil {
+		t.Errorf("unexpected watcher error: %s", err.Error())
+	}
 
 	// mpd.Client.PlaylistInfo was called
 	if m.playlistinfocalled != 1 {
@@ -171,7 +173,9 @@ func TestPlayerLibrary(t *testing.T) {
 	expect := convSongs(m.listallinforet)
 	// if mpd.Watcher.Event recieve "database"
 	p.watcher.Event <- "database"
-	p.Nop()
+	if err := <-p.watcherResponse; err != nil {
+		t.Errorf("unexpected watcher error: %s", err.Error())
+	}
 
 	// mpd.Client.ListAllInfo was called
 	if m.listallinfocalled != 1 {
@@ -198,7 +202,9 @@ func TestPlayerCurrent(t *testing.T) {
 	m.readcommentsret = mpd.Attrs{"baz": "piyo"}
 	// if mpd.Watcher.Event recieve "database"
 	p.watcher.Event <- "player"
-	p.Nop()
+	if err := <-p.watcherResponse; err != nil {
+		t.Errorf("unexpected watcher error: %s", err.Error())
+	}
 
 	// mpd.Client.CurrentSong was called
 	if m.currentsongcalled != 1 {
@@ -260,6 +266,7 @@ func mockDial(network, addr string) (p *Player, m *mockMpc) {
 	m = new(mockMpc)
 	p.mpc = m
 	p.watcher = *new(mpd.Watcher)
+	p.watcherResponse = make(chan error)
 	p.watcher.Event = make(chan string)
 	go p.daemon()
 	go p.watch()
