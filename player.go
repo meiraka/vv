@@ -75,6 +75,7 @@ type Song struct {
 	AlbumArtist string `json:"albumartist"`
 	Album       string `json:"album"`
 	Artist      string `json:"artist"`
+	Date        string `json:"date"`
 	Genre       string `json:"genre"`
 	Track       int    `json:"track"`
 	TrackNo     string `json:"trackno"`
@@ -86,6 +87,7 @@ func convSong(d mpd.Attrs) (s Song) {
 	checks := []string{
 		"Album",
 		"Artist",
+		"Date",
 		"Genre",
 		"Track",
 		"Title",
@@ -101,6 +103,7 @@ func convSong(d mpd.Attrs) (s Song) {
 	}
 	s.Album = d["Album"]
 	s.Artist = d["Artist"]
+	s.Date = d["Date"]
 	s.Genre = d["Genre"]
 	track, err := strconv.Atoi(d["Track"])
 	if err != nil {

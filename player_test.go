@@ -19,6 +19,9 @@ func TestConvSong(t *testing.T) {
 	if r.Artist != "[no Artist]" {
 		t.Errorf("unexpected Song.Artist: %s", r.Artist)
 	}
+	if r.Date != "[no Date]" {
+		t.Errorf("unexpected Song.Date: %s", r.Date)
+	}
 	if r.Genre != "[no Genre]" {
 		t.Errorf("unexpected Song.Genre: %s", r.Genre)
 	}
