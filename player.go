@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/fhs/gompd/mpd"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -46,12 +47,27 @@ type Player struct {
 	mutex            *sync.Mutex
 	current          mpd.Attrs
 	currentModified  time.Time
+	status           PlayerStatus
 	comments         mpd.Attrs
 	commentsModified time.Time
 	library          []mpd.Attrs
 	libraryModified  time.Time
 	playlist         []mpd.Attrs
 	playlistModified time.Time
+}
+
+/*PlayerStatus represents mpd status.*/
+type PlayerStatus struct {
+	Volume       int     `json:"volume"`
+	Repeat       bool    `json:"repeat"`
+	Random       bool    `json:"random"`
+	Single       bool    `json:"single"`
+	Consume      bool    `json:"consume"`
+	State        string  `json:"state"`
+	SongPos      int     `json:"song_pos"`
+	SongElapsed  float32 `json:"song_elapsed"`
+	SongLength   int     `json:"song_length"`
+	LastModified float32 `json:"last_modified"`
 }
 
 /*MpdClient represents mpd.Client for Player.*/
@@ -88,6 +104,13 @@ func (p *Player) Current() (mpd.Attrs, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.current, p.currentModified
+}
+
+/*Status returns mpd current song data.*/
+func (p *Player) Status() (PlayerStatus, time.Time) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.status, p.currentModified
 }
 
 /*Library returns mpd library song data list.*/
@@ -233,6 +256,35 @@ func (p *Player) request(req mpcMessageType) error {
 	return <-r.err
 }
 
+func convStatus(a mpd.Attrs, s *PlayerStatus) {
+	elapsed, err := strconv.ParseFloat(a["elapsed"], 64)
+	if err != nil {
+		elapsed = 0.0
+	}
+	volume, err := strconv.Atoi(a["volume"])
+	if err != nil {
+		volume = -1
+	}
+	songpos, err := strconv.Atoi(a["song"])
+	if err != nil {
+		songpos = 0
+	}
+	state := a["state"]
+	if state == "" {
+		state = "stopped"
+	}
+	s.Volume = volume
+	s.Repeat = a["repeat"] == "1"
+	s.Random = a["random"] == "1"
+	s.Single = a["single"] == "1"
+	s.Consume = a["consume"] == "1"
+	s.State = state
+	s.SongPos = songpos
+	s.SongElapsed = float32(elapsed)
+	millisec := float32(time.Now().UnixNano()/int64(time.Millisecond)) / 1000.0
+	s.LastModified = millisec
+}
+
 func (p *Player) syncCurrent() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -240,14 +292,17 @@ func (p *Player) syncCurrent() error {
 	if err != nil {
 		return err
 	}
+	p.currentModified = time.Now()
 	status, err := p.mpc.Status()
 	if err != nil {
 		return err
 	}
-	for k, v := range status {
-		song[k] = v
+	convStatus(status, &p.status)
+	songlength, err := strconv.Atoi(song["Time"])
+	if err != nil {
+		songlength = 0
 	}
-	p.currentModified = time.Now()
+	p.status.SongLength = songlength
 	if p.comments == nil || p.current["file"] != song["file"] {
 		comments, err := p.mpc.ReadComments(song["file"])
 		if err != nil {

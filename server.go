@@ -34,6 +34,18 @@ func writeJSONAttr(w http.ResponseWriter, d mpd.Attrs, l time.Time, err error) {
 	return
 }
 
+func writeJSONStatus(w http.ResponseWriter, d PlayerStatus, l time.Time, err error) {
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+	w.Header().Add("Content-Type", "application/json")
+	v := m{"errors": err, "data": d}
+	b, jsonerr := json.Marshal(v)
+	if jsonerr != nil {
+		return
+	}
+	fmt.Fprintf(w, string(b))
+	return
+}
+
 func writeJSON(w http.ResponseWriter, err error) {
 	w.Header().Add("Content-Type", "application/json")
 	v := m{"errors": err}
@@ -105,6 +117,26 @@ func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
+	method := r.FormValue("action")
+	if method == "prev" {
+		writeJSON(w, h.player.Prev())
+	} else if method == "play" {
+		writeJSON(w, h.player.Play())
+	} else if method == "pause" {
+		writeJSON(w, h.player.Pause())
+	} else if method == "next" {
+		writeJSON(w, h.player.Next())
+	} else {
+		d, l := h.player.Status()
+		if modified(r, l) {
+			writeJSONStatus(w, d, l, nil)
+		} else {
+			notModified(w, l)
+		}
+	}
+}
+
 func modified(r *http.Request, l time.Time) bool {
 	return r.Header.Get("If-Modified-Since") != l.Format(http.TimeFormat)
 }
@@ -116,6 +148,7 @@ func App(p *Player, config ServerConfig) {
 	http.HandleFunc("/api/library", api.library)
 	http.HandleFunc("/api/songs", api.playlist)
 	http.HandleFunc("/api/songs/current", api.current)
+	http.HandleFunc("/api/control", api.control)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "app.html")
 	})

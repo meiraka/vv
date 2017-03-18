@@ -175,16 +175,36 @@ func TestPlayerCurrent(t *testing.T) {
 	if m.readcommentscalled != 1 {
 		t.Errorf("Client.ReadComments does not called")
 	}
-	if !reflect.DeepEqual(mpd.Attrs{"foo": "bar", "hoge": "fuga"}, p.current) {
-		t.Errorf("unexpected stored current")
-	}
-	// Player.Current returns merged mpd.Client.CurrentSong and mpd.Client.Status result
+	// Player.Current returns mpd.Client.CurrentSong result
 	current, _ := p.Current()
-	if !reflect.DeepEqual(mpd.Attrs{"foo": "bar", "hoge": "fuga"}, current) {
+	if !reflect.DeepEqual(m.currentsongret, current) {
 		t.Errorf("unexpected get Current")
 	}
-	if !reflect.DeepEqual(m.readcommentsret, p.comments) {
-		t.Errorf("unexpected stored comments")
+	// Player.Status returns converted mpd.Client.Status result
+	status, _ := p.Status()
+	if status.Volume != -1 {
+		t.Errorf("unexpected PlayerStatus.Volume")
+	}
+	if status.Repeat != false {
+		t.Errorf("unexpected PlayerStatus.Repeat")
+	}
+	if status.Random != false {
+		t.Errorf("unexpected PlayerStatus.Random")
+	}
+	if status.Single != false {
+		t.Errorf("unexpected PlayerStatus.Single")
+	}
+	if status.Consume != false {
+		t.Errorf("unexpected PlayerStatus.Consume")
+	}
+	if status.State != "stopped" {
+		t.Errorf("unexpected PlayerStatus.State")
+	}
+	if status.SongPos != 0 {
+		t.Errorf("unexpected PlayerStatus.SongPos: %d", status.SongPos)
+	}
+	if status.SongElapsed != 0.0 {
+		t.Errorf("unexpected PlayerStatus.SongElapsed")
 	}
 	// Player.Current returns mpd.Client.ReadComments result
 	comments, _ := p.Comments()
