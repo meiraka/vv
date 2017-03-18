@@ -256,31 +256,36 @@ func (p *Player) request(req mpcMessageType) error {
 	return <-r.err
 }
 
-func convStatus(a mpd.Attrs, s *PlayerStatus) {
-	elapsed, err := strconv.ParseFloat(a["elapsed"], 64)
+func convStatus(song, status mpd.Attrs, s *PlayerStatus) {
+	elapsed, err := strconv.ParseFloat(status["elapsed"], 64)
 	if err != nil {
 		elapsed = 0.0
 	}
-	volume, err := strconv.Atoi(a["volume"])
+	volume, err := strconv.Atoi(status["volume"])
 	if err != nil {
 		volume = -1
 	}
-	songpos, err := strconv.Atoi(a["song"])
+	songpos, err := strconv.Atoi(status["song"])
 	if err != nil {
 		songpos = 0
 	}
-	state := a["state"]
+	state := status["state"]
 	if state == "" {
 		state = "stopped"
 	}
+	songlength, err := strconv.Atoi(song["Time"])
+	if err != nil {
+		songlength = 0
+	}
 	s.Volume = volume
-	s.Repeat = a["repeat"] == "1"
-	s.Random = a["random"] == "1"
-	s.Single = a["single"] == "1"
-	s.Consume = a["consume"] == "1"
+	s.Repeat = status["repeat"] == "1"
+	s.Random = status["random"] == "1"
+	s.Single = status["single"] == "1"
+	s.Consume = status["consume"] == "1"
 	s.State = state
 	s.SongPos = songpos
 	s.SongElapsed = float32(elapsed)
+	s.SongLength = songlength
 	s.LastModified = time.Now().Unix()
 }
 
@@ -296,12 +301,7 @@ func (p *Player) syncCurrent() error {
 	if err != nil {
 		return err
 	}
-	convStatus(status, &p.status)
-	songlength, err := strconv.Atoi(song["Time"])
-	if err != nil {
-		songlength = 0
-	}
-	p.status.SongLength = songlength
+	convStatus(song, status, &p.status)
 	if p.comments == nil || p.current["file"] != song["file"] {
 		comments, err := p.mpc.ReadComments(song["file"])
 		if err != nil {
