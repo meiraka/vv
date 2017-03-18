@@ -5,7 +5,7 @@ var Mpd = (function() {
          ["title", ["track", "title"]]
         ],
         [["genre", ["genre"]],
-         ["album", ["date", "album"]],
+         ["album", ["album"]],
          ["title", ["track", "title"]]
         ]
     ]
@@ -101,23 +101,7 @@ var Mpd = (function() {
             }
             $("#list ol li").bind("click", function() {
                 var index = $(this).attr("index");
-                console.log("root")
                 sessionStorage.tree = JSON.stringify([index]);
-                p.show_list();
-                return false;
-            });
-        } else if (tree.length == 1) {
-            library = JSON.parse(sessionStorage.library);
-            child = TREE[tree[0]][0]
-            labels = sortUniq(library, child[0], child[1]);
-            for (i in labels) {
-                $("#list ol").append("<li>" + labels[i][0] + "</li>")
-            }
-            $("#list ol li").bind("click", function() {
-                var key = $(this).text();
-                console.log("1")
-                tree.push([child[0], key])
-                sessionStorage.tree = JSON.stringify(tree)
                 p.show_list();
                 return false;
             });
@@ -128,8 +112,6 @@ var Mpd = (function() {
                 if (leef == 0) { continue; }
                 filters[tree[leef][0]] = tree[leef][1];
             }
-            console.log(filters);
-            console.log(library.length);
             library = library.filter(function(e, i, self) {
                 for (f in filters) {
                     if (!(f in e && e[f] == filters[f])) {
@@ -138,18 +120,14 @@ var Mpd = (function() {
                 }
                 return true;
             });
-            console.log(library.length);
             child = TREE[tree[0]][tree.length - 1];
-            console.log(child);
             labels = sortUniq(library, child[0], child[1]);
             for (i in labels) {
                 $("#list ol").append("<li>" + labels[i][0] + "</li>")
             }
             $("#list ol li").bind("click", function() {
                 var key = $(this).text();
-                console.log("2");
                 if (tree.length == TREE[tree[0]].length) {
-                    console.log("play");
                     console.log(TREE[tree[0]]);
                     console.log(key);
                 } else {
