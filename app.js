@@ -1,5 +1,16 @@
 var Mpd = (function() {
+    TREE = [
+        [["AlbumArtist", ["AlbumArtist"]],
+         ["Album", ["Date", "Album"]],
+         ["Title", ["Track", "Title"]]
+        ],
+        [["Genre", ["Genre"]],
+         ["Album", ["Date", "Album"]],
+         ["Title", ["Track", "Title"]]
+        ]
+    ]
     var mpd = function() {
+        sessionStorage.tree = JSON.stringify([])
     };
 
     var p = mpd.prototype;
@@ -18,6 +29,7 @@ var Mpd = (function() {
         })
     };
     p.update_song = function(data) {
+        sessionStorage.current = JSON.stringify(data)
         $("#current .title").text(data["Title"])
         $("#current .artist").text(data["Artist"])
     };
@@ -35,28 +47,121 @@ var Mpd = (function() {
 				}
 			},
         })
-        p.refreash_control_data(this.control_data);
+        p.refreash_control_data();
     };
     p.update_control_data = function(data) {
-        $('#current .elapsed').attr("state", data["state"])
-        $('#current .elapsed').attr("elapsed", data["song_elapsed"])
-        $('#current .elapsed').attr("last_modified", data["last_modified"])
+        sessionStorage.control = JSON.stringify(data)
         p.refreash_control_data();
     };
     p.refreash_control_data = function() {
-        if ($('#current .elapsed').attr("last_modified")) {
-            var state = $('#current .elapsed').attr("state")
-            var elapsed = parseInt($('#current .elapsed').attr("elapsed") * 1000)
+        data = JSON.parse(sessionStorage.control)
+        if ('state' in data) {
+            var elapsed = parseInt(data["song_elapsed"] * 1000)
             var current = elapsed
-            var last_modified = parseInt($('#current .elapsed').attr("last_modified") * 1000)
+            var last_modified = parseInt(data["last_modified"] * 1000)
             var date = new Date()
-            if (state == "play") {
+            if (data["state"] == "play") {
                 current += date.getTime() - last_modified
             }
-            $("#current .elapsed").text(parseSongTime(current / 1000));
-        } else {
+            var label = parseSongTime(current / 1000);
+            if ($("#current .elapsed").text() != label) {
+                $("#current .elapsed").text(label);
+            }
         }
     };
+
+    p.update_library_request = function() {
+        $.ajax({
+            type: "GET",
+            url: "api/library",
+            ifModified: true,
+			dataType: "json",
+            success: function(data, status) {
+				if (status == "success" && data["errors"] == null) {
+                    sessionStorage.library = JSON.stringify(data["data"])
+				}
+			},
+        })
+    }
+    p.show_root = function() {
+        var data = JSON.parse(sessionStorage.tree)
+        if (data.length > 0) {
+            data.pop();
+        }
+        sessionStorage.tree = JSON.stringify(data)
+        p.show_list();
+    }
+    p.show_list = function() {
+        tree = JSON.parse(sessionStorage.tree)
+        $("#current").hide()
+        $("#list ol").empty()
+        if (tree.length == 0) {
+            for (i in TREE) {
+                $("#list ol").append("<li index="+i+">" + TREE[i][0][0] + "</li>")
+            }
+            $("#list ol li").bind("click", function() {
+                var index = $(this).attr("index");
+                console.log("root")
+                sessionStorage.tree = JSON.stringify([index]);
+                p.show_list();
+                return false;
+            });
+        } else if (tree.length == 1) {
+            library = JSON.parse(sessionStorage.library);
+            child = TREE[tree[0]][0]
+            labels = sortUniq(library, child[0], child[1]);
+            for (i in labels) {
+                $("#list ol").append("<li>" + labels[i][0] + "</li>")
+            }
+            $("#list ol li").bind("click", function() {
+                var key = $(this).text();
+                console.log("1")
+                tree.push([child[0], key])
+                sessionStorage.tree = JSON.stringify(tree)
+                p.show_list();
+                return false;
+            });
+        } else {
+            library = JSON.parse(sessionStorage.library);
+            filters = {}
+            for (leef in tree) {
+                if (leef == 0) { continue; }
+                filters[tree[leef][0]] = tree[leef][1];
+            }
+            console.log(filters);
+            console.log(library.length);
+            library = library.filter(function(e, i, self) {
+                for (f in filters) {
+                    if (!(f in e && e[f] == filters[f])) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+            console.log(library.length);
+            child = TREE[tree[0]][tree.length - 1];
+            console.log(child);
+            labels = sortUniq(library, child[0], child[1]);
+            for (i in labels) {
+                $("#list ol").append("<li>" + labels[i][0] + "</li>")
+            }
+            $("#list ol li").bind("click", function() {
+                var key = $(this).text();
+                console.log("2");
+                if (tree.length == TREE[tree[0]].length) {
+                    console.log("play");
+                    console.log(TREE[tree[0]]);
+                    console.log(key);
+                } else {
+                    tree.push([child[0], key])
+                    sessionStorage.tree = JSON.stringify(tree)
+                    p.show_list();
+                }
+                return false;
+            });
+        }
+        $("#list").show()
+    }
     return mpd;
 })();
 
@@ -67,8 +172,37 @@ function parseSongTime(val) {
     return min + ':' + ("0" + sec).slice(-2)
 }
 
+function sortUniq(data, key, keys) {
+    var labels = data.map(function(song) {
+        sortkey = '';
+        for (i in keys) {
+            sortkey += getOrElse(song, keys[i], 'no ' + keys[i]);
+        }
+        return [getOrElse(song, key, 'no '+key), sortkey];
+    }).sort(function (a, b) {
+        if (a[1] < b[1]) { return -1; } else { return 1; };
+    })
+    return labels.filter(function (e, i , self) {
+        if (i == 0) {
+            return true;
+        } else if (e[1] != self[i - 1][1]) {
+            return true;
+        } else {
+            return false;
+        }
+    });
+}
+
+function getOrElse(m, k, v) {
+    return k in m? m[k] : v;
+}
 
 $(document).ready(function(){
+    mpc = new Mpd()
+    $("#menu .left").bind("click", function() {
+        mpc.show_root()
+        return false;
+    });
     $("#playback .prev").bind("click", function() {
         $.ajax({
             type: "GET",
@@ -79,7 +213,7 @@ $(document).ready(function(){
         return false;
     });
     $("#playback .play").bind("click", function() {
-        var state = $('#current .elapsed').attr("state")
+        var state = getOrElse(JSON.parse(sessionStorage.control), "state", "stopped");
         var action = state == "play" ? "pause" : "play"
         $.ajax({
             type: "GET",
@@ -99,10 +233,10 @@ $(document).ready(function(){
         return false;
     });
 
-    mpc = new Mpd()
     function polling() {
         mpc.update_song_request()
         mpc.update_control_data_request()
+        mpc.update_library_request()
 		setTimeout(polling, 1000);
     }
 	polling();

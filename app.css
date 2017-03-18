@@ -10,24 +10,31 @@ footer {
     width: 100%;
 }
 
-#current {
-    position: fixed;
-    top: 100px;
+section {
+    position: relative;
+    top: 30px;
 }
 
 #current .title {
     position: fixed;
-    top: 100px;
+    left: 0px;
+    top: 40px;
+    width: 100%;
+    font-size: 32px;
 }
 
 #current .artist {
+    width: 100%;
     position: fixed;
-    top: 120px;
+    top: 80px;
+    left: 0px;
+    height: 20px;
+    font-size: 26px;
 }
 
-#current .elapsed {
-    position: fixed;
-    top: 140px;
+#current .elapsedbar {
+    width: 100%;
+    height: 100%;
 }
 
 footer, footer nav, footer nav button {
