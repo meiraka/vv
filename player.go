@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/fhs/gompd/mpd"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,6 +16,7 @@ const (
 	syncLibrary mpcMessageType = iota
 	syncPlaylist
 	syncCurrent
+	sortPlaylist
 	pause
 	prev
 	play
@@ -24,8 +26,9 @@ const (
 )
 
 type mpcMessage struct {
-	request mpcMessageType
-	err     chan error
+	request     mpcMessageType
+	requestData []string
+	err         chan error
 }
 
 /*Dial Connects to mpd server.*/
@@ -181,6 +184,7 @@ type MpdClient interface {
 	Status() (mpd.Attrs, error)
 	ListAllInfo(string) ([]mpd.Attrs, error)
 	PlaylistInfo(int, int) ([]mpd.Attrs, error)
+	BeginCommandList() *mpd.CommandList
 }
 
 /*Close mpd connection.*/
@@ -298,6 +302,8 @@ loop:
 				m.err <- p.syncPlaylist()
 			case syncCurrent:
 				m.err <- p.syncCurrent()
+			case sortPlaylist:
+				m.err <- p.sortPlaylist(m.requestData)
 			case ping:
 				m.err <- p.mpc.Ping()
 			case nop:
@@ -361,6 +367,15 @@ func (p *Player) request(req mpcMessageType) error {
 	return <-r.err
 }
 
+func (p *Player) requestData(req mpcMessageType, data []string) error {
+	r := new(mpcMessage)
+	r.request = req
+	r.requestData = data
+	r.err = make(chan error)
+	p.daemonRequest <- r
+	return <-r.err
+}
+
 func convStatus(song, status mpd.Attrs, s *PlayerStatus) {
 	elapsed, err := strconv.ParseFloat(status["elapsed"], 64)
 	if err != nil {
@@ -392,6 +407,56 @@ func convStatus(song, status mpd.Attrs, s *PlayerStatus) {
 	s.SongElapsed = float32(elapsed)
 	s.SongLength = songlength
 	s.LastModified = time.Now().Unix()
+}
+
+/*SortPlaylist sorts playlist by song tag name.*/
+func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
+	keys = append(keys, uri)
+	return p.requestData(sortPlaylist, keys)
+}
+
+func (p *Player) sortPlaylist(keys []string) (err error) {
+	uri := keys[len(keys)-1]
+	keys = keys[:len(keys)-1]
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	err = nil
+	sort.Slice(p.library, func(i, j int) bool {
+		return songString(p.library[i], keys) < songString(p.library[j], keys)
+	})
+	update := false
+	if len(p.library) != len(p.playlist) {
+		update = true
+		fmt.Printf("length not match")
+	} else {
+		for i := range p.library {
+			n := p.library[i].File
+			o := p.playlist[i].File
+			if n != o {
+				fmt.Printf("index %d not match:\n'new:%s'\n'old:%s'", i, n, o)
+				update = true
+				break
+			}
+		}
+	}
+	if update {
+		cl := p.mpc.BeginCommandList()
+		cl.Clear()
+		for i := range p.library {
+			cl.Add(p.library[i].File)
+		}
+		err = cl.End()
+	}
+	if err != nil {
+		return
+	}
+	for i := range p.playlist {
+		if p.playlist[i].File == uri {
+			err = p.mpc.Play(i)
+			return
+		}
+	}
+	return
 }
 
 func songString(s Song, keys []string) string {
@@ -434,7 +499,7 @@ func (p *Player) syncCurrent() error {
 		return err
 	}
 	convStatus(song, status, &p.status)
-	if p.comments == nil || p.current.File != song["file"] {
+	if song["file"] != "" && p.comments == nil || p.current.File != song["file"] {
 		comments, err := p.mpc.ReadComments(song["file"])
 		if err != nil {
 			return err

@@ -96,12 +96,29 @@ type apiHandler struct {
 	player *Player
 }
 
+type sortAction struct {
+	Action string   `json:"action"`
+	Keys   []string `json:"keys"`
+	URI    string   `json:"uri"`
+}
+
 func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
-	d, l := h.player.Playlist()
-	if modified(r, l) {
-		writeJSONSongList(w, d, l, nil)
-	} else {
-		notModified(w, l)
+	switch r.Method {
+	case "GET":
+		d, l := h.player.Playlist()
+		if modified(r, l) {
+			writeJSONSongList(w, d, l, nil)
+		} else {
+			notModified(w, l)
+		}
+	case "POST":
+		decoder := json.NewDecoder(r.Body)
+		var s sortAction
+		err := decoder.Decode(&s)
+		if err == nil {
+			h.player.SortPlaylist(s.Keys, s.URI)
+		}
+		writeJSON(w, err)
 	}
 }
 

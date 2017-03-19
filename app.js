@@ -2,7 +2,7 @@ var Mpd = (function() {
     TREE = {
         "albumartist": {
             "sort":
-                ["albumartist", "date", "album", "discnumber", "tracknumber", "title"],
+                ["albumartist", "date", "album", "discnumber", "tracknumber", "title", "file"],
             "tree":
                 [["albumartist", "plain"],
                  ["album", "plain"],
@@ -11,7 +11,7 @@ var Mpd = (function() {
         },
         "genre": {
             "sort":
-                ["genre", "album", "disc", "tracknumber", "title"],
+                ["genre", "album", "disc", "tracknumber", "title", "file"],
             "tree":
                 [["genre", "plain"],
                  ["album", "plain"],
@@ -151,6 +151,22 @@ var Mpd = (function() {
             var value = $(this).attr("key"),
                 uri = $(this).attr("uri");
             if (tree.length == TREE[root]["tree"].length) {
+                $.ajax({
+                    type: "POST",
+                    url: "/api/songs",
+                    contentType: 'application/json',
+                    data: JSON.stringify(
+                            {"action": "sort",
+                             "keys": TREE[root]["sort"],
+                             "uri": uri
+                            }),
+                    cache: false,
+                    success: function(data, status) {
+				        if (status == "success" && data["errors"] == null) {
+                            p.show_current();
+				        }
+			        },
+                });
                 console.log(TREE[root]["sort"]);
                 console.log(uri);
 
