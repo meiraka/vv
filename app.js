@@ -53,16 +53,14 @@ var Mpd = (function() {
 			dataType: "json",
             success: function(data, status) {
 				if (status == "success" && data["errors"] == null) {
-                    p.update_control_data(data["data"])
+                    sessionStorage.control = JSON.stringify(data["data"])
+                    p.refreash_control_data();
 				}
 			},
         })
         p.refreash_control_data();
     };
-    p.update_control_data = function(data) {
-        sessionStorage.control = JSON.stringify(data)
-        p.refreash_control_data();
-    };
+
     p.refreash_control_data = function() {
         data = JSON.parse(sessionStorage.control)
         if ('state' in data) {
@@ -88,10 +86,9 @@ var Mpd = (function() {
 			dataType: "json",
             success: function(data, status) {
 				if (status == "success" && data["errors"] == null) {
-                    sessionStorage.library = JSON.stringify(data["data"])
-                    sessionStorage.library_albumartist = JSON.stringify(
+                    sessionStorage["library_albumartist"] = JSON.stringify(
                         sortSongs(data["data"], TREE["albumartist"]["sort"]));
-                    sessionStorage.library_genre = JSON.stringify(
+                    sessionStorage["library_genre"] = JSON.stringify(
                         sortSongs(data["data"], TREE["genre"]["sort"]));
 				}
 			},
@@ -103,7 +100,7 @@ var Mpd = (function() {
         $("#current").show();
     }
 
-    p.show_root = function() {
+    p.show_up = function() {
         if ($("#current").css("display") == "none") {
             var data = JSON.parse(sessionStorage.tree)
             if (data.length > 0) {
@@ -114,68 +111,68 @@ var Mpd = (function() {
         p.show_list();
     }
 
-    p.show_list = function() {
-        var tree = JSON.parse(sessionStorage.tree)
-        $("#current").hide()
-        $("#list ol").empty()
-        if (tree.length == 0) {
-            for (key in TREE) {
-                $("#list ol").append("<li key="+key+">" + key + "</li>")
-            }
-            $("#list ol li").bind("click", function() {
-                var key = $(this).attr("key");
-                sessionStorage.tree = JSON.stringify([["root", key]]);
-                p.show_list();
-                return false;
-            });
-        } else {
-            var root = tree[0][1];
-            if (tree[0][1] == "albumartist") {
-                var library = JSON.parse(sessionStorage.library_albumartist);
-            } else {
-                var library = JSON.parse(sessionStorage.library_genre);
-            }
-            var filters = {}
-            for (leef in tree) {
-                if (leef == 0) { continue; }
-                filters[tree[leef][0]] = tree[leef][1];
-            }
-            library = library.filter(function(e, i, self) {
-                for (f in filters) {
-                    if (!(f in e && e[f] == filters[f])) {
-                        return false;
-                    }
-                }
-                return true;
-            });
-            var child = TREE[root]["tree"][tree.length - 1];
-            var key = child[0];
-            var style = child[1];
-            library = uniqSongs(library, key);
-            for (i in library) {
-                var song = library[i];
-                $("#list ol").append("<li></li>")
-                var added = $("#list ol li:last-child")
-                added.text(song[key])
-                added.attr("key", song[key])
-                added.attr("uri", song["file"])
-            }
-            $("#list ol li").bind("click", function() {
-                var value = $(this).attr("key");
-                if (tree.length == TREE[root]["tree"].length) {
-                    var uri = $(this).attr("uri");
-                    console.log(TREE[root]["sort"]);
-                    console.log(uri);
-
-                } else {
-                    tree.push([key, value])
-                    sessionStorage.tree = JSON.stringify(tree)
-                    p.show_list();
-                }
-                return false;
-            });
+    p.update_root = function(tree) {
+        var rootname = "";
+        var value = "";
+        var ol = $("#list ol");
+        for (rootname in TREE) {
+            ol.append("<li key="+rootname+">" + rootname + "</li>");
         }
-        $("#list").show()
+        $("#list ol li").bind("click", function() {
+            var rootname = $(this).attr("key");
+            sessionStorage.tree = JSON.stringify([["root", rootname]]);
+            p.show_list();
+            return false;
+        });
+    }
+
+    p.update_child = function(tree) {
+        var root = tree[0][1],
+            library = JSON.parse(sessionStorage["library_" + root]),
+            filters = {},
+            key = TREE[root]["tree"][tree.length - 1][0],
+            style = TREE[root]["tree"][tree.length - 1][1],
+            song = {};
+        for (leef in tree) {
+            if (leef == 0) { continue; }
+            filters[tree[leef][0]] = tree[leef][1];
+        }
+        library = filterSongs(library, filters);
+        library = uniqSongs(library, key);
+        for (i in library) {
+            song = library[i];
+            $("#list ol").append("<li></li>");
+            var added = $("#list ol li:last-child");
+            added.text(song[key]);
+            added.attr("key", song[key]);
+            added.attr("uri", song["file"]);
+        }
+        $("#list ol li").bind("click", function() {
+            var value = $(this).attr("key"),
+                uri = $(this).attr("uri");
+            if (tree.length == TREE[root]["tree"].length) {
+                console.log(TREE[root]["sort"]);
+                console.log(uri);
+
+            } else {
+                tree.push([key, value]);
+                sessionStorage.tree = JSON.stringify(tree);
+                p.show_list();
+            }
+            return false;
+        });
+    };
+
+    p.show_list = function() {
+        $("#current").hide();
+        $("#list ol").empty();
+        var tree = JSON.parse(sessionStorage.tree);
+        if (tree.length == 0) {
+            p.update_root(tree);
+        } else {
+            p.update_child(tree);
+        }
+        $("#list").show();
     }
     return mpd;
 })();
@@ -209,6 +206,16 @@ function uniqSongs(data, key) {
         }
     });
 }
+function filterSongs(data, filters) {
+    return data.filter(function(e, i, self) {
+        for (f in filters) {
+            if (!(f in e && e[f] == filters[f])) {
+                return false;
+            }
+        }
+        return true;
+    });
+}
 
 function getOrElse(m, k, v) {
     return k in m? m[k] : v;
@@ -217,7 +224,7 @@ function getOrElse(m, k, v) {
 $(document).ready(function(){
     mpc = new Mpd()
     $("#menu .up").bind("click", function() {
-        mpc.show_root()
+        mpc.show_up()
         return false;
     });
     $("#menu .back").bind("click", function() {
