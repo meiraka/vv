@@ -2,7 +2,7 @@ var Mpd = (function() {
     TREE = {
         "albumartist": {
             "sort":
-                ["albumartist", "date", "album", "disc", "trackno", "title"],
+                ["albumartist", "date", "album", "discnumber", "tracknumber", "title"],
             "tree":
                 [["albumartist", "plain"],
                  ["album", "plain"],
@@ -11,7 +11,7 @@ var Mpd = (function() {
         },
         "genre": {
             "sort":
-                ["genre", "album", "disc", "trackno", "title"],
+                ["genre", "album", "disc", "tracknumber", "title"],
             "tree":
                 [["genre", "plain"],
                  ["album", "plain"],
@@ -184,13 +184,17 @@ function parseSongTime(val) {
     return min + ':' + ("0" + sec).slice(-2)
 }
 
+function sortSongKey(song, keys) {
+    var sortkey = '';
+    for (i in keys) {
+        sortkey += getOrElse(song, keys[i], 'no ' + keys[i]);
+    }
+    return sortkey;
+}
+
 function sortSongs(data, keys) {
     return data.map(function(song) {
-        sortkey = '';
-        for (i in keys) {
-            sortkey += getOrElse(song, keys[i], 'no ' + keys[i]);
-        }
-        return [song, sortkey];
+        return [song, sortSongKey(song, keys)]
     }).sort(function (a, b) {
         if (a[1] < b[1]) { return -1; } else { return 1; };
     }).map(function(s) { return s[0]; });

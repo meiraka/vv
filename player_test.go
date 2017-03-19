@@ -28,8 +28,8 @@ func TestConvSong(t *testing.T) {
 	if r.Track != -1 {
 		t.Errorf("unexpected Song.Track: %d", r.Track)
 	}
-	if r.TrackNo != "-001" {
-		t.Errorf("unexpected Song.TrackNo: %s", r.TrackNo)
+	if r.TrackNumber != "-001" {
+		t.Errorf("unexpected Song.TrackNumber: %s", r.TrackNumber)
 	}
 	if r.Album != "[no Album]" {
 		t.Errorf("unexpected Song.Album: %s", r.Album)
@@ -42,6 +42,9 @@ func TestConvSong(t *testing.T) {
 	}
 	if r.Disc != 1 {
 		t.Errorf("unexpected Song.Disc: %d", r.Disc)
+	}
+	if r.DiscNumber != "0001" {
+		t.Errorf("unexpected Song.DiscNumber: %s", r.DiscNumber)
 	}
 }
 

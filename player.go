@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -75,53 +76,81 @@ type PlayerStatus struct {
 
 /*Song represents mpd song data.*/
 type Song struct {
-	AlbumArtist string `json:"albumartist"`
-	Album       string `json:"album"`
-	Artist      string `json:"artist"`
-	Date        string `json:"date"`
-	Genre       string `json:"genre"`
-	Track       int    `json:"track"`
-	TrackNo     string `json:"trackno"`
-	Title       string `json:"title"`
-	File        string `json:"file"`
-	Disc        int    `json:"disc"`
+	Artist          string `json:"artist"`
+	ArtistSort      string `json:"artistsort"`
+	Album           string `json:"album"`
+	AlbumSort       string `json:"albumsort"`
+	AlbumArtist     string `json:"albumartist"`
+	AlbumArtistSort string `json:"albumartistsort"`
+	Title           string `json:"title"`
+	Track           int    `json:"track"`
+	TrackNumber     string `json:"tracknumber"`
+	Genre           string `json:"genre"`
+	Date            string `json:"date"`
+	Composer        string `json:"composer"`
+	Performer       string `json:"performer"`
+	Comment         string `json:"comment"`
+	Disc            int    `json:"disc"`
+	DiscNumber      string `json:"discnumber"`
+	Time            int    `json:"time"`
+	Length          string `json:"length"`
+	File            string `json:"file"`
 }
 
 func convSong(d mpd.Attrs) (s Song) {
 	checks := []string{
-		"Album",
 		"Artist",
-		"Date",
-		"Genre",
-		"Track",
+		"Album",
 		"Title",
+		"Track",
+		"Genre",
+		"Date",
+		"Composer",
+		"Performer",
+		"Comment",
 	}
 	for i := range checks {
 		if _, ok := d[checks[i]]; !ok {
 			d[checks[i]] = "[no " + checks[i] + "]"
 		}
 	}
-	s.AlbumArtist = d["AlbumArtist"]
-	if s.AlbumArtist == "" {
-		s.AlbumArtist = d["Artist"]
+	s.Artist = d["Artist"]
+	s.ArtistSort = d["ArtistSort"]
+	if s.ArtistSort == "" {
+		s.ArtistSort = s.Artist
 	}
 	s.Album = d["Album"]
-	s.Artist = d["Artist"]
-	s.Date = d["Date"]
-	s.Genre = d["Genre"]
+	s.AlbumSort = d["AlbumSort"]
+	if s.AlbumSort == "" {
+		s.AlbumSort = s.Album
+	}
+	s.AlbumArtist = d["AlbumArtist"]
+	if s.AlbumArtist == "" {
+		s.AlbumArtist = s.Artist
+	}
+	s.AlbumArtistSort = d["AlbumArtistSort"]
+	if s.AlbumArtist == "" {
+		s.AlbumArtistSort = s.AlbumArtist
+	}
+	s.Title = d["Title"]
 	track, err := strconv.Atoi(d["Track"])
 	if err != nil {
 		track = -1
 	}
 	s.Track = track
-	s.TrackNo = fmt.Sprintf("%04d", track)
-	s.Title = d["Title"]
-	s.File = d["file"]
-	disc, err := strconv.Atoi(d["disc"])
+	s.TrackNumber = fmt.Sprintf("%04d", track)
+	s.Genre = d["Genre"]
+	s.Date = d["Date"]
+	s.Composer = d["Composer"]
+	s.Performer = d["Performer"]
+	s.Comment = d["Comment"]
+	disc, err := strconv.Atoi(d["Disc"])
 	if err != nil {
 		disc = 1
 	}
 	s.Disc = disc
+	s.DiscNumber = fmt.Sprintf("%04d", disc)
+	s.File = d["file"]
 	return
 }
 
@@ -357,6 +386,33 @@ func convStatus(song, status mpd.Attrs, s *PlayerStatus) {
 	s.SongElapsed = float32(elapsed)
 	s.SongLength = songlength
 	s.LastModified = time.Now().Unix()
+}
+
+func songString(s Song, keys []string) string {
+	sp := make([]string, len(keys))
+	for i := range keys {
+		key := keys[i]
+		if key == "albumartist" {
+			sp = append(sp, s.AlbumArtist)
+		} else if key == "album" {
+			sp = append(sp, s.Album)
+		} else if key == "artist" {
+			sp = append(sp, s.Artist)
+		} else if key == "date" {
+			sp = append(sp, s.Date)
+		} else if key == "genre" {
+			sp = append(sp, s.Genre)
+		} else if key == "tracknumber" {
+			sp = append(sp, s.TrackNumber)
+		} else if key == "title" {
+			sp = append(sp, s.Title)
+		} else if key == "file" {
+			sp = append(sp, s.File)
+		} else if key == "discno" {
+			sp = append(sp, s.DiscNumber)
+		}
+	}
+	return strings.Join(sp, "")
 }
 
 func (p *Player) syncCurrent() error {
