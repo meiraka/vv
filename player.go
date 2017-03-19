@@ -115,6 +115,7 @@ func convSong(d mpd.Attrs) (s Song) {
 	s.Track = track
 	s.TrackNo = d["Track"]
 	s.Title = d["Title"]
+	s.File = d["file"]
 	disc, err := strconv.Atoi(d["disc"])
 	if err != nil {
 		disc = 1

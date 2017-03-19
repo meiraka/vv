@@ -37,6 +37,9 @@ func TestConvSong(t *testing.T) {
 	if r.Title != "foo" {
 		t.Errorf("unexpected Song.Title: %s", r.Title)
 	}
+	if r.File != "path" {
+		t.Errorf("unexpected Song.File: %s", r.File)
+	}
 	if r.Disc != 1 {
 		t.Errorf("unexpected Song.Disc: %d", r.Disc)
 	}
