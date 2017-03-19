@@ -2,7 +2,7 @@ var Mpd = (function() {
     TREE = {
         "albumartist": {
             "sort":
-                ["albumartist", "date", "album", "disc", "track", "title"],
+                ["albumartist", "date", "album", "disc", "trackno", "title"],
             "tree":
                 [["albumartist", "plain"],
                  ["album", "plain"],
@@ -11,7 +11,7 @@ var Mpd = (function() {
         },
         "genre": {
             "sort":
-                ["genre", "album", "disc", "track", "title"],
+                ["genre", "album", "disc", "trackno", "title"],
             "tree":
                 [["genre", "plain"],
                  ["album", "plain"],

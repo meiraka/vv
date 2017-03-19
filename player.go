@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"strconv"
 	"sync"
@@ -113,7 +114,7 @@ func convSong(d mpd.Attrs) (s Song) {
 		track = -1
 	}
 	s.Track = track
-	s.TrackNo = d["Track"]
+	s.TrackNo = fmt.Sprintf("%04d", track)
 	s.Title = d["Title"]
 	s.File = d["file"]
 	disc, err := strconv.Atoi(d["disc"])

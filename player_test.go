@@ -28,7 +28,7 @@ func TestConvSong(t *testing.T) {
 	if r.Track != -1 {
 		t.Errorf("unexpected Song.Track: %d", r.Track)
 	}
-	if r.TrackNo != "[no Track]" {
+	if r.TrackNo != "-001" {
 		t.Errorf("unexpected Song.TrackNo: %s", r.TrackNo)
 	}
 	if r.Album != "[no Album]" {
