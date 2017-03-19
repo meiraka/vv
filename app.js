@@ -1,14 +1,24 @@
 var Mpd = (function() {
-    TREE = [
-        [["albumartist", ["albumartist"]],
-         ["album", ["date", "album"]],
-         ["title", ["track", "title"]]
-        ],
-        [["genre", ["genre"]],
-         ["album", ["album"]],
-         ["title", ["track", "title"]]
-        ]
-    ]
+    TREE = {
+        "albumartist": {
+            "sort":
+                ["albumartist", "date", "album", "disc", "track", "title"],
+            "tree":
+                [["albumartist", "plain"],
+                 ["album", "plain"],
+                 ["title", "plain"]
+                ],
+        },
+        "genre": {
+            "sort":
+                ["genre", "album", "disc", "track", "title"],
+            "tree":
+                [["genre", "plain"],
+                 ["album", "plain"],
+                 ["title", "plain"],
+                ]
+        }
+    }
     var mpd = function() {
         sessionStorage.tree = JSON.stringify([])
     };
@@ -79,6 +89,10 @@ var Mpd = (function() {
             success: function(data, status) {
 				if (status == "success" && data["errors"] == null) {
                     sessionStorage.library = JSON.stringify(data["data"])
+                    sessionStorage.library_albumartist = JSON.stringify(
+                        sortSongs(data["data"], TREE["albumartist"]["sort"]));
+                    sessionStorage.library_genre = JSON.stringify(
+                        sortSongs(data["data"], TREE["genre"]["sort"]));
 				}
 			},
         })
@@ -101,22 +115,27 @@ var Mpd = (function() {
     }
 
     p.show_list = function() {
-        tree = JSON.parse(sessionStorage.tree)
+        var tree = JSON.parse(sessionStorage.tree)
         $("#current").hide()
         $("#list ol").empty()
         if (tree.length == 0) {
-            for (i in TREE) {
-                $("#list ol").append("<li index="+i+">" + TREE[i][0][0] + "</li>")
+            for (key in TREE) {
+                $("#list ol").append("<li key="+key+">" + key + "</li>")
             }
             $("#list ol li").bind("click", function() {
-                var index = $(this).attr("index");
-                sessionStorage.tree = JSON.stringify([index]);
+                var key = $(this).attr("key");
+                sessionStorage.tree = JSON.stringify([["root", key]]);
                 p.show_list();
                 return false;
             });
         } else {
-            library = JSON.parse(sessionStorage.library);
-            filters = {}
+            var root = tree[0][1];
+            if (tree[0][1] == "albumartist") {
+                var library = JSON.parse(sessionStorage.library_albumartist);
+            } else {
+                var library = JSON.parse(sessionStorage.library_genre);
+            }
+            var filters = {}
             for (leef in tree) {
                 if (leef == 0) { continue; }
                 filters[tree[leef][0]] = tree[leef][1];
@@ -129,18 +148,27 @@ var Mpd = (function() {
                 }
                 return true;
             });
-            child = TREE[tree[0]][tree.length - 1];
-            labels = sortUniq(library, child[0], child[1]);
-            for (i in labels) {
-                $("#list ol").append("<li>" + labels[i][0] + "</li>")
+            var child = TREE[root]["tree"][tree.length - 1];
+            var key = child[0];
+            var style = child[1];
+            library = uniqSongs(library, key);
+            for (i in library) {
+                var song = library[i];
+                $("#list ol").append("<li></li>")
+                var added = $("#list ol li:last-child")
+                added.text(song[key])
+                added.attr("key", song[key])
+                added.attr("uri", song["file"])
             }
             $("#list ol li").bind("click", function() {
-                var key = $(this).text();
-                if (tree.length == TREE[tree[0]].length) {
-                    console.log(TREE[tree[0]]);
-                    console.log(key);
+                var value = $(this).attr("key");
+                if (tree.length == TREE[root]["tree"].length) {
+                    var uri = $(this).attr("uri");
+                    console.log(TREE[root]["sort"]);
+                    console.log(uri);
+
                 } else {
-                    tree.push([child[0], key])
+                    tree.push([key, value])
                     sessionStorage.tree = JSON.stringify(tree)
                     p.show_list();
                 }
@@ -159,20 +187,22 @@ function parseSongTime(val) {
     return min + ':' + ("0" + sec).slice(-2)
 }
 
-function sortUniq(data, key, keys) {
-    var labels = data.map(function(song) {
+function sortSongs(data, keys) {
+    return data.map(function(song) {
         sortkey = '';
         for (i in keys) {
             sortkey += getOrElse(song, keys[i], 'no ' + keys[i]);
         }
-        return [getOrElse(song, key, 'no '+key), sortkey];
+        return [song, sortkey];
     }).sort(function (a, b) {
         if (a[1] < b[1]) { return -1; } else { return 1; };
-    })
-    return labels.filter(function (e, i , self) {
+    }).map(function(s) { return s[0]; });
+}
+function uniqSongs(data, key) {
+    return data.filter(function (e, i , self) {
         if (i == 0) {
             return true;
-        } else if (e[1] != self[i - 1][1]) {
+        } else if (e[key] != self[i - 1][key]) {
             return true;
         } else {
             return false;
