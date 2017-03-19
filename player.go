@@ -129,7 +129,7 @@ func convSong(d mpd.Attrs) (s Song) {
 		s.AlbumArtist = s.Artist
 	}
 	s.AlbumArtistSort = d["AlbumArtistSort"]
-	if s.AlbumArtist == "" {
+	if s.AlbumArtistSort == "" {
 		s.AlbumArtistSort = s.AlbumArtist
 	}
 	s.Title = d["Title"]
@@ -150,6 +150,12 @@ func convSong(d mpd.Attrs) (s Song) {
 	}
 	s.Disc = disc
 	s.DiscNumber = fmt.Sprintf("%04d", disc)
+	time, err := strconv.Atoi(d["Time"])
+	if err != nil {
+		time = 0
+	}
+	s.Time = time
+	s.Length = fmt.Sprintf("%02d:%02d", time/60, time%60)
 	s.File = d["file"]
 	return
 }

@@ -10,20 +10,26 @@ import (
 func TestConvSong(t *testing.T) {
 	i := mpd.Attrs{"Title": "foo", "file": "path"}
 	r := convSong(i)
-	if r.AlbumArtist != "[no Artist]" {
-		t.Errorf("unexpected Song.AlbumArtist: %s", r.AlbumArtist)
+	if r.Artist != "[no Artist]" {
+		t.Errorf("unexpected Song.Artist: %s", r.Artist)
+	}
+	if r.ArtistSort != "[no Artist]" {
+		t.Errorf("unexpected Song.ArtistSort: %s", r.ArtistSort)
 	}
 	if r.Album != "[no Album]" {
 		t.Errorf("unexpected Song.Album: %s", r.Album)
 	}
-	if r.Artist != "[no Artist]" {
-		t.Errorf("unexpected Song.Artist: %s", r.Artist)
+	if r.AlbumSort != "[no Album]" {
+		t.Errorf("unexpected Song.AlbumSort: %s", r.AlbumSort)
 	}
-	if r.Date != "[no Date]" {
-		t.Errorf("unexpected Song.Date: %s", r.Date)
+	if r.AlbumArtist != "[no Artist]" {
+		t.Errorf("unexpected Song.AlbumArtist: %s", r.AlbumArtist)
 	}
-	if r.Genre != "[no Genre]" {
-		t.Errorf("unexpected Song.Genre: %s", r.Genre)
+	if r.AlbumArtistSort != "[no Artist]" {
+		t.Errorf("unexpected Song.AlbumArtistSort: %s", r.AlbumArtistSort)
+	}
+	if r.Title != "foo" {
+		t.Errorf("unexpected Song.Title: %s", r.Title)
 	}
 	if r.Track != -1 {
 		t.Errorf("unexpected Song.Track: %d", r.Track)
@@ -31,20 +37,35 @@ func TestConvSong(t *testing.T) {
 	if r.TrackNumber != "-001" {
 		t.Errorf("unexpected Song.TrackNumber: %s", r.TrackNumber)
 	}
-	if r.Album != "[no Album]" {
-		t.Errorf("unexpected Song.Album: %s", r.Album)
+	if r.Genre != "[no Genre]" {
+		t.Errorf("unexpected Song.Genre: %s", r.Genre)
 	}
-	if r.Title != "foo" {
-		t.Errorf("unexpected Song.Title: %s", r.Title)
+	if r.Date != "[no Date]" {
+		t.Errorf("unexpected Song.Date: %s", r.Date)
 	}
-	if r.File != "path" {
-		t.Errorf("unexpected Song.File: %s", r.File)
+	if r.Composer != "[no Composer]" {
+		t.Errorf("unexpected Song.Composer: %s", r.Composer)
+	}
+	if r.Performer != "[no Performer]" {
+		t.Errorf("unexpected Song.Performer: %s", r.Performer)
+	}
+	if r.Comment != "[no Comment]" {
+		t.Errorf("unexpected Song.Comment: %s", r.Comment)
 	}
 	if r.Disc != 1 {
 		t.Errorf("unexpected Song.Disc: %d", r.Disc)
 	}
 	if r.DiscNumber != "0001" {
 		t.Errorf("unexpected Song.DiscNumber: %s", r.DiscNumber)
+	}
+	if r.Time != 0 {
+		t.Errorf("unexpected Song.Time: %d", r.Time)
+	}
+	if r.Length != "00:00" {
+		t.Errorf("unexpected Song.Length: %s", r.Length)
+	}
+	if r.File != "path" {
+		t.Errorf("unexpected Song.File: %s", r.File)
 	}
 }
 
