@@ -1,4 +1,4 @@
-var Mpd = (function() {
+var MainView = function() {
     TREE = {
         "albumartist": {
             "sort":
@@ -17,8 +17,116 @@ var Mpd = (function() {
                  ["album", "plain"],
                  ["title", "plain"],
                 ]
+        },
+        "date": {
+            "sort":
+                ["date", "album", "discnumber", "tracknumber", "title", "file"],
+            "tree":
+                [["date", "plain"],
+                 ["album", "plain"],
+                 ["title", "plain"],
+                ]
         }
     }
+    var mainview = function() {};
+    var p = mainview.prototype;
+    p.show_current = function() {
+        $("#current").show();
+    }
+    p.hide_current = function() {
+        $("#current").hide();
+    }
+    p.show_list = function() {
+        $("#list ol").empty();
+        var tree = JSON.parse(sessionStorage.tree);
+        if (tree.length == 0) {
+            p.update_root(tree);
+        } else {
+            p.update_child(tree);
+        }
+        $("#list").show();
+    }
+    p.hide_list = function() {
+        $("#list").hide();
+    }
+    p.up_list = function() {
+        if ($("#current").css("display") == "none") {
+            var data = JSON.parse(sessionStorage.tree)
+            if (data.length > 0) {
+                data.pop();
+            }
+            sessionStorage.tree = JSON.stringify(data)
+        }
+    }
+    p.update_root = function(tree) {
+        var rootname = "";
+        var value = "";
+        var ol = $("#list ol");
+        for (rootname in TREE) {
+            ol.append("<li key="+rootname+">" + rootname + "</li>");
+        }
+        $("#list ol li").bind("click", function() {
+            var rootname = $(this).attr("key");
+            sessionStorage.tree = JSON.stringify([["root", rootname]]);
+            p.show_list();
+            return false;
+        });
+    }
+    p.update_child = function(tree) {
+        var root = tree[0][1],
+            library = JSON.parse(sessionStorage["library_" + root]),
+            filters = {},
+            key = TREE[root]["tree"][tree.length - 1][0],
+            style = TREE[root]["tree"][tree.length - 1][1],
+            song = {};
+        for (leef in tree) {
+            if (leef == 0) { continue; }
+            filters[tree[leef][0]] = tree[leef][1];
+        }
+        library = filterSongs(library, filters);
+        library = uniqSongs(library, key);
+        for (i in library) {
+            song = library[i];
+            $("#list ol").append("<li></li>");
+            var added = $("#list ol li:last-child");
+            added.text(song[key]);
+            added.attr("key", song[key]);
+            added.attr("uri", song["file"]);
+        }
+        $("#list ol li").bind("click", function() {
+            var value = $(this).attr("key"),
+                uri = $(this).attr("uri");
+            if (tree.length == TREE[root]["tree"].length) {
+                $.ajax({
+                    type: "POST",
+                    url: "/api/songs",
+                    contentType: 'application/json',
+                    data: JSON.stringify(
+                            {"action": "sort",
+                             "keys": TREE[root]["sort"],
+                             "uri": uri
+                            }),
+                    cache: false,
+                    success: function(data, status) {
+				        if (status == "success" && data["errors"] == null) {
+                            p.hide_list();
+                            p.show_current();
+				        }
+			        },
+                });
+            } else {
+                tree.push([key, value]);
+                sessionStorage.tree = JSON.stringify(tree);
+                p.show_list();
+            }
+            return false;
+        });
+    };
+    return mainview;
+}();
+
+
+var Mpd = (function() {
     var mpd = function() {
         sessionStorage.tree = JSON.stringify([])
     };
@@ -94,102 +202,6 @@ var Mpd = (function() {
 			},
         })
     }
-
-    p.show_current = function() {
-        $("#list").hide();
-        $("#current").show();
-    }
-
-    p.show_up = function() {
-        if ($("#current").css("display") == "none") {
-            var data = JSON.parse(sessionStorage.tree)
-            if (data.length > 0) {
-                data.pop();
-            }
-            sessionStorage.tree = JSON.stringify(data)
-        }
-        p.show_list();
-    }
-
-    p.update_root = function(tree) {
-        var rootname = "";
-        var value = "";
-        var ol = $("#list ol");
-        for (rootname in TREE) {
-            ol.append("<li key="+rootname+">" + rootname + "</li>");
-        }
-        $("#list ol li").bind("click", function() {
-            var rootname = $(this).attr("key");
-            sessionStorage.tree = JSON.stringify([["root", rootname]]);
-            p.show_list();
-            return false;
-        });
-    }
-
-    p.update_child = function(tree) {
-        var root = tree[0][1],
-            library = JSON.parse(sessionStorage["library_" + root]),
-            filters = {},
-            key = TREE[root]["tree"][tree.length - 1][0],
-            style = TREE[root]["tree"][tree.length - 1][1],
-            song = {};
-        for (leef in tree) {
-            if (leef == 0) { continue; }
-            filters[tree[leef][0]] = tree[leef][1];
-        }
-        library = filterSongs(library, filters);
-        library = uniqSongs(library, key);
-        for (i in library) {
-            song = library[i];
-            $("#list ol").append("<li></li>");
-            var added = $("#list ol li:last-child");
-            added.text(song[key]);
-            added.attr("key", song[key]);
-            added.attr("uri", song["file"]);
-        }
-        $("#list ol li").bind("click", function() {
-            var value = $(this).attr("key"),
-                uri = $(this).attr("uri");
-            if (tree.length == TREE[root]["tree"].length) {
-                $.ajax({
-                    type: "POST",
-                    url: "/api/songs",
-                    contentType: 'application/json',
-                    data: JSON.stringify(
-                            {"action": "sort",
-                             "keys": TREE[root]["sort"],
-                             "uri": uri
-                            }),
-                    cache: false,
-                    success: function(data, status) {
-				        if (status == "success" && data["errors"] == null) {
-                            p.show_current();
-				        }
-			        },
-                });
-                console.log(TREE[root]["sort"]);
-                console.log(uri);
-
-            } else {
-                tree.push([key, value]);
-                sessionStorage.tree = JSON.stringify(tree);
-                p.show_list();
-            }
-            return false;
-        });
-    };
-
-    p.show_list = function() {
-        $("#current").hide();
-        $("#list ol").empty();
-        var tree = JSON.parse(sessionStorage.tree);
-        if (tree.length == 0) {
-            p.update_root(tree);
-        } else {
-            p.update_child(tree);
-        }
-        $("#list").show();
-    }
     return mpd;
 })();
 
@@ -242,13 +254,19 @@ function getOrElse(m, k, v) {
 }
 
 $(document).ready(function(){
-    mpc = new Mpd()
+    mainview = new MainView();
+    mpc = new Mpd();
     $("#menu .up").bind("click", function() {
-        mpc.show_up()
+        mainview.hide_current();
+        if ($("#current").css("display") == "none") {
+            mainview.up_list();
+        }
+        mainview.show_list();
         return false;
     });
     $("#menu .back").bind("click", function() {
-        mpc.show_current()
+        mainview.hide_list();
+        mainview.show_current();
         return false;
     });
     $("#playback .prev").bind("click", function() {
