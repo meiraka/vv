@@ -31,12 +31,11 @@ var MainView = function() {
     var mainview = function() {};
     var p = mainview.prototype;
     p.show_current = function() {
+        $("#list").hide();
         $("#current").show();
     }
-    p.hide_current = function() {
-        $("#current").hide();
-    }
     p.show_list = function() {
+        $("#current").hide();
         $("#list ol").empty();
         var tree = JSON.parse(sessionStorage.tree);
         if (tree.length == 0) {
@@ -45,9 +44,6 @@ var MainView = function() {
             p.update_child(tree);
         }
         $("#list").show();
-    }
-    p.hide_list = function() {
-        $("#list").hide();
     }
     p.up_list = function() {
         if ($("#current").css("display") == "none") {
@@ -109,7 +105,6 @@ var MainView = function() {
                     cache: false,
                     success: function(data, status) {
 				        if (status == "success" && data["errors"] == null) {
-                            p.hide_list();
                             p.show_current();
 				        }
 			        },
@@ -288,15 +283,11 @@ $(document).ready(function(){
     mainview = new MainView();
     mpc = new Mpd();
     $("#menu .up").bind("click", function() {
-        mainview.hide_current();
-        if ($("#current").css("display") == "none") {
-            mainview.up_list();
-        }
+        mainview.up_list();
         mainview.show_list();
         return false;
     });
     $("#menu .back").bind("click", function() {
-        mainview.hide_list();
         mainview.show_current();
         return false;
     });
