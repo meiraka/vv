@@ -37,7 +37,6 @@ func Dial(network, addr string) (*Player, error) {
 	p.mutex = new(sync.Mutex)
 	p.daemonStop = make(chan bool)
 	p.daemonRequest = make(chan *mpcMessage)
-	p.watcherResponse = make(chan error)
 	p.network = network
 	p.addr = addr
 	return p, p.start()
@@ -188,6 +187,11 @@ func (p *Player) start() (err error) {
 }
 
 func (p *Player) daemon() {
+	sendErr := func(ec chan error, err error) {
+		if ec != nil {
+			ec <- err
+		}
+	}
 loop:
 	for {
 		select {
@@ -196,25 +200,25 @@ loop:
 		case m := <-p.daemonRequest:
 			switch m.request {
 			case prev:
-				m.err <- p.mpc.Previous()
+				sendErr(m.err, p.mpc.Previous())
 			case pause:
-				m.err <- p.mpc.Pause(true)
+				sendErr(m.err, p.mpc.Pause(true))
 			case play:
-				m.err <- p.mpc.Play(-1)
+				sendErr(m.err, p.mpc.Play(-1))
 			case next:
-				m.err <- p.mpc.Next()
+				sendErr(m.err, p.mpc.Next())
 			case syncLibrary:
-				m.err <- p.syncLibrary()
+				sendErr(m.err, p.syncLibrary())
 			case syncPlaylist:
-				m.err <- p.syncPlaylist()
+				sendErr(m.err, p.syncPlaylist())
 			case syncCurrent:
-				m.err <- p.syncCurrent()
+				sendErr(m.err, p.syncCurrent())
 			case sortPlaylist:
-				m.err <- p.sortPlaylist(m.requestData)
+				sendErr(m.err, p.sortPlaylist(m.requestData))
 			case ping:
-				m.err <- p.mpc.Ping()
+				sendErr(m.err, p.mpc.Ping())
 			case nop:
-				m.err <- nil
+				sendErr(m.err, nil)
 			}
 		}
 	}
@@ -323,10 +327,10 @@ func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
 }
 
 func (p *Player) sortPlaylist(keys []string) (err error) {
-	uri := keys[len(keys)-1]
-	keys = keys[:len(keys)-1]
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
+	uri := keys[len(keys)-1]
+	keys = keys[:len(keys)-1]
 	err = nil
 	sort.Slice(p.library, func(i, j int) bool {
 		return songString(p.library[i], keys) < songString(p.library[j], keys)
