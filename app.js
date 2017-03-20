@@ -45,6 +45,23 @@ var song_tree_down = function(key, value) {
     tree.push([key, value]);
     sessionStorage.tree = JSON.stringify(tree);
 };
+var song_tree_abs = function(song) {
+    var tree = JSON.parse(sessionStorage.tree);
+    var i, root, key, selected;
+    if (tree.length != 0) {
+        tree = [tree[0]];
+        root = tree[0][1];
+        selected = TREE[root]["tree"];
+        for (i in selected) {
+            if (i == selected.length - 1) {
+                break;
+            }
+            key = selected[i][0];
+            tree.push([key, songGet(song, key)]);
+        }
+        sessionStorage.tree = JSON.stringify(tree);
+    }
+};
 var song_tree_up = function() {
     var tree = JSON.parse(sessionStorage.tree)
     if (tree.length > 0) {
@@ -180,6 +197,7 @@ var update_song_request = function() {
                 sessionStorage.current = JSON.stringify(data["data"])
                 $("#current .title").text(data["data"]["Title"])
                 $("#current .artist").text(data["data"]["Artist"])
+                song_tree_abs(data["data"]);
                 mainview.update_tree();
 			}
 		},
