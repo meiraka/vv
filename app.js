@@ -1,6 +1,7 @@
 var vv = vv || {
     song: {},
     songs: {},
+    storage: {},
 };
 vv.song = (function(){
     var tag = function(song, keys, other) {
@@ -80,6 +81,31 @@ vv.songs = (function(){
         filter: filter,
     };
 }());
+vv.storage = (function(){
+    var f = function(key, other) {
+        var n = function(value) {
+            if (typeof(value) == "undefined") {
+                if (typeof(sessionStorage[key]) == "undefined") {
+                    return other;
+                }
+                return JSON.parse(sessionStorage[key]);
+            } else {
+                sessionStorage[key] = JSON.stringify(value);
+            }
+        };
+        return n;
+    };
+    return {
+        tree: f("tree", []),
+        current: f("current", {}),
+        control: f("control", {}),
+        playlist: f("playlist", []),
+        library: {
+            "AlbumArtist": f("library_AlbumArtist", []),
+            "Genre": f("library_Genre", []),
+        },
+    };
+}());
 
 var TREE = {
     "AlbumArtist": {
@@ -113,7 +139,7 @@ var TREE = {
 
 var song_tree_list = function(tree) {
     if (!tree) {
-        tree = JSON.parse(sessionStorage.tree);
+        tree = vv.storage.tree();
     }
     var ls = [];
     if (tree.length == 0) {
@@ -123,12 +149,12 @@ var song_tree_list = function(tree) {
     }
 };
 var song_tree_down = function(key, value) {
-    var tree = JSON.parse(sessionStorage.tree);
+    var tree = vv.storage.tree();
     tree.push([key, value]);
-    sessionStorage.tree = JSON.stringify(tree);
+    vv.storage.tree(tree);
 };
 var song_tree_abs = function(song) {
-    var tree = JSON.parse(sessionStorage.tree);
+    var tree = vv.storage.tree();
     var i, root, key, selected;
     if (tree.length != 0) {
         tree = [tree[0]];
@@ -141,15 +167,15 @@ var song_tree_abs = function(song) {
             key = selected[i][0];
             tree.push([key, vv.song.get(song, key)]);
         }
-        sessionStorage.tree = JSON.stringify(tree);
+        vv.storage.tree(tree);
     }
 };
 var song_tree_up = function() {
-    var tree = JSON.parse(sessionStorage.tree)
+    var tree = vv.storage.tree()
     if (tree.length > 0) {
         tree.pop();
     }
-    sessionStorage.tree = JSON.stringify(tree)
+    vv.storage.tree(tree)
 };
 var _song_tree_list_root = function() {
     var ret = [];
@@ -161,7 +187,7 @@ var _song_tree_list_root = function() {
 }
 var _song_tree_list_child = function(tree) {
     var root = tree[0][1],
-        library = JSON.parse(sessionStorage["library_" + root]),
+        library = vv.storage.library[root](),
         filters = {},
         key = TREE[root]["tree"][tree.length - 1][0],
         style = TREE[root]["tree"][tree.length - 1][1],
@@ -191,7 +217,7 @@ var MainView = function() {
         if ($("#current").css("display") == "none") {
             song_tree_up();
         } else {
-            var current = JSON.parse(sessionStorage.current);
+            var current = vv.storage.current();
             song_tree_abs(current);
         }
         p.update_tree();
@@ -200,7 +226,7 @@ var MainView = function() {
     p.update_tree = function() {
         var current = {};
         var control = {};
-        var tree = JSON.parse(sessionStorage.tree);
+        var tree = vv.storage.tree();
         var key, songs, style;
         var song = {};
         var root = "";
@@ -210,8 +236,8 @@ var MainView = function() {
         songs = keysongs[1];
         style = keysongs[2];
         if (style == "song") {
-            current = JSON.parse(sessionStorage.current);
-            control = JSON.parse(sessionStorage.control);
+            current = vv.storage.current();
+            control = vv.storage.control();
         }
         if (tree.length != 0) {
             root = tree[0][1];
@@ -280,7 +306,7 @@ var update_song_request = function() {
 		dataType: "json",
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
-                sessionStorage.current = JSON.stringify(data["data"])
+                vv.storage.current(data["data"]);
                 $("#current .title").text(data["data"]["Title"])
                 $("#current .artist").text(data["data"]["Artist"])
                 var key;
@@ -291,7 +317,7 @@ var update_song_request = function() {
                     }
                     $("#current .detail").append("<li>" + key + ": " + data["data"][key] + "</li>");
                 }
-                var tree = JSON.parse(sessionStorage.tree);
+                var tree = vv.storage.tree();
                 if (tree.length != 0 && tree.length == TREE[tree[0][1]]["tree"].length) {
                     song_tree_abs(data["data"]);
                 }
@@ -310,7 +336,7 @@ var update_control_data_request = function() {
 		dataType: "json",
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
-                sessionStorage.control = JSON.stringify(data["data"])
+                vv.storage.control(data["data"]);
                 refreash_control_data();
 			}
 		},
@@ -319,7 +345,7 @@ var update_control_data_request = function() {
 };
 
 var refreash_control_data = function() {
-    data = JSON.parse(sessionStorage.control)
+    data = vv.storage.control()
     if ('state' in data) {
         var elapsed = parseInt(data["song_elapsed"] * 1000)
         var current = elapsed
@@ -343,15 +369,14 @@ var update_library_request = function() {
 		dataType: "json",
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
-                sessionStorage["library_AlbumArtist"] = JSON.stringify(
+                vv.storage.library["AlbumArtist"](
                     vv.songs.sort(data["data"], TREE["AlbumArtist"]["sort"]));
-                sessionStorage["library_Genre"] = JSON.stringify(
+                vv.storage.library["Genre"](
                     vv.songs.sort(data["data"], TREE["Genre"]["sort"]));
 			}
 		},
     })
 }
-
 
 function parseSongTime(val) {
     var current = parseInt(val)
@@ -397,7 +422,7 @@ $(document).ready(function(){
         return false;
     });
     $("#playback .play").bind("click", function() {
-        var state = getOrElse(JSON.parse(sessionStorage.control), "state", "stopped");
+        var state = getOrElse(vv.storage.control(), "state", "stopped");
         var action = state == "play" ? "pause" : "play"
         $.ajax({
             type: "GET",
