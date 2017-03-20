@@ -1,6 +1,9 @@
 header {
     position: fixed;
-    top: 10px;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    z-index: 10;
 }
 
 footer {
@@ -8,14 +11,21 @@ footer {
     left: 0px;
     bottom: 0px;
     width: 100%;
+    z-index: 10;
 }
 
 section {
     position: relative;
     top: 30px;
+    z-index: 1;
 }
 section#list {
     margin-bottom: 60px;
+}
+
+#list ol {
+    list-style-type: none;
+    padding: 10px;
 }
 
 #list .song {
@@ -32,18 +42,23 @@ section#list {
 }
 #list .song .elapsed {
     right: 73px;
+    text-shadow: 1px 1px 0px white;
 }
 #list .song .length_separator {
     right: 60px;
+    text-shadow: 1px 1px 0px white;
 }
 #list .song .length {
     right: 10px;
+    text-shadow: 1px 1px 0px white;
 }
 #list .song .title {
     position: absolute;
     left: 60px;
-    bottom: 10px;
+    top: 20px;
     font-size: 32px;
+    line-height: 12px;
+    text-shadow: 1px 1px 0px white;
 }
 #list .song .artist {
     position: absolute;
@@ -54,6 +69,13 @@ section#list {
 #list .album {
     position: relative;
     height: 72px;
+}
+#list .album .date {
+    position: absolute;
+    bottom: 30px;
+    left: 10px;
+    font-size: 14px;
+    color: #808080;
 }
 #list .album .album {
     position: absolute;
@@ -72,8 +94,8 @@ section#list {
 
 #current .title {
     position: fixed;
-    left: 0px;
-    top: 40px;
+    left: 10px;
+    top: 50px;
     width: 100%;
     font-size: 32px;
 }
@@ -81,15 +103,51 @@ section#list {
 #current .artist {
     width: 100%;
     position: fixed;
-    top: 80px;
-    left: 0px;
+    top: 90px;
+    left: 10px;
     height: 20px;
     font-size: 26px;
 }
 
-#current .elapsedbar {
+#current .elapsed {
+    position: fixed;
+    top: 50%;
+    left: 60%;
     width: 100%;
     height: 100%;
+    font-size: 48px;
+}
+
+#current .detail {
+    position: fixed;
+    top: 130px;
+    left: 0px;
+    list-style-type: none;
+    padding: 10px;
+
+}
+
+#current li {
+    color: #808080;
+}
+
+header, header nav, header nav button {
+    border: 0px;
+    margin: 0px;
+    padding: 0px;
+}
+
+header nav button {
+    background-color: #db7093;
+    width: 33.3333%;
+    height: 40px;
+}
+
+header nav button:hover {
+    background-color: #ff1493;
+}
+header nav button:active {
+    background-color: #FFFFFF;
 }
 
 footer, footer nav, footer nav button {
@@ -106,4 +164,7 @@ footer nav button {
 
 footer nav button:hover {
     background-color: #ff1493;
+}
+footer nav button:active {
+    background-color: #FFFFFF;
 }

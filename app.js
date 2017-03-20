@@ -153,6 +153,7 @@ var MainView = function() {
                 }
                 added.append("<span class=length>"+songGet(song, "Length")+"</span>");
             } else if (style == "album") {
+                added.append("<span class=date>"+songGet(song, "Date")+"</span>");
                 added.append("<span class=album>"+songGet(song, "Album")+"</span>");
                 added.append("<span class=albumartist>"+songGet(song, "AlbumArtist")+"</span>");
             } else {
@@ -200,6 +201,14 @@ var update_song_request = function() {
                 sessionStorage.current = JSON.stringify(data["data"])
                 $("#current .title").text(data["data"]["Title"])
                 $("#current .artist").text(data["data"]["Artist"])
+                var key;
+                $("#current .detail").empty();
+                for (key in data["data"]) {
+                    if (key == "Title" || key == "Artist") {
+                        continue;
+                    }
+                    $("#current .detail").append("<li>" + key + ": " + data["data"][key] + "</li>");
+                }
                 var tree = JSON.parse(sessionStorage.tree);
                 if (tree.length != 0 && tree.length == TREE[tree[0][1]]["tree"].length) {
                     song_tree_abs(data["data"]);
@@ -340,6 +349,7 @@ function getOrElse(m, k, v) {
     return k in m? m[k] : v;
 }
 
+
 $(document).ready(function(){
     mainview = new MainView();
     $("#menu .up").bind("click", function() {
@@ -349,6 +359,16 @@ $(document).ready(function(){
     });
     $("#menu .back").bind("click", function() {
         mainview.show_current();
+        return false;
+    });
+    $("#menu .reset").bind("click", function() {
+        sessionStorage.tree = "[]";
+        sessionStorage.current = "{}";
+        sessionStorage.control = "{}";
+        sessionStorage.playlist = "[]";
+        sessionStorage.library = "[]";
+        sessionStorage.library_AlbumArtist = "[]";
+        sessionStorage.library_Genre = "[]";
         return false;
     });
     $("#playback .prev").bind("click", function() {

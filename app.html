@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <link rel="stylesheet" type="text/css" href="./app.css">
 <script src="./jquery-3.1.1.js"></script>
 <script src="./app.js"></script>
@@ -10,8 +11,7 @@
 <body>
 <header>
     <nav id="menu">
-        <input class=up type="button" value="up">
-        <input class=back type="button" value="back">
+        <button  class=up type="button">up</button><button class=back type="button">back</button><button class=reset type="button">reset</button>
     </nav>
 </header>
 <section id="list" style="display: none">
@@ -22,7 +22,7 @@
     <ctie class="title">no title</ctie>
     <span class="artist">no artist</span>
     <span class="elapsed">no playing</span>
-    <canvas class="elapsedbar"></canvas>
+    <ul class="detail"></ul>
 </section>
 <footer>
     <nav id="playback">
