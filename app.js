@@ -123,7 +123,9 @@ var MainView = function() {
 
 var Mpd = (function() {
     var mpd = function() {
-        sessionStorage.tree = JSON.stringify([])
+        if (!sessionStorage.tree) {
+            sessionStorage.tree = JSON.stringify([]);
+        }
     };
 
     var p = mpd.prototype;
