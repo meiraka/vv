@@ -37,6 +37,7 @@ func Dial(network, addr string) (*Player, error) {
 	p.mutex = new(sync.Mutex)
 	p.daemonStop = make(chan bool)
 	p.daemonRequest = make(chan *mpcMessage)
+	p.watcherResponse = make(chan error)
 	p.network = network
 	p.addr = addr
 	return p, p.start()
@@ -227,19 +228,14 @@ func (p *Player) ping() {
 }
 
 func (p *Player) watch() {
-	watchBack := func(err error) {
-		if p.watcherResponse != nil {
-			p.watcherResponse <- err
-		}
-	}
 	for subsystem := range p.watcher.Event {
 		switch subsystem {
 		case "database":
-			watchBack(p.request(syncLibrary))
+			p.requestAsync(syncLibrary, p.watcherResponse)
 		case "playlist":
-			watchBack(p.request(syncPlaylist))
+			p.requestAsync(syncPlaylist, p.watcherResponse)
 		case "player":
-			watchBack(p.request(syncCurrent))
+			p.requestAsync(syncCurrent, p.watcherResponse)
 		}
 	}
 }
@@ -266,11 +262,16 @@ func (p *Player) connect() error {
 }
 
 func (p *Player) request(req mpcMessageType) error {
+	ec := make(chan error)
+	p.requestAsync(req, ec)
+	return <-ec
+}
+
+func (p *Player) requestAsync(req mpcMessageType, ec chan error) {
 	r := new(mpcMessage)
 	r.request = req
-	r.err = make(chan error)
+	r.err = ec
 	p.daemonRequest <- r
-	return <-r.err
 }
 
 func (p *Player) requestData(req mpcMessageType, data []string) error {
