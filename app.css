@@ -22,13 +22,19 @@ section#list {
     position: relative;
     height: 60px;
 }
-#list .song .track, #list .song .length{
+#list .song .track, #list .song .length, #list .song .length_separator, #list .song .elapsed {
     position: absolute;
     bottom: 20px;
     font-size: 16px;
 }
 #list .song .track {
     left: 0px;
+}
+#list .song .elapsed {
+    right: 73px;
+}
+#list .song .length_separator {
+    right: 60px;
 }
 #list .song .length {
     right: 10px;

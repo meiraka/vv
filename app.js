@@ -85,7 +85,6 @@ var MainView = function() {
     }
     p.show_list = function() {
         $("#current").hide();
-        $("#list ol").empty();
         p.update_tree();
         $("#list").show();
     }
@@ -97,6 +96,8 @@ var MainView = function() {
     }
 
     p.update_tree = function() {
+        var current = {};
+        var control = {};
         var tree = JSON.parse(sessionStorage.tree);
         var key, songs, style;
         var song = {};
@@ -106,9 +107,14 @@ var MainView = function() {
         key = keysongs[0];
         songs = keysongs[1];
         style = keysongs[2];
+        if (style == "song") {
+            current = JSON.parse(sessionStorage.current);
+            control = JSON.parse(sessionStorage.control);
+        }
         if (tree.length != 0) {
             root = tree[0][1];
         }
+        $("#list ol").empty();
         for (i in songs) {
             song = songs[i];
             $("#list ol").append("<li class="+style+"></li>");
@@ -120,6 +126,10 @@ var MainView = function() {
                 added.append("<span class=title>"+songGet(song, "Title")+"</span>");
                 if (songGet(song, "Artist") != songGet(song, "AlbumArtist")) {
                     added.append("<span class=artist>"+songGet(song, "Artist")+"</span>");
+                }
+                if (songGet(song, "file") == songGet(current, "file")) {
+                    added.append("<span class=elapsed>"+songGet(song, "Length")+"</span>");
+                    added.append("<span class=length_separator>/</span>");
                 }
                 added.append("<span class=length>"+songGet(song, "Length")+"</span>");
             } else if (style == "album") {
@@ -148,7 +158,6 @@ var MainView = function() {
                     cache: false,
                     success: function(data, status) {
 				        if (status == "success" && data["errors"] == null) {
-                            p.show_current();
 				        }
 			        },
                 });
@@ -160,86 +169,72 @@ var MainView = function() {
 }();
 
 
-var Mpd = (function() {
-    var mpd = function() {
-        if (!sessionStorage.tree) {
-            sessionStorage.tree = JSON.stringify([]);
+var update_song_request = function() {
+    $.ajax({
+        type: "GET",
+        url: "api/songs/current",
+        ifModified: true,
+		dataType: "json",
+        success: function(data, status) {
+			if (status == "success" && data["errors"] == null) {
+                sessionStorage.current = JSON.stringify(data["data"])
+                $("#current .title").text(data["data"]["Title"])
+                $("#current .artist").text(data["data"]["Artist"])
+                mainview.update_tree();
+			}
+		},
+    })
+};
+
+var update_control_data_request = function() {
+    $.ajax({
+        type: "GET",
+        url: "api/control",
+        ifModified: true,
+		dataType: "json",
+        success: function(data, status) {
+			if (status == "success" && data["errors"] == null) {
+                sessionStorage.control = JSON.stringify(data["data"])
+                refreash_control_data();
+			}
+		},
+    })
+    refreash_control_data();
+};
+
+var refreash_control_data = function() {
+    data = JSON.parse(sessionStorage.control)
+    if ('state' in data) {
+        var elapsed = parseInt(data["song_elapsed"] * 1000)
+        var current = elapsed
+        var last_modified = parseInt(data["last_modified"] * 1000)
+        var date = new Date()
+        if (data["state"] == "play") {
+            current += date.getTime() - last_modified
         }
-    };
-
-    var p = mpd.prototype;
-
-    p.update_song_request = function() {
-        $.ajax({
-            type: "GET",
-            url: "api/songs/current",
-            ifModified: true,
-			dataType: "json",
-            success: function(data, status) {
-				if (status == "success" && data["errors"] == null) {
-                    p.update_song(data["data"])
-				}
-			},
-        })
-    };
-    p.update_song = function(data) {
-        sessionStorage.current = JSON.stringify(data)
-        $("#current .title").text(data["Title"])
-        $("#current .artist").text(data["Artist"])
-    };
-
-
-    p.update_control_data_request = function() {
-        $.ajax({
-            type: "GET",
-            url: "api/control",
-            ifModified: true,
-			dataType: "json",
-            success: function(data, status) {
-				if (status == "success" && data["errors"] == null) {
-                    sessionStorage.control = JSON.stringify(data["data"])
-                    p.refreash_control_data();
-				}
-			},
-        })
-        p.refreash_control_data();
-    };
-
-    p.refreash_control_data = function() {
-        data = JSON.parse(sessionStorage.control)
-        if ('state' in data) {
-            var elapsed = parseInt(data["song_elapsed"] * 1000)
-            var current = elapsed
-            var last_modified = parseInt(data["last_modified"] * 1000)
-            var date = new Date()
-            if (data["state"] == "play") {
-                current += date.getTime() - last_modified
-            }
-            var label = parseSongTime(current / 1000);
-            if ($("#current .elapsed").text() != label) {
-                $("#current .elapsed").text(label);
-            }
+        var label = parseSongTime(current / 1000);
+        if ($(".elapsed").text() != label) {
+            $(".elapsed").text(label);
         }
-    };
-
-    p.update_library_request = function() {
-        $.ajax({
-            type: "GET",
-            url: "api/library",
-            ifModified: true,
-			dataType: "json",
-            success: function(data, status) {
-				if (status == "success" && data["errors"] == null) {
-                    sessionStorage["library_AlbumArtist"] = JSON.stringify(
-                        sortSongs(data["data"], TREE["AlbumArtist"]["sort"]));
-                    sessionStorage["library_Genre"] = JSON.stringify(
-                        sortSongs(data["data"], TREE["Genre"]["sort"]));
-				}
-			},
-        })
     }
-    return mpd;
-})();
+};
+
+var update_library_request = function() {
+    $.ajax({
+        type: "GET",
+        url: "api/library",
+        ifModified: true,
+		dataType: "json",
+        success: function(data, status) {
+			if (status == "success" && data["errors"] == null) {
+                sessionStorage["library_AlbumArtist"] = JSON.stringify(
+                    sortSongs(data["data"], TREE["AlbumArtist"]["sort"]));
+                sessionStorage["library_Genre"] = JSON.stringify(
+                    sortSongs(data["data"], TREE["Genre"]["sort"]));
+			}
+		},
+    })
+}
 
 function parseSongTime(val) {
     var current = parseInt(val)
@@ -322,7 +317,6 @@ function getOrElse(m, k, v) {
 
 $(document).ready(function(){
     mainview = new MainView();
-    mpc = new Mpd();
     $("#menu .up").bind("click", function() {
         mainview.up_list();
         mainview.show_list();
@@ -363,9 +357,9 @@ $(document).ready(function(){
     });
 
     function polling() {
-        mpc.update_song_request()
-        mpc.update_control_data_request()
-        mpc.update_library_request()
+        update_song_request()
+        update_control_data_request()
+        update_library_request()
 		setTimeout(polling, 1000);
     }
 	polling();
