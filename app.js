@@ -1,5 +1,6 @@
 var vv = vv || {
-    song: {}
+    song: {},
+    songs: {},
 };
 vv.song = (function(){
     var tag = function(song, keys, other) {
@@ -11,7 +12,6 @@ vv.song = (function(){
         }
         return other;
     }
-
     var getOrElse = function(song, key, other) {
        if (key in song) {
            return song[key];
@@ -29,7 +29,6 @@ vv.song = (function(){
            return other;
        }
     }
-
     var get = function(song, key) {
         return getOrElse(song, key, '[no ' + key + ']');
     }
@@ -44,6 +43,41 @@ vv.song = (function(){
         getOrElse: getOrElse,
         get: get,
         str: str,
+    };
+}());
+vv.songs = (function(){
+    var sort = function(songs, keys) {
+        return songs.map(function(song) {
+            return [song, vv.song.str(song, keys)]
+        }).sort(function (a, b) {
+            if (a[1] < b[1]) { return -1; } else { return 1; };
+        }).map(function(s) { return s[0]; });
+    }
+    var uniq = function(songs, key) {
+        return songs.filter(function (song, i , self) {
+            if (i == 0) {
+                return true;
+            } else if (vv.song.getOrElse(song, key, ' ') != vv.song.getOrElse(self[i - 1], key, ' ')) {
+                return true;
+            } else {
+                return false;
+            }
+        });
+    }
+    var filter = function(songs, filters) {
+        return songs.filter(function(song, i, self) {
+            for (f in filters) {
+                if (vv.song.get(song, f) != filters[f]) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+    return {
+        sort: sort,
+        uniq: uniq,
+        filter: filter,
     };
 }());
 
@@ -136,8 +170,8 @@ var _song_tree_list_child = function(tree) {
         if (leef == 0) { continue; }
         filters[tree[leef][0]] = tree[leef][1];
     }
-    library = filterSongs(library, filters);
-    library = uniqSongs(library, key);
+    library = vv.songs.filter(library, filters);
+    library = vv.songs.uniq(library, key);
     return [key, library, style];
 };
 
@@ -310,9 +344,9 @@ var update_library_request = function() {
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
                 sessionStorage["library_AlbumArtist"] = JSON.stringify(
-                    sortSongs(data["data"], TREE["AlbumArtist"]["sort"]));
+                    vv.songs.sort(data["data"], TREE["AlbumArtist"]["sort"]));
                 sessionStorage["library_Genre"] = JSON.stringify(
-                    sortSongs(data["data"], TREE["Genre"]["sort"]));
+                    vv.songs.sort(data["data"], TREE["Genre"]["sort"]));
 			}
 		},
     })
@@ -326,34 +360,6 @@ function parseSongTime(val) {
     return min + ':' + ("0" + sec).slice(-2)
 }
 
-function sortSongs(songs, keys) {
-    return songs.map(function(song) {
-        return [song, vv.song.str(song, keys)]
-    }).sort(function (a, b) {
-        if (a[1] < b[1]) { return -1; } else { return 1; };
-    }).map(function(s) { return s[0]; });
-}
-function uniqSongs(songs, key) {
-    return songs.filter(function (song, i , self) {
-        if (i == 0) {
-            return true;
-        } else if (vv.song.getOrElse(song, key, ' ') != vv.song.getOrElse(self[i - 1], key, ' ')) {
-            return true;
-        } else {
-            return false;
-        }
-    });
-}
-function filterSongs(songs, filters) {
-    return songs.filter(function(song, i, self) {
-        for (f in filters) {
-            if (vv.song.get(song, f) != filters[f]) {
-                return false;
-            }
-        }
-        return true;
-    });
-}
 
 function getOrElse(m, k, v) {
     return k in m? m[k] : v;
