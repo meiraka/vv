@@ -1,30 +1,30 @@
 var MainView = function() {
     TREE = {
-        "albumartist": {
+        "AlbumArtist": {
             "sort":
-                ["albumartist", "date", "album", "discnumber", "tracknumber", "title", "file"],
+                ["AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
             "tree":
-                [["albumartist", "plain"],
-                 ["album", "plain"],
-                 ["title", "plain"]
+                [["AlbumArtist", "plain"],
+                 ["Album", "plain"],
+                 ["Title", "plain"]
                 ],
         },
-        "genre": {
+        "Genre": {
             "sort":
-                ["genre", "album", "disc", "tracknumber", "title", "file"],
+                ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
             "tree":
-                [["genre", "plain"],
-                 ["album", "plain"],
-                 ["title", "plain"],
+                [["Genre", "plain"],
+                 ["Album", "plain"],
+                 ["Title", "plain"],
                 ]
         },
         "date": {
             "sort":
-                ["date", "album", "discnumber", "tracknumber", "title", "file"],
+                ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
             "tree":
-                [["date", "plain"],
-                 ["album", "plain"],
-                 ["title", "plain"],
+                [["Date", "plain"],
+                 ["Album", "plain"],
+                 ["Title", "plain"],
                 ]
         }
     }
@@ -89,8 +89,8 @@ var MainView = function() {
             song = library[i];
             $("#list ol").append("<li></li>");
             var added = $("#list ol li:last-child");
-            added.text(song[key]);
-            added.attr("key", song[key]);
+            added.text(songGet(song, key));
+            added.attr("key", songGet(song, key));
             added.attr("uri", song["file"]);
         }
         $("#list ol li").bind("click", function() {
@@ -148,8 +148,8 @@ var Mpd = (function() {
     };
     p.update_song = function(data) {
         sessionStorage.current = JSON.stringify(data)
-        $("#current .title").text(data["title"])
-        $("#current .artist").text(data["artist"])
+        $("#current .title").text(data["Title"])
+        $("#current .artist").text(data["Artist"])
     };
 
 
@@ -194,10 +194,10 @@ var Mpd = (function() {
 			dataType: "json",
             success: function(data, status) {
 				if (status == "success" && data["errors"] == null) {
-                    sessionStorage["library_albumartist"] = JSON.stringify(
-                        sortSongs(data["data"], TREE["albumartist"]["sort"]));
-                    sessionStorage["library_genre"] = JSON.stringify(
-                        sortSongs(data["data"], TREE["genre"]["sort"]));
+                    sessionStorage["library_AlbumArtist"] = JSON.stringify(
+                        sortSongs(data["data"], TREE["AlbumArtist"]["sort"]));
+                    sessionStorage["library_Genre"] = JSON.stringify(
+                        sortSongs(data["data"], TREE["Genre"]["sort"]));
 				}
 			},
         })
@@ -212,36 +212,67 @@ function parseSongTime(val) {
     return min + ':' + ("0" + sec).slice(-2)
 }
 
-function sortSongKey(song, keys) {
+function songTag(song, keys, other) {
+    for (i in keys) {
+        var key = keys[i];
+        if (key in song) {
+            return song[key];
+        }
+    }
+    return other;
+}
+
+function songGet(song, key) {
+    return songGetOrElse(song, key, '[no ' + key + ']');
+}
+
+function songGetOrElse(song, key, other) {
+   if (key in song) {
+       return song[key];
+   } else if (key == "AlbumSort") {
+       return songTag(song, ["Album"], other);
+   } else if (key == "ArtistSort") {
+       return songTag(song, ["Artist"], other);
+   } else if (key == "AlbumArtist") {
+       return songTag(song, ["Artist"], other);
+   } else if (key == "AlbumArtistSort") {
+       return songTag(song, ["AlbumArtist", "Artist"], other);
+   } else if (key == "AlbumSort") {
+       return songTag(song, ["Album"], other);
+   } else {
+       return other;
+   }
+}
+function songString(song, keys) {
     var sortkey = '';
     for (i in keys) {
-        sortkey += getOrElse(song, keys[i], 'no ' + keys[i]);
+        sortkey += songGetOrElse(song, keys[i], ' ')
     }
     return sortkey;
 }
 
-function sortSongs(data, keys) {
-    return data.map(function(song) {
-        return [song, sortSongKey(song, keys)]
+function sortSongs(songs, keys) {
+    return songs.map(function(song) {
+        return [song, songString(song, keys)]
     }).sort(function (a, b) {
         if (a[1] < b[1]) { return -1; } else { return 1; };
     }).map(function(s) { return s[0]; });
 }
-function uniqSongs(data, key) {
-    return data.filter(function (e, i , self) {
+function uniqSongs(songs, key) {
+    return songs.filter(function (song, i , self) {
         if (i == 0) {
             return true;
-        } else if (e[key] != self[i - 1][key]) {
+        } else if (songGetOrElse(song, key, ' ') != songGetOrElse(self[i - 1], key, ' ')) {
             return true;
         } else {
             return false;
         }
     });
 }
-function filterSongs(data, filters) {
-    return data.filter(function(e, i, self) {
+function filterSongs(songs, filters) {
+    return songs.filter(function(song, i, self) {
         for (f in filters) {
-            if (!(f in e && e[f] == filters[f])) {
+            if (songGet(song, f) != filters[f]) {
                 return false;
             }
         }

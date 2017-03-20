@@ -52,14 +52,14 @@ type Player struct {
 	daemonStop       chan bool
 	daemonRequest    chan *mpcMessage
 	mutex            *sync.Mutex
-	current          Song
+	current          mpd.Attrs
 	currentModified  time.Time
 	status           PlayerStatus
 	comments         mpd.Attrs
 	commentsModified time.Time
-	library          []Song
+	library          []mpd.Attrs
 	libraryModified  time.Time
-	playlist         []Song
+	playlist         []mpd.Attrs
 	playlistModified time.Time
 }
 
@@ -75,100 +75,6 @@ type PlayerStatus struct {
 	SongElapsed  float32 `json:"song_elapsed"`
 	SongLength   int     `json:"song_length"`
 	LastModified int64   `json:"last_modified"`
-}
-
-/*Song represents mpd song data.*/
-type Song struct {
-	Artist          string `json:"artist"`
-	ArtistSort      string `json:"artistsort"`
-	Album           string `json:"album"`
-	AlbumSort       string `json:"albumsort"`
-	AlbumArtist     string `json:"albumartist"`
-	AlbumArtistSort string `json:"albumartistsort"`
-	Title           string `json:"title"`
-	Track           int    `json:"track"`
-	TrackNumber     string `json:"tracknumber"`
-	Genre           string `json:"genre"`
-	Date            string `json:"date"`
-	Composer        string `json:"composer"`
-	Performer       string `json:"performer"`
-	Comment         string `json:"comment"`
-	Disc            int    `json:"disc"`
-	DiscNumber      string `json:"discnumber"`
-	Time            int    `json:"time"`
-	Length          string `json:"length"`
-	File            string `json:"file"`
-}
-
-func convSong(d mpd.Attrs) (s Song) {
-	checks := []string{
-		"Artist",
-		"Album",
-		"Title",
-		"Track",
-		"Genre",
-		"Date",
-		"Composer",
-		"Performer",
-		"Comment",
-	}
-	for i := range checks {
-		if _, ok := d[checks[i]]; !ok {
-			d[checks[i]] = "[no " + checks[i] + "]"
-		}
-	}
-	s.Artist = d["Artist"]
-	s.ArtistSort = d["ArtistSort"]
-	if s.ArtistSort == "" {
-		s.ArtistSort = s.Artist
-	}
-	s.Album = d["Album"]
-	s.AlbumSort = d["AlbumSort"]
-	if s.AlbumSort == "" {
-		s.AlbumSort = s.Album
-	}
-	s.AlbumArtist = d["AlbumArtist"]
-	if s.AlbumArtist == "" {
-		s.AlbumArtist = s.Artist
-	}
-	s.AlbumArtistSort = d["AlbumArtistSort"]
-	if s.AlbumArtistSort == "" {
-		s.AlbumArtistSort = s.AlbumArtist
-	}
-	s.Title = d["Title"]
-	track, err := strconv.Atoi(d["Track"])
-	if err != nil {
-		track = -1
-	}
-	s.Track = track
-	s.TrackNumber = fmt.Sprintf("%04d", track)
-	s.Genre = d["Genre"]
-	s.Date = d["Date"]
-	s.Composer = d["Composer"]
-	s.Performer = d["Performer"]
-	s.Comment = d["Comment"]
-	disc, err := strconv.Atoi(d["Disc"])
-	if err != nil {
-		disc = 1
-	}
-	s.Disc = disc
-	s.DiscNumber = fmt.Sprintf("%04d", disc)
-	time, err := strconv.Atoi(d["Time"])
-	if err != nil {
-		time = 0
-	}
-	s.Time = time
-	s.Length = fmt.Sprintf("%02d:%02d", time/60, time%60)
-	s.File = d["file"]
-	return
-}
-
-func convSongs(d []mpd.Attrs) []Song {
-	ret := make([]Song, len(d), len(d)*12)
-	for i := range d {
-		ret[i] = convSong(d[i])
-	}
-	return ret
 }
 
 /*MpdClient represents mpd.Client for Player.*/
@@ -202,7 +108,7 @@ func (p *Player) Comments() (mpd.Attrs, time.Time) {
 }
 
 /*Current returns mpd current song data.*/
-func (p *Player) Current() (Song, time.Time) {
+func (p *Player) Current() (mpd.Attrs, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.current, p.currentModified
@@ -216,14 +122,14 @@ func (p *Player) Status() (PlayerStatus, time.Time) {
 }
 
 /*Library returns mpd library song data list.*/
-func (p *Player) Library() ([]Song, time.Time) {
+func (p *Player) Library() ([]mpd.Attrs, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.library, p.libraryModified
 }
 
 /*Playlist returns mpd playlist song data list.*/
-func (p *Player) Playlist() ([]Song, time.Time) {
+func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.playlist, p.playlistModified
@@ -430,8 +336,8 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 		fmt.Printf("length not match")
 	} else {
 		for i := range p.library {
-			n := p.library[i].File
-			o := p.playlist[i].File
+			n := p.library[i]["file"]
+			o := p.playlist[i]["file"]
 			if n != o {
 				fmt.Printf("index %d not match:\n'new:%s'\n'old:%s'", i, n, o)
 				update = true
@@ -443,7 +349,7 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 		cl := p.mpc.BeginCommandList()
 		cl.Clear()
 		for i := range p.library {
-			cl.Add(p.library[i].File)
+			cl.Add(p.library[i]["file"])
 		}
 		err = cl.End()
 	}
@@ -451,7 +357,7 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 		return
 	}
 	for i := range p.playlist {
-		if p.playlist[i].File == uri {
+		if p.playlist[i]["file"] == uri {
 			err = p.mpc.Play(i)
 			return
 		}
@@ -459,28 +365,32 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 	return
 }
 
-func songString(s Song, keys []string) string {
+func songTag(s mpd.Attrs, keys []string) string {
+	for i := range keys {
+		key := keys[i]
+		if _, ok := s[key]; ok {
+			return s[key]
+		}
+	}
+	return " "
+}
+
+func songString(s mpd.Attrs, keys []string) string {
 	sp := make([]string, len(keys))
 	for i := range keys {
 		key := keys[i]
-		if key == "albumartist" {
-			sp = append(sp, s.AlbumArtist)
-		} else if key == "album" {
-			sp = append(sp, s.Album)
-		} else if key == "artist" {
-			sp = append(sp, s.Artist)
-		} else if key == "date" {
-			sp = append(sp, s.Date)
-		} else if key == "genre" {
-			sp = append(sp, s.Genre)
-		} else if key == "tracknumber" {
-			sp = append(sp, s.TrackNumber)
-		} else if key == "title" {
-			sp = append(sp, s.Title)
-		} else if key == "file" {
-			sp = append(sp, s.File)
-		} else if key == "discno" {
-			sp = append(sp, s.DiscNumber)
+		if _, ok := s[key]; ok {
+			sp = append(sp, s[key])
+		} else if key == "AlbumSort" {
+			sp = append(sp, songTag(s, []string{"Album"}))
+		} else if key == "ArtistSort" {
+			sp = append(sp, songTag(s, []string{"Artist"}))
+		} else if key == "AlbumArtist" {
+			sp = append(sp, songTag(s, []string{"Artist"}))
+		} else if key == "AlbumArtistSort" {
+			sp = append(sp, songTag(s, []string{"AlbumArtist", "Artist"}))
+		} else {
+			sp = append(sp, " ")
 		}
 	}
 	return strings.Join(sp, "")
@@ -499,7 +409,7 @@ func (p *Player) syncCurrent() error {
 		return err
 	}
 	convStatus(song, status, &p.status)
-	if song["file"] != "" && p.comments == nil || p.current.File != song["file"] {
+	if song["file"] != "" && p.comments == nil || p.current["file"] != song["file"] {
 		comments, err := p.mpc.ReadComments(song["file"])
 		if err != nil {
 			return err
@@ -508,7 +418,7 @@ func (p *Player) syncCurrent() error {
 		p.comments = comments
 	}
 
-	p.current = convSong(song)
+	p.current = makeAdditiveSongData(song)
 	return nil
 }
 
@@ -519,7 +429,7 @@ func (p *Player) syncLibrary() error {
 	if err != nil {
 		return err
 	}
-	p.library = convSongs(library)
+	p.library = makeAdditiveSongsData(library)
 	p.libraryModified = time.Now()
 	return nil
 }
@@ -531,7 +441,34 @@ func (p *Player) syncPlaylist() error {
 	if err != nil {
 		return err
 	}
-	p.playlist = convSongs(playlist)
+	p.playlist = makeAdditiveSongsData(playlist)
 	p.playlistModified = time.Now()
 	return nil
+}
+
+func makeAdditiveSongData(p mpd.Attrs) mpd.Attrs {
+	track, err := strconv.Atoi(p["Track"])
+	if err != nil {
+		track = 0
+	}
+	p["TrackNumber"] = fmt.Sprintf("%04d", track)
+	disc, err := strconv.Atoi(p["Disc"])
+	if err != nil {
+		disc = 1
+	}
+	p["DiscNumber"] = fmt.Sprintf("%04d", disc)
+
+	t, err := strconv.Atoi(p["Time"])
+	if err != nil {
+		t = 0
+	}
+	p["Length"] = fmt.Sprintf("%02d:%02d", t/60, t%60)
+	return p
+}
+
+func makeAdditiveSongsData(ps []mpd.Attrs) []mpd.Attrs {
+	for i := range ps {
+		ps[i] = makeAdditiveSongData(ps[i])
+	}
+	return ps
 }

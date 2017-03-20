@@ -7,65 +7,29 @@ import (
 	"testing"
 )
 
-func TestConvSong(t *testing.T) {
-	i := mpd.Attrs{"Title": "foo", "file": "path"}
-	r := convSong(i)
-	if r.Artist != "[no Artist]" {
-		t.Errorf("unexpected Song.Artist: %s", r.Artist)
+func TestMakeAdditiveSongData(t *testing.T) {
+	i := makeAdditiveSongData(mpd.Attrs{"Title": "foo", "file": "path"})
+	if i["DiscNumber"] != "0001" {
+		t.Errorf("unexpected DiscNumber: '%s'", i["DiscNumber"])
 	}
-	if r.ArtistSort != "[no Artist]" {
-		t.Errorf("unexpected Song.ArtistSort: %s", r.ArtistSort)
+	if i["TrackNumber"] != "0000" {
+		t.Errorf("unexpected TrackNumber: '%s'", i["TrackNumber"])
 	}
-	if r.Album != "[no Album]" {
-		t.Errorf("unexpected Song.Album: %s", r.Album)
+	if i["Length"] != "00:00" {
+		t.Errorf("unexpected Length: '%s'", i["Length"])
 	}
-	if r.AlbumSort != "[no Album]" {
-		t.Errorf("unexpected Song.AlbumSort: %s", r.AlbumSort)
+	f := makeAdditiveSongData(mpd.Attrs{
+		"Track": "1",
+		"Disc":  "2",
+		"Time":  "70"})
+	if f["DiscNumber"] != "0002" {
+		t.Errorf("unexpected DiscNumber: '%s'", f["DiscNumber"])
 	}
-	if r.AlbumArtist != "[no Artist]" {
-		t.Errorf("unexpected Song.AlbumArtist: %s", r.AlbumArtist)
+	if f["TrackNumber"] != "0001" {
+		t.Errorf("unexpected TrackNumber: '%s'", f["TrackNumber"])
 	}
-	if r.AlbumArtistSort != "[no Artist]" {
-		t.Errorf("unexpected Song.AlbumArtistSort: %s", r.AlbumArtistSort)
-	}
-	if r.Title != "foo" {
-		t.Errorf("unexpected Song.Title: %s", r.Title)
-	}
-	if r.Track != -1 {
-		t.Errorf("unexpected Song.Track: %d", r.Track)
-	}
-	if r.TrackNumber != "-001" {
-		t.Errorf("unexpected Song.TrackNumber: %s", r.TrackNumber)
-	}
-	if r.Genre != "[no Genre]" {
-		t.Errorf("unexpected Song.Genre: %s", r.Genre)
-	}
-	if r.Date != "[no Date]" {
-		t.Errorf("unexpected Song.Date: %s", r.Date)
-	}
-	if r.Composer != "[no Composer]" {
-		t.Errorf("unexpected Song.Composer: %s", r.Composer)
-	}
-	if r.Performer != "[no Performer]" {
-		t.Errorf("unexpected Song.Performer: %s", r.Performer)
-	}
-	if r.Comment != "[no Comment]" {
-		t.Errorf("unexpected Song.Comment: %s", r.Comment)
-	}
-	if r.Disc != 1 {
-		t.Errorf("unexpected Song.Disc: %d", r.Disc)
-	}
-	if r.DiscNumber != "0001" {
-		t.Errorf("unexpected Song.DiscNumber: %s", r.DiscNumber)
-	}
-	if r.Time != 0 {
-		t.Errorf("unexpected Song.Time: %d", r.Time)
-	}
-	if r.Length != "00:00" {
-		t.Errorf("unexpected Song.Length: %s", r.Length)
-	}
-	if r.File != "path" {
-		t.Errorf("unexpected Song.File: %s", r.File)
+	if f["Length"] != "01:10" {
+		t.Errorf("unexpected Length: '%s'", f["Length"])
 	}
 }
 
@@ -169,7 +133,7 @@ func TestPlayerPlaylist(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
 	m.playlistinforet = []mpd.Attrs{{"foo": "bar"}}
-	expect := convSongs(m.playlistinforet)
+	expect := makeAdditiveSongsData((m.playlistinforet))
 	// if mpd.Watcher.Event recieve "playlist"
 	p.watcher.Event <- "playlist"
 	if err := <-p.watcherResponse; err != nil {
@@ -197,7 +161,7 @@ func TestPlayerLibrary(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
 	m.listallinforet = []mpd.Attrs{{"foo": "bar"}}
-	expect := convSongs(m.listallinforet)
+	expect := makeAdditiveSongsData((m.listallinforet))
 	// if mpd.Watcher.Event recieve "database"
 	p.watcher.Event <- "database"
 	if err := <-p.watcherResponse; err != nil {
@@ -224,7 +188,7 @@ func TestPlayerLibrary(t *testing.T) {
 func TestPlayerCurrent(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
-	m.currentsongret = mpd.Attrs{"foo": "bar"}
+	m.currentsongret = mpd.Attrs{"foo": "bar", "file": "baz.mp3"}
 	m.statusret = mpd.Attrs{"hoge": "fuga"}
 	m.readcommentsret = mpd.Attrs{"baz": "piyo"}
 	// if mpd.Watcher.Event recieve "database"
@@ -245,9 +209,12 @@ func TestPlayerCurrent(t *testing.T) {
 	if m.readcommentscalled != 1 {
 		t.Errorf("Client.ReadComments does not called")
 	}
+	if m.readcommentsarg1 != "baz.mp3" {
+		t.Errorf("unexpected Client.ReadComments arguments: %s", m.readcommentsarg1)
+	}
 	// Player.Current returns converted mpd.Client.CurrentSong result
 	current, _ := p.Current()
-	if !reflect.DeepEqual(convSong(m.currentsongret), current) {
+	if !reflect.DeepEqual(makeAdditiveSongData(m.currentsongret), current) {
 		t.Errorf("unexpected get Current")
 	}
 	// Player.Status returns converted mpd.Client.Status result
@@ -301,29 +268,30 @@ func mockDial(network, addr string) (p *Player, m *mockMpc) {
 }
 
 type mockMpc struct {
-	err                error
-	playcalled         int
-	playarg1           int
-	pausecalled        int
-	pausearg1          bool
-	nextcalled         int
-	previouscalled     int
-	closecalled        int
-	playlistinfocalled int
-	playlistinfoarg1   int
-	playlistinfoarg2   int
-	playlistinforet    []mpd.Attrs
-	listallinfocalled  int
-	listallinfoarg1    string
-	listallinforet     []mpd.Attrs
-	readcommentscalled int
-	readcommentsarg1   string
-	readcommentsret    mpd.Attrs
-	currentsongcalled  int
-	currentsongret     mpd.Attrs
-	statuscalled       int
-	statusret          mpd.Attrs
-	pingcalled         int
+	err                    error
+	playcalled             int
+	playarg1               int
+	pausecalled            int
+	pausearg1              bool
+	nextcalled             int
+	previouscalled         int
+	closecalled            int
+	playlistinfocalled     int
+	playlistinfoarg1       int
+	playlistinfoarg2       int
+	playlistinforet        []mpd.Attrs
+	listallinfocalled      int
+	listallinfoarg1        string
+	listallinforet         []mpd.Attrs
+	readcommentscalled     int
+	readcommentsarg1       string
+	readcommentsret        mpd.Attrs
+	currentsongcalled      int
+	currentsongret         mpd.Attrs
+	statuscalled           int
+	statusret              mpd.Attrs
+	pingcalled             int
+	begincommandlistcalled int
 }
 
 func (p *mockMpc) Play(playarg1 int) error {
@@ -375,6 +343,11 @@ func (p *mockMpc) ListAllInfo(listallinfoarg1 string) ([]mpd.Attrs, error) {
 	p.listallinfocalled++
 	p.listallinfoarg1 = listallinfoarg1
 	return p.listallinforet, p.err
+}
+
+func (p *mockMpc) BeginCommandList() *mpd.CommandList {
+	p.begincommandlistcalled++
+	return nil
 }
 
 type mockError struct{}
