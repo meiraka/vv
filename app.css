@@ -35,7 +35,7 @@ section#list {
 }
 #list .song .track, #list .song .length, #list .song .length_separator, #list .song .elapsed {
     position: absolute;
-    bottom: 20px;
+    bottom: 22px;
     font-size: 16px;
 }
 #list .song .track {
@@ -57,9 +57,10 @@ section#list {
     position: absolute;
     left: 60px;
     top: 20px;
-    font-size: 32px;
+    width: calc(100% - 120px);
+    font-size: 28px;
     line-height: 12px;
-    text-shadow: 1px 1px 0px white;
+    text-shadow: 1px 1px 0px white,1px 0px 0px white;
 }
 #list .song .artist {
     position: absolute;
@@ -82,6 +83,8 @@ section#list {
     position: absolute;
     top: 0px;
     left: 50px;
+    line-height: 13px;
+    text-shadow: 1px 1px 0px white,1px 0px 0px white;
     font-size: 32px;
 }
 #list .album .albumartist {
