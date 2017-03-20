@@ -1,3 +1,51 @@
+var vv = vv || {
+    song: {}
+};
+vv.song = (function(){
+    var tag = function(song, keys, other) {
+        for (i in keys) {
+            var key = keys[i];
+            if (key in song) {
+                return song[key];
+            }
+        }
+        return other;
+    }
+
+    var getOrElse = function(song, key, other) {
+       if (key in song) {
+           return song[key];
+       } else if (key == "AlbumSort") {
+           return tag(song, ["Album"], other);
+       } else if (key == "ArtistSort") {
+           return tag(song, ["Artist"], other);
+       } else if (key == "AlbumArtist") {
+           return tag(song, ["Artist"], other);
+       } else if (key == "AlbumArtistSort") {
+           return tag(song, ["AlbumArtist", "Artist"], other);
+       } else if (key == "AlbumSort") {
+           return tag(song, ["Album"], other);
+       } else {
+           return other;
+       }
+    }
+
+    var get = function(song, key) {
+        return getOrElse(song, key, '[no ' + key + ']');
+    }
+    var str = function(song, keys) {
+        var sortkey = '';
+        for (i in keys) {
+            sortkey += getOrElse(song, keys[i], ' ')
+        }
+        return sortkey;
+    }
+    return {
+        getOrElse: getOrElse,
+        get: get,
+        str: str,
+    };
+}());
 
 var TREE = {
     "AlbumArtist": {
@@ -57,7 +105,7 @@ var song_tree_abs = function(song) {
                 break;
             }
             key = selected[i][0];
-            tree.push([key, songGet(song, key)]);
+            tree.push([key, vv.song.get(song, key)]);
         }
         sessionStorage.tree = JSON.stringify(tree);
     }
@@ -139,25 +187,25 @@ var MainView = function() {
             song = songs[i];
             $("#list ol").append("<li class="+style+"></li>");
             var added = $("#list ol li:last-child");
-            added.attr("key", songGet(song, key));
+            added.attr("key", vv.song.get(song, key));
             added.attr("uri", song["file"]);
             if (style == "song") {
-                added.append("<span class=track>"+songGet(song, "TrackNumber")+"</span>");
-                added.append("<span class=title>"+songGet(song, "Title")+"</span>");
-                if (songGet(song, "Artist") != songGet(song, "AlbumArtist")) {
-                    added.append("<span class=artist>"+songGet(song, "Artist")+"</span>");
+                added.append("<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>");
+                added.append("<span class=title>"+vv.song.get(song, "Title")+"</span>");
+                if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
+                    added.append("<span class=artist>"+vv.song.get(song, "Artist")+"</span>");
                 }
-                if (songGet(song, "file") == songGet(current, "file")) {
-                    added.append("<span class=elapsed>"+songGet(song, "Length")+"</span>");
+                if (vv.song.get(song, "file") == vv.song.get(current, "file")) {
+                    added.append("<span class=elapsed>"+vv.song.get(song, "Length")+"</span>");
                     added.append("<span class=length_separator>/</span>");
                 }
-                added.append("<span class=length>"+songGet(song, "Length")+"</span>");
+                added.append("<span class=length>"+vv.song.get(song, "Length")+"</span>");
             } else if (style == "album") {
-                added.append("<span class=date>"+songGet(song, "Date")+"</span>");
-                added.append("<span class=album>"+songGet(song, "Album")+"</span>");
-                added.append("<span class=albumartist>"+songGet(song, "AlbumArtist")+"</span>");
+                added.append("<span class=date>"+vv.song.get(song, "Date")+"</span>");
+                added.append("<span class=album>"+vv.song.get(song, "Album")+"</span>");
+                added.append("<span class=albumartist>"+vv.song.get(song, "AlbumArtist")+"</span>");
             } else {
-                added.text(songGet(song, key));
+                added.text(vv.song.get(song, key));
             }
         }
         $("#list ol li").bind("click", function() {
@@ -270,6 +318,7 @@ var update_library_request = function() {
     })
 }
 
+
 function parseSongTime(val) {
     var current = parseInt(val)
     var min = parseInt(current / 60)
@@ -277,48 +326,9 @@ function parseSongTime(val) {
     return min + ':' + ("0" + sec).slice(-2)
 }
 
-function songTag(song, keys, other) {
-    for (i in keys) {
-        var key = keys[i];
-        if (key in song) {
-            return song[key];
-        }
-    }
-    return other;
-}
-
-function songGet(song, key) {
-    return songGetOrElse(song, key, '[no ' + key + ']');
-}
-
-function songGetOrElse(song, key, other) {
-   if (key in song) {
-       return song[key];
-   } else if (key == "AlbumSort") {
-       return songTag(song, ["Album"], other);
-   } else if (key == "ArtistSort") {
-       return songTag(song, ["Artist"], other);
-   } else if (key == "AlbumArtist") {
-       return songTag(song, ["Artist"], other);
-   } else if (key == "AlbumArtistSort") {
-       return songTag(song, ["AlbumArtist", "Artist"], other);
-   } else if (key == "AlbumSort") {
-       return songTag(song, ["Album"], other);
-   } else {
-       return other;
-   }
-}
-function songString(song, keys) {
-    var sortkey = '';
-    for (i in keys) {
-        sortkey += songGetOrElse(song, keys[i], ' ')
-    }
-    return sortkey;
-}
-
 function sortSongs(songs, keys) {
     return songs.map(function(song) {
-        return [song, songString(song, keys)]
+        return [song, vv.song.str(song, keys)]
     }).sort(function (a, b) {
         if (a[1] < b[1]) { return -1; } else { return 1; };
     }).map(function(s) { return s[0]; });
@@ -327,7 +337,7 @@ function uniqSongs(songs, key) {
     return songs.filter(function (song, i , self) {
         if (i == 0) {
             return true;
-        } else if (songGetOrElse(song, key, ' ') != songGetOrElse(self[i - 1], key, ' ')) {
+        } else if (vv.song.getOrElse(song, key, ' ') != vv.song.getOrElse(self[i - 1], key, ' ')) {
             return true;
         } else {
             return false;
@@ -337,7 +347,7 @@ function uniqSongs(songs, key) {
 function filterSongs(songs, filters) {
     return songs.filter(function(song, i, self) {
         for (f in filters) {
-            if (songGet(song, f) != filters[f]) {
+            if (vv.song.get(song, f) != filters[f]) {
                 return false;
             }
         }
