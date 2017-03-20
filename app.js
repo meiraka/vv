@@ -108,6 +108,9 @@ var MainView = function() {
     p.up_list = function() {
         if ($("#current").css("display") == "none") {
             song_tree_up();
+        } else {
+            var current = JSON.parse(sessionStorage.current);
+            song_tree_abs(current);
         }
         p.update_tree();
     }
@@ -197,7 +200,11 @@ var update_song_request = function() {
                 sessionStorage.current = JSON.stringify(data["data"])
                 $("#current .title").text(data["data"]["Title"])
                 $("#current .artist").text(data["data"]["Artist"])
-                song_tree_abs(data["data"]);
+                var tree = JSON.parse(sessionStorage.tree);
+                if (tree.length != 0 && tree.length == TREE[tree[0][1]]["tree"].length) {
+                    song_tree_abs(data["data"]);
+                }
+                // update elapsed tag
                 mainview.update_tree();
 			}
 		},
