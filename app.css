@@ -14,6 +14,55 @@ section {
     position: relative;
     top: 30px;
 }
+section#list {
+    margin-bottom: 60px;
+}
+
+#list .song {
+    position: relative;
+    height: 60px;
+}
+#list .song .track, #list .song .length{
+    position: absolute;
+    bottom: 20px;
+    font-size: 16px;
+}
+#list .song .track {
+    left: 0px;
+}
+#list .song .length {
+    right: 10px;
+}
+#list .song .title {
+    position: absolute;
+    left: 60px;
+    bottom: 10px;
+    font-size: 32px;
+}
+#list .song .artist {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    font-size: 14px;
+}
+#list .album {
+    position: relative;
+    height: 72px;
+}
+#list .album .album {
+    position: absolute;
+    top: 0px;
+    left: 50px;
+    font-size: 32px;
+}
+#list .album .albumartist {
+    position: absolute;
+    top: 40px;
+    left: 20px;
+    font-size: 14px;
+}
+
+
 
 #current .title {
     position: fixed;

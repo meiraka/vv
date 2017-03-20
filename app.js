@@ -5,8 +5,8 @@ var TREE = {
             ["AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
         "tree":
             [["AlbumArtist", "plain"],
-             ["Album", "plain"],
-             ["Title", "plain"]
+             ["Album", "album"],
+             ["Title", "song"]
             ],
     },
     "Genre": {
@@ -14,8 +14,8 @@ var TREE = {
             ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
         "tree":
             [["Genre", "plain"],
-             ["Album", "plain"],
-             ["Title", "plain"],
+             ["Album", "album"],
+             ["Title", "song"],
             ]
     },
     "date": {
@@ -23,8 +23,8 @@ var TREE = {
             ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
         "tree":
             [["Date", "plain"],
-             ["Album", "plain"],
-             ["Title", "plain"],
+             ["Album", "album"],
+             ["Title", "song"],
             ]
     }
 }
@@ -58,7 +58,7 @@ var _song_tree_list_root = function() {
     for (rootname in TREE) {
         ret.push({"root": rootname});
     }
-    return ["root", ret];
+    return ["root", ret, "plain"];
 }
 var _song_tree_list_child = function(tree) {
     var root = tree[0][1],
@@ -73,7 +73,7 @@ var _song_tree_list_child = function(tree) {
     }
     library = filterSongs(library, filters);
     library = uniqSongs(library, key);
-    return [key, library];
+    return [key, library, style];
 };
 
 var MainView = function() {
@@ -98,23 +98,36 @@ var MainView = function() {
 
     p.update_tree = function() {
         var tree = JSON.parse(sessionStorage.tree);
-        var key, songs;
+        var key, songs, style;
         var song = {};
         var root = "";
-        // [key, songs] = song_tree_list(tree);
+        // [key, songs, style] = song_tree_list(tree);
         var keysongs = song_tree_list(tree);
         key = keysongs[0];
         songs = keysongs[1];
+        style = keysongs[2];
         if (tree.length != 0) {
             root = tree[0][1];
         }
         for (i in songs) {
             song = songs[i];
-            $("#list ol").append("<li></li>");
+            $("#list ol").append("<li class="+style+"></li>");
             var added = $("#list ol li:last-child");
-            added.text(songGet(song, key));
             added.attr("key", songGet(song, key));
             added.attr("uri", song["file"]);
+            if (style == "song") {
+                added.append("<span class=track>"+songGet(song, "TrackNumber")+"</span>");
+                added.append("<span class=title>"+songGet(song, "Title")+"</span>");
+                if (songGet(song, "Artist") != songGet(song, "AlbumArtist")) {
+                    added.append("<span class=artist>"+songGet(song, "Artist")+"</span>");
+                }
+                added.append("<span class=length>"+songGet(song, "Length")+"</span>");
+            } else if (style == "album") {
+                added.append("<span class=album>"+songGet(song, "Album")+"</span>");
+                added.append("<span class=albumartist>"+songGet(song, "AlbumArtist")+"</span>");
+            } else {
+                added.text(songGet(song, key));
+            }
         }
         $("#list ol li").bind("click", function() {
             var value = $(this).attr("key"),
