@@ -38,11 +38,7 @@ var MainView = function() {
         $("#current").hide();
         $("#list ol").empty();
         var tree = JSON.parse(sessionStorage.tree);
-        if (tree.length == 0) {
-            p.update_root(tree);
-        } else {
-            p.update_child(tree);
-        }
+        p.update_tree(tree);
         $("#list").show();
     }
     p.up_list = function() {
@@ -54,21 +50,23 @@ var MainView = function() {
             sessionStorage.tree = JSON.stringify(data)
         }
     }
-    p.update_root = function(tree) {
-        var rootname = "";
-        var value = "";
-        var ol = $("#list ol");
-        for (rootname in TREE) {
-            ol.append("<li key="+rootname+">" + rootname + "</li>");
+    p.list = function(tree) {
+        var ls = [];
+        if (tree.length == 0) {
+            return p._list_root();
+        } else {
+            return p._list_child(tree);
         }
-        $("#list ol li").bind("click", function() {
-            var rootname = $(this).attr("key");
-            sessionStorage.tree = JSON.stringify([["root", rootname]]);
-            p.show_list();
-            return false;
-        });
     }
-    p.update_child = function(tree) {
+    p._list_root = function() {
+        var ret = [];
+        var rootname = "";
+        for (rootname in TREE) {
+            ret.push({"root": rootname});
+        }
+        return ["root", ret];
+    }
+    p._list_child = function(tree) {
         var root = tree[0][1],
             library = JSON.parse(sessionStorage["library_" + root]),
             filters = {},
@@ -81,6 +79,17 @@ var MainView = function() {
         }
         library = filterSongs(library, filters);
         library = uniqSongs(library, key);
+        return [key, library];
+    };
+
+    p.update_tree = function(tree) {
+        var key, library;
+        var song = {};
+        [key, library] = p.list(tree);
+        var root = "";
+        if (tree.length != 0) {
+            root = tree[0][1];
+        }
         for (i in library) {
             song = library[i];
             $("#list ol").append("<li></li>");
@@ -92,7 +101,11 @@ var MainView = function() {
         $("#list ol li").bind("click", function() {
             var value = $(this).attr("key"),
                 uri = $(this).attr("uri");
-            if (tree.length == TREE[root]["tree"].length) {
+            if (tree.length == 0 || tree.length != TREE[root]["tree"].length) {
+                tree.push([key, value]);
+                sessionStorage.tree = JSON.stringify(tree);
+                p.show_list();
+            } else {
                 $.ajax({
                     type: "POST",
                     url: "/api/songs",
@@ -109,10 +122,6 @@ var MainView = function() {
 				        }
 			        },
                 });
-            } else {
-                tree.push([key, value]);
-                sessionStorage.tree = JSON.stringify(tree);
-                p.show_list();
             }
             return false;
         });
