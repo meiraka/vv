@@ -267,17 +267,12 @@ vv.view.list = (function(){
 
 
 var update_tree = function() {
-    var key, songs, style, type;
-    var song = {};
-    var root = "";
-    var keysongs = vv.model.list.list();
-    key = keysongs[0];
-    songs = keysongs[1];
-    style = keysongs[2];
-    type = keysongs[3];
-    if (vv.storage.tree.length != 0) {
-        root = vv.storage.tree[0][1];
-    }
+    var ls = vv.model.list.list(),
+        key = ls[0],
+        songs = ls[1],
+        style = ls[2],
+        type = ls[3],
+        song = {};
     $("#list ol").empty();
     for (i in songs) {
         song = songs[i];
