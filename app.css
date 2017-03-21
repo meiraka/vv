@@ -58,25 +58,25 @@ section#list {
     left: 60px;
     top: 20px;
     width: calc(100% - 120px);
-    font-size: 28px;
-    line-height: 12px;
+    font-size: 24px;
+    line-height: 14px;
     text-shadow: 1px 1px 0px white,1px 0px 0px white;
 }
 #list .song .artist {
     position: absolute;
     top: 40px;
     left: 40px;
-    font-size: 14px;
+    font-size: 12px;
 }
 #list .album {
     position: relative;
-    height: 72px;
+    height: 60px;
 }
 #list .album .date {
     position: absolute;
-    bottom: 30px;
+    top: 16px;
     left: 10px;
-    font-size: 14px;
+    font-size: 12px;
     color: #808080;
 }
 #list .album .album {
@@ -85,11 +85,11 @@ section#list {
     left: 50px;
     line-height: 13px;
     text-shadow: 1px 1px 0px white,1px 0px 0px white;
-    font-size: 32px;
+    font-size: 28px;
 }
 #list .album .albumartist {
     position: absolute;
-    top: 40px;
+    top: 24px;
     left: 20px;
     font-size: 14px;
 }
