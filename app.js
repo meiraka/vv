@@ -147,6 +147,13 @@ vv.model.list = (function() {
         }
         return r;
     };
+    var sortkeys = function() {
+        var r = rootname();
+        if (r == "root") {
+            return [];
+        }
+        return TREE[r]["sort"];
+    }
     var up = function() {
         if (rootname() != "root") {
             vv.storage.tree.pop();
@@ -193,13 +200,17 @@ vv.model.list = (function() {
             key = TREE[root]["tree"][vv.storage.tree.length - 1][0],
             style = TREE[root]["tree"][vv.storage.tree.length - 1][1],
             song = {};
+            type = "dir";
+        if (vv.storage.tree.length == TREE[root]["tree"].length) {
+            type = "file";
+        }
         for (leef in vv.storage.tree) {
             if (leef == 0) { continue; }
             filters[vv.storage.tree[leef][0]] = vv.storage.tree[leef][1];
         }
         library = vv.songs.filter(library, filters);
         library = vv.songs.uniq(library, key);
-        return [key, library, style];
+        return [key, library, style, type];
     };
     var list_root = function() {
         var ret = [];
@@ -207,10 +218,11 @@ vv.model.list = (function() {
         for (rootname in TREE) {
             ret.push({"root": rootname});
         }
-        return ["root", ret, "plain"];
+        return ["root", ret, "plain", "dir"];
     }
     return {
         rootname: rootname,
+        sortkeys, sortkeys,
         up: up,
         down: down,
         abs: abs,
@@ -241,13 +253,14 @@ var MainView = function() {
     }
 
     p.update_tree = function() {
-        var key, songs, style;
+        var key, songs, style, type;
         var song = {};
         var root = "";
         var keysongs = vv.model.list.list();
         key = keysongs[0];
         songs = keysongs[1];
         style = keysongs[2];
+        type = keysongs[3];
         if (vv.storage.tree.length != 0) {
             root = vv.storage.tree[0][1];
         }
@@ -280,8 +293,7 @@ var MainView = function() {
         $("#list ol li").bind("click", function() {
             var value = $(this).attr("key"),
                 uri = $(this).attr("uri");
-            if (vv.storage.tree.length == 0 ||
-                vv.storage.tree.length != TREE[root]["tree"].length) {
+            if (type == "dir") {
                 vv.model.list.down(value);
                 p.show_list();
             } else {
@@ -291,7 +303,7 @@ var MainView = function() {
                     contentType: 'application/json',
                     data: JSON.stringify(
                             {"action": "sort",
-                             "keys": TREE[root]["sort"],
+                             "keys": vv.model.list.sortkeys(),
                              "uri": uri
                             }),
                     cache: false,
