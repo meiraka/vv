@@ -229,7 +229,7 @@ vv.model.list = (function() {
     return {
         update: update,
         rootname: rootname,
-        sortkeys, sortkeys,
+        sortkeys: sortkeys,
         up: up,
         down: down,
         abs: abs,
