@@ -82,28 +82,30 @@ vv.songs = (function(){
     };
 }());
 vv.storage = (function(){
-    var f = function(key, other) {
-        var n = function(value) {
-            if (typeof(value) == "undefined") {
-                if (typeof(sessionStorage[key]) == "undefined") {
-                    return other;
-                }
-                return JSON.parse(sessionStorage[key]);
-            } else {
-                sessionStorage[key] = JSON.stringify(value);
-            }
-        };
-        return n;
-    };
+    var tree = [];
+    var current = [];
+    var control = [];
+    var library = {
+        "AlbumArtist": [],
+         "Genre": [],
+    }
+
+    var save = function() {
+        localStorage.tree = JSON.stringify(tree);
+    }
+    var load = function() {
+        if (localStorage.tree) {
+            tree = JSON.parse(localStorage.tree);
+        }
+    }
+    load();
     return {
-        tree: f("tree", []),
-        current: f("current", {}),
-        control: f("control", {}),
-        playlist: f("playlist", []),
-        library: {
-            "AlbumArtist": f("library_AlbumArtist", []),
-            "Genre": f("library_Genre", []),
-        },
+        tree: tree,
+        current: current,
+        control: control,
+        library: library,
+        save: save,
+        load: load,
     };
 }());
 
@@ -137,45 +139,39 @@ var TREE = {
     }
 }
 
-var song_tree_list = function(tree) {
-    if (!tree) {
-        tree = vv.storage.tree();
-    }
+var song_tree_list = function() {
     var ls = [];
-    if (tree.length == 0) {
+    if (vv.storage.tree.length == 0) {
         return _song_tree_list_root();
     } else {
-        return _song_tree_list_child(tree);
+        return _song_tree_list_child();
     }
 };
 var song_tree_down = function(key, value) {
-    var tree = vv.storage.tree();
-    tree.push([key, value]);
-    vv.storage.tree(tree);
+    vv.storage.tree.push([key, value]);
+    vv.storage.save();
 };
 var song_tree_abs = function(song) {
-    var tree = vv.storage.tree();
     var i, root, key, selected;
-    if (tree.length != 0) {
-        tree = [tree[0]];
-        root = tree[0][1];
+    if (vv.storage.tree.length != 0) {
+        vv.storage.tree = [vv.storage.tree[0]];
+        vv.storage.save();
+        root = vv.storage.tree[0][1];
         selected = TREE[root]["tree"];
         for (i in selected) {
             if (i == selected.length - 1) {
                 break;
             }
             key = selected[i][0];
-            tree.push([key, vv.song.get(song, key)]);
+            vv.storage.tree.push([key, vv.song.get(song, key)]);
         }
-        vv.storage.tree(tree);
     }
 };
 var song_tree_up = function() {
-    var tree = vv.storage.tree()
-    if (tree.length > 0) {
-        tree.pop();
+    if (vv.storage.tree.length > 0) {
+        vv.storage.tree.pop();
     }
-    vv.storage.tree(tree)
+    vv.storage.save();
 };
 var _song_tree_list_root = function() {
     var ret = [];
@@ -185,16 +181,16 @@ var _song_tree_list_root = function() {
     }
     return ["root", ret, "plain"];
 }
-var _song_tree_list_child = function(tree) {
-    var root = tree[0][1],
-        library = vv.storage.library[root](),
+var _song_tree_list_child = function() {
+    var root = vv.storage.tree[0][1],
+        library = vv.storage.library[root],
         filters = {},
-        key = TREE[root]["tree"][tree.length - 1][0],
-        style = TREE[root]["tree"][tree.length - 1][1],
+        key = TREE[root]["tree"][vv.storage.tree.length - 1][0],
+        style = TREE[root]["tree"][vv.storage.tree.length - 1][1],
         song = {};
-    for (leef in tree) {
+    for (leef in vv.storage.tree) {
         if (leef == 0) { continue; }
-        filters[tree[leef][0]] = tree[leef][1];
+        filters[vv.storage.tree[leef][0]] = vv.storage.tree[leef][1];
     }
     library = vv.songs.filter(library, filters);
     library = vv.songs.uniq(library, key);
@@ -217,30 +213,21 @@ var MainView = function() {
         if ($("#current").css("display") == "none") {
             song_tree_up();
         } else {
-            var current = vv.storage.current();
-            song_tree_abs(current);
+            song_tree_abs(vv.storage.current);
         }
         p.update_tree();
     }
 
     p.update_tree = function() {
-        var current = {};
-        var control = {};
-        var tree = vv.storage.tree();
         var key, songs, style;
         var song = {};
         var root = "";
-        // [key, songs, style] = song_tree_list(tree);
-        var keysongs = song_tree_list(tree);
+        var keysongs = song_tree_list();
         key = keysongs[0];
         songs = keysongs[1];
         style = keysongs[2];
-        if (style == "song") {
-            current = vv.storage.current();
-            control = vv.storage.control();
-        }
-        if (tree.length != 0) {
-            root = tree[0][1];
+        if (vv.storage.tree.length != 0) {
+            root = vv.storage.tree[0][1];
         }
         $("#list ol").empty();
         for (i in songs) {
@@ -255,7 +242,7 @@ var MainView = function() {
                 if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
                     added.append("<span class=artist>"+vv.song.get(song, "Artist")+"</span>");
                 }
-                if (vv.song.get(song, "file") == vv.song.get(current, "file")) {
+                if (vv.song.get(song, "file") == vv.song.get(vv.storage.current, "file")) {
                     added.append("<span class=elapsed>"+vv.song.get(song, "Length")+"</span>");
                     added.append("<span class=length_separator>/</span>");
                 }
@@ -271,7 +258,8 @@ var MainView = function() {
         $("#list ol li").bind("click", function() {
             var value = $(this).attr("key"),
                 uri = $(this).attr("uri");
-            if (tree.length == 0 || tree.length != TREE[root]["tree"].length) {
+            if (vv.storage.tree.length == 0 ||
+                vv.storage.tree.length != TREE[root]["tree"].length) {
                 song_tree_down(key, value);
                 p.show_list();
             } else {
@@ -306,7 +294,7 @@ var update_song_request = function() {
 		dataType: "json",
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
-                vv.storage.current(data["data"]);
+                vv.storage.current = data["data"];
                 $("#current .title").text(data["data"]["Title"])
                 $("#current .artist").text(data["data"]["Artist"])
                 var key;
@@ -317,8 +305,8 @@ var update_song_request = function() {
                     }
                     $("#current .detail").append("<li>" + key + ": " + data["data"][key] + "</li>");
                 }
-                var tree = vv.storage.tree();
-                if (tree.length != 0 && tree.length == TREE[tree[0][1]]["tree"].length) {
+                if (vv.storage.tree.length != 0 &&
+                    vv.storage.tree.length == TREE[vv.storage.tree[0][1]]["tree"].length) {
                     song_tree_abs(data["data"]);
                 }
                 // update elapsed tag
@@ -336,7 +324,7 @@ var update_control_data_request = function() {
 		dataType: "json",
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
-                vv.storage.control(data["data"]);
+                vv.storage.control = data["data"];
                 refreash_control_data();
 			}
 		},
@@ -345,7 +333,7 @@ var update_control_data_request = function() {
 };
 
 var refreash_control_data = function() {
-    data = vv.storage.control()
+    data = vv.storage.control
     if ('state' in data) {
         var elapsed = parseInt(data["song_elapsed"] * 1000)
         var current = elapsed
@@ -369,10 +357,8 @@ var update_library_request = function() {
 		dataType: "json",
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
-                vv.storage.library["AlbumArtist"](
-                    vv.songs.sort(data["data"], TREE["AlbumArtist"]["sort"]));
-                vv.storage.library["Genre"](
-                    vv.songs.sort(data["data"], TREE["Genre"]["sort"]));
+                vv.storage.library["AlbumArtist"] = vv.songs.sort(data["data"], TREE["AlbumArtist"]["sort"]);
+                vv.storage.library["Genre"] = vv.songs.sort(data["data"], TREE["Genre"]["sort"]);
 			}
 		},
     })
@@ -422,7 +408,7 @@ $(document).ready(function(){
         return false;
     });
     $("#playback .play").bind("click", function() {
-        var state = getOrElse(vv.storage.control(), "state", "stopped");
+        var state = getOrElse(vv.storage.control, "state", "stopped");
         var action = state == "play" ? "pause" : "play"
         $.ajax({
             type: "GET",
