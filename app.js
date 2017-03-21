@@ -140,6 +140,10 @@ var TREE = {
     }
 }
 vv.model.list = (function() {
+    var update = function(data) {
+        vv.storage.library["AlbumArtist"] = vv.songs.sort(data, TREE["AlbumArtist"]["sort"]);
+        vv.storage.library["Genre"] = vv.songs.sort(data, TREE["Genre"]["sort"]);
+    };
     var rootname = function() {
         var r = "root";
         if (vv.storage.tree.length != 0) {
@@ -221,6 +225,7 @@ vv.model.list = (function() {
         return ["root", ret, "plain", "dir"];
     }
     return {
+        update: update,
         rootname: rootname,
         sortkeys, sortkeys,
         up: up,
@@ -390,8 +395,7 @@ var update_library_request = function() {
 		dataType: "json",
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
-                vv.storage.library["AlbumArtist"] = vv.songs.sort(data["data"], TREE["AlbumArtist"]["sort"]);
-                vv.storage.library["Genre"] = vv.songs.sort(data["data"], TREE["Genre"]["sort"]);
+                vv.model.list.update(data["data"]);
 			}
 		},
     })
