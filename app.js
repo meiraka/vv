@@ -110,36 +110,37 @@ vv.storage = (function(){
     };
 }());
 
-var TREE = {
-    "AlbumArtist": {
-        "sort":
-            ["AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
-        "tree":
-            [["AlbumArtist", "plain"],
-             ["Album", "album"],
-             ["Title", "song"]
-            ],
-    },
-    "Genre": {
-        "sort":
-            ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
-        "tree":
-            [["Genre", "plain"],
-             ["Album", "album"],
-             ["Title", "song"],
-            ]
-    },
-    "date": {
-        "sort":
-            ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
-        "tree":
-            [["Date", "plain"],
-             ["Album", "album"],
-             ["Title", "song"],
-            ]
-    }
-}
+
 vv.model.list = (function() {
+    var TREE = {
+        "AlbumArtist": {
+            "sort":
+                ["AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
+            "tree":
+                [["AlbumArtist", "plain"],
+                 ["Album", "album"],
+                 ["Title", "song"]
+                ],
+        },
+        "Genre": {
+            "sort":
+                ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
+            "tree":
+                [["Genre", "plain"],
+                 ["Album", "album"],
+                 ["Title", "song"],
+                ]
+        },
+        "date": {
+            "sort":
+                ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
+            "tree":
+                [["Date", "plain"],
+                 ["Album", "album"],
+                 ["Title", "song"],
+                ]
+        }
+    }
     var update = function(data) {
         vv.storage.library["AlbumArtist"] = vv.songs.sort(data, TREE["AlbumArtist"]["sort"]);
         vv.storage.library["Genre"] = vv.songs.sort(data, TREE["Genre"]["sort"]);
