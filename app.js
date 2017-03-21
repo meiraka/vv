@@ -2,6 +2,7 @@ var vv = vv || {
     song: {},
     songs: {},
     storage: {},
+    model: {list: {}},
 };
 vv.song = (function(){
     var tag = function(song, keys, other) {
@@ -138,64 +139,85 @@ var TREE = {
             ]
     }
 }
-
-var song_tree_list = function() {
-    var ls = [];
-    if (vv.storage.tree.length == 0) {
-        return _song_tree_list_root();
-    } else {
-        return _song_tree_list_child();
-    }
-};
-var song_tree_down = function(key, value) {
-    vv.storage.tree.push([key, value]);
-    vv.storage.save();
-};
-var song_tree_abs = function(song) {
-    var i, root, key, selected;
-    if (vv.storage.tree.length != 0) {
-        vv.storage.tree = [vv.storage.tree[0]];
-        vv.storage.save();
-        root = vv.storage.tree[0][1];
-        selected = TREE[root]["tree"];
-        for (i in selected) {
-            if (i == selected.length - 1) {
-                break;
-            }
-            key = selected[i][0];
-            vv.storage.tree.push([key, vv.song.get(song, key)]);
+vv.model.list = (function() {
+    var rootname = function() {
+        var r = "root";
+        if (vv.storage.tree.length != 0) {
+            r = vv.storage.tree[0][1];
         }
+        return r;
+    };
+    var up = function() {
+        if (rootname() != "root") {
+            vv.storage.tree.pop();
+            vv.storage.save();
+        }
+    };
+    var down = function(value) {
+        var r = rootname();
+        var key = "root";
+        if (r != "root") {
+            key = TREE[r]["tree"][vv.storage.tree.length - 1][0];
+        }
+        vv.storage.tree.push([key, value]);
+        vv.storage.save();
+    };
+    var abs = function(song) {
+        var i, root, key, selected;
+        if (rootname() != "root") {
+            vv.storage.tree = [vv.storage.tree[0]];
+            root = vv.storage.tree[0][1];
+            selected = TREE[root]["tree"];
+            for (i in selected) {
+                if (i == selected.length - 1) {
+                    break;
+                }
+                key = selected[i][0];
+                vv.storage.tree.push([key, vv.song.get(song, key)]);
+            }
+            vv.storage.save();
+        }
+    };
+    var list = function() {
+        var ls = [];
+        if (rootname() == "root") {
+            return list_root();
+        } else {
+            return list_child();
+        }
+    };
+    var list_child = function() {
+        var root = rootname(),
+            library = vv.storage.library[root],
+            filters = {},
+            key = TREE[root]["tree"][vv.storage.tree.length - 1][0],
+            style = TREE[root]["tree"][vv.storage.tree.length - 1][1],
+            song = {};
+        for (leef in vv.storage.tree) {
+            if (leef == 0) { continue; }
+            filters[vv.storage.tree[leef][0]] = vv.storage.tree[leef][1];
+        }
+        library = vv.songs.filter(library, filters);
+        library = vv.songs.uniq(library, key);
+        return [key, library, style];
+    };
+    var list_root = function() {
+        var ret = [];
+        var rootname = "";
+        for (rootname in TREE) {
+            ret.push({"root": rootname});
+        }
+        return ["root", ret, "plain"];
     }
-};
-var song_tree_up = function() {
-    if (vv.storage.tree.length > 0) {
-        vv.storage.tree.pop();
-    }
-    vv.storage.save();
-};
-var _song_tree_list_root = function() {
-    var ret = [];
-    var rootname = "";
-    for (rootname in TREE) {
-        ret.push({"root": rootname});
-    }
-    return ["root", ret, "plain"];
-}
-var _song_tree_list_child = function() {
-    var root = vv.storage.tree[0][1],
-        library = vv.storage.library[root],
-        filters = {},
-        key = TREE[root]["tree"][vv.storage.tree.length - 1][0],
-        style = TREE[root]["tree"][vv.storage.tree.length - 1][1],
-        song = {};
-    for (leef in vv.storage.tree) {
-        if (leef == 0) { continue; }
-        filters[vv.storage.tree[leef][0]] = vv.storage.tree[leef][1];
-    }
-    library = vv.songs.filter(library, filters);
-    library = vv.songs.uniq(library, key);
-    return [key, library, style];
-};
+    return {
+        rootname: rootname,
+        up: up,
+        down: down,
+        abs: abs,
+        list: list,
+    };
+}());
+
 
 var MainView = function() {
     var mainview = function() {};
@@ -211,9 +233,9 @@ var MainView = function() {
     }
     p.up_list = function() {
         if ($("#current").css("display") == "none") {
-            song_tree_up();
+            vv.model.list.up();
         } else {
-            song_tree_abs(vv.storage.current);
+            vv.model.list.abs(vv.storage.current);
         }
         p.update_tree();
     }
@@ -222,7 +244,7 @@ var MainView = function() {
         var key, songs, style;
         var song = {};
         var root = "";
-        var keysongs = song_tree_list();
+        var keysongs = vv.model.list.list();
         key = keysongs[0];
         songs = keysongs[1];
         style = keysongs[2];
@@ -260,7 +282,7 @@ var MainView = function() {
                 uri = $(this).attr("uri");
             if (vv.storage.tree.length == 0 ||
                 vv.storage.tree.length != TREE[root]["tree"].length) {
-                song_tree_down(key, value);
+                vv.model.list.down(value);
                 p.show_list();
             } else {
                 $.ajax({
@@ -307,7 +329,7 @@ var update_song_request = function() {
                 }
                 if (vv.storage.tree.length != 0 &&
                     vv.storage.tree.length == TREE[vv.storage.tree[0][1]]["tree"].length) {
-                    song_tree_abs(data["data"]);
+                    vv.model.list.abs(data["data"]);
                 }
                 // update elapsed tag
                 mainview.update_tree();
