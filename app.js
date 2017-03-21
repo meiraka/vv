@@ -3,6 +3,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
+    view: {main: {}, list: {}},
 };
 vv.song = (function(){
     var tag = function(song, keys, other) {
@@ -235,19 +236,47 @@ vv.model.list = (function() {
         list: list,
     };
 }());
+vv.view.main = (function(){
+    var show = function() {
+        var e = document.getElementById("current");
+        e.style.display = "block";
+    };
+    var hide = function() {
+        var e = document.getElementById("current");
+        e.style.display = "none";
+    }
+    return {
+        show: show,
+        hide: hide,
+    };
+}());
+vv.view.list = (function(){
+    var show = function() {
+        var e = document.getElementById("list");
+        e.style.display = "block";
+    };
+    var hide = function() {
+        var e = document.getElementById("list");
+        e.style.display = "none";
+    }
+    return {
+        show: show,
+        hide: hide,
+    };
+}());
 
 
 var MainView = function() {
     var mainview = function() {};
     var p = mainview.prototype;
     p.show_current = function() {
-        $("#list").hide();
-        $("#current").show();
+        vv.view.list.hide();
+        vv.view.main.show();
     }
     p.show_list = function() {
-        $("#current").hide();
+        vv.view.main.hide();
         p.update_tree();
-        $("#list").show();
+        vv.view.list.show();
     }
     p.up_list = function() {
         if ($("#current").css("display") == "none") {
