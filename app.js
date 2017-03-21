@@ -339,8 +339,7 @@ var update_song_request = function() {
                     }
                     $("#current .detail").append("<li>" + key + ": " + data["data"][key] + "</li>");
                 }
-                if (vv.storage.tree.length != 0 &&
-                    vv.storage.tree.length == TREE[vv.storage.tree[0][1]]["tree"].length) {
+                if (vv.model.list.rootname() != "root") {
                     vv.model.list.abs(data["data"]);
                 }
                 // update elapsed tag
