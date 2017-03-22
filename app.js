@@ -265,6 +265,20 @@ vv.view.list = (function(){
     };
 }());
 
+var play = function(uri) {
+    $.ajax({
+        type: "POST",
+        url: "/api/songs",
+        contentType: 'application/json',
+        data: JSON.stringify(
+                {"action": "sort",
+                 "keys": vv.model.list.sortkeys(),
+                 "uri": uri
+                }),
+        cache: false,
+    });
+};
+
 
 var update_tree = function() {
     var ls = vv.model.list.list(),
@@ -272,58 +286,48 @@ var update_tree = function() {
         songs = ls[1],
         style = ls[2],
         type = ls[3],
-        song = {};
-    $("#list ol").empty();
+        song = {},
+        f = document.createDocumentFragment();
+    document.getElementById("list").children[0].innerHTML = "";
     for (i in songs) {
         song = songs[i];
-        $("#list ol").append("<li class="+style+"></li>");
-        var added = $("#list ol li:last-child");
-        added.attr("key", vv.song.get(song, key));
-        added.attr("uri", song["file"]);
+        var li = document.createElement("li");
+        var inner = "";
+        li.setAttribute("class", style);
+        li.setAttribute("key", vv.song.get(song, key));
+        li.setAttribute("uri", song["file"]);
         if (style == "song") {
-            added.append("<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>");
-            added.append("<span class=title>"+vv.song.get(song, "Title")+"</span>");
+            inner = "<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>"+
+                    "<span class=title>"+vv.song.get(song, "Title")+"</span>";
             if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
-                added.append("<span class=artist>"+vv.song.get(song, "Artist")+"</span>");
+                inner += "<span class=artist>"+vv.song.get(song, "Artist")+"</span>";
             }
             if (vv.song.get(song, "file") == vv.song.get(vv.storage.current, "file")) {
-                added.append("<span class=elapsed>"+vv.song.get(song, "Length")+"</span>");
-                added.append("<span class=length_separator>/</span>");
+                inner += "<span class=elapsed>"+vv.song.get(song, "Length")+"</span>"+
+                         "<span class=length_separator>/</span>";
             }
-            added.append("<span class=length>"+vv.song.get(song, "Length")+"</span>");
+            inner += "<span class=length>"+vv.song.get(song, "Length")+"</span>";
         } else if (style == "album") {
-            added.append("<span class=date>"+vv.song.get(song, "Date")+"</span>");
-            added.append("<span class=album>"+vv.song.get(song, "Album")+"</span>");
-            added.append("<span class=albumartist>"+vv.song.get(song, "AlbumArtist")+"</span>");
+            inner += "<span class=date>"+vv.song.get(song, "Date")+"</span>";
+            inner += "<span class=album>"+vv.song.get(song, "Album")+"</span>";
+            inner += "<span class=albumartist>"+vv.song.get(song, "AlbumArtist")+"</span>";
         } else {
-            added.text(vv.song.get(song, key));
+            inner = vv.song.get(song, key);
         }
+        li.innerHTML = inner;
+        li.addEventListener('click', function() {
+            var value = this.getAttribute("key"),
+                uri = this.getAttribute("uri");
+            if (type == "dir") {
+                vv.model.list.down(value);
+                update_tree();
+            } else {
+                play(uri);
+            }
+        }, false);
+        f.appendChild(li);
     }
-    $("#list ol li").bind("click", function() {
-        var value = $(this).attr("key"),
-            uri = $(this).attr("uri");
-        if (type == "dir") {
-            vv.model.list.down(value);
-            update_tree();
-        } else {
-            $.ajax({
-                type: "POST",
-                url: "/api/songs",
-                contentType: 'application/json',
-                data: JSON.stringify(
-                        {"action": "sort",
-                         "keys": vv.model.list.sortkeys(),
-                         "uri": uri
-                        }),
-                cache: false,
-                success: function(data, status) {
-			        if (status == "success" && data["errors"] == null) {
-			        }
-		        },
-            });
-        }
-        return false;
-    });
+    document.getElementById("list").children[0].appendChild(f);
 };
 
 
