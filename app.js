@@ -1,4 +1,5 @@
 var vv = vv || {
+    obj: {},
     song: {},
     songs: {},
     storage: {},
@@ -6,6 +7,12 @@ var vv = vv || {
     view: {main: {}, list: {}, elapsed: {}},
     control : {},
 };
+vv.obj = (function(){
+    function getOrElse(m, k, v) {
+        return k in m? m[k] : v;
+    }
+    return {getOrElse: getOrElse};
+})();
 vv.song = (function(){
     var tag = function(song, keys, other) {
         for (i in keys) {
@@ -356,7 +363,10 @@ vv.view.elapsed = (function() {
             if (data["state"] == "play") {
                 current += date.getTime() - last_modified
             }
-            var label = parseSongTime(current / 1000);
+            current = parseInt(current / 1000);
+            var min = parseInt(current / 60)
+            var sec = current % 60
+            var label = min + ':' + ("0" + sec).slice(-2)
             var texts = document.getElementsByClassName("elapsed");
             var i;
             for (i in texts) {
@@ -424,7 +434,7 @@ vv.control = (function() {
     }
 
     var play_pause = function() {
-        var state = getOrElse(vv.storage.control, "state", "stopped");
+        var state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
         var action = state == "play" ? "pause" : "play";
         get_request("api/control?action="+action, "");
     }
@@ -446,6 +456,55 @@ vv.control = (function() {
         ));
     }
 
+    var init = function() {
+        var menu = document.getElementById("menu");
+        menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
+            if ($("#current").css("display") == "none") {
+                vv.model.list.up();
+            } else {
+                vv.model.list.abs(vv.storage.current);
+            }
+            vv.view.main.hide();
+            vv.view.list.update();
+            vv.view.list.show();
+            e.stopPropagation();
+        });
+        menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
+            vv.view.list.hide();
+            vv.view.main.show();
+            e.stopPropagation();
+        });
+        var playback = document.getElementById("playback");
+        playback.getElementsByClassName("prev")[0].addEventListener('click', function(e) {
+            vv.control.prev();
+            e.stopPropagation();
+        });
+        playback.getElementsByClassName("play")[0].addEventListener('click', function(e) {
+            vv.control.play_pause();
+            e.stopPropagation();
+        });
+        playback.getElementsByClassName("next")[0].addEventListener('click', function(e) {
+            vv.control.next();
+            e.stopPropagation();
+        });
+
+        var polling = function() {
+            vv.control.update_song();
+            vv.control.update_status();
+            vv.control.update_library();
+	    	setTimeout(polling, 1000);
+        }
+	    polling();
+    };
+
+    var start = function() {
+        if (document.readyState !== 'loading') {
+            init();
+        } else {
+            document.addEventListener('DOMContentLoaded', init);
+        }
+    };
+
     return {
         update_song: update_song,
         update_status: update_status,
@@ -454,67 +513,8 @@ vv.control = (function() {
         play_pause: play_pause,
         next: next,
         play: play,
+        start: start,
     };
 }());
 
-function parseSongTime(val) {
-    var current = parseInt(val)
-    var min = parseInt(current / 60)
-    var sec = current % 60
-    return min + ':' + ("0" + sec).slice(-2)
-}
-
-
-function getOrElse(m, k, v) {
-    return k in m? m[k] : v;
-}
-
-
-$(document).ready(function(){
-    $("#menu .up").bind("click", function() {
-        if ($("#current").css("display") == "none") {
-            vv.model.list.up();
-        } else {
-            vv.model.list.abs(vv.storage.current);
-        }
-        vv.view.main.hide();
-        vv.view.list.update();
-        vv.view.list.show();
-        return false;
-    });
-    $("#menu .back").bind("click", function() {
-        vv.view.list.hide();
-        vv.view.main.show();
-        return false;
-    });
-    $("#menu .reset").bind("click", function() {
-        sessionStorage.tree = "[]";
-        sessionStorage.current = "{}";
-        sessionStorage.control = "{}";
-        sessionStorage.playlist = "[]";
-        sessionStorage.library = "[]";
-        sessionStorage.library_AlbumArtist = "[]";
-        sessionStorage.library_Genre = "[]";
-        return false;
-    });
-    $("#playback .prev").bind("click", function() {
-        vv.control.prev();
-        return false;
-    });
-    $("#playback .play").bind("click", function() {
-        vv.control.play_pause();
-        return false;
-    });
-    $("#playback .next").bind("click", function() {
-        vv.control.next();
-        return false;
-    });
-
-    function polling() {
-        vv.control.update_song();
-        vv.control.update_status();
-        vv.control.update_library();
-		setTimeout(polling, 1000);
-    }
-	polling();
-});
+vv.control.start();
