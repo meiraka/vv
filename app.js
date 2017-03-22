@@ -259,6 +259,9 @@ vv.view.main = (function(){
         var e = document.getElementById("current");
         e.style.display = "none";
     }
+    var hidden = function() {
+        return document.getElementById("current").style.display == "none";
+    }
     var update = function() {
         var e = document.getElementById("current");
         var key;
@@ -281,6 +284,7 @@ vv.view.main = (function(){
     return {
         show: show,
         hide: hide,
+        hidden: hidden,
         update: update,
     };
 }());
@@ -292,6 +296,9 @@ vv.view.list = (function(){
     var hide = function() {
         var e = document.getElementById("list");
         e.style.display = "none";
+    }
+    var hidden = function() {
+        return document.getElementById("list").style.display == "none";
     }
     var update = function() {
         var ls = vv.model.list.list(),
@@ -349,6 +356,7 @@ vv.view.list = (function(){
     return {
         show: show,
         hide: hide,
+        hidden: hidden,
         update: update,
     };
 }());
@@ -459,7 +467,7 @@ vv.control = (function() {
     var init = function() {
         var menu = document.getElementById("menu");
         menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
-            if ($("#current").css("display") == "none") {
+            if (vv.view.main.hidden()) {
                 vv.model.list.up();
             } else {
                 vv.model.list.abs(vv.storage.current);
