@@ -259,38 +259,7 @@ vv.view.list = (function(){
         var e = document.getElementById("list");
         e.style.display = "none";
     }
-    return {
-        show: show,
-        hide: hide,
-    };
-}());
-
-var play = function(uri) {
-    $.ajax({
-        type: "POST",
-        url: "/api/songs",
-        contentType: 'application/json',
-        data: JSON.stringify(
-                {"action": "sort",
-                 "keys": vv.model.list.sortkeys(),
-                 "uri": uri
-                }),
-        cache: false,
-    });
-};
-
-
-var update_tree = function() {
-    var ls = vv.model.list.list(),
-        key = ls[0],
-        songs = ls[1],
-        style = ls[2],
-        type = ls[3],
-        song = {},
-        f = document.createDocumentFragment();
-    document.getElementById("list").children[0].innerHTML = "";
-    for (i in songs) {
-        song = songs[i];
+    var make_list_item = function(song, key, style, type) {
         var li = document.createElement("li");
         var inner = "";
         li.setAttribute("class", style);
@@ -315,20 +284,57 @@ var update_tree = function() {
             inner = vv.song.get(song, key);
         }
         li.innerHTML = inner;
-        li.addEventListener('click', function() {
-            var value = this.getAttribute("key"),
-                uri = this.getAttribute("uri");
-            if (type == "dir") {
-                vv.model.list.down(value);
-                update_tree();
-            } else {
-                play(uri);
-            }
-        }, false);
-        f.appendChild(li);
-    }
-    document.getElementById("list").children[0].appendChild(f);
+        return li;
+    };
+    var update = function() {
+        var ls = vv.model.list.list(),
+            songs = ls[1],
+            type = ls[3],
+            song = {},
+            newul = document.createDocumentFragment(),
+            ul = document.getElementById("list").children[0],
+            li;
+        ul.innerHTML = "";
+        for (i in songs) {
+            song = songs[i];
+            li = make_list_item(songs[i], ls[0], ls[2], type);
+            li.addEventListener('click', function() {
+                var value = this.getAttribute("key"),
+                    uri = this.getAttribute("uri");
+                if (type == "dir") {
+                    vv.model.list.down(value);
+                    vv.view.list.update();
+                } else {
+                    play(uri);
+                }
+            }, false);
+            newul.appendChild(li);
+        }
+        document.getElementById("list").children[0].appendChild(newul);
+    };
+    return {
+        show: show,
+        hide: hide,
+        update: update,
+    };
+}());
+
+var play = function(uri) {
+    $.ajax({
+        type: "POST",
+        url: "/api/songs",
+        contentType: 'application/json',
+        data: JSON.stringify(
+                {"action": "sort",
+                 "keys": vv.model.list.sortkeys(),
+                 "uri": uri
+                }),
+        cache: false,
+    });
 };
+
+
+
 
 
 var update_song_request = function() {
@@ -354,7 +360,7 @@ var update_song_request = function() {
                     vv.model.list.abs(data["data"]);
                 }
                 // update elapsed tag
-                update_tree();
+                vv.view.list.update();
 			}
 		},
     })
@@ -428,7 +434,7 @@ $(document).ready(function(){
             vv.model.list.abs(vv.storage.current);
         }
         vv.view.main.hide();
-        update_tree();
+        vv.view.list.update();
         vv.view.list.show();
         return false;
     });
