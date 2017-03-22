@@ -3,7 +3,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {main: {}, list: {}},
+    view: {main: {}, list: {}, elapsed: {}},
 };
 vv.song = (function(){
     var tag = function(song, keys, other) {
@@ -245,9 +245,29 @@ vv.view.main = (function(){
         var e = document.getElementById("current");
         e.style.display = "none";
     }
+    var update = function() {
+        var e = document.getElementById("current");
+        var key;
+        var ul = e.getElementsByClassName("detail")[0];
+        var newul = document.createDocumentFragment();
+        var li;
+        e.getElementsByClassName("title")[0].textContent = vv.storage.current["Title"];
+        e.getElementsByClassName("artist")[0].textContent = vv.storage.current["Artist"];
+        ul.innerHTML = "";
+        for (key in vv.storage.current) {
+            if (key == "Title" || key == "Artist") {
+                continue;
+            }
+            li = document.createElement("li");
+            li.textContent = key + ": " + vv.storage.current[key];
+            newul.appendChild(li);
+        }
+        ul.appendChild(newul);
+    };
     return {
         show: show,
         hide: hide,
+        update: update,
     };
 }());
 vv.view.list = (function(){
@@ -259,6 +279,32 @@ vv.view.list = (function(){
         var e = document.getElementById("list");
         e.style.display = "none";
     }
+    var update = function() {
+        var ls = vv.model.list.list(),
+            songs = ls[1],
+            type = ls[3],
+            song = {},
+            newul = document.createDocumentFragment(),
+            ul = document.getElementById("list").children[0],
+            li;
+        ul.innerHTML = "";
+        for (i in songs) {
+            song = songs[i];
+            li = make_list_item(songs[i], ls[0], ls[2], type);
+            li.addEventListener('click', function() {
+                var value = this.getAttribute("key"),
+                    uri = this.getAttribute("uri");
+                if (type == "dir") {
+                    vv.model.list.down(value);
+                    vv.view.list.update();
+                } else {
+                    play(uri);
+                }
+            }, false);
+            newul.appendChild(li);
+        }
+        document.getElementById("list").children[0].appendChild(newul);
+    };
     var make_list_item = function(song, key, style, type) {
         var li = document.createElement("li");
         var inner = "";
@@ -286,37 +332,34 @@ vv.view.list = (function(){
         li.innerHTML = inner;
         return li;
     };
-    var update = function() {
-        var ls = vv.model.list.list(),
-            songs = ls[1],
-            type = ls[3],
-            song = {},
-            newul = document.createDocumentFragment(),
-            ul = document.getElementById("list").children[0],
-            li;
-        ul.innerHTML = "";
-        for (i in songs) {
-            song = songs[i];
-            li = make_list_item(songs[i], ls[0], ls[2], type);
-            li.addEventListener('click', function() {
-                var value = this.getAttribute("key"),
-                    uri = this.getAttribute("uri");
-                if (type == "dir") {
-                    vv.model.list.down(value);
-                    vv.view.list.update();
-                } else {
-                    play(uri);
-                }
-            }, false);
-            newul.appendChild(li);
-        }
-        document.getElementById("list").children[0].appendChild(newul);
-    };
     return {
         show: show,
         hide: hide,
         update: update,
     };
+}());
+vv.view.elapsed = (function() {
+    var update = function() {
+        data = vv.storage.control;
+        if ('state' in data) {
+            var elapsed = parseInt(data["song_elapsed"] * 1000);
+            var current = elapsed;
+            var last_modified = parseInt(data["last_modified"] * 1000);
+            var date = new Date();
+            if (data["state"] == "play") {
+                current += date.getTime() - last_modified
+            }
+            var label = parseSongTime(current / 1000);
+            var texts = document.getElementsByClassName("elapsed");
+            var i;
+            for (i in texts) {
+                if (texts[i].textContent != label) {
+                    texts[i].textContent = label;
+                }
+            }
+        }
+    }
+    return {update: update};
 }());
 
 var play = function(uri) {
@@ -333,10 +376,6 @@ var play = function(uri) {
     });
 };
 
-
-
-
-
 var update_song_request = function() {
     $.ajax({
         type: "GET",
@@ -346,16 +385,7 @@ var update_song_request = function() {
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
                 vv.storage.current = data["data"];
-                $("#current .title").text(data["data"]["Title"])
-                $("#current .artist").text(data["data"]["Artist"])
-                var key;
-                $("#current .detail").empty();
-                for (key in data["data"]) {
-                    if (key == "Title" || key == "Artist") {
-                        continue;
-                    }
-                    $("#current .detail").append("<li>" + key + ": " + data["data"][key] + "</li>");
-                }
+                vv.view.main.update();
                 if (vv.model.list.rootname() != "root") {
                     vv.model.list.abs(data["data"]);
                 }
@@ -375,28 +405,11 @@ var update_control_data_request = function() {
         success: function(data, status) {
 			if (status == "success" && data["errors"] == null) {
                 vv.storage.control = data["data"];
-                refreash_control_data();
+                vv.view.elapsed.update();
 			}
 		},
     })
-    refreash_control_data();
-};
-
-var refreash_control_data = function() {
-    data = vv.storage.control
-    if ('state' in data) {
-        var elapsed = parseInt(data["song_elapsed"] * 1000)
-        var current = elapsed
-        var last_modified = parseInt(data["last_modified"] * 1000)
-        var date = new Date()
-        if (data["state"] == "play") {
-            current += date.getTime() - last_modified
-        }
-        var label = parseSongTime(current / 1000);
-        if ($(".elapsed").text() != label) {
-            $(".elapsed").text(label);
-        }
-    }
+    vv.view.elapsed.update();
 };
 
 var update_library_request = function() {
