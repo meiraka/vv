@@ -146,7 +146,7 @@ vv.model.list = (function() {
                  ["Title", "song"],
                 ]
         },
-        "date": {
+        "Date": {
             "sort":
                 ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
             "tree":
@@ -157,8 +157,10 @@ vv.model.list = (function() {
         }
     }
     var update = function(data) {
-        vv.storage.library["AlbumArtist"] = vv.songs.sort(data, TREE["AlbumArtist"]["sort"]);
-        vv.storage.library["Genre"] = vv.songs.sort(data, TREE["Genre"]["sort"]);
+        var key;
+        for (key in TREE) {
+            vv.storage.library[key] = vv.songs.sort(data, TREE[key]["sort"]);
+        }
     };
     var rootname = function() {
         var r = "root";
