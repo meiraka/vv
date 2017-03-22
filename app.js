@@ -4,7 +4,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {main: {}, list: {}, elapsed: {}},
+    view: {main: {}, list: {}, menu: {}, elapsed: {}},
     control : {},
 };
 vv.obj = (function(){
@@ -360,6 +360,18 @@ vv.view.list = (function(){
         update: update,
     };
 }());
+vv.view.menu = (function(){
+    var update = function() {
+        var up = document.getElementById("menu").getElementsByClassName("up")[0];
+        var label = vv.view.list.hidden()? "list" : "up";
+        if (up.textContent != label) {
+            up.textContent = label;
+        }
+    }
+    return {
+        update: update,
+    };
+}());
 vv.view.elapsed = (function() {
     var update = function() {
         data = vv.storage.control;
@@ -475,11 +487,13 @@ vv.control = (function() {
             vv.view.main.hide();
             vv.view.list.update();
             vv.view.list.show();
+            vv.view.menu.update();
             e.stopPropagation();
         });
         menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
             vv.view.list.hide();
             vv.view.main.show();
+            vv.view.menu.update();
             e.stopPropagation();
         });
         var playback = document.getElementById("playback");
