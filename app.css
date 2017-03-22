@@ -27,26 +27,38 @@ section#list {
 #list ol {
     list-style-type: none;
     padding: 10px;
+    color: #404040;
+}
+
+#list .plain {
+    position: relative;
+    padding-top: 8px;
+    height: 30px;
+    font-size: 18px;
+    border-bottom: solid 1px #f0f0f0;
 }
 
 #list .song {
     position: relative;
-    height: 60px;
+    height: 40px;
+    border-bottom: solid 1px #f0f0f0;
+    margin-bottom: 2px;
+    margin-top: 4px;
 }
 #list .song .track, #list .song .length, #list .song .length_separator, #list .song .elapsed {
     position: absolute;
-    bottom: 22px;
-    font-size: 16px;
+    bottom: 14px;
+    font-size: 12px;
 }
 #list .song .track {
     left: 0px;
 }
 #list .song .elapsed {
-    right: 73px;
+    right: 63px;
     text-shadow: 1px 1px 0px white;
 }
 #list .song .length_separator {
-    right: 60px;
+    right: 50px;
     text-shadow: 1px 1px 0px white;
 }
 #list .song .length {
@@ -55,43 +67,47 @@ section#list {
 }
 #list .song .title {
     position: absolute;
-    left: 60px;
-    top: 20px;
+    left: 40px;
+    top: 10px;
     width: calc(100% - 120px);
-    font-size: 24px;
+    font-size: 18px;
     line-height: 14px;
     text-shadow: 1px 1px 0px white,1px 0px 0px white;
 }
 #list .song .artist {
     position: absolute;
-    top: 40px;
+    top: 24px;
     left: 40px;
     font-size: 12px;
 }
 #list .album {
     position: relative;
-    height: 60px;
+    height: 50px;
+    border-bottom: solid 1px #f0f0f0;
 }
 #list .album .date {
     position: absolute;
-    top: 16px;
+    top: 12px;
     left: 10px;
     font-size: 12px;
     color: #808080;
+    border: 0px;
 }
 #list .album .album {
     position: absolute;
-    top: 0px;
+    top: 10px;
     left: 50px;
     line-height: 13px;
     text-shadow: 1px 1px 0px white,1px 0px 0px white;
-    font-size: 28px;
+    font-size: 22px;
+    border: 0px;
 }
 #list .album .albumartist {
     position: absolute;
-    top: 24px;
+    top: 26px;
     left: 20px;
     font-size: 14px;
+    border: 0px;
 }
 
 
