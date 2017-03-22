@@ -305,7 +305,7 @@ vv.view.list = (function(){
                     vv.model.list.down(value);
                     vv.view.list.update();
                 } else {
-                    play(uri);
+                    vv.control.play(uri);
                 }
             }, false);
             newul.appendChild(li);
@@ -433,6 +433,19 @@ vv.control = (function() {
         get_request("api/control?action=next", "");
     }
 
+    var play = function(uri) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {};
+        xhr.open("POST", "api/songs", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify(
+            {"action": "sort",
+             "keys": vv.model.list.sortkeys(),
+             "uri": uri
+            }
+        ));
+    }
+
     return {
         update_song: update_song,
         update_status: update_status,
@@ -440,24 +453,9 @@ vv.control = (function() {
         prev: prev,
         play_pause: play_pause,
         next: next,
+        play: play,
     };
 }());
-
-var play = function(uri) {
-    $.ajax({
-        type: "POST",
-        url: "/api/songs",
-        contentType: 'application/json',
-        data: JSON.stringify(
-                {"action": "sort",
-                 "keys": vv.model.list.sortkeys(),
-                 "uri": uri
-                }),
-        cache: false,
-    });
-};
-
-
 
 function parseSongTime(val) {
     var current = parseInt(val)
