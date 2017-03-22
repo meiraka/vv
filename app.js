@@ -4,6 +4,7 @@ var vv = vv || {
     storage: {},
     model: {list: {}},
     view: {main: {}, list: {}, elapsed: {}},
+    control : {},
 };
 vv.song = (function(){
     var tag = function(song, keys, other) {
@@ -86,11 +87,14 @@ vv.songs = (function(){
 vv.storage = (function(){
     var tree = [];
     var current = [];
+    var current_last_modified = "";
     var control = [];
+    var control_last_modified = "";
     var library = {
         "AlbumArtist": [],
          "Genre": [],
     }
+    var library_last_modified = "";
 
     var save = function() {
         localStorage.tree = JSON.stringify(tree);
@@ -104,8 +108,11 @@ vv.storage = (function(){
     return {
         tree: tree,
         current: current,
+        current_last_modified: current_last_modified,
         control: control,
+        control_last_modified: control_last_modified,
         library: library,
+        library_last_modified: library_last_modified,
         save: save,
         load: load,
     };
@@ -361,6 +368,80 @@ vv.view.elapsed = (function() {
     }
     return {update: update};
 }());
+vv.control = (function() {
+    var get_request = function(path, ifmodified, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4) {
+                if (xhr.status == 200 && callback) {
+                    callback(JSON.parse(xhr.responseText), xhr.getResponseHeader("Last-Modified"));
+                }
+            }
+        };
+        xhr.open("GET", path, true);
+        if (ifmodified != "") {
+            xhr.setRequestHeader("If-Modified-Since", ifmodified);
+        }
+        xhr.send();
+    }
+    var update_song = function() {
+        get_request("api/songs/current", vv.storage.current_last_modified, function(ret, modified) {
+            if (ret["errors"] == null) {
+                vv.storage.current = ret["data"];
+                vv.storage.current_last_modified = modified;
+                vv.view.main.update();
+                if (vv.model.list.rootname() != "root") {
+                    vv.model.list.abs(ret["data"]);
+                }
+                // update elapsed tag
+                vv.view.list.update();
+            }
+        });
+    };
+
+    var update_status = function() {
+        get_request("api/control", vv.storage.control_last_modified, function(ret, modified) {
+            if (ret["errors"] == null) {
+                vv.storage.control = ret["data"];
+                vv.storage.control_last_modified = modified;
+                vv.view.elapsed.update();
+            }
+        });
+        vv.view.elapsed.update();
+    };
+
+    var update_library = function() {
+        get_request("api/library", vv.storage.library_last_modified, function(ret, modified) {
+            if (ret["errors"] == null) {
+                vv.model.list.update(ret["data"]);
+                vv.storage.library_last_modified = modified;
+            }
+        });
+    };
+
+    var prev = function() {
+        get_request("api/control?action=prev", "");
+    }
+
+    var play_pause = function() {
+        var state = getOrElse(vv.storage.control, "state", "stopped");
+        var action = state == "play" ? "pause" : "play";
+        get_request("api/control?action="+action, "");
+    }
+
+    var next = function() {
+        get_request("api/control?action=next", "");
+    }
+
+    return {
+        update_song: update_song,
+        update_status: update_status,
+        update_library: update_library,
+        prev: prev,
+        play_pause: play_pause,
+        next: next,
+    };
+}());
 
 var play = function(uri) {
     $.ajax({
@@ -376,55 +457,7 @@ var play = function(uri) {
     });
 };
 
-var update_song_request = function() {
-    $.ajax({
-        type: "GET",
-        url: "api/songs/current",
-        ifModified: true,
-		dataType: "json",
-        success: function(data, status) {
-			if (status == "success" && data["errors"] == null) {
-                vv.storage.current = data["data"];
-                vv.view.main.update();
-                if (vv.model.list.rootname() != "root") {
-                    vv.model.list.abs(data["data"]);
-                }
-                // update elapsed tag
-                vv.view.list.update();
-			}
-		},
-    })
-};
 
-var update_control_data_request = function() {
-    $.ajax({
-        type: "GET",
-        url: "api/control",
-        ifModified: true,
-		dataType: "json",
-        success: function(data, status) {
-			if (status == "success" && data["errors"] == null) {
-                vv.storage.control = data["data"];
-                vv.view.elapsed.update();
-			}
-		},
-    })
-    vv.view.elapsed.update();
-};
-
-var update_library_request = function() {
-    $.ajax({
-        type: "GET",
-        url: "api/library",
-        ifModified: true,
-		dataType: "json",
-        success: function(data, status) {
-			if (status == "success" && data["errors"] == null) {
-                vv.model.list.update(data["data"]);
-			}
-		},
-    })
-}
 
 function parseSongTime(val) {
     var current = parseInt(val)
@@ -467,39 +500,22 @@ $(document).ready(function(){
         return false;
     });
     $("#playback .prev").bind("click", function() {
-        $.ajax({
-            type: "GET",
-            url: "/api/songs/current",
-            data: {"action": "prev"},
-            cache: false
-        })
+        vv.control.prev();
         return false;
     });
     $("#playback .play").bind("click", function() {
-        var state = getOrElse(vv.storage.control, "state", "stopped");
-        var action = state == "play" ? "pause" : "play"
-        $.ajax({
-            type: "GET",
-            url: "/api/songs/current",
-            data: {"action": action},
-            cache: false
-        })
+        vv.control.play_pause();
         return false;
     });
     $("#playback .next").bind("click", function() {
-        $.ajax({
-            type: "GET",
-            url: "/api/songs/current",
-            data: {"action": "next"},
-            cache: false
-        })
+        vv.control.next();
         return false;
     });
 
     function polling() {
-        update_song_request()
-        update_control_data_request()
-        update_library_request()
+        vv.control.update_song();
+        vv.control.update_status();
+        vv.control.update_library();
 		setTimeout(polling, 1000);
     }
 	polling();
