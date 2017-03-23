@@ -1,3 +1,10 @@
+body {
+    -webkit-text-size-adjust: 100%;
+    margin: 0px;
+    border: 0px;
+    padding: 0px;
+}
+
 header {
     position: fixed;
     top: 0px;
@@ -5,6 +12,7 @@ header {
     width: 100%;
     z-index: 10;
     background: #db7093;
+    height: 40px;
 }
 
 footer {
@@ -13,15 +21,16 @@ footer {
     bottom: 0px;
     width: 100%;
     z-index: 10;
+    height: 40px;
 }
 
 section {
-    position: relative;
-    top: 30px;
+    position: absolute;
+    top: 40px;
+    left: 0px;
     z-index: 1;
-}
-section#list {
-    margin-bottom: 60px;
+    width: 100%;
+    margin: 0px 0px 40px;
 }
 
 #list ol {
