@@ -104,12 +104,16 @@ vv.storage = (function(){
     var library_last_modified = "";
 
     var save = function() {
-        localStorage.tree = JSON.stringify(tree);
+        try {
+            localStorage.tree = JSON.stringify(tree);
+        } catch (e) {}
     }
     var load = function() {
-        if (localStorage.tree) {
-            tree = JSON.parse(localStorage.tree);
-        }
+        try {
+            if (localStorage.tree) {
+                tree = JSON.parse(localStorage.tree);
+            }
+        } catch (e) {}
     }
     load();
     return {
