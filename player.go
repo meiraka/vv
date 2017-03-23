@@ -5,7 +5,6 @@ import (
 	"github.com/fhs/gompd/mpd"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -333,7 +332,7 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 	keys = keys[:len(keys)-1]
 	err = nil
 	sort.Slice(p.library, func(i, j int) bool {
-		return songString(p.library[i], keys) < songString(p.library[j], keys)
+		return songSortKey(p.library[i], keys) < songSortKey(p.library[j], keys)
 	})
 	update := false
 	if len(p.library) != len(p.playlist) {
@@ -370,37 +369,6 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 	return
 }
 
-func songTag(s mpd.Attrs, keys []string) string {
-	for i := range keys {
-		key := keys[i]
-		if _, ok := s[key]; ok {
-			return s[key]
-		}
-	}
-	return " "
-}
-
-func songString(s mpd.Attrs, keys []string) string {
-	sp := make([]string, len(keys))
-	for i := range keys {
-		key := keys[i]
-		if _, ok := s[key]; ok {
-			sp = append(sp, s[key])
-		} else if key == "AlbumSort" {
-			sp = append(sp, songTag(s, []string{"Album"}))
-		} else if key == "ArtistSort" {
-			sp = append(sp, songTag(s, []string{"Artist"}))
-		} else if key == "AlbumArtist" {
-			sp = append(sp, songTag(s, []string{"Artist"}))
-		} else if key == "AlbumArtistSort" {
-			sp = append(sp, songTag(s, []string{"AlbumArtist", "Artist"}))
-		} else {
-			sp = append(sp, " ")
-		}
-	}
-	return strings.Join(sp, "")
-}
-
 func (p *Player) syncCurrent() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -423,7 +391,7 @@ func (p *Player) syncCurrent() error {
 		p.comments = comments
 	}
 
-	p.current = makeAdditiveSongData(song)
+	p.current = songAddReadableData(song)
 	return nil
 }
 
@@ -434,7 +402,7 @@ func (p *Player) syncLibrary() error {
 	if err != nil {
 		return err
 	}
-	p.library = makeAdditiveSongsData(library)
+	p.library = songsAddReadableData(library)
 	p.libraryModified = time.Now()
 	return nil
 }
@@ -446,34 +414,7 @@ func (p *Player) syncPlaylist() error {
 	if err != nil {
 		return err
 	}
-	p.playlist = makeAdditiveSongsData(playlist)
+	p.playlist = songsAddReadableData(playlist)
 	p.playlistModified = time.Now()
 	return nil
-}
-
-func makeAdditiveSongData(p mpd.Attrs) mpd.Attrs {
-	track, err := strconv.Atoi(p["Track"])
-	if err != nil {
-		track = 0
-	}
-	p["TrackNumber"] = fmt.Sprintf("%04d", track)
-	disc, err := strconv.Atoi(p["Disc"])
-	if err != nil {
-		disc = 1
-	}
-	p["DiscNumber"] = fmt.Sprintf("%04d", disc)
-
-	t, err := strconv.Atoi(p["Time"])
-	if err != nil {
-		t = 0
-	}
-	p["Length"] = fmt.Sprintf("%02d:%02d", t/60, t%60)
-	return p
-}
-
-func makeAdditiveSongsData(ps []mpd.Attrs) []mpd.Attrs {
-	for i := range ps {
-		ps[i] = makeAdditiveSongData(ps[i])
-	}
-	return ps
 }

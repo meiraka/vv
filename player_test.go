@@ -7,32 +7,6 @@ import (
 	"testing"
 )
 
-func TestMakeAdditiveSongData(t *testing.T) {
-	i := makeAdditiveSongData(mpd.Attrs{"Title": "foo", "file": "path"})
-	if i["DiscNumber"] != "0001" {
-		t.Errorf("unexpected DiscNumber: '%s'", i["DiscNumber"])
-	}
-	if i["TrackNumber"] != "0000" {
-		t.Errorf("unexpected TrackNumber: '%s'", i["TrackNumber"])
-	}
-	if i["Length"] != "00:00" {
-		t.Errorf("unexpected Length: '%s'", i["Length"])
-	}
-	f := makeAdditiveSongData(mpd.Attrs{
-		"Track": "1",
-		"Disc":  "2",
-		"Time":  "70"})
-	if f["DiscNumber"] != "0002" {
-		t.Errorf("unexpected DiscNumber: '%s'", f["DiscNumber"])
-	}
-	if f["TrackNumber"] != "0001" {
-		t.Errorf("unexpected TrackNumber: '%s'", f["TrackNumber"])
-	}
-	if f["Length"] != "01:10" {
-		t.Errorf("unexpected Length: '%s'", f["Length"])
-	}
-}
-
 func TestPlayerPlay(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = new(mockError)
@@ -133,7 +107,7 @@ func TestPlayerPlaylist(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
 	m.playlistinforet = []mpd.Attrs{{"foo": "bar"}}
-	expect := makeAdditiveSongsData((m.playlistinforet))
+	expect := songsAddReadableData((m.playlistinforet))
 	// if mpd.Watcher.Event recieve "playlist"
 	p.watcher.Event <- "playlist"
 	if err := <-p.watcherResponse; err != nil {
@@ -161,7 +135,7 @@ func TestPlayerLibrary(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
 	m.listallinforet = []mpd.Attrs{{"foo": "bar"}}
-	expect := makeAdditiveSongsData((m.listallinforet))
+	expect := songsAddReadableData((m.listallinforet))
 	// if mpd.Watcher.Event recieve "database"
 	p.watcher.Event <- "database"
 	if err := <-p.watcherResponse; err != nil {
@@ -214,7 +188,7 @@ func TestPlayerCurrent(t *testing.T) {
 	}
 	// Player.Current returns converted mpd.Client.CurrentSong result
 	current, _ := p.Current()
-	if !reflect.DeepEqual(makeAdditiveSongData(m.currentsongret), current) {
+	if !reflect.DeepEqual(songAddReadableData(m.currentsongret), current) {
 		t.Errorf("unexpected get Current")
 	}
 	// Player.Status returns converted mpd.Client.Status result
