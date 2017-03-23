@@ -5,22 +5,20 @@ body {
     padding: 0px;
 }
 
-header {
+header, footer {
     position: fixed;
-    top: 0px;
     left: 0px;
     width: 100%;
     z-index: 10;
+}
+header {
+    top: 0px;
     background: #db7093;
     height: 40px;
 }
 
 footer {
-    position: fixed;
-    left: 0px;
     bottom: 0px;
-    width: 100%;
-    z-index: 10;
     height: 40px;
 }
 
@@ -37,6 +35,8 @@ section {
     list-style-type: none;
     padding: 10px;
     color: #404040;
+    margin: 0px 12px;
+    padding: 0px;
 }
 
 #list .plain {
@@ -96,7 +96,7 @@ section {
 }
 #list .album .date {
     position: absolute;
-    top: 12px;
+    top: 14px;
     left: 10px;
     font-size: 12px;
     color: #808080;
@@ -104,7 +104,7 @@ section {
 }
 #list .album .album {
     position: absolute;
-    top: 10px;
+    top: 12px;
     left: 50px;
     line-height: 13px;
     text-shadow: 1px 1px 0px white,1px 0px 0px white;
@@ -113,7 +113,7 @@ section {
 }
 #list .album .albumartist {
     position: absolute;
-    top: 26px;
+    top: 30px;
     left: 20px;
     font-size: 14px;
     border: 0px;
