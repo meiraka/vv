@@ -21,7 +21,6 @@ const (
 	play
 	next
 	ping
-	nop
 )
 
 type mpcMessage struct {
@@ -154,11 +153,6 @@ func (p *Player) Next() error {
 	return p.request(next)
 }
 
-/*Nop ping daemon goroutine.*/
-func (p *Player) Nop() {
-	p.request(nop)
-}
-
 func (p *Player) start() (err error) {
 	err = p.connect()
 	if err != nil {
@@ -216,8 +210,6 @@ loop:
 				sendErr(m.err, p.sortPlaylist(m.requestData))
 			case ping:
 				sendErr(m.err, p.mpc.Ping())
-			case nop:
-				sendErr(m.err, nil)
 			}
 		}
 	}
