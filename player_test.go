@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/fhs/gompd/mpd"
 	"reflect"
 	"sync"
@@ -156,6 +157,59 @@ func TestPlayerLibrary(t *testing.T) {
 	library, _ := p.Library()
 	if !reflect.DeepEqual(expect, library) {
 		t.Errorf("unexpected get library")
+	}
+}
+
+func TestConvStatus(t *testing.T) {
+	var lastModifiedOverRide int64
+	lastModifiedOverRide = 0
+	candidates := []struct {
+		song   mpd.Attrs
+		status mpd.Attrs
+		expect PlayerStatus
+	}{
+		{
+			mpd.Attrs{},
+			mpd.Attrs{},
+			PlayerStatus{
+				-1, false, false, false, false,
+				"stopped", 0, 0.0, 0, lastModifiedOverRide,
+			},
+		},
+		{
+			mpd.Attrs{
+				"Time": "121",
+			},
+			mpd.Attrs{
+				"volume":  "100",
+				"repeat":  "1",
+				"random":  "0",
+				"single":  "1",
+				"consume": "0",
+				"state":   "playing",
+				"song":    "1",
+				"elapsed": "10.1",
+			},
+			PlayerStatus{
+				100, true, false, true, false,
+				"playing", 1, 10.1, 121, lastModifiedOverRide,
+			},
+		},
+	}
+	r := PlayerStatus{}
+	for _, c := range candidates {
+		convStatus(c.song, c.status, &r)
+		r.LastModified = lastModifiedOverRide
+		if !reflect.DeepEqual(c.expect, r) {
+			jr, _ := json.Marshal(r)
+			je, _ := json.Marshal(c.expect)
+			t.Errorf(
+				"unexpected. input: %s %s\nexpected: %s\nactual:   %s",
+				songString(c.song),
+				songString(c.status),
+				je, jr,
+			)
+		}
 	}
 }
 

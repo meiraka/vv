@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/fhs/gompd/mpd"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -71,4 +72,13 @@ func songsAddReadableData(ps []mpd.Attrs) []mpd.Attrs {
 		ps[i] = songAddReadableData(ps[i])
 	}
 	return ps
+}
+
+func songString(m mpd.Attrs) string {
+	kv := []string{}
+	for k, v := range m {
+		kv = append(kv, k+": "+v)
+	}
+	sort.Strings(kv)
+	return strings.Join(kv, ", ")
 }

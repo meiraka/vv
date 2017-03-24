@@ -2,10 +2,20 @@ package main
 
 import (
 	"github.com/fhs/gompd/mpd"
-	"sort"
 	"strings"
 	"testing"
 )
+
+func TestSongString(t *testing.T) {
+	e := "foo: bar, hoge: fuga"
+	r := songString(mpd.Attrs{"hoge": "fuga", "foo": "bar"})
+	if r != e {
+		t.Errorf(
+			"unexpected return\nexpected: %s\nactual:   %s",
+			e, r,
+		)
+	}
+}
 
 func TestSongAddReadableData(t *testing.T) {
 	candidates := []struct {
@@ -48,11 +58,11 @@ func TestSongAddReadableData(t *testing.T) {
 
 	for _, c := range candidates {
 		r := songAddReadableData(c.input)
-		if mpdAttrString(c.expect) != mpdAttrString(r) {
+		if songString(c.expect) != songString(r) {
 			t.Errorf(
 				"unexpected return\nexpected: %s\nactual:   %s",
-				mpdAttrString(c.expect),
-				mpdAttrString(r),
+				songString(c.expect),
+				songString(r),
 			)
 		}
 	}
@@ -100,20 +110,11 @@ func TestSongSortKey(t *testing.T) {
 		if r != c.expect {
 			t.Errorf(
 				"unexpected output for song: %s sortkey: %s\nexpected: \"%s\"\nactual:   \"%s\"",
-				mpdAttrString(c.song),
+				songString(c.song),
 				strings.Join(c.sortkey, ","),
 				c.expect,
 				r,
 			)
 		}
 	}
-}
-
-func mpdAttrString(m mpd.Attrs) string {
-	kv := make([]string, len(m))
-	for k, v := range m {
-		kv = append(kv, k+": "+v)
-	}
-	sort.Strings(kv)
-	return strings.Join(kv, ", ")
 }
