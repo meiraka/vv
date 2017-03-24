@@ -2,62 +2,118 @@ package main
 
 import (
 	"github.com/fhs/gompd/mpd"
+	"sort"
+	"strings"
 	"testing"
 )
 
 func TestSongAddReadableData(t *testing.T) {
-	i := songAddReadableData(mpd.Attrs{"Title": "foo", "file": "path"})
-	if i["DiscNumber"] != "0001" {
-		t.Errorf("unexpected DiscNumber: '%s'", i["DiscNumber"])
+	candidates := []struct {
+		input  mpd.Attrs
+		expect mpd.Attrs
+	}{
+		{
+			mpd.Attrs{
+				"Title": "foo",
+				"file":  "path",
+			},
+			mpd.Attrs{
+				"Title":       "foo",
+				"file":        "path",
+				"DiscNumber":  "0001",
+				"TrackNumber": "0000",
+				"Length":      "00:00",
+			},
+		},
+		{
+			mpd.Attrs{
+				"Title": "foo",
+				"file":  "path",
+				"Disc":  "2",
+				"Track": "1",
+				"Time":  "121",
+			},
+			mpd.Attrs{
+				"Title":       "foo",
+				"file":        "path",
+				"Disc":        "2",
+				"DiscNumber":  "0002",
+				"Track":       "1",
+				"TrackNumber": "0001",
+				"Time":        "121",
+				"Length":      "02:01",
+			},
+		},
 	}
-	if i["TrackNumber"] != "0000" {
-		t.Errorf("unexpected TrackNumber: '%s'", i["TrackNumber"])
-	}
-	if i["Length"] != "00:00" {
-		t.Errorf("unexpected Length: '%s'", i["Length"])
-	}
-	f := songAddReadableData(mpd.Attrs{
-		"Track": "1",
-		"Disc":  "2",
-		"Time":  "70"})
-	if f["DiscNumber"] != "0002" {
-		t.Errorf("unexpected DiscNumber: '%s'", f["DiscNumber"])
-	}
-	if f["TrackNumber"] != "0001" {
-		t.Errorf("unexpected TrackNumber: '%s'", f["TrackNumber"])
-	}
-	if f["Length"] != "01:10" {
-		t.Errorf("unexpected Length: '%s'", f["Length"])
+
+	for _, c := range candidates {
+		r := songAddReadableData(c.input)
+		if mpdAttrString(c.expect) != mpdAttrString(r) {
+			t.Errorf(
+				"unexpected return\nexpected: %s\nactual:   %s",
+				mpdAttrString(c.expect),
+				mpdAttrString(r),
+			)
+		}
 	}
 }
 
 func TestSongSortKey(t *testing.T) {
-	i := songAddReadableData(mpd.Attrs{"Title": "foo", "file": "path"})
-	r := songSortKey(i, []string{"TrackNumber", "Title", "file"})
-	if r != "0000foopath" {
-		t.Errorf("unexpected output for TrackNumber, Title, file: %s", r)
+	candidates := []struct {
+		song    mpd.Attrs
+		sortkey []string
+		expect  string
+	}{
+		{
+			mpd.Attrs{"Title": "foo", "file": "path"},
+			[]string{"TrackNumber", "Title", "file"},
+			" foopath",
+		},
+		{
+			mpd.Attrs{"Title": "foo", "file": "path"},
+			[]string{"foo"},
+			" ",
+		},
+		{
+			mpd.Attrs{},
+			[]string{"AlbumSort"},
+			" ",
+		},
+		{
+			mpd.Attrs{"Artist": "foo"},
+			[]string{"ArtistSort"},
+			"foo",
+		},
+		{
+			mpd.Attrs{"Artist": "foo"},
+			[]string{"AlbumArtist"},
+			"foo",
+		},
+		{
+			mpd.Attrs{"Artist": "foo"},
+			[]string{"AlbumArtistSort"},
+			"foo",
+		},
 	}
-	r = songSortKey(mpd.Attrs{}, []string{"foo"})
-	if r != " " {
-		t.Errorf("exptects \" \" if key not found but returns: %s", r)
+	for _, c := range candidates {
+		r := songSortKey(c.song, c.sortkey)
+		if r != c.expect {
+			t.Errorf(
+				"unexpected output for song: %s sortkey: %s\nexpected: \"%s\"\nactual:   \"%s\"",
+				mpdAttrString(c.song),
+				strings.Join(c.sortkey, ","),
+				c.expect,
+				r,
+			)
+		}
 	}
-	r = songSortKey(mpd.Attrs{}, []string{"AlbumSort"})
-	if r != " " {
-		t.Errorf("expects \" \" if key(AlbumSort and Album for AlbumSort) "+
-			"but returns: %s", r)
-	}
-	r = songSortKey(mpd.Attrs{"Artist": "foo"}, []string{"ArtistSort"})
-	if r != "foo" {
-		t.Errorf("ArtistSort searches ArtistSort and Artist but returns: %s", r)
-	}
+}
 
-	r = songSortKey(mpd.Attrs{"Artist": "foo"}, []string{"AlbumArtist"})
-	if r != "foo" {
-		t.Errorf("AlbumArtist searches AlbumArtist and Artist but returns: %s", r)
+func mpdAttrString(m mpd.Attrs) string {
+	kv := make([]string, len(m))
+	for k, v := range m {
+		kv = append(kv, k+": "+v)
 	}
-
-	r = songSortKey(mpd.Attrs{"Artist": "foo"}, []string{"AlbumArtistSort"})
-	if r != "foo" {
-		t.Errorf("AlbumArtist searches AlbumArtistSort, AlbumArtist and Artist but returns: %s", r)
-	}
+	sort.Strings(kv)
+	return strings.Join(kv, ", ")
 }
