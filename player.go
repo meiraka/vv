@@ -278,37 +278,45 @@ func (p *Player) requestData(req mpcMessageType, data []string) error {
 	return <-r.err
 }
 
-func convStatus(song, status mpd.Attrs, s *PlayerStatus) {
-	elapsed, err := strconv.ParseFloat(status["elapsed"], 64)
-	if err != nil {
-		elapsed = 0.0
-	}
+func convStatus(song, status mpd.Attrs) PlayerStatus {
 	volume, err := strconv.Atoi(status["volume"])
 	if err != nil {
 		volume = -1
+	}
+	repeat := status["repeat"] == "1"
+	random := status["random"] == "1"
+	single := status["single"] == "1"
+	consume := status["consume"] == "1"
+	state := status["state"]
+	if state == "" {
+		state = "stopped"
 	}
 	songpos, err := strconv.Atoi(status["song"])
 	if err != nil {
 		songpos = 0
 	}
-	state := status["state"]
-	if state == "" {
-		state = "stopped"
+	elapsed, err := strconv.ParseFloat(status["elapsed"], 64)
+	if err != nil {
+		elapsed = 0.0
 	}
 	songlength, err := strconv.Atoi(song["Time"])
 	if err != nil {
 		songlength = 0
 	}
-	s.Volume = volume
-	s.Repeat = status["repeat"] == "1"
-	s.Random = status["random"] == "1"
-	s.Single = status["single"] == "1"
-	s.Consume = status["consume"] == "1"
-	s.State = state
-	s.SongPos = songpos
-	s.SongElapsed = float32(elapsed)
-	s.SongLength = songlength
-	s.LastModified = time.Now().Unix()
+	lastModified := time.Now().Unix()
+	return PlayerStatus{
+		volume,
+		repeat,
+		random,
+		single,
+		consume,
+		state,
+		songpos,
+		float32(elapsed),
+		songlength,
+		lastModified,
+	}
+
 }
 
 /*SortPlaylist sorts playlist by song tag name.*/
@@ -368,12 +376,15 @@ func (p *Player) syncCurrent() error {
 	if err != nil {
 		return err
 	}
-	p.currentModified = time.Now()
+	c := songAddReadableData(song)
+	cm := time.Now()
+
 	status, err := p.mpc.Status()
 	if err != nil {
 		return err
 	}
-	convStatus(song, status, &p.status)
+	s := convStatus(song, status)
+
 	if song["file"] != "" && p.comments == nil || p.current["file"] != song["file"] {
 		comments, err := p.mpc.ReadComments(song["file"])
 		if err != nil {
@@ -383,7 +394,9 @@ func (p *Player) syncCurrent() error {
 		p.comments = comments
 	}
 
-	p.current = songAddReadableData(song)
+	p.current = c
+	p.currentModified = cm
+	p.status = s
 	return nil
 }
 

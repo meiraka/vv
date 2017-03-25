@@ -196,9 +196,8 @@ func TestConvStatus(t *testing.T) {
 			},
 		},
 	}
-	r := PlayerStatus{}
 	for _, c := range candidates {
-		convStatus(c.song, c.status, &r)
+		r := convStatus(c.song, c.status)
 		r.LastModified = lastModifiedOverRide
 		if !reflect.DeepEqual(c.expect, r) {
 			jr, _ := json.Marshal(r)
@@ -214,67 +213,119 @@ func TestConvStatus(t *testing.T) {
 }
 
 func TestPlayerCurrent(t *testing.T) {
+	errret := new(mockError)
+	candidates := []struct {
+		currentSongRet1    mpd.Attrs
+		currentSongRet2    error
+		currentSongCalled  int
+		currentRet         mpd.Attrs
+		statusRet1         mpd.Attrs
+		statusRet2         error
+		statusCalled       int
+		statusRet          PlayerStatus
+		readCommentsRet1   mpd.Attrs
+		readCommentsRet2   error
+		readCommentsCalled int
+		commentsRet        mpd.Attrs
+		watcherRet         error
+	}{
+		// dont update if mpd.CurrentSong returns error
+		{
+			mpd.Attrs{}, errret, 1,
+			nil,
+			mpd.Attrs{}, nil, 0,
+			PlayerStatus{},
+			mpd.Attrs{}, nil, 0,
+			nil,
+			errret,
+		},
+		// dont update if mpd.Status returns error
+		{
+			mpd.Attrs{"Artist": "foo"}, nil, 2,
+			nil,
+			mpd.Attrs{}, errret, 1,
+			PlayerStatus{},
+			mpd.Attrs{}, nil, 0,
+			nil,
+			errret,
+		},
+		// dont update if mpd.ReadComments returns error
+		{
+			mpd.Attrs{"file": "p"}, nil, 3,
+			nil,
+			mpd.Attrs{}, nil, 2,
+			PlayerStatus{},
+			mpd.Attrs{}, errret, 1,
+			nil,
+			errret,
+		},
+		// update current/status/comments
+		{
+			mpd.Attrs{"file": "p"}, nil, 4,
+			songAddReadableData(mpd.Attrs{"file": "p"}),
+			mpd.Attrs{}, nil, 3,
+			convStatus(mpd.Attrs{"file": "p"}, mpd.Attrs{}),
+			mpd.Attrs{}, nil, 2,
+			mpd.Attrs{},
+			nil,
+		},
+		// dont call mpd.ReadComments if mpd.CurrentSong returns same song
+		{
+			mpd.Attrs{"file": "p"}, nil, 5,
+			songAddReadableData(mpd.Attrs{"file": "p"}),
+			mpd.Attrs{}, nil, 4,
+			convStatus(mpd.Attrs{"file": "p"}, mpd.Attrs{}),
+			mpd.Attrs{}, nil, 2,
+			mpd.Attrs{},
+			nil,
+		},
+	}
 	p, m := mockDial("tcp", "localhost:6600")
-	m.err = nil
-	m.currentsongret = mpd.Attrs{"foo": "bar", "file": "baz.mp3"}
-	m.statusret = mpd.Attrs{"hoge": "fuga"}
-	m.readcommentsret = mpd.Attrs{"baz": "piyo"}
-	// if mpd.Watcher.Event recieve "database"
-	p.watcher.Event <- "player"
-	if err := <-p.watcherResponse; err != nil {
-		t.Errorf("unexpected watcher error: %s", err.Error())
-	}
-
-	// mpd.Client.CurrentSong was called
-	if m.currentsongcalled != 1 {
-		t.Errorf("Client.CurrentSong does not called")
-	}
-	// mpd.Client.Status was called
-	if m.statuscalled != 1 {
-		t.Errorf("Client.Status does not called")
-	}
-	// mpd.Client.ReadComments was called
-	if m.readcommentscalled != 1 {
-		t.Errorf("Client.ReadComments does not called")
-	}
-	if m.readcommentsarg1 != "baz.mp3" {
-		t.Errorf("unexpected Client.ReadComments arguments: %s", m.readcommentsarg1)
-	}
-	// Player.Current returns converted mpd.Client.CurrentSong result
-	current, _ := p.Current()
-	if !reflect.DeepEqual(songAddReadableData(m.currentsongret), current) {
-		t.Errorf("unexpected get Current")
-	}
-	// Player.Status returns converted mpd.Client.Status result
-	status, _ := p.Status()
-	if status.Volume != -1 {
-		t.Errorf("unexpected PlayerStatus.Volume")
-	}
-	if status.Repeat != false {
-		t.Errorf("unexpected PlayerStatus.Repeat")
-	}
-	if status.Random != false {
-		t.Errorf("unexpected PlayerStatus.Random")
-	}
-	if status.Single != false {
-		t.Errorf("unexpected PlayerStatus.Single")
-	}
-	if status.Consume != false {
-		t.Errorf("unexpected PlayerStatus.Consume")
-	}
-	if status.State != "stopped" {
-		t.Errorf("unexpected PlayerStatus.State")
-	}
-	if status.SongPos != 0 {
-		t.Errorf("unexpected PlayerStatus.SongPos: %d", status.SongPos)
-	}
-	if status.SongElapsed != 0.0 {
-		t.Errorf("unexpected PlayerStatus.SongElapsed")
-	}
-	// Player.Current returns mpd.Client.ReadComments result
-	comments, _ := p.Comments()
-	if !reflect.DeepEqual(m.readcommentsret, comments) {
-		t.Errorf("unexpected get comments")
+	for _, c := range candidates {
+		m.currentSongRet1 = c.currentSongRet1
+		m.currentSongRet2 = c.currentSongRet2
+		m.statusRet1 = c.statusRet1
+		m.statusRet2 = c.statusRet2
+		m.readCommentsRet1 = c.readCommentsRet1
+		m.readCommentsRet2 = c.readCommentsRet2
+		p.watcher.Event <- "player"
+		if err := <-p.watcherResponse; err != c.watcherRet {
+			t.Errorf("unexpected watcher error")
+		}
+		if m.currentsongcalled != c.currentSongCalled {
+			t.Errorf("unexpected function call")
+		}
+		current, _ := p.Current()
+		if !reflect.DeepEqual(current, c.currentRet) {
+			t.Errorf(
+				"unexpected Player.Current()\nexpect: %s\nactual:   %s",
+				songString(c.currentRet),
+				songString(current),
+			)
+		}
+		if m.statuscalled != c.statusCalled {
+			t.Errorf("unexpected function call")
+		}
+		status, _ := p.Status()
+		if !reflect.DeepEqual(status, c.statusRet) {
+			sj, _ := json.Marshal(status)
+			ej, _ := json.Marshal(c.statusRet)
+			t.Errorf(
+				"unexpected Player.Status()\nexpect: %s\nactual:   %s",
+				ej, sj,
+			)
+		}
+		if m.readcommentscalled != c.readCommentsCalled {
+			t.Errorf("unexpected function call")
+		}
+		comments, _ := p.Comments()
+		if !reflect.DeepEqual(comments, c.commentsRet) {
+			t.Errorf(
+				"unexpected Player.Comments()\nexpect: %s\nactual:   %s",
+				songString(c.commentsRet),
+				songString(comments),
+			)
+		}
 	}
 }
 
@@ -313,11 +364,14 @@ type mockMpc struct {
 	listallinforet         []mpd.Attrs
 	readcommentscalled     int
 	readcommentsarg1       string
-	readcommentsret        mpd.Attrs
+	readCommentsRet1       mpd.Attrs
+	readCommentsRet2       error
 	currentsongcalled      int
-	currentsongret         mpd.Attrs
+	currentSongRet1        mpd.Attrs
+	currentSongRet2        error
 	statuscalled           int
-	statusret              mpd.Attrs
+	statusRet1             mpd.Attrs
+	statusRet2             error
 	pingcalled             int
 	begincommandlistcalled int
 }
@@ -350,16 +404,16 @@ func (p *mockMpc) Ping() error {
 }
 func (p *mockMpc) CurrentSong() (mpd.Attrs, error) {
 	p.currentsongcalled++
-	return p.currentsongret, p.err
+	return p.currentSongRet1, p.currentSongRet2
 }
 func (p *mockMpc) Status() (mpd.Attrs, error) {
 	p.statuscalled++
-	return p.statusret, p.err
+	return p.statusRet1, p.statusRet2
 }
 func (p *mockMpc) ReadComments(readcommentsarg1 string) (mpd.Attrs, error) {
 	p.readcommentscalled++
 	p.readcommentsarg1 = readcommentsarg1
-	return p.readcommentsret, p.err
+	return p.readCommentsRet1, p.readCommentsRet2
 }
 func (p *mockMpc) PlaylistInfo(playlistinfoarg1, playlistinfoarg2 int) ([]mpd.Attrs, error) {
 	p.playlistinfocalled++
