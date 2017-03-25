@@ -12,27 +12,27 @@ func TestPlayerPlay(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = new(mockError)
 	err := p.Play()
-	if m.playcalled != 1 {
-		t.Errorf("Client.Play does not called")
+	if m.PlayCalled != 1 {
+		t.Errorf("Client.Play does not Called")
 	}
 	if err != m.err {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
-	if m.playarg1 != -1 {
-		t.Errorf("unexpected Client.Play arguments: %d", m.playarg1)
+	if m.PlayArg1 != -1 {
+		t.Errorf("unexpected Client.Play Arguments: %d", m.PlayArg1)
 	}
 
 	m.err = nil
 	err = p.Play()
 
-	if m.playcalled != 2 {
-		t.Errorf("Client.Play does not called")
+	if m.PlayCalled != 2 {
+		t.Errorf("Client.Play does not Called")
 	}
 	if err != m.err {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
-	if m.playarg1 != -1 {
-		t.Errorf("unexpected Client.Play arguments: %d", m.playarg1)
+	if m.PlayArg1 != -1 {
+		t.Errorf("unexpected Client.Play Arguments: %d", m.PlayArg1)
 	}
 }
 
@@ -40,27 +40,27 @@ func TestPlayerPause(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = new(mockError)
 	err := p.Pause()
-	if m.pausecalled != 1 {
-		t.Errorf("Client.Pause does not called")
+	if m.PauseCalled != 1 {
+		t.Errorf("Client.Pause does not Called")
 	}
 	if err != m.err {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
-	if m.pausearg1 != true {
-		t.Errorf("unexpected Client.Pause arguments: %t", m.pausearg1)
+	if m.PauseArg1 != true {
+		t.Errorf("unexpected Client.Pause Arguments: %t", m.PauseArg1)
 	}
 
 	m.err = nil
 	err = p.Pause()
 
-	if m.pausecalled != 2 {
-		t.Errorf("Client.Pause does not called")
+	if m.PauseCalled != 2 {
+		t.Errorf("Client.Pause does not Called")
 	}
 	if err != m.err {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
-	if m.pausearg1 != true {
-		t.Errorf("unexpected Client.Pause arguments: %t", m.pausearg1)
+	if m.PauseArg1 != true {
+		t.Errorf("unexpected Client.Pause Arguments: %t", m.PauseArg1)
 	}
 }
 
@@ -68,16 +68,16 @@ func TestPlayerNext(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = new(mockError)
 	err := p.Next()
-	if m.nextcalled != 1 {
-		t.Errorf("Client.Next does not called")
+	if m.NextCalled != 1 {
+		t.Errorf("Client.Next does not Called")
 	}
 	if err != m.err {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
 	m.err = nil
 	err = p.Next()
-	if m.nextcalled != 2 {
-		t.Errorf("Client.Next does not called")
+	if m.NextCalled != 2 {
+		t.Errorf("Client.Next does not Called")
 	}
 	if err != m.err {
 		t.Errorf("unexpected return error: %s", err.Error())
@@ -88,16 +88,16 @@ func TestPlayerPrevious(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = new(mockError)
 	err := p.Prev()
-	if m.previouscalled != 1 {
-		t.Errorf("Client.Previous does not called")
+	if m.PreviousCalled != 1 {
+		t.Errorf("Client.Previous does not Called")
 	}
 	if err != m.err {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
 	m.err = nil
 	err = p.Prev()
-	if m.previouscalled != 2 {
-		t.Errorf("Client.Previous does not called")
+	if m.PreviousCalled != 2 {
+		t.Errorf("Client.Previous does not Called")
 	}
 	if err != m.err {
 		t.Errorf("unexpected return error: %s", err.Error())
@@ -107,20 +107,20 @@ func TestPlayerPrevious(t *testing.T) {
 func TestPlayerPlaylist(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
-	m.playlistinforet = []mpd.Attrs{{"foo": "bar"}}
-	expect := songsAddReadableData((m.playlistinforet))
+	m.PlaylistInforet = []mpd.Attrs{{"foo": "bar"}}
+	expect := songsAddReadableData((m.PlaylistInforet))
 	// if mpd.Watcher.Event recieve "playlist"
 	p.watcher.Event <- "playlist"
 	if err := <-p.watcherResponse; err != nil {
 		t.Errorf("unexpected watcher error: %s", err.Error())
 	}
 
-	// mpd.Client.PlaylistInfo was called
-	if m.playlistinfocalled != 1 {
-		t.Errorf("Client.PlaylistInfo does not called")
+	// mpd.Client.PlaylistInfo was Called
+	if m.PlaylistInfoCalled != 1 {
+		t.Errorf("Client.PlaylistInfo does not Called")
 	}
-	if m.playlistinfoarg1 != -1 || m.playlistinfoarg2 != -1 {
-		t.Errorf("unexpected Client.PlaylistInfo arguments: %d %d", m.playlistinfoarg1, m.playlistinfoarg2)
+	if m.PlaylistInfoArg1 != -1 || m.PlaylistInfoArg2 != -1 {
+		t.Errorf("unexpected Client.PlaylistInfo Arguments: %d %d", m.PlaylistInfoArg1, m.PlaylistInfoArg2)
 	}
 	if !reflect.DeepEqual(expect, p.playlist) {
 		t.Errorf("unexpected stored playlist")
@@ -135,20 +135,20 @@ func TestPlayerPlaylist(t *testing.T) {
 func TestPlayerLibrary(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = nil
-	m.listallinforet = []mpd.Attrs{{"foo": "bar"}}
-	expect := songsAddReadableData((m.listallinforet))
+	m.ListAllInforet = []mpd.Attrs{{"foo": "bar"}}
+	expect := songsAddReadableData((m.ListAllInforet))
 	// if mpd.Watcher.Event recieve "database"
 	p.watcher.Event <- "database"
 	if err := <-p.watcherResponse; err != nil {
 		t.Errorf("unexpected watcher error: %s", err.Error())
 	}
 
-	// mpd.Client.ListAllInfo was called
-	if m.listallinfocalled != 1 {
-		t.Errorf("Client.ListAllInfo does not called")
+	// mpd.Client.ListAllInfo was Called
+	if m.ListAllInfoCalled != 1 {
+		t.Errorf("Client.ListAllInfo does not Called")
 	}
-	if m.listallinfoarg1 != "/" {
-		t.Errorf("unexpected Client.ListAllInfo arguments: %s", m.listallinfoarg1)
+	if m.ListAllInfoArg1 != "/" {
+		t.Errorf("unexpected Client.ListAllInfo Arguments: %s", m.ListAllInfoArg1)
 	}
 	if !reflect.DeepEqual(expect, p.library) {
 		t.Errorf("unexpected stored library")
@@ -215,17 +215,17 @@ func TestConvStatus(t *testing.T) {
 func TestPlayerCurrent(t *testing.T) {
 	errret := new(mockError)
 	candidates := []struct {
-		currentSongRet1    mpd.Attrs
-		currentSongRet2    error
-		currentSongCalled  int
+		CurrentSongRet1    mpd.Attrs
+		CurrentSongRet2    error
+		CurrentSongCalled  int
 		currentRet         mpd.Attrs
-		statusRet1         mpd.Attrs
-		statusRet2         error
-		statusCalled       int
-		statusRet          PlayerStatus
-		readCommentsRet1   mpd.Attrs
-		readCommentsRet2   error
-		readCommentsCalled int
+		StatusRet1         mpd.Attrs
+		StatusRet2         error
+		StatusCalled       int
+		StatusRet          PlayerStatus
+		ReadCommentsRet1   mpd.Attrs
+		ReadCommentsRet2   error
+		ReadCommentsCalled int
 		commentsRet        mpd.Attrs
 		watcherRet         error
 	}{
@@ -282,17 +282,17 @@ func TestPlayerCurrent(t *testing.T) {
 	}
 	p, m := mockDial("tcp", "localhost:6600")
 	for _, c := range candidates {
-		m.currentSongRet1 = c.currentSongRet1
-		m.currentSongRet2 = c.currentSongRet2
-		m.statusRet1 = c.statusRet1
-		m.statusRet2 = c.statusRet2
-		m.readCommentsRet1 = c.readCommentsRet1
-		m.readCommentsRet2 = c.readCommentsRet2
+		m.CurrentSongRet1 = c.CurrentSongRet1
+		m.CurrentSongRet2 = c.CurrentSongRet2
+		m.StatusRet1 = c.StatusRet1
+		m.StatusRet2 = c.StatusRet2
+		m.ReadCommentsRet1 = c.ReadCommentsRet1
+		m.ReadCommentsRet2 = c.ReadCommentsRet2
 		p.watcher.Event <- "player"
 		if err := <-p.watcherResponse; err != c.watcherRet {
 			t.Errorf("unexpected watcher error")
 		}
-		if m.currentsongcalled != c.currentSongCalled {
+		if m.CurrentSongCalled != c.CurrentSongCalled {
 			t.Errorf("unexpected function call")
 		}
 		current, _ := p.Current()
@@ -303,19 +303,19 @@ func TestPlayerCurrent(t *testing.T) {
 				songString(current),
 			)
 		}
-		if m.statuscalled != c.statusCalled {
+		if m.StatusCalled != c.StatusCalled {
 			t.Errorf("unexpected function call")
 		}
 		status, _ := p.Status()
-		if !reflect.DeepEqual(status, c.statusRet) {
+		if !reflect.DeepEqual(status, c.StatusRet) {
 			sj, _ := json.Marshal(status)
-			ej, _ := json.Marshal(c.statusRet)
+			ej, _ := json.Marshal(c.StatusRet)
 			t.Errorf(
 				"unexpected Player.Status()\nexpect: %s\nactual:   %s",
 				ej, sj,
 			)
 		}
-		if m.readcommentscalled != c.readCommentsCalled {
+		if m.ReadCommentsCalled != c.ReadCommentsCalled {
 			t.Errorf("unexpected function call")
 		}
 		comments, _ := p.Comments()
@@ -348,87 +348,87 @@ func mockDial(network, addr string) (p *Player, m *mockMpc) {
 
 type mockMpc struct {
 	err                    error
-	playcalled             int
-	playarg1               int
-	pausecalled            int
-	pausearg1              bool
-	nextcalled             int
-	previouscalled         int
-	closecalled            int
-	playlistinfocalled     int
-	playlistinfoarg1       int
-	playlistinfoarg2       int
-	playlistinforet        []mpd.Attrs
-	listallinfocalled      int
-	listallinfoarg1        string
-	listallinforet         []mpd.Attrs
-	readcommentscalled     int
-	readcommentsarg1       string
-	readCommentsRet1       mpd.Attrs
-	readCommentsRet2       error
-	currentsongcalled      int
-	currentSongRet1        mpd.Attrs
-	currentSongRet2        error
-	statuscalled           int
-	statusRet1             mpd.Attrs
-	statusRet2             error
-	pingcalled             int
-	begincommandlistcalled int
+	PlayCalled             int
+	PlayArg1               int
+	PauseCalled            int
+	PauseArg1              bool
+	NextCalled             int
+	PreviousCalled         int
+	CloseCalled            int
+	PlaylistInfoCalled     int
+	PlaylistInfoArg1       int
+	PlaylistInfoArg2       int
+	PlaylistInforet        []mpd.Attrs
+	ListAllInfoCalled      int
+	ListAllInfoArg1        string
+	ListAllInforet         []mpd.Attrs
+	ReadCommentsCalled     int
+	ReadCommentsArg1       string
+	ReadCommentsRet1       mpd.Attrs
+	ReadCommentsRet2       error
+	CurrentSongCalled      int
+	CurrentSongRet1        mpd.Attrs
+	CurrentSongRet2        error
+	StatusCalled           int
+	StatusRet1             mpd.Attrs
+	StatusRet2             error
+	PingCalled             int
+	begincommandlistCalled int
 }
 
-func (p *mockMpc) Play(playarg1 int) error {
-	p.playcalled++
-	p.playarg1 = playarg1
+func (p *mockMpc) Play(PlayArg1 int) error {
+	p.PlayCalled++
+	p.PlayArg1 = PlayArg1
 	return p.err
 }
-func (p *mockMpc) Pause(pausearg1 bool) error {
-	p.pausecalled++
-	p.pausearg1 = pausearg1
+func (p *mockMpc) Pause(PauseArg1 bool) error {
+	p.PauseCalled++
+	p.PauseArg1 = PauseArg1
 	return p.err
 }
 func (p *mockMpc) Next() error {
-	p.nextcalled++
+	p.NextCalled++
 	return p.err
 }
 func (p *mockMpc) Previous() error {
-	p.previouscalled++
+	p.PreviousCalled++
 	return p.err
 }
 func (p *mockMpc) Close() error {
-	p.closecalled++
+	p.CloseCalled++
 	return p.err
 }
 func (p *mockMpc) Ping() error {
-	p.pingcalled++
+	p.PingCalled++
 	return p.err
 }
 func (p *mockMpc) CurrentSong() (mpd.Attrs, error) {
-	p.currentsongcalled++
-	return p.currentSongRet1, p.currentSongRet2
+	p.CurrentSongCalled++
+	return p.CurrentSongRet1, p.CurrentSongRet2
 }
 func (p *mockMpc) Status() (mpd.Attrs, error) {
-	p.statuscalled++
-	return p.statusRet1, p.statusRet2
+	p.StatusCalled++
+	return p.StatusRet1, p.StatusRet2
 }
-func (p *mockMpc) ReadComments(readcommentsarg1 string) (mpd.Attrs, error) {
-	p.readcommentscalled++
-	p.readcommentsarg1 = readcommentsarg1
-	return p.readCommentsRet1, p.readCommentsRet2
+func (p *mockMpc) ReadComments(ReadCommentsArg1 string) (mpd.Attrs, error) {
+	p.ReadCommentsCalled++
+	p.ReadCommentsArg1 = ReadCommentsArg1
+	return p.ReadCommentsRet1, p.ReadCommentsRet2
 }
-func (p *mockMpc) PlaylistInfo(playlistinfoarg1, playlistinfoarg2 int) ([]mpd.Attrs, error) {
-	p.playlistinfocalled++
-	p.playlistinfoarg1 = playlistinfoarg1
-	p.playlistinfoarg2 = playlistinfoarg2
-	return p.playlistinforet, p.err
+func (p *mockMpc) PlaylistInfo(PlaylistInfoArg1, PlaylistInfoArg2 int) ([]mpd.Attrs, error) {
+	p.PlaylistInfoCalled++
+	p.PlaylistInfoArg1 = PlaylistInfoArg1
+	p.PlaylistInfoArg2 = PlaylistInfoArg2
+	return p.PlaylistInforet, p.err
 }
-func (p *mockMpc) ListAllInfo(listallinfoarg1 string) ([]mpd.Attrs, error) {
-	p.listallinfocalled++
-	p.listallinfoarg1 = listallinfoarg1
-	return p.listallinforet, p.err
+func (p *mockMpc) ListAllInfo(ListAllInfoArg1 string) ([]mpd.Attrs, error) {
+	p.ListAllInfoCalled++
+	p.ListAllInfoArg1 = ListAllInfoArg1
+	return p.ListAllInforet, p.err
 }
 
 func (p *mockMpc) BeginCommandList() *mpd.CommandList {
-	p.begincommandlistcalled++
+	p.begincommandlistCalled++
 	return nil
 }
 
