@@ -64,10 +64,6 @@ func notModified(w http.ResponseWriter, l time.Time) {
 	return
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, World")
-}
-
 type apiHandler struct {
 	player Music
 }
