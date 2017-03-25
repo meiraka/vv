@@ -333,7 +333,7 @@ func mockDial(network, addr string) (p *Player, m *mockMpc) {
 	p = new(Player)
 	p.mutex = new(sync.Mutex)
 	p.daemonStop = make(chan bool)
-	p.daemonRequest = make(chan *mpcMessage)
+	p.daemonRequest = make(chan *playerMessage)
 	p.network = network
 	p.addr = addr
 	m = new(mockMpc)

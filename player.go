@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-type mpcMessageType int
+type playerMessageType int
 
 const (
-	updateLibrary mpcMessageType = iota
+	updateLibrary playerMessageType = iota
 	updatePlaylist
 	updateCurrent
 	sortPlaylist
@@ -23,8 +23,8 @@ const (
 	ping
 )
 
-type mpcMessage struct {
-	request     mpcMessageType
+type playerMessage struct {
+	request     playerMessageType
 	requestData []string
 	err         chan error
 }
@@ -34,7 +34,7 @@ func Dial(network, addr string) (*Player, error) {
 	p := new(Player)
 	p.mutex = new(sync.Mutex)
 	p.daemonStop = make(chan bool)
-	p.daemonRequest = make(chan *mpcMessage)
+	p.daemonRequest = make(chan *playerMessage)
 	p.network = network
 	p.addr = addr
 	return p, p.start()
@@ -48,7 +48,7 @@ type Player struct {
 	watcher          mpd.Watcher
 	watcherResponse  chan error
 	daemonStop       chan bool
-	daemonRequest    chan *mpcMessage
+	daemonRequest    chan *playerMessage
 	mutex            *sync.Mutex
 	current          mpd.Attrs
 	currentModified  time.Time
@@ -256,21 +256,21 @@ func (p *Player) connect() error {
 	return nil
 }
 
-func (p *Player) request(req mpcMessageType) error {
+func (p *Player) request(req playerMessageType) error {
 	ec := make(chan error)
 	p.requestAsync(req, ec)
 	return <-ec
 }
 
-func (p *Player) requestAsync(req mpcMessageType, ec chan error) {
-	r := new(mpcMessage)
+func (p *Player) requestAsync(req playerMessageType, ec chan error) {
+	r := new(playerMessage)
 	r.request = req
 	r.err = ec
 	p.daemonRequest <- r
 }
 
-func (p *Player) requestData(req mpcMessageType, data []string) error {
-	r := new(mpcMessage)
+func (p *Player) requestData(req playerMessageType, data []string) error {
+	r := new(playerMessage)
 	r.request = req
 	r.requestData = data
 	r.err = make(chan error)
