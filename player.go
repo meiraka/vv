@@ -12,9 +12,9 @@ import (
 type mpcMessageType int
 
 const (
-	syncLibrary mpcMessageType = iota
-	syncPlaylist
-	syncCurrent
+	updateLibrary mpcMessageType = iota
+	updatePlaylist
+	updateCurrent
 	sortPlaylist
 	pause
 	prev
@@ -158,17 +158,17 @@ func (p *Player) start() (err error) {
 	if err != nil {
 		return err
 	}
-	err = p.syncLibrary()
+	err = p.updateLibrary()
 	if err != nil {
 		p.Close()
 		return
 	}
-	err = p.syncPlaylist()
+	err = p.updatePlaylist()
 	if err != nil {
 		p.Close()
 		return
 	}
-	err = p.syncCurrent()
+	err = p.updateCurrent()
 	if err != nil {
 		p.Close()
 		return
@@ -200,12 +200,12 @@ loop:
 				sendErr(m.err, p.mpc.Play(-1))
 			case next:
 				sendErr(m.err, p.mpc.Next())
-			case syncLibrary:
-				sendErr(m.err, p.syncLibrary())
-			case syncPlaylist:
-				sendErr(m.err, p.syncPlaylist())
-			case syncCurrent:
-				sendErr(m.err, p.syncCurrent())
+			case updateLibrary:
+				sendErr(m.err, p.updateLibrary())
+			case updatePlaylist:
+				sendErr(m.err, p.updatePlaylist())
+			case updateCurrent:
+				sendErr(m.err, p.updateCurrent())
 			case sortPlaylist:
 				sendErr(m.err, p.sortPlaylist(m.requestData))
 			case ping:
@@ -226,11 +226,11 @@ func (p *Player) watch() {
 	for subsystem := range p.watcher.Event {
 		switch subsystem {
 		case "database":
-			p.requestAsync(syncLibrary, p.watcherResponse)
+			p.requestAsync(updateLibrary, p.watcherResponse)
 		case "playlist":
-			p.requestAsync(syncPlaylist, p.watcherResponse)
+			p.requestAsync(updatePlaylist, p.watcherResponse)
 		case "player":
-			p.requestAsync(syncCurrent, p.watcherResponse)
+			p.requestAsync(updateCurrent, p.watcherResponse)
 		}
 	}
 }
@@ -369,7 +369,7 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 	return
 }
 
-func (p *Player) syncCurrent() error {
+func (p *Player) updateCurrent() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	song, err := p.mpc.CurrentSong()
@@ -400,7 +400,7 @@ func (p *Player) syncCurrent() error {
 	return nil
 }
 
-func (p *Player) syncLibrary() error {
+func (p *Player) updateLibrary() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	library, err := p.mpc.ListAllInfo("/")
@@ -412,7 +412,7 @@ func (p *Player) syncLibrary() error {
 	return nil
 }
 
-func (p *Player) syncPlaylist() error {
+func (p *Player) updatePlaylist() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	playlist, err := p.mpc.PlaylistInfo(-1, -1)
