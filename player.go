@@ -9,26 +9,6 @@ import (
 	"time"
 )
 
-type playerMessageType int
-
-const (
-	updateLibrary playerMessageType = iota
-	updatePlaylist
-	updateCurrent
-	sortPlaylist
-	pause
-	prev
-	play
-	next
-	ping
-)
-
-type playerMessage struct {
-	request     playerMessageType
-	requestData []string
-	err         chan error
-}
-
 /*Dial Connects to mpd server.*/
 func Dial(network, addr string) (*Player, error) {
 	p := new(Player)
@@ -73,21 +53,6 @@ type PlayerStatus struct {
 	SongElapsed  float32 `json:"song_elapsed"`
 	SongLength   int     `json:"song_length"`
 	LastModified int64   `json:"last_modified"`
-}
-
-type mpdClient interface {
-	Play(int) error
-	Pause(bool) error
-	Previous() error
-	Next() error
-	Ping() error
-	Close() error
-	ReadComments(string) (mpd.Attrs, error)
-	CurrentSong() (mpd.Attrs, error)
-	Status() (mpd.Attrs, error)
-	ListAllInfo(string) ([]mpd.Attrs, error)
-	PlaylistInfo(int, int) ([]mpd.Attrs, error)
-	BeginCommandList() *mpd.CommandList
 }
 
 /*Close mpd connection.*/
@@ -150,6 +115,41 @@ func (p *Player) Prev() error {
 /*Next song.*/
 func (p *Player) Next() error {
 	return p.request(next)
+}
+
+type playerMessageType int
+
+const (
+	updateLibrary playerMessageType = iota
+	updatePlaylist
+	updateCurrent
+	sortPlaylist
+	pause
+	prev
+	play
+	next
+	ping
+)
+
+type playerMessage struct {
+	request     playerMessageType
+	requestData []string
+	err         chan error
+}
+
+type mpdClient interface {
+	Play(int) error
+	Pause(bool) error
+	Previous() error
+	Next() error
+	Ping() error
+	Close() error
+	ReadComments(string) (mpd.Attrs, error)
+	CurrentSong() (mpd.Attrs, error)
+	Status() (mpd.Attrs, error)
+	ListAllInfo(string) ([]mpd.Attrs, error)
+	PlaylistInfo(int, int) ([]mpd.Attrs, error)
+	BeginCommandList() *mpd.CommandList
 }
 
 func (p *Player) start() (err error) {
@@ -240,21 +240,31 @@ func (p *Player) reconnect() error {
 	return p.connect()
 }
 
+func playerRealMpdDial(net, addr string) (mpdClient, error) {
+	return mpd.Dial(net, addr)
+}
+
+func playerRealMpdNewWatcher(net, addr, passwd string) (*mpd.Watcher, error) {
+	return mpd.NewWatcher(net, addr, passwd)
+}
+
+var playerMpdDial = playerRealMpdDial
+var playerMpdNewWatcher = playerRealMpdNewWatcher
+
 func (p *Player) connect() error {
-	mpc, err := mpd.Dial(p.network, p.addr)
+	mpc, err := playerMpdDial(p.network, p.addr)
 	if err != nil {
 		return err
 	}
+	defer mpc.Close()
 	p.mpc = mpc
-	watcher, err := mpd.NewWatcher(p.network, p.addr, "")
+	watcher, err := playerMpdNewWatcher(p.network, p.addr, "")
 	if err != nil {
-		mpc.Close()
 		return err
 	}
 	p.watcher = *watcher
 	return nil
 }
-
 func (p *Player) request(req playerMessageType) error {
 	ec := make(chan error)
 	p.requestAsync(req, ec)

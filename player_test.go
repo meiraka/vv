@@ -8,6 +8,70 @@ import (
 	"testing"
 )
 
+func initMock(dialError, newWatcherError error) *mockMpc {
+	m := new(mockMpc)
+	m.err = nil
+	m.ListAllInforet = []mpd.Attrs{}
+	m.PlaylistInforet = []mpd.Attrs{}
+	m.StatusRet1 = mpd.Attrs{}
+	m.StatusRet2 = nil
+	m.ReadCommentsRet1 = mpd.Attrs{}
+	m.ReadCommentsRet2 = nil
+	m.CurrentSongRet1 = mpd.Attrs{}
+	m.CurrentSongRet2 = nil
+	playerMpdDial = func(n, a string) (mpdClient, error) {
+		m.DialCalled++
+		return m, dialError
+	}
+	playerMpdNewWatcher = func(n, a, s string) (*mpd.Watcher, error) {
+		m.NewWatcherCalled++
+		return new(mpd.Watcher), newWatcherError
+	}
+	return m
+}
+
+func TestDial(t *testing.T) {
+	m := initMock(nil, nil)
+	_, err := Dial("tcp", "localhost:6600")
+	if err != nil {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+	if m.DialCalled != 1 {
+		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
+	}
+	if m.NewWatcherCalled != 1 {
+		t.Errorf("mpd.NewWatcher was not called: %d", m.NewWatcherCalled)
+	}
+
+	me := new(mockError)
+	m = initMock(me, nil)
+	_, err = Dial("tcp", "localhost:6600")
+	if err != me {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+	if m.DialCalled != 1 {
+		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
+	}
+	if m.NewWatcherCalled != 0 {
+		t.Errorf("mpd.NewWatcher was not called: %d", m.NewWatcherCalled)
+	}
+
+	m = initMock(nil, me)
+	_, err = Dial("tcp", "localhost:6600")
+	if err != me {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+	if m.DialCalled != 1 {
+		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
+	}
+	if m.NewWatcherCalled != 1 {
+		t.Errorf("mpd.NewWatcher was not called: %d", m.NewWatcherCalled)
+	}
+	if m.CloseCalled != 1 {
+		t.Errorf("mpd.Client.Close was not called: %d", m.CloseCalled)
+	}
+}
+
 func TestPlayerPlay(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.err = new(mockError)
@@ -348,6 +412,8 @@ func mockDial(network, addr string) (p *Player, m *mockMpc) {
 
 type mockMpc struct {
 	err                    error
+	DialCalled             int
+	NewWatcherCalled       int
 	PlayCalled             int
 	PlayArg1               int
 	PauseCalled            int
