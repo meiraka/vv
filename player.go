@@ -44,7 +44,7 @@ func Dial(network, addr string) (*Player, error) {
 type Player struct {
 	network          string
 	addr             string
-	mpc              MpdClient
+	mpc              mpdClient
 	watcher          mpd.Watcher
 	watcherResponse  chan error
 	daemonStop       chan bool
@@ -75,8 +75,7 @@ type PlayerStatus struct {
 	LastModified int64   `json:"last_modified"`
 }
 
-/*MpdClient represents mpd.Client for Player.*/
-type MpdClient interface {
+type mpdClient interface {
 	Play(int) error
 	Pause(bool) error
 	Previous() error
