@@ -330,16 +330,18 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 	uri := keys[len(keys)-1]
 	keys = keys[:len(keys)-1]
 	err = nil
-	sort.Slice(p.library, func(i, j int) bool {
-		return songSortKey(p.library[i], keys) < songSortKey(p.library[j], keys)
+	l := make([]mpd.Attrs, len(p.library))
+	copy(l, p.library)
+	sort.Slice(l, func(i, j int) bool {
+		return songSortKey(l[i], keys) < songSortKey(l[j], keys)
 	})
 	update := false
-	if len(p.library) != len(p.playlist) {
+	if len(l) != len(p.playlist) {
 		update = true
 		fmt.Printf("length not match")
 	} else {
-		for i := range p.library {
-			n := p.library[i]["file"]
+		for i := range l {
+			n := l[i]["file"]
 			o := p.playlist[i]["file"]
 			if n != o {
 				fmt.Printf("index %d not match:\n'new:%s'\n'old:%s'", i, n, o)
@@ -351,8 +353,8 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 	if update {
 		cl := p.mpc.BeginCommandList()
 		cl.Clear()
-		for i := range p.library {
-			cl.Add(p.library[i]["file"])
+		for i := range l {
+			cl.Add(l[i]["file"])
 		}
 		err = cl.End()
 	}
