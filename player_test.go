@@ -13,11 +13,8 @@ func initMock(dialError, newWatcherError error) *mockMpc {
 	m.ListAllInfoRet1 = []mpd.Attrs{}
 	m.PlaylistInfoRet1 = []mpd.Attrs{}
 	m.StatusRet1 = mpd.Attrs{}
-	m.StatusRet2 = nil
 	m.ReadCommentsRet1 = mpd.Attrs{}
-	m.ReadCommentsRet2 = nil
 	m.CurrentSongRet1 = mpd.Attrs{}
-	m.CurrentSongRet2 = nil
 	playerMpdDial = func(n, a string) (mpdClient, error) {
 		m.DialCalled++
 		return m, dialError
