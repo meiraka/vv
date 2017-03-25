@@ -108,29 +108,11 @@ func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
-	method := r.FormValue("action")
-	if method == "prev" {
-		writeJSON(w, h.player.Prev())
-	} else if method == "play" {
-		writeJSON(w, h.player.Play())
-	} else if method == "pause" {
-		writeJSON(w, h.player.Pause())
-	} else if method == "next" {
-		writeJSON(w, h.player.Next())
-	} else if method == "detail" {
-		d, l := h.player.Comments()
-		if modified(r, l) {
-			writeJSONAttr(w, d, l, nil)
-		} else {
-			notModified(w, l)
-		}
+	d, l := h.player.Current()
+	if modified(r, l) {
+		writeJSONAttr(w, d, l, nil)
 	} else {
-		d, l := h.player.Current()
-		if modified(r, l) {
-			writeJSONAttr(w, d, l, nil)
-		} else {
-			notModified(w, l)
-		}
+		notModified(w, l)
 	}
 }
 
