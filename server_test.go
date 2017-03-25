@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -96,6 +97,29 @@ func TestPlaylist(t *testing.T) {
 		}
 		if res.StatusCode != 304 {
 			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+	})
+	t.Run("sort", func(t *testing.T) {
+		m.SortPlaylistErr = nil
+		j := strings.NewReader(
+			"{\"action\": \"sort\", \"keys\": [\"file\"], \"uri\": \"path\"}",
+		)
+		res, err := http.Post(ts.URL, "application/json", j)
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		b := struct {
+			Errors error `json:"errors"`
+		}{nil}
+		json.Unmarshal(body, &b)
+		if b.Errors != nil {
+			t.Errorf("unexpected body: %s", body)
 		}
 	})
 }
@@ -233,21 +257,23 @@ func TestControl(t *testing.T) {
 }
 
 type MockMusic struct {
-	PlayErr         error
-	PauseErr        error
-	NextErr         error
-	PrevErr         error
-	PlaylistRet1    []mpd.Attrs
-	PlaylistRet2    time.Time
-	LibraryRet1     []mpd.Attrs
-	LibraryRet2     time.Time
-	CurrentRet1     mpd.Attrs
-	CurrentRet2     time.Time
-	CommentsRet1    mpd.Attrs
-	CommentsRet2    time.Time
-	StatusRet1      PlayerStatus
-	StatusRet2      time.Time
-	SortPlaylistErr error
+	PlayErr          error
+	PauseErr         error
+	NextErr          error
+	PrevErr          error
+	PlaylistRet1     []mpd.Attrs
+	PlaylistRet2     time.Time
+	LibraryRet1      []mpd.Attrs
+	LibraryRet2      time.Time
+	CurrentRet1      mpd.Attrs
+	CurrentRet2      time.Time
+	CommentsRet1     mpd.Attrs
+	CommentsRet2     time.Time
+	StatusRet1       PlayerStatus
+	StatusRet2       time.Time
+	SortPlaylistArg1 []string
+	SortPlaylistArg2 string
+	SortPlaylistErr  error
 }
 
 func (p *MockMusic) Play() error {
@@ -278,6 +304,8 @@ func (p *MockMusic) Playlist() ([]mpd.Attrs, time.Time) {
 func (p *MockMusic) Status() (PlayerStatus, time.Time) {
 	return p.StatusRet1, p.StatusRet2
 }
-func (p *MockMusic) SortPlaylist([]string, string) error {
+func (p *MockMusic) SortPlaylist(s []string, u string) error {
+	p.SortPlaylistArg1 = s
+	p.SortPlaylistArg2 = u
 	return p.SortPlaylistErr
 }
