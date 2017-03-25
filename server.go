@@ -153,9 +153,6 @@ func App(p Music, config ServerConfig) {
 	http.HandleFunc("/app.js", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "app.js")
 	})
-	http.HandleFunc("/jquery-3.1.1.js", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "jquery-3.1.1.js")
-	})
 	http.ListenAndServe(fmt.Sprintf(":%s", config.Port), nil)
 }
 
