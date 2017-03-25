@@ -69,7 +69,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 type apiHandler struct {
-	player *Player
+	player Music
 }
 
 type sortAction struct {
@@ -159,7 +159,7 @@ func modified(r *http.Request, l time.Time) bool {
 }
 
 // App serves http request.
-func App(p *Player, config ServerConfig) {
+func App(p Music, config ServerConfig) {
 	var api = new(apiHandler)
 	api.player = p
 	http.HandleFunc("/api/library", api.library)
@@ -179,4 +179,18 @@ func App(p *Player, config ServerConfig) {
 		http.ServeFile(w, r, "jquery-3.1.1.js")
 	})
 	http.ListenAndServe(fmt.Sprintf(":%s", config.Port), nil)
+}
+
+// Music Represents music player.
+type Music interface {
+	Play() error
+	Pause() error
+	Next() error
+	Prev() error
+	Playlist() ([]mpd.Attrs, time.Time)
+	Library() ([]mpd.Attrs, time.Time)
+	Comments() (mpd.Attrs, time.Time)
+	Current() (mpd.Attrs, time.Time)
+	Status() (PlayerStatus, time.Time)
+	SortPlaylist([]string, string) error
 }
