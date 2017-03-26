@@ -4,7 +4,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {main: {}, list: {}, menu: {}, elapsed: {}, dropdown: {}},
+    view: {main: {}, list: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
     control : {},
 };
 vv.obj = (function(){
@@ -396,6 +396,18 @@ vv.view.menu = (function(){
         update: update,
     };
 }());
+vv.view.playback = (function(){
+    var update = function() {
+        if (vv.storage.control["state"] == "play") {
+            document.getElementById("playback").getElementsByClassName("play")[0].children[0].src = "/assets/pause.svg";
+        } else {
+            document.getElementById("playback").getElementsByClassName("play")[0].children[0].src = "/assets/play.svg";
+        }
+    }
+    return {
+        update: update,
+    }
+}());
 vv.view.elapsed = (function() {
     var update = function() {
         data = vv.storage.control;
@@ -471,6 +483,7 @@ vv.control = (function() {
                 vv.storage.control = ret["data"];
                 vv.storage.control_last_modified = modified;
                 vv.view.elapsed.update();
+                vv.view.playback.update();
             }
         });
         vv.view.elapsed.update();
