@@ -516,6 +516,7 @@ vv.control = (function() {
         document.body.addEventListener('click', function(e) {
             vv.view.menu.hide_sub();
         });
+        var menu = document.getElementById("menu");
         menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
             if (vv.view.main.hidden()) {
                 vv.model.list.up();
