@@ -10,13 +10,14 @@ import (
 )
 
 /*Dial Connects to mpd server.*/
-func Dial(network, addr string) (*Player, error) {
+func Dial(network, addr, passwd string) (*Player, error) {
 	p := new(Player)
 	p.mutex = new(sync.Mutex)
 	p.daemonStop = make(chan bool)
 	p.daemonRequest = make(chan *playerMessage)
 	p.network = network
 	p.addr = addr
+	p.passwd = passwd
 	return p, p.start()
 }
 
@@ -24,6 +25,7 @@ func Dial(network, addr string) (*Player, error) {
 type Player struct {
 	network          string
 	addr             string
+	passwd           string
 	mpc              mpdClient
 	watcher          mpd.Watcher
 	watcherResponse  chan error
@@ -240,8 +242,8 @@ func (p *Player) reconnect() error {
 	return p.connect()
 }
 
-func playerRealMpdDial(net, addr string) (mpdClient, error) {
-	return mpd.Dial(net, addr)
+func playerRealMpdDial(net, addr, passwd string) (mpdClient, error) {
+	return mpd.DialAuthenticated(net, addr, passwd)
 }
 
 func playerRealMpdNewWatcher(net, addr, passwd string) (*mpd.Watcher, error) {
@@ -252,13 +254,13 @@ var playerMpdDial = playerRealMpdDial
 var playerMpdNewWatcher = playerRealMpdNewWatcher
 
 func (p *Player) connect() error {
-	mpc, err := playerMpdDial(p.network, p.addr)
+	mpc, err := playerMpdDial(p.network, p.addr, p.passwd)
 	if err != nil {
 		return err
 	}
 	defer mpc.Close()
 	p.mpc = mpc
-	watcher, err := playerMpdNewWatcher(p.network, p.addr, "")
+	watcher, err := playerMpdNewWatcher(p.network, p.addr, p.passwd)
 	if err != nil {
 		return err
 	}

@@ -12,7 +12,7 @@ func main() {
 		os.Exit(1)
 	}
 	addr := config.Mpd.Host + ":" + config.Mpd.Port
-	player, err := Dial("tcp", addr)
+	player, err := Dial("tcp", addr, "")
 	defer player.Close()
 	if err != nil {
 		fmt.Printf("faied to connect/initialize mpd: %s\n", err)

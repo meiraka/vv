@@ -15,7 +15,7 @@ func initMock(dialError, newWatcherError error) *mockMpc {
 	m.StatusRet1 = mpd.Attrs{}
 	m.ReadCommentsRet1 = mpd.Attrs{}
 	m.CurrentSongRet1 = mpd.Attrs{}
-	playerMpdDial = func(n, a string) (mpdClient, error) {
+	playerMpdDial = func(n, a, s string) (mpdClient, error) {
 		m.DialCalled++
 		return m, dialError
 	}
@@ -28,7 +28,7 @@ func initMock(dialError, newWatcherError error) *mockMpc {
 
 func TestDial(t *testing.T) {
 	m := initMock(nil, nil)
-	_, err := Dial("tcp", "localhost:6600")
+	_, err := Dial("tcp", "localhost:6600", "")
 	if err != nil {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
@@ -41,7 +41,7 @@ func TestDial(t *testing.T) {
 
 	me := new(mockError)
 	m = initMock(me, nil)
-	_, err = Dial("tcp", "localhost:6600")
+	_, err = Dial("tcp", "localhost:6600", "")
 	if err != me {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
@@ -53,7 +53,7 @@ func TestDial(t *testing.T) {
 	}
 
 	m = initMock(nil, me)
-	_, err = Dial("tcp", "localhost:6600")
+	_, err = Dial("tcp", "localhost:6600", "")
 	if err != me {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
