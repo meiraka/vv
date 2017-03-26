@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	config, err := ReadConfig("./vvrc")
+	config, err := ReadConfig()
 	if err != nil {
 		fmt.Printf("faied to load config file: %s\n", err)
 		os.Exit(1)

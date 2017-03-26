@@ -1,19 +1,28 @@
 package main
 
 import (
-	"github.com/BurntSushi/toml"
+	"github.com/spf13/viper"
 )
 
-// DefaultConfigPath returns this app default config path.
-func DefaultConfigPath() string {
-	return "/etc/vvrc"
-}
-
 // ReadConfig returns filled Config struct.
-func ReadConfig(path string) (Config, error) {
-	var config Config
-	_, err := toml.DecodeFile(path, &config)
-	return config, err
+func ReadConfig() (Config, error) {
+	viper.SetConfigName("config")
+	viper.AddConfigPath("/etc/xdg/vv")
+	viper.AddConfigPath("$HOME/.config/vv")
+	viper.SetDefault("mpd.host", "localhost")
+	viper.SetDefault("mpd.port", "6600")
+	viper.SetDefault("server.port", "8080")
+	err := viper.ReadInConfig()
+	if err != nil {
+		return Config{}, err
+	}
+	return Config{
+		ServerConfig{viper.GetString("server.port")},
+		MpdConfig{
+			viper.GetString("mpd.host"),
+			viper.GetString("mpd.port"),
+		},
+	}, nil
 }
 
 // Config represents app properties.
