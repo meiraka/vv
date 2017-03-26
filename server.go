@@ -145,13 +145,13 @@ func App(p Music, config ServerConfig) {
 	http.HandleFunc("/api/songs/current", api.current)
 	http.HandleFunc("/api/control", api.control)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "app.html")
+		http.ServeFile(w, r, "assets/app.html")
 	})
-	http.HandleFunc("/app.css", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "app.css")
+	http.HandleFunc("/assets/app.css", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "assets/app.css")
 	})
-	http.HandleFunc("/app.js", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "app.js")
+	http.HandleFunc("/assets/app.js", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "assets/app.js")
 	})
 	http.HandleFunc("/assets/play.svg", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "assets/play.svg")
