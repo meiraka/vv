@@ -4,7 +4,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {main: {}, list: {}, menu: {}, elapsed: {}},
+    view: {main: {}, list: {}, menu: {}, elapsed: {}, dropdown: {}},
     control : {},
 };
 vv.obj = (function(){
@@ -319,6 +319,10 @@ vv.view.list = (function(){
             song = songs[i];
             li = make_list_item(songs[i], ls[0], ls[2], type);
             li.addEventListener('click', function() {
+                if (!vv.view.dropdown.hidden()) {
+                    vv.view.dropdown.hide();
+                    return;
+                }
                 var value = this.getAttribute("key"),
                     uri = this.getAttribute("uri");
                 if (type == "dir") {
@@ -375,6 +379,9 @@ vv.view.menu = (function(){
         var e = document.getElementById("submenu");
         e.style.display = "none";
     }
+    var hidden_sub = function() {
+        return document.getElementById("submenu").style.display == "none";
+    }
     var update = function() {
         var up = document.getElementById("menu").getElementsByClassName("up")[0];
         var label = vv.view.list.hidden()? "list" : "up";
@@ -385,6 +392,7 @@ vv.view.menu = (function(){
     return {
         show_sub: show_sub,
         hide_sub: hide_sub,
+        hidden_sub: hidden_sub,
         update: update,
     };
 }());
@@ -413,6 +421,18 @@ vv.view.elapsed = (function() {
         }
     }
     return {update: update};
+}());
+vv.view.dropdown = (function() {
+    var hidden = function() {
+        return vv.view.menu.hidden_sub();
+    }
+    var hide = function() {
+        vv.view.menu.hide_sub();
+    }
+    return {
+        hidden: hidden,
+        hide: hide,
+    }
 }());
 vv.control = (function() {
     var get_request = function(path, ifmodified, callback) {
