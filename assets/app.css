@@ -179,6 +179,24 @@ section {
     color: #808080;
 }
 
+#current .control {
+    position: fixed;
+    bottom: 100px;
+    right: 10px;
+}
+
+button {
+    outline: 0;
+    padding: 0px;
+    margin: 0px;
+    border: 0px;
+    background-color: rgba(255,255,255,0);
+}
+
+#current .control button img {
+    height: 40px;
+}
+
 header, header nav, header nav button {
     border: 0px;
     margin: 0px;

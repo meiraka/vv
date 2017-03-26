@@ -403,6 +403,17 @@ vv.view.playback = (function(){
         } else {
             document.getElementById("playback").getElementsByClassName("play")[0].children[0].src = "/assets/play.svg";
         }
+        var current = document.getElementById("current");
+        if (vv.storage.control["repeat"]) {
+            current.getElementsByClassName("repeat")[0].children[0].style.opacity=1.0;
+        } else {
+            current.getElementsByClassName("repeat")[0].children[0].style.opacity=0.5;
+        }
+        if (vv.storage.control["random"]) {
+            current.getElementsByClassName("random")[0].children[0].style.opacity=1.0;
+        } else {
+            current.getElementsByClassName("random")[0].children[0].style.opacity=0.5;
+        }
     }
     return {
         update: update,
