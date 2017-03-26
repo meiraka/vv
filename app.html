@@ -10,7 +10,12 @@
 <body>
 <header>
     <nav id="menu">
-        <button  class=up type="button">list</button><button class=back type="button">now playing</button>
+        <button class=up type="button">list</button><button class=back type="button">now playing</button><button class=menu type="button">menu</button>
+    </nav>
+    <nav id="submenu" style="display: none">
+        <ol>
+            <li><button class=reload type="button">reload</button></li>
+            <li><button class=config type="button">config</button></li>
     </nav>
 </header>
 <section id="list" style="display: none">

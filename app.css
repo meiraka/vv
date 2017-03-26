@@ -22,6 +22,24 @@ footer {
     height: 40px;
 }
 
+#submenu {
+    position: fixed;
+    left: 66.66%;
+    width: 33.33%;
+    top: 40px;
+}
+
+#submenu ol {
+    list-style-type: none;
+    padding: 0px;
+    margin: 0px;
+    width: 100%;
+}
+
+#submenu button {
+    width: 100%;
+}
+
 section {
     position: absolute;
     top: 40px;

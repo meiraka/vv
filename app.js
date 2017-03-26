@@ -367,6 +367,14 @@ vv.view.list = (function(){
     };
 }());
 vv.view.menu = (function(){
+    var show_sub = function() {
+        var e = document.getElementById("submenu");
+        e.style.display = "block";
+    }
+    var hide_sub = function() {
+        var e = document.getElementById("submenu");
+        e.style.display = "none";
+    }
     var update = function() {
         var up = document.getElementById("menu").getElementsByClassName("up")[0];
         var label = vv.view.list.hidden()? "list" : "up";
@@ -375,6 +383,8 @@ vv.view.menu = (function(){
         }
     }
     return {
+        show_sub: show_sub,
+        hide_sub: hide_sub,
         update: update,
     };
 }());
@@ -483,7 +493,9 @@ vv.control = (function() {
     }
 
     var init = function() {
-        var menu = document.getElementById("menu");
+        document.body.addEventListener('click', function(e) {
+            vv.view.menu.hide_sub();
+        });
         menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
             if (vv.view.main.hidden()) {
                 vv.model.list.up();
@@ -500,6 +512,10 @@ vv.control = (function() {
             vv.view.list.hide();
             vv.view.main.show();
             vv.view.menu.update();
+            e.stopPropagation();
+        });
+        menu.getElementsByClassName("menu")[0].addEventListener('click', function(e) {
+            vv.view.menu.show_sub();
             e.stopPropagation();
         });
         var playback = document.getElementById("playback");
