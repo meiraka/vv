@@ -536,8 +536,16 @@ vv.control = (function() {
             e.stopPropagation();
         });
         menu.getElementsByClassName("menu")[0].addEventListener('click', function(e) {
-            vv.view.menu.show_sub();
+            if (vv.view.menu.hidden_sub()) {
+                vv.view.menu.show_sub();
+            } else {
+                vv.view.menu.hide_sub();
+            }
             e.stopPropagation();
+        });
+        var submenu = document.getElementById("submenu");
+        submenu.getElementsByClassName("reload")[0].addEventListener('click', function(e) {
+            location.reload();
         });
         var playback = document.getElementById("playback");
         playback.getElementsByClassName("prev")[0].addEventListener('click', function(e) {
