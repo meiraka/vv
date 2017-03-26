@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fhs/gompd/mpd"
+	"mime"
 	"net/http"
+	"os"
+	"path"
 	"time"
 )
 
@@ -136,6 +139,19 @@ func modified(r *http.Request, l time.Time) bool {
 	return r.Header.Get("If-Modified-Since") != l.Format(http.TimeFormat)
 }
 
+func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Request) {
+	n := time.Now()
+	m := mime.TypeByExtension(path.Ext(f))
+	return func(w http.ResponseWriter, r *http.Request) {
+		// w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+		w.Header().Add("Last-Modified", n.Format(http.TimeFormat))
+		if m != "" {
+			w.Header().Add("Content-Type", m)
+		}
+		w.Write(data)
+	}
+}
+
 // App serves http request.
 func App(p Music, config ServerConfig) {
 	var api = new(apiHandler)
@@ -144,24 +160,23 @@ func App(p Music, config ServerConfig) {
 	http.HandleFunc("/api/songs", api.playlist)
 	http.HandleFunc("/api/songs/current", api.current)
 	http.HandleFunc("/api/control", api.control)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/app.html")
-	})
-	http.HandleFunc("/assets/app.css", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/app.css")
-	})
-	http.HandleFunc("/assets/app.js", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/app.js")
-	})
-	http.HandleFunc("/assets/play.svg", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/play.svg")
-	})
-	http.HandleFunc("/assets/next.svg", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/next.svg")
-	})
-	http.HandleFunc("/assets/prev.svg", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/prev.svg")
-	})
+	for _, f := range AssetNames() {
+		p := "/" + f
+		if f == "assets/app.html" {
+			p = "/"
+		}
+		_, err := os.Stat(f)
+		if !os.IsNotExist(err) {
+			func(path, rpath string) {
+				http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+					http.ServeFile(w, r, rpath)
+				})
+			}(p, f)
+		} else {
+			data, _ := Asset(f)
+			http.HandleFunc(p, makeHandleAssets(f, data))
+		}
+	}
 	http.ListenAndServe(fmt.Sprintf(":%s", config.Port), nil)
 }
 

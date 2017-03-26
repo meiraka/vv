@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+//go:generate go-bindata assets
 func main() {
 	config, err := ReadConfig()
 	if err != nil {
