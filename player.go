@@ -258,10 +258,10 @@ func (p *Player) connect() error {
 	if err != nil {
 		return err
 	}
-	defer mpc.Close()
 	p.mpc = mpc
 	watcher, err := playerMpdNewWatcher(p.network, p.addr, p.passwd)
 	if err != nil {
+		mpc.Close()
 		return err
 	}
 	p.watcher = *watcher
