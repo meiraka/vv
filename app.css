@@ -7,11 +7,11 @@ body {
 
 header, footer {
     position: fixed;
-    left: 0px;
-    width: 100%;
     z-index: 10;
 }
 header {
+    left: 0px;
+    width: 100%;
     top: 0px;
     background: #db7093;
     height: 40px;
@@ -19,7 +19,8 @@ header {
 
 footer {
     bottom: 0px;
-    height: 40px;
+    height: 90px;
+    width: 100%;
 }
 
 #submenu {
@@ -46,7 +47,7 @@ section {
     left: 0px;
     z-index: 1;
     width: 100%;
-    padding: 0px 0px 40px;
+    padding: 0px 0px 90px;
 }
 
 #list ol {
@@ -197,16 +198,29 @@ header nav button:active {
     background-color: #FFFFFF;
 }
 
-footer, footer nav, footer nav button {
+footer nav {
+    width: 210px;
+    margin: 0 auto;
     border: 0px;
-    margin: 0px;
-    padding: 0px;
 }
 
-footer nav button {
-    background-color: #db7093;
-    width: 33.3333%;
-    height: 40px;
+footer nav button, footer nav button img {
+    padding: 0px;
+    margin: 0px;
+    border: 0px;
+    background-color: rgba(255,255,255,0);
+    height: 90px;
+}
+footer nav button.play img {
+    width: 90px;
+}
+
+footer nav button.prev img {
+    width: 60px;
+}
+
+footer nav button.next img {
+    width: 60px;
 }
 
 footer nav button:hover {

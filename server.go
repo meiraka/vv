@@ -153,6 +153,15 @@ func App(p Music, config ServerConfig) {
 	http.HandleFunc("/app.js", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "app.js")
 	})
+	http.HandleFunc("/assets/play.svg", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "assets/play.svg")
+	})
+	http.HandleFunc("/assets/next.svg", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "assets/next.svg")
+	})
+	http.HandleFunc("/assets/prev.svg", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "assets/prev.svg")
+	})
 	http.ListenAndServe(fmt.Sprintf(":%s", config.Port), nil)
 }
 
