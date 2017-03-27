@@ -426,9 +426,10 @@ func (p *Player) updateCurrent() error {
 		p.commentsModified = time.Now()
 		p.comments = comments
 	}
-
-	p.current = c
-	p.currentModified = cm
+	if p.current["file"] != c["file"] {
+		p.current = c
+		p.currentModified = cm
+	}
 	p.status = s
 	return nil
 }
