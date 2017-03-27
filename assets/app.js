@@ -4,7 +4,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {main: {}, list: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
+    view: {main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
     control : {},
 };
 vv.obj = (function(){
@@ -374,6 +374,7 @@ vv.control = (function() {
                 vv.model.list.abs(vv.storage.current);
             }
             vv.view.main.hide();
+            vv.view.config.hide();
             vv.view.list.update();
             vv.view.list.show();
             vv.view.menu.update();
@@ -381,6 +382,7 @@ vv.control = (function() {
         });
         menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
             vv.view.list.hide();
+            vv.view.config.hide();
             vv.view.main.show();
             vv.view.menu.update();
             e.stopPropagation();
@@ -396,6 +398,11 @@ vv.control = (function() {
         var submenu = document.getElementById("submenu");
         submenu.getElementsByClassName("reload")[0].addEventListener('click', function(e) {
             location.reload();
+        });
+        submenu.getElementsByClassName("config")[0].addEventListener('click', function(e) {
+            vv.view.main.hide();
+            vv.view.list.hide();
+            vv.view.config.show();
         });
         var playback = document.getElementById("playback");
         playback.getElementsByClassName("prev")[0].addEventListener('click', function(e) {
@@ -572,6 +579,69 @@ vv.view.list = (function(){
         hide: hide,
         hidden: hidden,
         update: update,
+    };
+}());
+vv.view.config = (function(){
+    var init = function() {
+        var update = function(d) {
+            var e = document.getElementById("current");
+            var c = e.getElementsByClassName("control_volume")[0].children[0];
+            c.max = d["volume"]["max"];
+            if (d["volume"]["show"]) {
+                c.style.display = "block";
+            } else {
+                c.style.display = "none";
+            }
+        };
+        var data = {"volume": {"show": true, "max": 100}}
+
+        // TODO: move to storage or model
+        if (localStorage.config) {
+            data = JSON.parse(localStorage.config);
+        } else {
+            localStorage.config = JSON.stringify(data);
+        }
+        var show_volume = document.getElementById("show_volume");
+        show_volume.checked = data["volume"]["show"];
+        show_volume.addEventListener("change", function() {
+            var data = JSON.parse(localStorage.config);
+            data["volume"]["show"] = this.checked;
+            localStorage.config = JSON.stringify(data);
+            update(data);
+        });
+        var max_volume = document.getElementById("max_volume");
+        // TODO: fix type to str
+        max_volume.value = data["volume"]["max"];
+        max_volume.addEventListener("change", function() {
+            var data = JSON.parse(localStorage.config);
+            data["volume"]["max"] = parseInt(this.value);
+            localStorage.config = JSON.stringify(data);
+            update(data);
+        });
+        update(data);
+    };
+    (function() {
+        if (document.readyState !== 'loading') {
+            init();
+        } else {
+            document.addEventListener('DOMContentLoaded', init);
+        }
+    })();
+    var show = function() {
+        var e = document.getElementById("config");
+        e.style.display = "block";
+    };
+    var hide = function() {
+        var e = document.getElementById("config");
+        e.style.display = "none";
+    }
+    var hidden = function() {
+        return document.getElementById("config").style.display == "none";
+    }
+    return {
+        show: show,
+        hide: hide,
+        hidden: hidden,
     };
 }());
 vv.view.menu = (function(){
