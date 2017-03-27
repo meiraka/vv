@@ -82,7 +82,7 @@ func (p *Player) Current() (mpd.Attrs, time.Time) {
 func (p *Player) Status() (PlayerStatus, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	return p.status, p.currentModified
+	return p.status, time.Unix(p.status.LastModified, 0)
 }
 
 /*Library returns mpd library song data list.*/
