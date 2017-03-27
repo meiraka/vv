@@ -119,6 +119,16 @@ func (p *Player) Next() error {
 	return p.request(next)
 }
 
+/*Volume set player volume.*/
+func (p *Player) Volume(v int) error {
+	r := new(playerMessage)
+	r.request = volume
+	r.i = v
+	r.err = make(chan error)
+	p.daemonRequest <- r
+	return <-r.err
+}
+
 type playerMessageType int
 
 const (
@@ -131,16 +141,19 @@ const (
 	play
 	next
 	ping
+	volume
 )
 
 type playerMessage struct {
 	request     playerMessageType
 	requestData []string
+	i           int
 	err         chan error
 }
 
 type mpdClient interface {
 	Play(int) error
+	SetVolume(int) error
 	Pause(bool) error
 	Previous() error
 	Next() error
@@ -201,6 +214,13 @@ loop:
 				sendErr(m.err, p.mpc.Play(-1))
 			case next:
 				sendErr(m.err, p.mpc.Next())
+			case volume:
+				err := p.mpc.SetVolume(m.i)
+				if err != nil {
+					sendErr(m.err, err)
+					return
+				}
+				sendErr(m.err, p.updateCurrent())
 			case updateLibrary:
 				sendErr(m.err, p.updateLibrary())
 			case updatePlaylist:

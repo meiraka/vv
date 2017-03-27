@@ -116,15 +116,37 @@ func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		decoder := json.NewDecoder(r.Body)
+		var s map[string]interface{}
+		err := decoder.Decode(&s)
+		if v, exist := s["volume"]; exist {
+			switch v.(type) {
+			case float64:
+				err = h.player.Volume(int(v.(float64)))
+			case int:
+				err = h.player.Volume(v.(int))
+				// TODO: write type error
+			}
+		}
+		writeJSON(w, err)
+		return
+	}
+
+	// TODO: post action
 	method := r.FormValue("action")
 	if method == "prev" {
 		writeJSON(w, h.player.Prev())
+		return
 	} else if method == "play" {
 		writeJSON(w, h.player.Play())
+		return
 	} else if method == "pause" {
 		writeJSON(w, h.player.Pause())
+		return
 	} else if method == "next" {
 		writeJSON(w, h.player.Next())
+		return
 	} else {
 		d, l := h.player.Status()
 		if modified(r, l) {
@@ -186,6 +208,7 @@ type Music interface {
 	Pause() error
 	Next() error
 	Prev() error
+	Volume(int) error
 	Playlist() ([]mpd.Attrs, time.Time)
 	Library() ([]mpd.Attrs, time.Time)
 	Comments() (mpd.Attrs, time.Time)

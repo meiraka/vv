@@ -253,7 +253,28 @@ func TestControl(t *testing.T) {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
 	})
-
+	t.Run("volume", func(t *testing.T) {
+		m.SortPlaylistErr = nil
+		j := strings.NewReader(
+			"{\"volume\": 1}",
+		)
+		res, err := http.Post(ts.URL, "application/json", j)
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		b := struct {
+			Errors error `json:"errors"`
+		}{nil}
+		json.Unmarshal(body, &b)
+		if b.Errors != nil {
+			t.Errorf("unexpected body: %s", body)
+		}
+	})
 }
 
 type MockMusic struct {
@@ -261,6 +282,8 @@ type MockMusic struct {
 	PauseErr         error
 	NextErr          error
 	PrevErr          error
+	VolumeArg1       int
+	VolumeErr        error
 	PlaylistRet1     []mpd.Attrs
 	PlaylistRet2     time.Time
 	LibraryRet1      []mpd.Attrs
@@ -288,6 +311,10 @@ func (p *MockMusic) Next() error {
 }
 func (p *MockMusic) Prev() error {
 	return p.PrevErr
+}
+func (p *MockMusic) Volume(i int) error {
+	p.VolumeArg1 = i
+	return p.VolumeErr
 }
 func (p *MockMusic) Comments() (mpd.Attrs, time.Time) {
 	return p.CommentsRet1, p.CommentsRet2

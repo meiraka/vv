@@ -164,6 +164,21 @@ func TestPlayerPrevious(t *testing.T) {
 	}
 }
 
+func TestPlayerSetVolume(t *testing.T) {
+	p, m := mockDial("tcp", "localhost:6600")
+	m.CurrentSongRet2 = new(mockError)
+	err := p.Volume(1)
+	if m.SetVolumeCalled != 1 {
+		t.Errorf("Client.SetVolume does not Called")
+	}
+	if m.CurrentSongCalled != 1 {
+		t.Errorf("Client.CurrentSong does not Called")
+	}
+	if err != m.CurrentSongRet2 {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+}
+
 func TestPlayerPlaylist(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
 	m.PlaylistInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
@@ -421,6 +436,9 @@ type mockMpc struct {
 	PreviousRet1           error
 	CloseCalled            int
 	CloseRet1              error
+	SetVolumeCalled        int
+	SetVolumeArg1          int
+	SetVolumeRet1          error
 	PlaylistInfoCalled     int
 	PlaylistInfoArg1       int
 	PlaylistInfoArg2       int
@@ -466,6 +484,11 @@ func (p *mockMpc) Previous() error {
 func (p *mockMpc) Close() error {
 	p.CloseCalled++
 	return p.CloseRet1
+}
+func (p *mockMpc) SetVolume(i int) error {
+	p.SetVolumeCalled++
+	p.SetVolumeArg1 = i
+	return p.SetVolumeRet1
 }
 func (p *mockMpc) Ping() error {
 	p.PingCalled++
