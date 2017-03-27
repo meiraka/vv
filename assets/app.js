@@ -102,16 +102,21 @@ vv.storage = (function(){
          "Genre": [],
     }
     var library_last_modified = "";
+    var config = {"volume": {"show": true, "max": 100}}
 
     var save = function() {
         try {
             localStorage.tree = JSON.stringify(tree);
+            localStorage.config = JSON.stringify(config);
         } catch (e) {}
     }
     var load = function() {
         try {
             if (localStorage.tree) {
                 tree = JSON.parse(localStorage.tree);
+            }
+            if (localStorage.config) {
+                config = JSON.parse(localStorage.config);
             }
         } catch (e) {}
     }
@@ -124,6 +129,7 @@ vv.storage = (function(){
         control_last_modified: control_last_modified,
         library: library,
         library_last_modified: library_last_modified,
+        config: config,
         save: save,
         load: load,
     };
@@ -257,9 +263,14 @@ vv.model.list = (function() {
     };
 }());
 vv.control = (function() {
-    var listener = {"control": []}
+    var listener = {"control": [], "config": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
+    };
+    var raiseEvent = function(ev) {
+        for (i in listener[ev]) {
+            listener[ev][i]();
+        }
     };
 
     var get_request = function(path, ifmodified, callback) {
@@ -314,9 +325,7 @@ vv.control = (function() {
                 vv.storage.control_last_modified = modified;
                 vv.view.elapsed.update();
                 vv.view.playback.update();
-                for (i in listener["control"]) {
-                    listener["control"][i]();
-                }
+                raiseEvent("control");
             }
         });
         vv.view.elapsed.update();
@@ -437,6 +446,7 @@ vv.control = (function() {
 
     return {
         addEventListener: addEventListener,
+        raiseEvent: raiseEvent,
         update_song: update_song,
         update_status: update_status,
         update_library: update_library,
@@ -451,15 +461,27 @@ vv.control = (function() {
 
 
 vv.view.main = (function(){
+    var load_volume_config = function() {
+        var e = document.getElementById("current");
+        var c = e.getElementsByClassName("control_volume")[0].children[0];
+        c.max = vv.storage.config["volume"]["max"];
+        if (vv.storage.config["volume"]["show"]) {
+            c.style.display = "block";
+        } else {
+            c.style.display = "none";
+        }
+    };
     vv.control.addEventListener("control", function() {
         var e = document.getElementById("current");
         e.getElementsByClassName("control_volume")[0].children[0].value=vv.storage.control["volume"]
     });
+    vv.control.addEventListener("config", load_volume_config);
     var init = function() {
         var e = document.getElementById("current");
         e.getElementsByClassName("control_volume")[0].children[0].addEventListener("change", function() {
             vv.control.volume(parseInt(this.value));
         });
+        load_volume_config();
     };
     (function() {
         if (document.readyState !== 'loading') {
@@ -583,42 +605,20 @@ vv.view.list = (function(){
 }());
 vv.view.config = (function(){
     var init = function() {
-        var update = function(d) {
-            var e = document.getElementById("current");
-            var c = e.getElementsByClassName("control_volume")[0].children[0];
-            c.max = d["volume"]["max"];
-            if (d["volume"]["show"]) {
-                c.style.display = "block";
-            } else {
-                c.style.display = "none";
-            }
-        };
-        var data = {"volume": {"show": true, "max": 100}}
-
-        // TODO: move to storage or model
-        if (localStorage.config) {
-            data = JSON.parse(localStorage.config);
-        } else {
-            localStorage.config = JSON.stringify(data);
-        }
         var show_volume = document.getElementById("show_volume");
-        show_volume.checked = data["volume"]["show"];
+        show_volume.checked = vv.storage.config.volume.show;
         show_volume.addEventListener("change", function() {
-            var data = JSON.parse(localStorage.config);
-            data["volume"]["show"] = this.checked;
-            localStorage.config = JSON.stringify(data);
-            update(data);
+            vv.storage.config.volume.show = this.checked;
+            vv.storage.save();
+            vv.control.raiseEvent("config");
         });
         var max_volume = document.getElementById("max_volume");
-        // TODO: fix type to str
-        max_volume.value = data["volume"]["max"];
+        max_volume.value = String(vv.storage.config.volume.max);
         max_volume.addEventListener("change", function() {
-            var data = JSON.parse(localStorage.config);
-            data["volume"]["max"] = parseInt(this.value);
-            localStorage.config = JSON.stringify(data);
-            update(data);
+            vv.storage.config.volume.max = parseInt(this.value);
+            vv.storage.save();
+            vv.control.raiseEvent("config");
         });
-        update(data);
     };
     (function() {
         if (document.readyState !== 'loading') {
