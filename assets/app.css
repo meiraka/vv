@@ -181,7 +181,7 @@ section {
 
 #current .control {
     position: fixed;
-    bottom: 100px;
+    bottom: 140px;
     right: 10px;
 }
 
@@ -199,14 +199,26 @@ button {
 
 #current .control_volume {
     position: fixed;
-    bottom: 90px;
+    bottom: 120px;
     width: 100%;
 }
 
 
-#current .control_volume input {
-    width: 60%;
-    margin: 0px 20%;
+#current .control_volume input[type="range"] {
+    height: 8px;
+    width: 90%;
+    margin: 0px 5%;
+    -webkit-appearance: none;
+    background: #404040;
+    border-radius: 50px;
+}
+
+#current .control_volume input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    background: #404040;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
 }
 
 header, header nav, header nav button {
