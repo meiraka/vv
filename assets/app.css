@@ -197,6 +197,18 @@ button {
     height: 40px;
 }
 
+#current .control_volume {
+    position: fixed;
+    bottom: 90px;
+    width: 100%;
+}
+
+
+#current .control_volume input {
+    width: 60%;
+    margin: 0px 20%;
+}
+
 header, header nav, header nav button {
     border: 0px;
     margin: 0px;

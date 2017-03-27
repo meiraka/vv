@@ -256,7 +256,211 @@ vv.model.list = (function() {
         list: list,
     };
 }());
+vv.control = (function() {
+    var listener = {"control": []}
+    var addEventListener = function(ev, func) {
+        listener[ev].push(func);
+    };
+
+    var get_request = function(path, ifmodified, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4) {
+                if (xhr.status == 200 && callback) {
+                    callback(JSON.parse(xhr.responseText), xhr.getResponseHeader("Last-Modified"));
+                }
+            }
+        };
+        xhr.open("GET", path, true);
+        if (ifmodified != "") {
+            xhr.setRequestHeader("If-Modified-Since", ifmodified);
+        }
+        xhr.send();
+    }
+
+    var post_request = function(path, obj, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4) {
+                if (xhr.status == 200 && callback) {
+                    callback(JSON.parse(xhr.responseText));
+                }
+            }
+        };
+        xhr.open("POST", path, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify(obj));
+    }
+
+    var update_song = function() {
+        get_request("api/songs/current", vv.storage.current_last_modified, function(ret, modified) {
+            if (ret["errors"] == null) {
+                vv.storage.current = ret["data"];
+                vv.storage.current_last_modified = modified;
+                vv.view.main.update();
+                if (vv.model.list.rootname() != "root") {
+                    vv.model.list.abs(ret["data"]);
+                }
+                // update elapsed tag
+                vv.view.list.update();
+            }
+        });
+    };
+
+    var update_status = function() {
+        get_request("api/control", vv.storage.control_last_modified, function(ret, modified) {
+            if (ret["errors"] == null) {
+                vv.storage.control = ret["data"];
+                vv.storage.control_last_modified = modified;
+                vv.view.elapsed.update();
+                vv.view.playback.update();
+                for (i in listener["control"]) {
+                    listener["control"][i]();
+                }
+            }
+        });
+        vv.view.elapsed.update();
+    };
+
+    var update_library = function() {
+        get_request("api/library", vv.storage.library_last_modified, function(ret, modified) {
+            if (ret["errors"] == null) {
+                vv.model.list.update(ret["data"]);
+                vv.storage.library_last_modified = modified;
+            }
+        });
+    };
+
+    var prev = function() {
+        get_request("api/control?action=prev", "");
+    }
+
+    var play_pause = function() {
+        var state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
+        var action = state == "play" ? "pause" : "play";
+        get_request("api/control?action="+action, "");
+    }
+
+    var next = function() {
+        get_request("api/control?action=next", "");
+    }
+
+    var play = function(uri) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {};
+        xhr.open("POST", "api/songs", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify(
+            {"action": "sort",
+             "keys": vv.model.list.sortkeys(),
+             "uri": uri
+            }
+        ));
+    }
+
+    var volume = function(num) {
+        post_request("/api/control", {"volume": num})
+    }
+
+    var init = function() {
+        document.body.addEventListener('click', function(e) {
+            vv.view.menu.hide_sub();
+        });
+        var menu = document.getElementById("menu");
+        menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
+            if (vv.view.main.hidden()) {
+                vv.model.list.up();
+            } else {
+                vv.model.list.abs(vv.storage.current);
+            }
+            vv.view.main.hide();
+            vv.view.list.update();
+            vv.view.list.show();
+            vv.view.menu.update();
+            e.stopPropagation();
+        });
+        menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
+            vv.view.list.hide();
+            vv.view.main.show();
+            vv.view.menu.update();
+            e.stopPropagation();
+        });
+        menu.getElementsByClassName("menu")[0].addEventListener('click', function(e) {
+            if (vv.view.menu.hidden_sub()) {
+                vv.view.menu.show_sub();
+            } else {
+                vv.view.menu.hide_sub();
+            }
+            e.stopPropagation();
+        });
+        var submenu = document.getElementById("submenu");
+        submenu.getElementsByClassName("reload")[0].addEventListener('click', function(e) {
+            location.reload();
+        });
+        var playback = document.getElementById("playback");
+        playback.getElementsByClassName("prev")[0].addEventListener('click', function(e) {
+            vv.control.prev();
+            e.stopPropagation();
+        });
+        playback.getElementsByClassName("play")[0].addEventListener('click', function(e) {
+            vv.control.play_pause();
+            e.stopPropagation();
+        });
+        playback.getElementsByClassName("next")[0].addEventListener('click', function(e) {
+            vv.control.next();
+            e.stopPropagation();
+        });
+
+        var polling = function() {
+            vv.control.update_song();
+            vv.control.update_status();
+            vv.control.update_library();
+	    	setTimeout(polling, 1000);
+        }
+	    polling();
+    };
+
+    var start = function() {
+        if (document.readyState !== 'loading') {
+            init();
+        } else {
+            document.addEventListener('DOMContentLoaded', init);
+        }
+    };
+
+    return {
+        addEventListener: addEventListener,
+        update_song: update_song,
+        update_status: update_status,
+        update_library: update_library,
+        prev: prev,
+        play_pause: play_pause,
+        next: next,
+        play: play,
+        volume: volume,
+        start: start,
+    };
+}());
+
+
 vv.view.main = (function(){
+    vv.control.addEventListener("control", function() {
+        var e = document.getElementById("current");
+        e.getElementsByClassName("control_volume")[0].children[0].value=vv.storage.control["volume"]
+    });
+    var init = function() {
+        var e = document.getElementById("current");
+        e.getElementsByClassName("control_volume")[0].children[0].addEventListener("change", function() {
+            vv.control.volume(parseInt(this.value));
+        });
+    };
+    (function() {
+        if (document.readyState !== 'loading') {
+            init();
+        } else {
+            document.addEventListener('DOMContentLoaded', init);
+        }
+    })();
     var show = function() {
         var e = document.getElementById("current");
         e.style.display = "block";
@@ -457,161 +661,4 @@ vv.view.dropdown = (function() {
         hide: hide,
     }
 }());
-vv.control = (function() {
-    var get_request = function(path, ifmodified, callback) {
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4) {
-                if (xhr.status == 200 && callback) {
-                    callback(JSON.parse(xhr.responseText), xhr.getResponseHeader("Last-Modified"));
-                }
-            }
-        };
-        xhr.open("GET", path, true);
-        if (ifmodified != "") {
-            xhr.setRequestHeader("If-Modified-Since", ifmodified);
-        }
-        xhr.send();
-    }
-    var update_song = function() {
-        get_request("api/songs/current", vv.storage.current_last_modified, function(ret, modified) {
-            if (ret["errors"] == null) {
-                vv.storage.current = ret["data"];
-                vv.storage.current_last_modified = modified;
-                vv.view.main.update();
-                if (vv.model.list.rootname() != "root") {
-                    vv.model.list.abs(ret["data"]);
-                }
-                // update elapsed tag
-                vv.view.list.update();
-            }
-        });
-    };
-
-    var update_status = function() {
-        get_request("api/control", vv.storage.control_last_modified, function(ret, modified) {
-            if (ret["errors"] == null) {
-                vv.storage.control = ret["data"];
-                vv.storage.control_last_modified = modified;
-                vv.view.elapsed.update();
-                vv.view.playback.update();
-            }
-        });
-        vv.view.elapsed.update();
-    };
-
-    var update_library = function() {
-        get_request("api/library", vv.storage.library_last_modified, function(ret, modified) {
-            if (ret["errors"] == null) {
-                vv.model.list.update(ret["data"]);
-                vv.storage.library_last_modified = modified;
-            }
-        });
-    };
-
-    var prev = function() {
-        get_request("api/control?action=prev", "");
-    }
-
-    var play_pause = function() {
-        var state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
-        var action = state == "play" ? "pause" : "play";
-        get_request("api/control?action="+action, "");
-    }
-
-    var next = function() {
-        get_request("api/control?action=next", "");
-    }
-
-    var play = function(uri) {
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function() {};
-        xhr.open("POST", "api/songs", true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(JSON.stringify(
-            {"action": "sort",
-             "keys": vv.model.list.sortkeys(),
-             "uri": uri
-            }
-        ));
-    }
-
-    var init = function() {
-        document.body.addEventListener('click', function(e) {
-            vv.view.menu.hide_sub();
-        });
-        var menu = document.getElementById("menu");
-        menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
-            if (vv.view.main.hidden()) {
-                vv.model.list.up();
-            } else {
-                vv.model.list.abs(vv.storage.current);
-            }
-            vv.view.main.hide();
-            vv.view.list.update();
-            vv.view.list.show();
-            vv.view.menu.update();
-            e.stopPropagation();
-        });
-        menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
-            vv.view.list.hide();
-            vv.view.main.show();
-            vv.view.menu.update();
-            e.stopPropagation();
-        });
-        menu.getElementsByClassName("menu")[0].addEventListener('click', function(e) {
-            if (vv.view.menu.hidden_sub()) {
-                vv.view.menu.show_sub();
-            } else {
-                vv.view.menu.hide_sub();
-            }
-            e.stopPropagation();
-        });
-        var submenu = document.getElementById("submenu");
-        submenu.getElementsByClassName("reload")[0].addEventListener('click', function(e) {
-            location.reload();
-        });
-        var playback = document.getElementById("playback");
-        playback.getElementsByClassName("prev")[0].addEventListener('click', function(e) {
-            vv.control.prev();
-            e.stopPropagation();
-        });
-        playback.getElementsByClassName("play")[0].addEventListener('click', function(e) {
-            vv.control.play_pause();
-            e.stopPropagation();
-        });
-        playback.getElementsByClassName("next")[0].addEventListener('click', function(e) {
-            vv.control.next();
-            e.stopPropagation();
-        });
-
-        var polling = function() {
-            vv.control.update_song();
-            vv.control.update_status();
-            vv.control.update_library();
-	    	setTimeout(polling, 1000);
-        }
-	    polling();
-    };
-
-    var start = function() {
-        if (document.readyState !== 'loading') {
-            init();
-        } else {
-            document.addEventListener('DOMContentLoaded', init);
-        }
-    };
-
-    return {
-        update_song: update_song,
-        update_status: update_status,
-        update_library: update_library,
-        prev: prev,
-        play_pause: play_pause,
-        next: next,
-        play: play,
-        start: start,
-    };
-}());
-
 vv.control.start();
