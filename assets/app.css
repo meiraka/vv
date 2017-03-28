@@ -19,8 +19,17 @@ header {
 
 footer {
     bottom: 0px;
-    height: 90px;
     width: 100%;
+}
+@media (orientation: portrait) {
+    footer {
+        height: 140px;
+    }
+}
+@media (orientation: landscape) {
+    footer {
+        height: 90px;
+    }
 }
 
 #submenu {
@@ -44,10 +53,30 @@ footer {
 section {
     position: absolute;
     top: 40px;
-    left: 0px;
     z-index: 1;
-    width: 100%;
-    padding: 0px 0px 90px;
+}
+
+@media (orientation: portrait) {
+    section {
+        left: 0px;
+        width: 100%;
+        padding: 0px 0px 150px;
+    }
+    #list {
+        display: none;
+    }
+}
+@media (orientation: landscape) {
+    section {
+        width: 50%;
+        padding: 0px 0px 90px;
+    }
+    #list {
+        left: 0px;
+    }
+    #current {
+        left: 50%;
+    }
 }
 
 #list ol {
@@ -140,9 +169,20 @@ section {
 
 
 
+@media (orientation: portrait) {
+    #current .title, #current .artist, #current .elapsed, #current .detail {
+        position: fixed;
+        left: 10px;
+    }
+}
+@media (orientation: landscape) {
+    #current .title, #current .artist, #current .elapsed, #current .detail {
+        position: fixed;
+        left: 50%;
+    }
+}
+
 #current .title {
-    position: fixed;
-    left: 10px;
     top: 50px;
     width: 100%;
     font-size: 32px;
@@ -150,15 +190,12 @@ section {
 
 #current .artist {
     width: 100%;
-    position: fixed;
     top: 90px;
-    left: 10px;
     height: 20px;
     font-size: 26px;
 }
 
 #current .elapsed {
-    position: fixed;
     top: 50%;
     left: 60%;
     width: 100%;
@@ -167,7 +204,7 @@ section {
 }
 
 #current .detail {
-    position: fixed;
+    position: absolute;
     top: 130px;
     left: 0px;
     list-style-type: none;
@@ -180,7 +217,7 @@ section {
 }
 
 #current .control {
-    position: fixed;
+    position: absolute;
     bottom: 140px;
     right: 10px;
 }
@@ -193,33 +230,6 @@ button {
     background-color: rgba(255,255,255,0);
 }
 
-#current .control button img {
-    height: 40px;
-}
-
-#current .control_volume {
-    position: fixed;
-    bottom: 120px;
-    width: 100%;
-}
-
-
-#current .control_volume input[type="range"] {
-    height: 8px;
-    width: 90%;
-    margin: 0px 5%;
-    -webkit-appearance: none;
-    background: #404040;
-    border-radius: 50px;
-}
-
-#current .control_volume input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    background: #404040;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-}
 
 header, header nav, header nav button {
     border: 0px;
@@ -241,13 +251,37 @@ header nav button:active {
     background-color: #FFFFFF;
 }
 
-footer nav {
+#playback {
     width: 210px;
-    margin: 0 auto;
     border: 0px;
+    height: 90px;
 }
-
-footer nav button, footer nav button:focus, footer nav button img {
+@media (orientation: landscape) {
+    #playback {
+        position: fixed;
+        left: 10px;
+        bottom: 0px;
+        margin: 0px;
+    }
+    #playback_volume {
+        position: fixed;
+        left: 210px;
+        width: 70%;
+        width: calc(100% - 300px);
+        margin: 41px 0;
+    }
+}
+@media (orientation: portrait) {
+    #playback {
+        margin: 50px auto 0;
+    }
+    #playback_volume {
+        position: fixed;
+        bottom: 110px;
+        width: 100%;
+    }
+}
+#playback button, #playback button:focus, #playback button img {
     outline: 0;
     padding: 0px;
     margin: 0px;
@@ -255,21 +289,68 @@ footer nav button, footer nav button:focus, footer nav button img {
     background-color: rgba(255,255,255,0);
     height: 90px;
 }
-footer nav button.play img {
+#playback button.play img {
     width: 90px;
 }
 
-footer nav button.prev img {
+#playback button.prev img {
     width: 60px;
 }
 
-footer nav button.next img {
+#playback button.next img {
     width: 60px;
 }
 
-footer nav button:hover {
+#playback button:hover {
     background-color: #ff1493;
 }
-footer nav button:active {
+#playback button:active {
     background-color: #FFFFFF;
 }
+
+#playback_volume input[type="range"] {
+    height: 8px;
+    width: 90%;
+    margin: 0px 5%;
+    -webkit-appearance: none;
+    background: #404040;
+    border-radius: 50px;
+}
+
+#playback_volume input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    background: #404040;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+#playback_list button img {
+    height: 40px;
+}
+@media (orientation: landscape) {
+    #playback_list button {
+        position: absolute;
+        top: 25px;
+    }
+    #playback_list .repeat {
+        right: 50px;
+    }
+    #playback_list .random {
+        right: 10px;
+    }
+}
+@media (orientation: portrait) {
+    #playback_list button {
+        position: absolute;
+        top: 75px;
+    }
+    #playback_list .repeat {
+        left: 5%;
+    }
+    #playback_list .random {
+        right: 5%;
+    }
+}
+
+

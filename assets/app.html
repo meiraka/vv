@@ -20,7 +20,7 @@
             <li><button class=config type="button">config</button></li>
     </nav>
 </header>
-<section id="list" style="display: none">
+<section id="list">
     <ol>
     </ol>
 </section>
@@ -28,14 +28,7 @@
     <ctie class="title">no title</ctie>
     <span class="artist">no artist</span>
     <span class="elapsed">no playing</span>
-    <nav class="control">
-        <button class=repeat><img src="/assets/repeat.svg" alt="repeat"></button>
-        <button class=random><img src="/assets/random.svg" alt="random"></button>
-    </nav>
     <ul class="detail"></ul>
-    <nav class="control_volume">
-        <input type="range" min=0 max=100 step=1>
-    </nav>
 </section>
 <section id="config" style="display: none">
     <h3>Volume</h3>
@@ -47,6 +40,13 @@
 <footer>
     <nav id="playback">
         <button class=prev type="button" value="prev"><img src="/assets/prev.svg" alt="prev"></button><button class=play type="button" value="play/pause"><img src="/assets/play.svg" alt="play"></button><button class=next type="button" value="next"><img src="/assets/next.svg" alt="next"></button>
+    </nav>
+    <nav id="playback_volume">
+        <input type="range" min=0 max=100 step=1>
+    </nav>
+    <nav id="playback_list">
+        <button class=repeat><img src="/assets/repeat.svg" alt="repeat"></button>
+        <button class=random><img src="/assets/random.svg" alt="random"></button>
     </nav>
 </footer>
 </body>

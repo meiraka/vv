@@ -263,7 +263,7 @@ vv.model.list = (function() {
     };
 }());
 vv.control = (function() {
-    var listener = {"control": [], "config": []}
+    var listener = {"control": [], "config": [], "library": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
     };
@@ -336,6 +336,7 @@ vv.control = (function() {
             if (ret["errors"] == null) {
                 vv.model.list.update(ret["data"]);
                 vv.storage.library_last_modified = modified;
+                raiseEvent("library");
             }
         });
     };
@@ -377,12 +378,16 @@ vv.control = (function() {
         });
         var menu = document.getElementById("menu");
         menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
-            if (vv.view.main.hidden()) {
+            if (!vv.view.list.hidden()) {
                 vv.model.list.up();
             } else {
                 vv.model.list.abs(vv.storage.current);
             }
-            vv.view.main.hide();
+            if (!window.matchMedia('(orientation: landscape)').matches) {
+                vv.view.main.hide();
+            } else {
+                vv.view.main.show();
+            }
             vv.view.config.hide();
             vv.view.list.update();
             vv.view.list.show();
@@ -390,7 +395,11 @@ vv.control = (function() {
             e.stopPropagation();
         });
         menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
-            vv.view.list.hide();
+            if (!window.matchMedia('(orientation: landscape)').matches) {
+                vv.view.list.hide();
+            } else {
+                vv.view.list.show();
+            }
             vv.view.config.hide();
             vv.view.main.show();
             vv.view.menu.update();
@@ -462,8 +471,7 @@ vv.control = (function() {
 
 vv.view.main = (function(){
     var load_volume_config = function() {
-        var e = document.getElementById("current");
-        var c = e.getElementsByClassName("control_volume")[0].children[0];
+        var c = document.getElementById("playback_volume").children[0];
         c.max = vv.storage.config["volume"]["max"];
         if (vv.storage.config["volume"]["show"]) {
             c.style.display = "block";
@@ -472,13 +480,11 @@ vv.view.main = (function(){
         }
     };
     vv.control.addEventListener("control", function() {
-        var e = document.getElementById("current");
-        e.getElementsByClassName("control_volume")[0].children[0].value=vv.storage.control["volume"]
+        document.getElementById("playback_volume").children[0].value=vv.storage.control["volume"]
     });
     vv.control.addEventListener("config", load_volume_config);
     var init = function() {
-        var e = document.getElementById("current");
-        e.getElementsByClassName("control_volume")[0].children[0].addEventListener("change", function() {
+        document.getElementById("playback_volume").children[0].addEventListener("change", function() {
             vv.control.volume(parseInt(this.value));
         });
         load_volume_config();
@@ -596,6 +602,19 @@ vv.view.list = (function(){
         li.innerHTML = inner;
         return li;
     };
+    vv.control.addEventListener("library", update);
+    var orientation = function() {
+        if (!vv.view.config.hidden()) {
+            return;
+        }
+        if (matchMedia("(orientation: portrait)").matches) {
+            hide();
+        } else {
+            show();
+        }
+    }
+    window.matchMedia("(orientation: portrait)").addListener(orientation);
+    window.matchMedia("(orientation: landscape)").addListener(orientation);
     return {
         show: show,
         hide: hide,
@@ -677,7 +696,7 @@ vv.view.playback = (function(){
         } else {
             document.getElementById("playback").getElementsByClassName("play")[0].children[0].src = "/assets/play.svg";
         }
-        var current = document.getElementById("current");
+        var current = document.getElementById("playback_list");
         if (vv.storage.control["repeat"]) {
             current.getElementsByClassName("repeat")[0].children[0].style.opacity=1.0;
         } else {
