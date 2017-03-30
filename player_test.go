@@ -284,19 +284,15 @@ func TestConvStatus(t *testing.T) {
 func TestPlayerCurrent(t *testing.T) {
 	errret := new(mockError)
 	candidates := []struct {
-		CurrentSongRet1    mpd.Attrs
-		CurrentSongRet2    error
-		CurrentSongCalled  int
-		currentRet         mpd.Attrs
-		StatusRet1         mpd.Attrs
-		StatusRet2         error
-		StatusCalled       int
-		StatusRet          PlayerStatus
-		ReadCommentsRet1   mpd.Attrs
-		ReadCommentsRet2   error
-		ReadCommentsCalled int
-		commentsRet        mpd.Attrs
-		watcherRet         error
+		CurrentSongRet1   mpd.Attrs
+		CurrentSongRet2   error
+		CurrentSongCalled int
+		currentRet        mpd.Attrs
+		StatusRet1        mpd.Attrs
+		StatusRet2        error
+		StatusCalled      int
+		StatusRet         PlayerStatus
+		watcherRet        error
 	}{
 		// dont update if mpd.CurrentSong returns error
 		{
@@ -304,48 +300,22 @@ func TestPlayerCurrent(t *testing.T) {
 			nil,
 			mpd.Attrs{}, nil, 0,
 			PlayerStatus{},
-			mpd.Attrs{}, nil, 0,
-			nil,
 			errret,
 		},
 		// dont update if mpd.Status returns error
 		{
-			mpd.Attrs{"Artist": "foo"}, nil, 2,
-			nil,
+			mpd.Attrs{"file": "p"}, nil, 2,
+			songAddReadableData(mpd.Attrs{"file": "p"}),
 			mpd.Attrs{}, errret, 1,
 			PlayerStatus{},
-			mpd.Attrs{}, nil, 0,
-			nil,
-			errret,
-		},
-		// dont update if mpd.ReadComments returns error
-		{
-			mpd.Attrs{"file": "p"}, nil, 3,
-			nil,
-			mpd.Attrs{}, nil, 2,
-			PlayerStatus{},
-			mpd.Attrs{}, errret, 1,
-			nil,
 			errret,
 		},
 		// update current/status/comments
 		{
-			mpd.Attrs{"file": "p"}, nil, 4,
+			mpd.Attrs{"file": "p"}, nil, 3,
 			songAddReadableData(mpd.Attrs{"file": "p"}),
-			mpd.Attrs{}, nil, 3,
-			convStatus(mpd.Attrs{}),
 			mpd.Attrs{}, nil, 2,
-			mpd.Attrs{},
-			nil,
-		},
-		// dont call mpd.ReadComments if mpd.CurrentSong returns same song
-		{
-			mpd.Attrs{"file": "p"}, nil, 5,
-			songAddReadableData(mpd.Attrs{"file": "p"}),
-			mpd.Attrs{}, nil, 4,
 			convStatus(mpd.Attrs{}),
-			mpd.Attrs{}, nil, 2,
-			mpd.Attrs{},
 			nil,
 		},
 	}
@@ -355,8 +325,6 @@ func TestPlayerCurrent(t *testing.T) {
 		m.CurrentSongRet2 = c.CurrentSongRet2
 		m.StatusRet1 = c.StatusRet1
 		m.StatusRet2 = c.StatusRet2
-		m.ReadCommentsRet1 = c.ReadCommentsRet1
-		m.ReadCommentsRet2 = c.ReadCommentsRet2
 		p.watcher.Event <- "player"
 		if err := <-p.watcherResponse; err != c.watcherRet {
 			t.Errorf("unexpected watcher error")
@@ -382,17 +350,6 @@ func TestPlayerCurrent(t *testing.T) {
 			t.Errorf(
 				"unexpected Player.Status()\nexpect: %s\nactual:   %s",
 				ej, sj,
-			)
-		}
-		if m.ReadCommentsCalled != c.ReadCommentsCalled {
-			t.Errorf("unexpected function call")
-		}
-		comments, _ := p.Comments()
-		if !reflect.DeepEqual(comments, c.commentsRet) {
-			t.Errorf(
-				"unexpected Player.Comments()\nexpect: %s\nactual:   %s",
-				songString(c.commentsRet),
-				songString(comments),
 			)
 		}
 	}

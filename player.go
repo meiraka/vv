@@ -35,8 +35,6 @@ type Player struct {
 	current          mpd.Attrs
 	currentModified  time.Time
 	status           PlayerStatus
-	comments         mpd.Attrs
-	commentsModified time.Time
 	library          []mpd.Attrs
 	libraryModified  time.Time
 	playlist         []mpd.Attrs
@@ -61,13 +59,6 @@ func (p *Player) Close() error {
 	p.daemonStop <- true
 	p.mpc.Close()
 	return p.watcher.Close()
-}
-
-/*Comments returns mpd current song raw meta data.*/
-func (p *Player) Comments() (mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.comments, p.commentsModified
 }
 
 /*Current returns mpd current song data.*/
@@ -158,7 +149,6 @@ type mpdClient interface {
 	Next() error
 	Ping() error
 	Close() error
-	ReadComments(string) (mpd.Attrs, error)
 	CurrentSong() (mpd.Attrs, error)
 	Status() (mpd.Attrs, error)
 	ListAllInfo(string) ([]mpd.Attrs, error)
@@ -396,7 +386,7 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 	return
 }
 
-func (p *Player) updateCurrent() error {
+func (p *Player) updateCurrentSong() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	song, err := p.mpc.CurrentSong()
@@ -405,27 +395,28 @@ func (p *Player) updateCurrent() error {
 	}
 	c := songAddReadableData(song)
 	cm := time.Now()
-
-	status, err := p.mpc.Status()
-	if err != nil {
-		return err
-	}
-	s := convStatus(status)
-
-	if song["file"] != "" && p.comments == nil || p.current["file"] != song["file"] {
-		comments, err := p.mpc.ReadComments(song["file"])
-		if err != nil {
-			return err
-		}
-		p.commentsModified = time.Now()
-		p.comments = comments
-	}
 	if p.current["file"] != c["file"] {
 		p.current = c
 		p.currentModified = cm
 	}
-	p.status = s
 	return nil
+}
+
+func (p *Player) updateStatus() error {
+	status, err := p.mpc.Status()
+	if err != nil {
+		return err
+	}
+	p.status = convStatus(status)
+	return nil
+}
+
+func (p *Player) updateCurrent() error {
+	err := p.updateCurrentSong()
+	if err != nil {
+		return err
+	}
+	return p.updateStatus()
 }
 
 func (p *Player) updateLibrary() error {

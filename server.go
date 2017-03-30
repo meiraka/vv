@@ -211,7 +211,6 @@ type Music interface {
 	Volume(int) error
 	Playlist() ([]mpd.Attrs, time.Time)
 	Library() ([]mpd.Attrs, time.Time)
-	Comments() (mpd.Attrs, time.Time)
 	Current() (mpd.Attrs, time.Time)
 	Status() (PlayerStatus, time.Time)
 	SortPlaylist([]string, string) error
