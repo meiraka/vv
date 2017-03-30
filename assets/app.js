@@ -135,7 +135,6 @@ vv.storage = (function(){
     };
 }());
 
-
 vv.model.list = (function() {
     var TREE = {
         "AlbumArtist": {
@@ -263,7 +262,7 @@ vv.model.list = (function() {
     };
 }());
 vv.control = (function() {
-    var listener = {"control": [], "config": [], "library": []}
+    var listener = {"control": [], "config": [], "library": [], "playlist": [], "current": [], "start": [], "poll": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
     };
@@ -308,12 +307,10 @@ vv.control = (function() {
             if (ret["errors"] == null) {
                 vv.storage.current = ret["data"];
                 vv.storage.current_last_modified = modified;
-                vv.view.main.update();
                 if (vv.model.list.rootname() != "root") {
                     vv.model.list.abs(ret["data"]);
                 }
-                // update elapsed tag
-                vv.view.list.update();
+                raiseEvent("current")
             }
         });
     };
@@ -323,12 +320,9 @@ vv.control = (function() {
             if (ret["errors"] == null) {
                 vv.storage.control = ret["data"];
                 vv.storage.control_last_modified = modified;
-                vv.view.elapsed.update();
-                vv.view.playback.update();
                 raiseEvent("control");
             }
         });
-        vv.view.elapsed.update();
     };
 
     var update_library = function() {
@@ -373,75 +367,14 @@ vv.control = (function() {
     }
 
     var init = function() {
-        document.body.addEventListener('click', function(e) {
-            vv.view.menu.hide_sub();
-        });
-        var menu = document.getElementById("menu");
-        menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
-            if (!vv.view.list.hidden()) {
-                vv.model.list.up();
-            } else {
-                vv.model.list.abs(vv.storage.current);
-            }
-            if (!window.matchMedia('(orientation: landscape)').matches) {
-                vv.view.main.hide();
-            } else {
-                vv.view.main.show();
-            }
-            vv.view.config.hide();
-            vv.view.list.update();
-            vv.view.list.show();
-            vv.view.menu.update();
-            e.stopPropagation();
-        });
-        menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
-            if (!window.matchMedia('(orientation: landscape)').matches) {
-                vv.view.list.hide();
-            } else {
-                vv.view.list.show();
-            }
-            vv.view.config.hide();
-            vv.view.main.show();
-            vv.view.menu.update();
-            e.stopPropagation();
-        });
-        menu.getElementsByClassName("menu")[0].addEventListener('click', function(e) {
-            if (vv.view.menu.hidden_sub()) {
-                vv.view.menu.show_sub();
-            } else {
-                vv.view.menu.hide_sub();
-            }
-            e.stopPropagation();
-        });
-        var submenu = document.getElementById("submenu");
-        submenu.getElementsByClassName("reload")[0].addEventListener('click', function(e) {
-            location.reload();
-        });
-        submenu.getElementsByClassName("config")[0].addEventListener('click', function(e) {
-            vv.view.main.hide();
-            vv.view.list.hide();
-            vv.view.config.show();
-        });
-        var playback = document.getElementById("playback");
-        playback.getElementsByClassName("prev")[0].addEventListener('click', function(e) {
-            vv.control.prev();
-            e.stopPropagation();
-        });
-        playback.getElementsByClassName("play")[0].addEventListener('click', function(e) {
-            vv.control.play_pause();
-            e.stopPropagation();
-        });
-        playback.getElementsByClassName("next")[0].addEventListener('click', function(e) {
-            vv.control.next();
-            e.stopPropagation();
-        });
-
         var polling = function() {
             vv.control.update_song();
             vv.control.update_status();
             vv.control.update_library();
+            raiseEvent("poll");
 	    	setTimeout(polling, 1000);
         }
+        raiseEvent("start");
 	    polling();
     };
 
@@ -526,6 +459,7 @@ vv.view.main = (function(){
         }
         ul.appendChild(newul);
     };
+    vv.control.addEventListener("current", update);
     return {
         show: show,
         hide: hide,
@@ -615,6 +549,7 @@ vv.view.list = (function(){
     }
     window.matchMedia("(orientation: portrait)").addListener(orientation);
     window.matchMedia("(orientation: landscape)").addListener(orientation);
+    vv.control.addEventListener("current", update);
     return {
         show: show,
         hide: hide,
@@ -664,17 +599,68 @@ vv.view.config = (function(){
     };
 }());
 vv.view.menu = (function(){
+    var init = function() {
+        document.body.addEventListener('click', function(e) {
+            vv.view.menu.hide_sub();
+        });
+        var menu = document.getElementById("menu");
+        menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
+            if (!vv.view.list.hidden()) {
+                vv.model.list.up();
+            } else {
+                vv.model.list.abs(vv.storage.current);
+            }
+            if (!window.matchMedia('(orientation: landscape)').matches) {
+                vv.view.main.hide();
+            } else {
+                vv.view.main.show();
+            }
+            vv.view.config.hide();
+            vv.view.list.update();
+            vv.view.list.show();
+            vv.view.menu.update();
+            e.stopPropagation();
+        });
+        menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
+            if (!window.matchMedia('(orientation: landscape)').matches) {
+                vv.view.list.hide();
+            } else {
+                vv.view.list.show();
+            }
+            vv.view.config.hide();
+            vv.view.main.show();
+            vv.view.menu.update();
+            e.stopPropagation();
+        });
+        menu.getElementsByClassName("menu")[0].addEventListener('click', function(e) {
+            if (vv.view.menu.hidden_sub()) {
+                vv.view.menu.show_sub();
+            } else {
+                vv.view.menu.hide_sub();
+            }
+            e.stopPropagation();
+        });
+        var submenu = document.getElementById("submenu");
+        submenu.getElementsByClassName("reload")[0].addEventListener('click', function(e) {
+            location.reload();
+        });
+        submenu.getElementsByClassName("config")[0].addEventListener('click', function(e) {
+            vv.view.main.hide();
+            vv.view.list.hide();
+            vv.view.config.show();
+        });
+    };
     var show_sub = function() {
         var e = document.getElementById("submenu");
         e.style.display = "block";
-    }
+    };
     var hide_sub = function() {
         var e = document.getElementById("submenu");
         e.style.display = "none";
-    }
+    };
     var hidden_sub = function() {
         return document.getElementById("submenu").style.display == "none";
-    }
+    };
     var update = function() {
         var up = document.getElementById("menu").getElementsByClassName("up")[0];
         var label = vv.view.list.hidden()? "list" : "up";
@@ -682,6 +668,7 @@ vv.view.menu = (function(){
             up.textContent = label;
         }
     }
+    vv.control.addEventListener("start", init);
     return {
         show_sub: show_sub,
         hide_sub: hide_sub,
@@ -690,6 +677,22 @@ vv.view.menu = (function(){
     };
 }());
 vv.view.playback = (function(){
+    var init = function() {
+        var playback = document.getElementById("playback");
+        playback.getElementsByClassName("prev")[0].addEventListener('click', function(e) {
+            vv.control.prev();
+            e.stopPropagation();
+        });
+        playback.getElementsByClassName("play")[0].addEventListener('click', function(e) {
+            vv.control.play_pause();
+            e.stopPropagation();
+        });
+        playback.getElementsByClassName("next")[0].addEventListener('click', function(e) {
+            vv.control.next();
+            e.stopPropagation();
+        });
+    };
+
     var update = function() {
         if (vv.storage.control["state"] == "play") {
             document.getElementById("playback").getElementsByClassName("play")[0].children[0].src = "/assets/pause.svg";
@@ -708,6 +711,8 @@ vv.view.playback = (function(){
             current.getElementsByClassName("random")[0].children[0].style.opacity=0.5;
         }
     }
+    vv.control.addEventListener("start", init);
+    vv.control.addEventListener("control", update);
     return {
         update: update,
     }
@@ -736,6 +741,8 @@ vv.view.elapsed = (function() {
             }
         }
     }
+    vv.control.addEventListener("control", update);
+    vv.control.addEventListener("poll", update);
     return {update: update};
 }());
 vv.view.dropdown = (function() {
