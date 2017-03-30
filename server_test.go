@@ -173,8 +173,7 @@ func TestControl(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(api.control))
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
-		s := convStatus(mpd.Attrs{})
-		s.LastModified = 0
+		s := convStatus(mpd.Attrs{}, 0)
 		m.StatusRet1 = s
 		m.StatusRet2 = time.Unix(0, 0)
 		res, err := http.Get(ts.URL)
@@ -199,8 +198,7 @@ func TestControl(t *testing.T) {
 		}
 	})
 	t.Run("If-Modified-Since", func(t *testing.T) {
-		s := convStatus(mpd.Attrs{})
-		s.LastModified = 60
+		s := convStatus(mpd.Attrs{}, 60)
 		m.StatusRet1 = s
 		m.StatusRet2 = time.Unix(60, 0)
 		req, _ := http.NewRequest("GET", ts.URL, nil)

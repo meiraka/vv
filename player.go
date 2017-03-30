@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -39,19 +38,6 @@ type Player struct {
 	libraryModified  time.Time
 	playlist         []mpd.Attrs
 	playlistModified time.Time
-}
-
-/*PlayerStatus represents mpd status.*/
-type PlayerStatus struct {
-	Volume       int     `json:"volume"`
-	Repeat       bool    `json:"repeat"`
-	Random       bool    `json:"random"`
-	Single       bool    `json:"single"`
-	Consume      bool    `json:"consume"`
-	State        string  `json:"state"`
-	SongPos      int     `json:"song_pos"`
-	SongElapsed  float32 `json:"song_elapsed"`
-	LastModified int64   `json:"last_modified"`
 }
 
 /*Close mpd connection.*/
@@ -321,42 +307,6 @@ func (p *Player) requestData(req playerMessageType, data []string) error {
 	return <-r.err
 }
 
-func convStatus(status mpd.Attrs) PlayerStatus {
-	volume, err := strconv.Atoi(status["volume"])
-	if err != nil {
-		volume = -1
-	}
-	repeat := status["repeat"] == "1"
-	random := status["random"] == "1"
-	single := status["single"] == "1"
-	consume := status["consume"] == "1"
-	state := status["state"]
-	if state == "" {
-		state = "stopped"
-	}
-	songpos, err := strconv.Atoi(status["song"])
-	if err != nil {
-		songpos = 0
-	}
-	elapsed, err := strconv.ParseFloat(status["elapsed"], 64)
-	if err != nil {
-		elapsed = 0.0
-	}
-	lastModified := time.Now().Unix()
-	return PlayerStatus{
-		volume,
-		repeat,
-		random,
-		single,
-		consume,
-		state,
-		songpos,
-		float32(elapsed),
-		lastModified,
-	}
-
-}
-
 /*SortPlaylist sorts playlist by song tag name.*/
 func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
 	keys = append(keys, uri)
@@ -432,7 +382,7 @@ func (p *Player) updateStatus() error {
 	}
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	p.status = convStatus(status)
+	p.status = convStatus(status, time.Now().Unix())
 	return nil
 }
 
