@@ -77,67 +77,42 @@ func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
 
 /*Pause song.*/
 func (p *Player) Pause() error {
-	return p.request(pause)
+	return p.request(func() error { return p.mpc.Pause(true) })
 }
 
 /*Play or resume song.*/
 func (p *Player) Play() error {
-	return p.request(play)
+	return p.request(func() error { return p.mpc.Play(-1) })
 }
 
 /*Prev song.*/
 func (p *Player) Prev() error {
-	return p.request(prev)
+	return p.request(p.mpc.Previous)
 }
 
 /*Next song.*/
 func (p *Player) Next() error {
-	return p.request(next)
+	return p.request(p.mpc.Next)
 }
 
 /*Volume set player volume.*/
 func (p *Player) Volume(v int) error {
-	r := new(playerMessage)
-	r.request = volume
-	r.i = v
-	r.err = make(chan error)
-	p.daemonRequest <- r
-	return <-r.err
+	return p.request(func() error { return p.mpc.SetVolume(v) })
 }
 
 /*Repeat enable if true*/
 func (p *Player) Repeat(on bool) error {
-	return p.requestBool(repeat, on)
+	return p.request(func() error { return p.mpc.Repeat(on) })
 }
 
 /*Random enable if true*/
 func (p *Player) Random(on bool) error {
-	return p.requestBool(random, on)
+	return p.request(func() error { return p.mpc.Random(on) })
 }
 
-type playerMessageType int
-
-const (
-	updateLibrary playerMessageType = iota
-	updatePlaylist
-	updateCurrent
-	sortPlaylist
-	pause
-	prev
-	play
-	next
-	ping
-	volume
-	repeat
-	random
-)
-
 type playerMessage struct {
-	request     playerMessageType
-	requestData []string
-	i           int
-	b           bool
-	err         chan error
+	request func() error
+	err     chan error
 }
 
 type mpdClient interface {
@@ -195,32 +170,7 @@ loop:
 		case <-p.daemonStop:
 			break loop
 		case m := <-p.daemonRequest:
-			switch m.request {
-			case prev:
-				sendErr(m.err, p.mpc.Previous())
-			case pause:
-				sendErr(m.err, p.mpc.Pause(true))
-			case play:
-				sendErr(m.err, p.mpc.Play(-1))
-			case next:
-				sendErr(m.err, p.mpc.Next())
-			case volume:
-				sendErr(m.err, p.mpc.SetVolume(m.i))
-			case repeat:
-				sendErr(m.err, p.mpc.Repeat(m.b))
-			case random:
-				sendErr(m.err, p.mpc.Random(m.b))
-			case updateLibrary:
-				sendErr(m.err, p.updateLibrary())
-			case updatePlaylist:
-				sendErr(m.err, p.updatePlaylist())
-			case updateCurrent:
-				sendErr(m.err, p.updateCurrent())
-			case sortPlaylist:
-				sendErr(m.err, p.sortPlaylist(m.requestData))
-			case ping:
-				sendErr(m.err, p.mpc.Ping())
-			}
+			sendErr(m.err, m.request())
 		}
 	}
 }
@@ -228,7 +178,7 @@ loop:
 func (p *Player) ping() {
 	for {
 		time.Sleep(1)
-		p.request(ping)
+		p.request(p.mpc.Ping)
 	}
 }
 
@@ -236,11 +186,11 @@ func (p *Player) watch() {
 	for subsystem := range p.watcher.Event {
 		switch subsystem {
 		case "database":
-			p.requestAsync(updateLibrary, p.watcherResponse)
+			p.requestAsync(p.updateLibrary, p.watcherResponse)
 		case "playlist":
-			p.requestAsync(updatePlaylist, p.watcherResponse)
+			p.requestAsync(p.updatePlaylist, p.watcherResponse)
 		case "player", "mixer", "options":
-			p.requestAsync(updateCurrent, p.watcherResponse)
+			p.requestAsync(p.updateCurrent, p.watcherResponse)
 		}
 	}
 }
@@ -276,48 +226,27 @@ func (p *Player) connect() error {
 	p.watcher = *watcher
 	return nil
 }
-func (p *Player) request(req playerMessageType) error {
+func (p *Player) request(f func() error) error {
 	ec := make(chan error)
-	p.requestAsync(req, ec)
+	p.requestAsync(f, ec)
 	return <-ec
 }
 
-func (p *Player) requestBool(req playerMessageType, b bool) error {
+func (p *Player) requestAsync(f func() error, ec chan error) {
 	r := new(playerMessage)
-	r.request = req
-	r.b = b
-	r.err = make(chan error)
-	p.daemonRequest <- r
-	return <-r.err
-}
-
-func (p *Player) requestAsync(req playerMessageType, ec chan error) {
-	r := new(playerMessage)
-	r.request = req
+	r.request = f
 	r.err = ec
 	p.daemonRequest <- r
 }
 
-func (p *Player) requestData(req playerMessageType, data []string) error {
-	r := new(playerMessage)
-	r.request = req
-	r.requestData = data
-	r.err = make(chan error)
-	p.daemonRequest <- r
-	return <-r.err
-}
-
 /*SortPlaylist sorts playlist by song tag name.*/
 func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
-	keys = append(keys, uri)
-	return p.requestData(sortPlaylist, keys)
+	return p.request(func() error { return p.sortPlaylist(keys, uri) })
 }
 
-func (p *Player) sortPlaylist(keys []string) (err error) {
+func (p *Player) sortPlaylist(keys []string, uri string) (err error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	uri := keys[len(keys)-1]
-	keys = keys[:len(keys)-1]
 	err = nil
 	l := make([]mpd.Attrs, len(p.library))
 	copy(l, p.library)
