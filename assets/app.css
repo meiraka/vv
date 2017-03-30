@@ -186,9 +186,7 @@ section {
 }
 
 #main .detail {
-    position: absolute;
-    top: 130px;
-    left: 0px;
+    top: 150px;
     list-style-type: none;
     padding: 10px;
 
