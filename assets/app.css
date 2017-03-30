@@ -222,6 +222,21 @@ section {
     right: 10px;
 }
 
+#error {
+    position: fixed;
+    top: 40px;
+    right: 0px;
+    margin: 10px;
+    padding: 5px;
+    width: 300px;
+    background-color: #ff1493;
+    display: none;
+}
+
+#error > * {
+    margin: 10px;
+}
+
 button {
     outline: 0;
     padding: 0px;

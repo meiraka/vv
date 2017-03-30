@@ -4,7 +4,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
+    view: {error: {}, main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
     control : {},
 };
 vv.obj = (function(){
@@ -401,6 +401,22 @@ vv.control = (function() {
     };
 }());
 
+vv.view.error = (function() {
+    var hide = function() {
+        e.children[1].textContent = "";
+        document.getElementById("error").display = "none";
+    }
+    var show = function(description) {
+        var e = document.getElementById("error");
+        e.children[1].textContent = e.children[1].textContent + description;
+        e.display = "block";
+        setTimeout(5000, hide);
+    }
+    return {
+        hide: hide,
+        show: show,
+    }
+}());
 
 vv.view.main = (function(){
     var load_volume_config = function() {
