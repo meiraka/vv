@@ -410,8 +410,6 @@ func (p *Player) sortPlaylist(keys []string) (err error) {
 }
 
 func (p *Player) updateCurrentSong() error {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
 	song, err := p.mpc.CurrentSong()
 	if err != nil {
 		return err
@@ -419,6 +417,8 @@ func (p *Player) updateCurrentSong() error {
 	c := songAddReadableData(song)
 	cm := time.Now()
 	if p.current["file"] != c["file"] {
+		p.mutex.Lock()
+		defer p.mutex.Unlock()
 		p.current = c
 		p.currentModified = cm
 	}
@@ -430,6 +430,8 @@ func (p *Player) updateStatus() error {
 	if err != nil {
 		return err
 	}
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.status = convStatus(status)
 	return nil
 }
@@ -443,24 +445,24 @@ func (p *Player) updateCurrent() error {
 }
 
 func (p *Player) updateLibrary() error {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
 	library, err := p.mpc.ListAllInfo("/")
 	if err != nil {
 		return err
 	}
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.library = songsAddReadableData(library)
 	p.libraryModified = time.Now()
 	return nil
 }
 
 func (p *Player) updatePlaylist() error {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
 	playlist, err := p.mpc.PlaylistInfo(-1, -1)
 	if err != nil {
 		return err
 	}
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.playlist = songsAddReadableData(playlist)
 	p.playlistModified = time.Now()
 	return nil
