@@ -497,18 +497,18 @@ vv.view.main = (function(){
         }
     })();
     var show = function() {
-        var e = document.getElementById("current");
+        var e = document.getElementById("main");
         e.style.display = "block";
     };
     var hide = function() {
-        var e = document.getElementById("current");
+        var e = document.getElementById("main");
         e.style.display = "none";
     }
     var hidden = function() {
-        return document.getElementById("current").style.display == "none";
+        return document.getElementById("main").style.display == "none";
     }
     var update = function() {
-        var e = document.getElementById("current");
+        var e = document.getElementById("main");
         var key;
         var ul = e.getElementsByClassName("detail")[0];
         var newul = document.createDocumentFragment();
