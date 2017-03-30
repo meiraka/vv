@@ -53,7 +53,6 @@ type PlayerStatus struct {
 	State        string  `json:"state"`
 	SongPos      int     `json:"song_pos"`
 	SongElapsed  float32 `json:"song_elapsed"`
-	SongLength   int     `json:"song_length"`
 	LastModified int64   `json:"last_modified"`
 }
 
@@ -309,7 +308,7 @@ func (p *Player) requestData(req playerMessageType, data []string) error {
 	return <-r.err
 }
 
-func convStatus(song, status mpd.Attrs) PlayerStatus {
+func convStatus(status mpd.Attrs) PlayerStatus {
 	volume, err := strconv.Atoi(status["volume"])
 	if err != nil {
 		volume = -1
@@ -330,10 +329,6 @@ func convStatus(song, status mpd.Attrs) PlayerStatus {
 	if err != nil {
 		elapsed = 0.0
 	}
-	songlength, err := strconv.Atoi(song["Time"])
-	if err != nil {
-		songlength = 0
-	}
 	lastModified := time.Now().Unix()
 	return PlayerStatus{
 		volume,
@@ -344,7 +339,6 @@ func convStatus(song, status mpd.Attrs) PlayerStatus {
 		state,
 		songpos,
 		float32(elapsed),
-		songlength,
 		lastModified,
 	}
 
@@ -416,7 +410,7 @@ func (p *Player) updateCurrent() error {
 	if err != nil {
 		return err
 	}
-	s := convStatus(song, status)
+	s := convStatus(status)
 
 	if song["file"] != "" && p.comments == nil || p.current["file"] != song["file"] {
 		comments, err := p.mpc.ReadComments(song["file"])
