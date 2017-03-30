@@ -641,7 +641,6 @@ vv.view.menu = (function(){
             vv.view.config.hide();
             vv.view.list.update();
             vv.view.list.show();
-            vv.view.menu.update();
             e.stopPropagation();
         });
         menu.getElementsByClassName("main")[0].addEventListener('click', function(e) {
@@ -650,9 +649,12 @@ vv.view.menu = (function(){
             } else {
                 vv.view.list.show();
             }
+            vv.model.list.abs(vv.storage.current);
+            if (!vv.view.list.hidden()) {
+                vv.view.list.update();
+            }
             vv.view.config.hide();
             vv.view.main.show();
-            vv.view.menu.update();
             e.stopPropagation();
         });
         menu.getElementsByClassName("settings")[0].addEventListener('click', function(e) {
@@ -684,19 +686,11 @@ vv.view.menu = (function(){
     var hidden_sub = function() {
         return document.getElementById("submenu").style.display == "none";
     };
-    var update = function() {
-        var up = document.getElementById("menu").getElementsByClassName("up")[0];
-        var label = vv.view.list.hidden()? "list" : "up";
-        if (up.textContent != label) {
-            up.textContent = label;
-        }
-    }
     vv.control.addEventListener("start", init);
     return {
         show_sub: show_sub,
         hide_sub: hide_sub,
         hidden_sub: hidden_sub,
-        update: update,
     };
 }());
 vv.view.playback = (function(){
