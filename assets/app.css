@@ -13,8 +13,7 @@ header {
     left: 0px;
     width: 100%;
     top: 0px;
-    background: #db7093;
-    height: 40px;
+    height: 70px;
 }
 
 footer {
@@ -32,27 +31,10 @@ footer {
     }
 }
 
-#submenu {
-    position: fixed;
-    left: 66.66%;
-    width: 33.33%;
-    top: 40px;
-}
-
-#submenu ol {
-    list-style-type: none;
-    padding: 0px;
-    margin: 0px;
-    width: 100%;
-}
-
-#submenu button {
-    width: 100%;
-}
 
 section {
     position: absolute;
-    top: 40px;
+    top: 80px;
     z-index: 1;
 }
 
@@ -183,14 +165,14 @@ section {
 }
 
 #main .title {
-    top: 50px;
+    top: 80px;
     width: 100%;
     font-size: 32px;
 }
 
 #main .artist {
     width: 100%;
-    top: 90px;
+    top: 130px;
     height: 20px;
     font-size: 26px;
 }
@@ -246,17 +228,44 @@ button {
 }
 
 
-header, header nav, header nav button {
+#menu, #menu nav, #menu nav button {
     border: 0px;
     margin: 0px;
     padding: 0px;
 }
 
-header nav button {
+#menu button {
+	position: absolute;
+    top: 15px;
     outline: 0;
-    background-color: #db7093;
-    width: 33.3333%;
-    height: 40px;
+	width: 40px;
+	height: 40px;
+}
+@media (orientation: landscape) {
+    #menu .back {
+        left: 10px;
+    }
+    #menu .main{
+        left: 70px;
+    }
+    #menu .settings {
+    	right: 10px;
+    }
+}
+@media (orientation: portrait) {
+    #menu .back {
+        left: 5%;
+    }
+    #menu .main{
+        left: calc(50% - 20px);
+    }
+    #menu .settings {
+    	right: 5%;
+    }
+}
+#menu button img {
+	width: 40px;
+	height: 40px;
 }
 
 header nav button:hover {
@@ -368,4 +377,25 @@ header nav button:active {
     }
 }
 
-
+#submenu {
+    position: fixed;
+    left: 66.66%;
+    width: 33.33%;
+    top: 55px;
+}
+#submenu ol {
+    list-style-type: none;
+    padding: 0px;
+    margin: 0px;
+    width: 100%;
+}
+#submenu button {
+    width: 100%;
+    height: 40px;
+    background-color: #d0d0d0;
+}
+#submenu button:hover {
+    width: 100%;
+    height: 40px;
+    background-color: #c0c0c0;
+}

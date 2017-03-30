@@ -627,7 +627,7 @@ vv.view.menu = (function(){
             vv.view.menu.hide_sub();
         });
         var menu = document.getElementById("menu");
-        menu.getElementsByClassName("up")[0].addEventListener('click', function(e) {
+        menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
             if (!vv.view.list.hidden()) {
                 vv.model.list.up();
             } else {
@@ -644,7 +644,7 @@ vv.view.menu = (function(){
             vv.view.menu.update();
             e.stopPropagation();
         });
-        menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
+        menu.getElementsByClassName("main")[0].addEventListener('click', function(e) {
             if (!window.matchMedia('(orientation: landscape)').matches) {
                 vv.view.list.hide();
             } else {
@@ -655,7 +655,7 @@ vv.view.menu = (function(){
             vv.view.menu.update();
             e.stopPropagation();
         });
-        menu.getElementsByClassName("menu")[0].addEventListener('click', function(e) {
+        menu.getElementsByClassName("settings")[0].addEventListener('click', function(e) {
             if (vv.view.menu.hidden_sub()) {
                 vv.view.menu.show_sub();
             } else {
