@@ -11,7 +11,6 @@ import (
 /*Dial Connects to mpd server.*/
 func Dial(network, addr, passwd string) (*Player, error) {
 	p := new(Player)
-	p.mutex = new(sync.Mutex)
 	p.daemonStop = make(chan bool)
 	p.daemonRequest = make(chan *playerMessage)
 	p.network = network
@@ -30,7 +29,7 @@ type Player struct {
 	watcherResponse  chan error
 	daemonStop       chan bool
 	daemonRequest    chan *playerMessage
-	mutex            *sync.Mutex
+	mutex            sync.Mutex
 	current          mpd.Attrs
 	currentModified  time.Time
 	status           PlayerStatus

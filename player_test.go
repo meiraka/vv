@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/fhs/gompd/mpd"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 )
@@ -336,7 +335,6 @@ func TestPlayerCurrent(t *testing.T) {
 
 func mockDial(network, addr string) (p *Player, m *mockMpc) {
 	p = new(Player)
-	p.mutex = new(sync.Mutex)
 	p.daemonStop = make(chan bool)
 	p.daemonRequest = make(chan *playerMessage)
 	p.network = network
