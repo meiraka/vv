@@ -12,6 +12,13 @@ import (
 )
 
 type m map[string]interface{}
+type jsonParseError struct {
+	key string
+}
+
+func (j jsonParseError) Error() string {
+	return fmt.Sprintf("unexpected json type for %s", j.key)
+}
 
 func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
@@ -124,8 +131,28 @@ func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 			switch v.(type) {
 			case float64:
 				err = h.player.Volume(int(v.(float64)))
-			case int:
-				err = h.player.Volume(v.(int))
+				// TODO: write type error
+			}
+		}
+		if err != nil {
+			writeJSON(w, err)
+			return
+		}
+		if v, exist := s["repeat"]; exist {
+			switch v.(type) {
+			case bool:
+				err = h.player.Repeat(v.(bool))
+				// TODO: write type error
+			}
+		}
+		if err != nil {
+			writeJSON(w, err)
+			return
+		}
+		if v, exist := s["random"]; exist {
+			switch v.(type) {
+			case bool:
+				err = h.player.Random(v.(bool))
 				// TODO: write type error
 			}
 		}
@@ -209,6 +236,8 @@ type Music interface {
 	Next() error
 	Prev() error
 	Volume(int) error
+	Repeat(bool) error
+	Random(bool) error
 	Playlist() ([]mpd.Attrs, time.Time)
 	Library() ([]mpd.Attrs, time.Time)
 	Current() (mpd.Attrs, time.Time)

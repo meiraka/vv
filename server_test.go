@@ -254,9 +254,50 @@ func TestControl(t *testing.T) {
 		}
 	})
 	t.Run("volume", func(t *testing.T) {
-		m.SortPlaylistErr = nil
 		j := strings.NewReader(
 			"{\"volume\": 1}",
+		)
+		res, err := http.Post(ts.URL, "application/json", j)
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		b := struct {
+			Errors error `json:"errors"`
+		}{nil}
+		json.Unmarshal(body, &b)
+		if b.Errors != nil {
+			t.Errorf("unexpected body: %s", body)
+		}
+	})
+	t.Run("repeat", func(t *testing.T) {
+		j := strings.NewReader(
+			"{\"repeat\": true}",
+		)
+		res, err := http.Post(ts.URL, "application/json", j)
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		b := struct {
+			Errors error `json:"errors"`
+		}{nil}
+		json.Unmarshal(body, &b)
+		if b.Errors != nil {
+			t.Errorf("unexpected body: %s", body)
+		}
+	})
+	t.Run("random", func(t *testing.T) {
+		j := strings.NewReader(
+			"{\"random\": true}",
 		)
 		res, err := http.Post(ts.URL, "application/json", j)
 		if err != nil {
@@ -284,6 +325,10 @@ type MockMusic struct {
 	PrevErr          error
 	VolumeArg1       int
 	VolumeErr        error
+	RepeatArg1       bool
+	RepeatErr        error
+	RandomArg1       bool
+	RandomErr        error
 	PlaylistRet1     []mpd.Attrs
 	PlaylistRet2     time.Time
 	LibraryRet1      []mpd.Attrs
@@ -315,6 +360,14 @@ func (p *MockMusic) Prev() error {
 func (p *MockMusic) Volume(i int) error {
 	p.VolumeArg1 = i
 	return p.VolumeErr
+}
+func (p *MockMusic) Repeat(b bool) error {
+	p.RepeatArg1 = b
+	return p.RepeatErr
+}
+func (p *MockMusic) Random(b bool) error {
+	p.RandomArg1 = b
+	return p.RandomErr
 }
 func (p *MockMusic) Comments() (mpd.Attrs, time.Time) {
 	return p.CommentsRet1, p.CommentsRet2

@@ -356,6 +356,14 @@ vv.control = (function() {
         get_request("api/control?action=next", "");
     }
 
+    var toggle_repeat = function() {
+        post_request("api/control", {"repeat": !vv.storage.control["repeat"]})
+    }
+
+    var toggle_random = function() {
+        post_request("api/control", {"random": !vv.storage.control["random"]})
+    }
+
     var play = function(uri) {
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {};
@@ -403,6 +411,8 @@ vv.control = (function() {
         play_pause: play_pause,
         next: next,
         play: play,
+        toggle_repeat, toggle_repeat,
+        toggle_random, toggle_random,
         volume: volume,
         start: start,
     };
@@ -706,6 +716,15 @@ vv.view.playback = (function(){
         });
         playback.getElementsByClassName("next")[0].addEventListener('click', function(e) {
             vv.control.next();
+            e.stopPropagation();
+        });
+        var playback_list = document.getElementById("playback_list");
+        playback_list.getElementsByClassName("repeat")[0].addEventListener('click', function(e) {
+            vv.control.toggle_repeat();
+            e.stopPropagation();
+        });
+        playback_list.getElementsByClassName("random")[0].addEventListener('click', function(e) {
+            vv.control.toggle_random();
             e.stopPropagation();
         });
     };

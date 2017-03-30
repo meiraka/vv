@@ -119,6 +119,16 @@ func (p *Player) Volume(v int) error {
 	return <-r.err
 }
 
+/*Repeat enable if true*/
+func (p *Player) Repeat(on bool) error {
+	return p.requestBool(repeat, on)
+}
+
+/*Random enable if true*/
+func (p *Player) Random(on bool) error {
+	return p.requestBool(random, on)
+}
+
 type playerMessageType int
 
 const (
@@ -132,12 +142,15 @@ const (
 	next
 	ping
 	volume
+	repeat
+	random
 )
 
 type playerMessage struct {
 	request     playerMessageType
 	requestData []string
 	i           int
+	b           bool
 	err         chan error
 }
 
@@ -149,6 +162,8 @@ type mpdClient interface {
 	Next() error
 	Ping() error
 	Close() error
+	Repeat(bool) error
+	Random(bool) error
 	CurrentSong() (mpd.Attrs, error)
 	Status() (mpd.Attrs, error)
 	ListAllInfo(string) ([]mpd.Attrs, error)
@@ -204,12 +219,11 @@ loop:
 			case next:
 				sendErr(m.err, p.mpc.Next())
 			case volume:
-				err := p.mpc.SetVolume(m.i)
-				if err != nil {
-					sendErr(m.err, err)
-					return
-				}
-				sendErr(m.err, p.updateCurrent())
+				sendErr(m.err, p.mpc.SetVolume(m.i))
+			case repeat:
+				sendErr(m.err, p.mpc.Repeat(m.b))
+			case random:
+				sendErr(m.err, p.mpc.Random(m.b))
 			case updateLibrary:
 				sendErr(m.err, p.updateLibrary())
 			case updatePlaylist:
@@ -239,7 +253,7 @@ func (p *Player) watch() {
 			p.requestAsync(updateLibrary, p.watcherResponse)
 		case "playlist":
 			p.requestAsync(updatePlaylist, p.watcherResponse)
-		case "player":
+		case "player", "mixer", "options":
 			p.requestAsync(updateCurrent, p.watcherResponse)
 		}
 	}
@@ -280,6 +294,15 @@ func (p *Player) request(req playerMessageType) error {
 	ec := make(chan error)
 	p.requestAsync(req, ec)
 	return <-ec
+}
+
+func (p *Player) requestBool(req playerMessageType, b bool) error {
+	r := new(playerMessage)
+	r.request = req
+	r.b = b
+	r.err = make(chan error)
+	p.daemonRequest <- r
+	return <-r.err
 }
 
 func (p *Player) requestAsync(req playerMessageType, ec chan error) {

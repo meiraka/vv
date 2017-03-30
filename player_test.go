@@ -166,15 +166,39 @@ func TestPlayerPrevious(t *testing.T) {
 
 func TestPlayerSetVolume(t *testing.T) {
 	p, m := mockDial("tcp", "localhost:6600")
-	m.CurrentSongRet2 = new(mockError)
 	err := p.Volume(1)
 	if m.SetVolumeCalled != 1 {
 		t.Errorf("Client.SetVolume does not Called")
 	}
-	if m.CurrentSongCalled != 1 {
-		t.Errorf("Client.CurrentSong does not Called")
+	if err != nil {
+		t.Errorf("unexpected return error: %s", err.Error())
 	}
-	if err != m.CurrentSongRet2 {
+}
+
+func TestPlayerRepeat(t *testing.T) {
+	p, m := mockDial("tcp", "localhost:6600")
+	err := p.Repeat(true)
+	if m.RepeatCalled != 1 {
+		t.Errorf("Client.Repeat does not Called")
+	}
+	if m.RepeatArg1 != true {
+		t.Errorf("unexpected argument: %t", m.RepeatArg1)
+	}
+	if err != m.RepeatRet1 {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+}
+
+func TestPlayerRandom(t *testing.T) {
+	p, m := mockDial("tcp", "localhost:6600")
+	err := p.Random(true)
+	if m.RandomCalled != 1 {
+		t.Errorf("Client.Random does not Called")
+	}
+	if m.RandomArg1 != true {
+		t.Errorf("unexpected argument: %t", m.RandomArg1)
+	}
+	if err != m.RandomRet1 {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
 }
@@ -390,6 +414,12 @@ type mockMpc struct {
 	SetVolumeCalled        int
 	SetVolumeArg1          int
 	SetVolumeRet1          error
+	RepeatCalled           int
+	RepeatArg1             bool
+	RepeatRet1             error
+	RandomCalled           int
+	RandomArg1             bool
+	RandomRet1             error
 	PlaylistInfoCalled     int
 	PlaylistInfoArg1       int
 	PlaylistInfoArg2       int
@@ -440,6 +470,16 @@ func (p *mockMpc) SetVolume(i int) error {
 	p.SetVolumeCalled++
 	p.SetVolumeArg1 = i
 	return p.SetVolumeRet1
+}
+func (p *mockMpc) Repeat(b bool) error {
+	p.RepeatCalled++
+	p.RepeatArg1 = b
+	return p.RepeatRet1
+}
+func (p *mockMpc) Random(b bool) error {
+	p.RandomCalled++
+	p.RandomArg1 = b
+	return p.RandomRet1
 }
 func (p *mockMpc) Ping() error {
 	p.PingCalled++
