@@ -1,0 +1,8 @@
+{
+  "name": "vv",
+  "version": "0.0.0",
+  "description": "",
+  "devDependencies": {
+    "eslint": "^3.18.0"
+  }
+}
