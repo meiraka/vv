@@ -545,7 +545,7 @@ vv.view.list = (function(){
                 inner += "<span class=artist>"+vv.song.get(song, "Artist")+"</span>";
             }
             if (vv.song.get(song, "file") == vv.song.get(vv.storage.current, "file")) {
-                inner += "<span class=elapsed>"+vv.song.get(song, "Length")+"</span>"+
+                inner += "<span class=elapsed></span>"+
                          "<span class=length_separator>/</span>";
             }
             inner += "<span class=length>"+vv.song.get(song, "Length")+"</span>";
