@@ -108,6 +108,55 @@ func (p *Player) Random(on bool) error {
 	return p.request(func() error { return p.mpc.Random(on) })
 }
 
+/*SortPlaylist sorts playlist by song tag name.*/
+func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
+	return p.request(func() error { return p.sortPlaylist(keys, uri) })
+}
+
+func (p *Player) sortPlaylist(keys []string, uri string) (err error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	err = nil
+	l := make([]mpd.Attrs, len(p.library))
+	copy(l, p.library)
+	sort.Slice(l, func(i, j int) bool {
+		return songSortKey(l[i], keys) < songSortKey(l[j], keys)
+	})
+	update := false
+	if len(l) != len(p.playlist) {
+		update = true
+		fmt.Printf("length not match")
+	} else {
+		for i := range l {
+			n := l[i]["file"]
+			o := p.playlist[i]["file"]
+			if n != o {
+				fmt.Printf("index %d not match:\n'new:%s'\n'old:%s'", i, n, o)
+				update = true
+				break
+			}
+		}
+	}
+	if update {
+		cl := p.mpc.BeginCommandList()
+		cl.Clear()
+		for i := range l {
+			cl.Add(l[i]["file"])
+		}
+		err = cl.End()
+	}
+	if err != nil {
+		return
+	}
+	for i := range p.playlist {
+		if p.playlist[i]["file"] == uri {
+			err = p.mpc.Play(i)
+			return
+		}
+	}
+	return
+}
+
 type playerMessage struct {
 	request func() error
 	err     chan error
@@ -232,55 +281,6 @@ func (p *Player) requestAsync(f func() error, ec chan error) {
 	r.request = f
 	r.err = ec
 	p.daemonRequest <- r
-}
-
-/*SortPlaylist sorts playlist by song tag name.*/
-func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
-	return p.request(func() error { return p.sortPlaylist(keys, uri) })
-}
-
-func (p *Player) sortPlaylist(keys []string, uri string) (err error) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	err = nil
-	l := make([]mpd.Attrs, len(p.library))
-	copy(l, p.library)
-	sort.Slice(l, func(i, j int) bool {
-		return songSortKey(l[i], keys) < songSortKey(l[j], keys)
-	})
-	update := false
-	if len(l) != len(p.playlist) {
-		update = true
-		fmt.Printf("length not match")
-	} else {
-		for i := range l {
-			n := l[i]["file"]
-			o := p.playlist[i]["file"]
-			if n != o {
-				fmt.Printf("index %d not match:\n'new:%s'\n'old:%s'", i, n, o)
-				update = true
-				break
-			}
-		}
-	}
-	if update {
-		cl := p.mpc.BeginCommandList()
-		cl.Clear()
-		for i := range l {
-			cl.Add(l[i]["file"])
-		}
-		err = cl.End()
-	}
-	if err != nil {
-		return
-	}
-	for i := range p.playlist {
-		if p.playlist[i]["file"] == uri {
-			err = p.mpc.Play(i)
-			return
-		}
-	}
-	return
 }
 
 func (p *Player) updateCurrentSong() error {
