@@ -411,8 +411,8 @@ vv.control = (function() {
         play_pause: play_pause,
         next: next,
         play: play,
-        toggle_repeat, toggle_repeat,
-        toggle_random, toggle_random,
+        toggle_repeat: toggle_repeat,
+        toggle_random: toggle_random,
         volume: volume,
         start: start,
     };
@@ -493,6 +493,15 @@ vv.view.main = (function(){
         }
         ul.appendChild(newul);
     };
+
+    var orientation = function() {
+        if (!vv.view.config.hidden()) {
+            return;
+        }
+        show();
+    }
+    window.matchMedia("(orientation: portrait)").addListener(orientation);
+    window.matchMedia("(orientation: landscape)").addListener(orientation);
     vv.control.addEventListener("current", update);
     return {
         show: show,
