@@ -289,13 +289,11 @@ func (p *Player) updateCurrentSong() error {
 	if err != nil {
 		return err
 	}
-	c := songAddReadableData(song)
-	cm := time.Now()
-	if p.current["file"] != c["file"] {
+	if p.current["file"] != song["file"] {
 		p.mutex.Lock()
 		defer p.mutex.Unlock()
-		p.current = c
-		p.currentModified = cm
+		p.current = songAddReadableData(song)
+		p.currentModified = time.Now()
 	}
 	return nil
 }
