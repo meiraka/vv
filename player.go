@@ -131,30 +131,21 @@ type mpdClient interface {
 	BeginCommandList() *mpd.CommandList
 }
 
-func (p *Player) start() (err error) {
-	err = p.connect()
-	if err != nil {
-		return err
-	}
-	err = p.updateLibrary()
-	if err != nil {
-		p.Close()
-		return
-	}
-	err = p.updatePlaylist()
-	if err != nil {
-		p.Close()
-		return
-	}
-	err = p.updateCurrent()
-	if err != nil {
-		p.Close()
-		return
+func (p *Player) start() error {
+	fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrent}
+	for i := range fs {
+		err := fs[i]()
+		if err != nil {
+			if i != 0 {
+				p.Close()
+			}
+			return err
+		}
 	}
 	go p.daemon()
 	go p.watch()
 	go p.ping()
-	return
+	return nil
 }
 
 func (p *Player) daemon() {
