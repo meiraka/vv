@@ -11,12 +11,10 @@ import (
 /*Dial Connects to mpd server.*/
 func Dial(network, addr, passwd string) (*Player, error) {
 	p := new(Player)
-	p.daemonStop = make(chan bool)
-	p.daemonRequest = make(chan *playerMessage)
 	p.network = network
 	p.addr = addr
 	p.passwd = passwd
-	return p, p.start()
+	return p, p.initIfNot()
 }
 
 /*Player represents mpd control interface.*/
@@ -29,6 +27,7 @@ type Player struct {
 	watcherResponse  chan error
 	daemonStop       chan bool
 	daemonRequest    chan *playerMessage
+	init             sync.Mutex
 	mutex            sync.Mutex
 	current          mpd.Attrs
 	currentModified  time.Time
@@ -131,20 +130,26 @@ type mpdClient interface {
 	BeginCommandList() *mpd.CommandList
 }
 
-func (p *Player) start() error {
-	fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrent}
-	for i := range fs {
-		err := fs[i]()
-		if err != nil {
-			if i != 0 {
-				p.Close()
+func (p *Player) initIfNot() error {
+	p.init.Lock()
+	defer p.init.Unlock()
+	if p.daemonStop == nil {
+		p.daemonStop = make(chan bool)
+		p.daemonRequest = make(chan *playerMessage)
+		fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrent}
+		for i := range fs {
+			err := fs[i]()
+			if err != nil {
+				if i != 0 {
+					p.Close()
+				}
+				return err
 			}
-			return err
 		}
+		go p.daemon()
+		go p.watch()
+		go p.ping()
 	}
-	go p.daemon()
-	go p.watch()
-	go p.ping()
 	return nil
 }
 
