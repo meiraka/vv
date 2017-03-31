@@ -290,31 +290,20 @@ func TestPlayerCurrent(t *testing.T) {
 		StatusRet2        error
 		StatusCalled      int
 		StatusRet         PlayerStatus
-		watcherRet        error
 	}{
 		// dont update if mpd.CurrentSong returns error
 		{
 			mpd.Attrs{}, errret, 1,
 			p.current,
-			mpd.Attrs{}, nil, 0,
-			p.status,
-			errret,
-		},
-		// dont update if mpd.Status returns error
-		{
-			mpd.Attrs{"file": "p"}, nil, 2,
-			songAddReadableData(mpd.Attrs{"file": "p"}),
 			mpd.Attrs{}, errret, 1,
 			p.status,
-			errret,
 		},
 		// update current/status/comments
 		{
-			mpd.Attrs{"file": "p"}, nil, 3,
+			mpd.Attrs{"file": "p"}, nil, 2,
 			songAddReadableData(mpd.Attrs{"file": "p"}),
 			mpd.Attrs{}, nil, 2,
 			convStatus(mpd.Attrs{}, time.Now().Unix()),
-			nil,
 		},
 	}
 	for _, c := range candidates {
@@ -323,7 +312,10 @@ func TestPlayerCurrent(t *testing.T) {
 		m.StatusRet1 = c.StatusRet1
 		m.StatusRet2 = c.StatusRet2
 		p.watcher.Event <- "player"
-		if err := <-p.watcherResponse; err != c.watcherRet {
+		if err := <-p.watcherResponse; err != c.CurrentSongRet2 {
+			t.Errorf("unexpected watcher error")
+		}
+		if err := <-p.watcherResponse; err != c.StatusRet2 {
 			t.Errorf("unexpected watcher error")
 		}
 		if m.CurrentSongCalled != c.CurrentSongCalled {

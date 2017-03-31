@@ -185,7 +185,7 @@ func (p *Player) initIfNot() error {
 	if p.daemonStop == nil {
 		p.daemonStop = make(chan bool)
 		p.daemonRequest = make(chan *playerMessage)
-		fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrent}
+		fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus}
 		for i := range fs {
 			err := fs[i]()
 			if err != nil {
@@ -234,7 +234,8 @@ func (p *Player) watch() {
 		case "playlist":
 			p.requestAsync(p.updatePlaylist, p.watcherResponse)
 		case "player", "mixer", "options":
-			p.requestAsync(p.updateCurrent, p.watcherResponse)
+			p.requestAsync(p.updateCurrentSong, p.watcherResponse)
+			p.requestAsync(p.updateStatus, p.watcherResponse)
 		}
 	}
 }
@@ -308,14 +309,6 @@ func (p *Player) updateStatus() error {
 	defer p.mutex.Unlock()
 	p.status = convStatus(status, time.Now().Unix())
 	return nil
-}
-
-func (p *Player) updateCurrent() error {
-	err := p.updateCurrentSong()
-	if err != nil {
-		return err
-	}
-	return p.updateStatus()
 }
 
 func (p *Player) updateLibrary() error {
