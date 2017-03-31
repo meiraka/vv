@@ -20,8 +20,10 @@ func initMock(dialError, newWatcherError error) *mockMpc {
 		return m, dialError
 	}
 	playerMpdNewWatcher = func(n, a, s string) (*mpd.Watcher, error) {
+		w := new(mpd.Watcher)
+		w.Event = make(chan string)
 		m.NewWatcherCalled++
-		return new(mpd.Watcher), newWatcherError
+		return w, newWatcherError
 	}
 	return m
 }
@@ -69,7 +71,8 @@ func TestDial(t *testing.T) {
 }
 
 func TestPlayerPlay(t *testing.T) {
-	p, m := mockDial("tcp", "localhost:6600")
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
 	m.PlayRet1 = new(mockError)
 	err := p.Play()
 	if m.PlayCalled != 1 {
@@ -97,7 +100,8 @@ func TestPlayerPlay(t *testing.T) {
 }
 
 func TestPlayerPause(t *testing.T) {
-	p, m := mockDial("tcp", "localhost:6600")
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
 	m.PauseRet1 = new(mockError)
 	err := p.Pause()
 	if m.PauseCalled != 1 {
@@ -125,7 +129,8 @@ func TestPlayerPause(t *testing.T) {
 }
 
 func TestPlayerNext(t *testing.T) {
-	p, m := mockDial("tcp", "localhost:6600")
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
 	m.NextRet1 = new(mockError)
 	err := p.Next()
 	if m.NextCalled != 1 {
@@ -145,7 +150,8 @@ func TestPlayerNext(t *testing.T) {
 }
 
 func TestPlayerPrevious(t *testing.T) {
-	p, m := mockDial("tcp", "localhost:6600")
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
 	m.PreviousRet1 = new(mockError)
 	err := p.Prev()
 	if m.PreviousCalled != 1 {
@@ -165,7 +171,8 @@ func TestPlayerPrevious(t *testing.T) {
 }
 
 func TestPlayerSetVolume(t *testing.T) {
-	p, m := mockDial("tcp", "localhost:6600")
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
 	err := p.Volume(1)
 	if m.SetVolumeCalled != 1 {
 		t.Errorf("Client.SetVolume does not Called")
@@ -176,7 +183,8 @@ func TestPlayerSetVolume(t *testing.T) {
 }
 
 func TestPlayerRepeat(t *testing.T) {
-	p, m := mockDial("tcp", "localhost:6600")
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
 	err := p.Repeat(true)
 	if m.RepeatCalled != 1 {
 		t.Errorf("Client.Repeat does not Called")
@@ -190,7 +198,8 @@ func TestPlayerRepeat(t *testing.T) {
 }
 
 func TestPlayerRandom(t *testing.T) {
-	p, m := mockDial("tcp", "localhost:6600")
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
 	err := p.Random(true)
 	if m.RandomCalled != 1 {
 		t.Errorf("Client.Random does not Called")
@@ -204,7 +213,10 @@ func TestPlayerRandom(t *testing.T) {
 }
 
 func TestPlayerPlaylist(t *testing.T) {
-	p, m := mockDial("tcp", "localhost:6600")
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
+	p.watcherResponse = make(chan error)
+	m.PlaylistInfoCalled = 0
 	m.PlaylistInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.PlaylistInfoRet2 = nil
 	expect := songsAddReadableData((m.PlaylistInfoRet1))
@@ -232,7 +244,10 @@ func TestPlayerPlaylist(t *testing.T) {
 }
 
 func TestPlayerLibrary(t *testing.T) {
-	p, m := mockDial("tcp", "localhost:6600")
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
+	p.watcherResponse = make(chan error)
+	m.ListAllInfoCalled = 0
 	m.ListAllInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.ListAllInfoRet2 = nil
 	expect := songsAddReadableData((m.ListAllInfoRet1))
@@ -260,6 +275,11 @@ func TestPlayerLibrary(t *testing.T) {
 }
 
 func TestPlayerCurrent(t *testing.T) {
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
+	p.watcherResponse = make(chan error)
+	m.CurrentSongCalled = 0
+	m.StatusCalled = 0
 	errret := new(mockError)
 	candidates := []struct {
 		CurrentSongRet1   mpd.Attrs
@@ -275,9 +295,9 @@ func TestPlayerCurrent(t *testing.T) {
 		// dont update if mpd.CurrentSong returns error
 		{
 			mpd.Attrs{}, errret, 1,
-			nil,
+			p.current,
 			mpd.Attrs{}, nil, 0,
-			PlayerStatus{},
+			p.status,
 			errret,
 		},
 		// dont update if mpd.Status returns error
@@ -285,7 +305,7 @@ func TestPlayerCurrent(t *testing.T) {
 			mpd.Attrs{"file": "p"}, nil, 2,
 			songAddReadableData(mpd.Attrs{"file": "p"}),
 			mpd.Attrs{}, errret, 1,
-			PlayerStatus{},
+			p.status,
 			errret,
 		},
 		// update current/status/comments
@@ -297,7 +317,6 @@ func TestPlayerCurrent(t *testing.T) {
 			nil,
 		},
 	}
-	p, m := mockDial("tcp", "localhost:6600")
 	for _, c := range candidates {
 		m.CurrentSongRet1 = c.CurrentSongRet1
 		m.CurrentSongRet2 = c.CurrentSongRet2
@@ -331,22 +350,6 @@ func TestPlayerCurrent(t *testing.T) {
 			)
 		}
 	}
-}
-
-func mockDial(network, addr string) (p *Player, m *mockMpc) {
-	p = new(Player)
-	p.daemonStop = make(chan bool)
-	p.daemonRequest = make(chan *playerMessage)
-	p.network = network
-	p.addr = addr
-	m = new(mockMpc)
-	p.mpc = m
-	p.watcher = *new(mpd.Watcher)
-	p.watcherResponse = make(chan error)
-	p.watcher.Event = make(chan string)
-	go p.daemon()
-	go p.watch()
-	return
 }
 
 type mockMpc struct {
