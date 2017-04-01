@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/fhs/gompd/mpd"
+	"io"
 	"mime"
 	"net/http"
 	"os"
@@ -13,43 +15,42 @@ import (
 	"time"
 )
 
-type m map[string]interface{}
-type jsonParseError struct {
-	key string
+type jsonMap map[string]interface{}
+
+func parseSimpleJSON(b io.Reader) (jsonMap, error) {
+	decoder := json.NewDecoder(b)
+	s := jsonMap{}
+	return s, decoder.Decode(&s)
+}
+func (j *jsonMap) execIfInt(key string, f func(int) error) error {
+	d := *j
+	if v, exist := d[key]; exist {
+		switch v.(type) {
+		case float64:
+			return f(int(v.(float64)))
+		default:
+			return errors.New("unexpected type for " + key)
+		}
+	}
+	return nil
+}
+func (j *jsonMap) execIfBool(key string, f func(bool) error) error {
+	d := *j
+	if v, exist := d[key]; exist {
+		switch v.(type) {
+		case bool:
+			return f(v.(bool))
+		default:
+			return errors.New("unexpected type for " + key)
+		}
+	}
+	return nil
 }
 
-func (j jsonParseError) Error() string {
-	return fmt.Sprintf("unexpected json type for %s", j.key)
-}
-
-func writeJSONAttrList(w http.ResponseWriter, d []mpd.Attrs, l time.Time, err error) {
+func writeJSONInterface(w http.ResponseWriter, d interface{}, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
-	v := m{"errors": err, "data": d}
-	b, jsonerr := json.Marshal(v)
-	if jsonerr != nil {
-		return
-	}
-	fmt.Fprintf(w, string(b))
-	return
-}
-
-func writeJSONAttr(w http.ResponseWriter, d mpd.Attrs, l time.Time, err error) {
-	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
-	w.Header().Add("Content-Type", "application/json")
-	v := m{"errors": err, "data": d}
-	b, jsonerr := json.Marshal(v)
-	if jsonerr != nil {
-		return
-	}
-	fmt.Fprintf(w, string(b))
-	return
-}
-
-func writeJSONStatus(w http.ResponseWriter, d PlayerStatus, l time.Time, err error) {
-	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
-	w.Header().Add("Content-Type", "application/json")
-	v := m{"errors": err, "data": d}
+	v := jsonMap{"errors": err, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
 		return
@@ -60,7 +61,7 @@ func writeJSONStatus(w http.ResponseWriter, d PlayerStatus, l time.Time, err err
 
 func writeJSON(w http.ResponseWriter, err error) {
 	w.Header().Add("Content-Type", "application/json")
-	v := m{"errors": err}
+	v := jsonMap{"errors": err}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
 		return
@@ -80,24 +81,22 @@ type apiHandler struct {
 	player Music
 }
 
-type sortAction struct {
-	Action string   `json:"action"`
-	Keys   []string `json:"keys"`
-	URI    string   `json:"uri"`
-}
-
 func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		d, l := h.player.Playlist()
 		if modified(r, l) {
-			writeJSONAttrList(w, d, l, nil)
+			writeJSONInterface(w, d, l, nil)
 		} else {
 			notModified(w, l)
 		}
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
-		var s sortAction
+		var s struct {
+			Action string   `json:"action"`
+			Keys   []string `json:"keys"`
+			URI    string   `json:"uri"`
+		}
 		err := decoder.Decode(&s)
 		if err == nil {
 			h.player.SortPlaylist(s.Keys, s.URI)
@@ -109,7 +108,7 @@ func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
 func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
 	d, l := h.player.Library()
 	if modified(r, l) {
-		writeJSONAttrList(w, d, l, nil)
+		writeJSONInterface(w, d, l, nil)
 	} else {
 		notModified(w, l)
 	}
@@ -118,70 +117,68 @@ func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
 func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
 	d, l := h.player.Current()
 	if modified(r, l) {
-		writeJSONAttr(w, d, l, nil)
+		writeJSONInterface(w, d, l, nil)
 	} else {
 		notModified(w, l)
 	}
 }
 
 func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		decoder := json.NewDecoder(r.Body)
-		var s map[string]interface{}
-		err := decoder.Decode(&s)
-		if v, exist := s["volume"]; exist {
-			switch v.(type) {
-			case float64:
-				err = h.player.Volume(int(v.(float64)))
-				// TODO: write type error
-			}
-		}
+	switch r.Method {
+	case "POST":
+		j, err := parseSimpleJSON(r.Body)
 		if err != nil {
 			writeJSON(w, err)
 			return
 		}
-		if v, exist := s["repeat"]; exist {
-			switch v.(type) {
-			case bool:
-				err = h.player.Repeat(v.(bool))
-				// TODO: write type error
-			}
+		funcs := []func() error{
+			func() error {
+				return j.execIfInt("volume", func(i int) error {
+					return h.player.Volume(i)
+				})
+			},
+			func() error {
+				return j.execIfBool("repeat", func(b bool) error {
+					return h.player.Repeat(b)
+				})
+			},
+			func() error {
+				return j.execIfBool("random", func(b bool) error {
+					return h.player.Random(b)
+				})
+			},
 		}
-		if err != nil {
-			writeJSON(w, err)
-			return
-		}
-		if v, exist := s["random"]; exist {
-			switch v.(type) {
-			case bool:
-				err = h.player.Random(v.(bool))
-				// TODO: write type error
+		for i := range funcs {
+			err = funcs[i]()
+			if err != nil {
+				writeJSON(w, err)
+				return
 			}
 		}
 		writeJSON(w, err)
 		return
-	}
-
-	// TODO: post action
-	method := r.FormValue("action")
-	if method == "prev" {
-		writeJSON(w, h.player.Prev())
-		return
-	} else if method == "play" {
-		writeJSON(w, h.player.Play())
-		return
-	} else if method == "pause" {
-		writeJSON(w, h.player.Pause())
-		return
-	} else if method == "next" {
-		writeJSON(w, h.player.Next())
-		return
-	} else {
-		d, l := h.player.Status()
-		if modified(r, l) {
-			writeJSONStatus(w, d, l, nil)
+	case "GET":
+		// TODO: post action
+		method := r.FormValue("action")
+		if method == "prev" {
+			writeJSON(w, h.player.Prev())
+			return
+		} else if method == "play" {
+			writeJSON(w, h.player.Play())
+			return
+		} else if method == "pause" {
+			writeJSON(w, h.player.Pause())
+			return
+		} else if method == "next" {
+			writeJSON(w, h.player.Next())
+			return
 		} else {
-			notModified(w, l)
+			d, l := h.player.Status()
+			if modified(r, l) {
+				writeJSONInterface(w, d, l, nil)
+			} else {
+				notModified(w, l)
+			}
 		}
 	}
 }
@@ -209,7 +206,7 @@ func (h *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if modified(r, l) {
-		writeJSONAttrList(w, d, l, nil)
+		writeJSONInterface(w, d, l, nil)
 	} else {
 		notModified(w, l)
 	}
