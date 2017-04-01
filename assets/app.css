@@ -218,12 +218,13 @@ section {
     right: 10px;
 }
 
-#config {
+#config h1, #config h3 {
     margin: 10px;
 }
 
 #config ul {
     list-style-type: none;
+    padding: 0 20px;
 }
 #config ul li {
     position: relative;
@@ -299,6 +300,7 @@ section {
     appearance: none;
     width: 100px;
     height: 30px;
+    border: none;
     border-radius: 30px;
     background-color: #404040;
     font-size: 18px;
