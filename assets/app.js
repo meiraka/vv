@@ -493,7 +493,33 @@ vv.view.main = (function(){
         }
         ul.appendChild(newul);
     };
-
+    var update_elapsed = function() {
+        if (hidden()) {
+            return;
+        }
+        var r = document.getElementById("elapsed_right");
+        var l = document.getElementById("elapsed_left");
+        var elapsed = parseInt(vv.storage.control["song_elapsed"] * 1000);
+        if (vv.storage.control["state"] == "play") {
+            var last_modified = parseInt(vv.storage.control["last_modified"] * 1000);
+            var date = new Date();
+            elapsed += date.getTime() - last_modified
+        }
+        var total = parseInt(vv.storage.current["Time"]);
+        var d = (elapsed * 360 / 1000 / total - 90) * (Math.PI / 180);
+        if (isNaN(d)) {
+            return;
+        }
+        var x = 100 + 70 * Math.cos(d);
+        var y = 100 + 70 * Math.sin(d);
+        if (x <= 100) {
+            r.setAttribute("d", "M 100,30 L 100,30 A 70,70 0 0,1 100,170");
+            l.setAttribute("d", "M 100,170 L 100,170 A 70,70 0 0,1 " + x + "," + y);
+        } else {
+            r.setAttribute("d", "M 100,30 L 100,30 A 70,70 0 0,1 " + x + "," + y);
+            l.setAttribute("d", "M 100,170 L 100,170 A 70,70 0 0,1 100,170");
+        }
+    }
     var orientation = function() {
         if (!vv.view.config.hidden()) {
             return;
@@ -503,6 +529,7 @@ vv.view.main = (function(){
     window.matchMedia("(orientation: portrait)").addListener(orientation);
     window.matchMedia("(orientation: landscape)").addListener(orientation);
     vv.control.addEventListener("current", update);
+    vv.control.addEventListener("poll", update_elapsed);
     return {
         show: show,
         hide: hide,

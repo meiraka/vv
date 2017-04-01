@@ -155,26 +155,40 @@ section {
 
 
 @media (orientation: portrait) {
-    #main .title, #main .artist, #main .elapsed, #main .detail {
+    #main .title, #main .artist, #main .elapsed, #main .detail, #main .elapsed_img {
         position: fixed;
         left: 10px;
+        width: 100%;
+    }
+    #main .elapsed_img, #main .elapsed_img svg {
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
     }
 }
 @media (orientation: landscape) {
-    #main .title, #main .artist, #main .elapsed, #main .detail {
+    #main .title, #main .artist, #main .elapsed, #main .detail, #main .elapsed_img {
         position: fixed;
         left: 50%;
+        width: 100%;
+    }
+    #main .elapsed_img {
+        top: 0px;
+        height: 100%;
+    }
+    #main .elapsed_img svg {
+        width: 50%;
+        height: 100%;
     }
 }
 
 #main .title {
     top: 80px;
-    width: 100%;
     font-size: 32px;
 }
 
 #main .artist {
-    width: 100%;
     top: 130px;
     height: 20px;
     font-size: 26px;
@@ -183,7 +197,6 @@ section {
 #main .elapsed {
     top: 50%;
     left: 60%;
-    width: 100%;
     height: 100%;
     font-size: 48px;
 }
