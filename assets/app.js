@@ -105,6 +105,8 @@ vv.storage = (function(){
          "Genre": [],
     }
     var library_last_modified = "";
+    var outputs = [];
+    var outputs_last_modified = "";
     var config = {"volume": {"show": true, "max": 100}}
 
     var save = function() {
@@ -136,6 +138,8 @@ vv.storage = (function(){
         control_last_modified: control_last_modified,
         library: library,
         library_last_modified: library_last_modified,
+        outputs: outputs,
+        outputs_last_modified: outputs_last_modified,
         config: config,
         save: save,
         load: load,
@@ -268,7 +272,7 @@ vv.model.list = (function() {
     };
 }());
 vv.control = (function() {
-    var listener = {"control": [], "config": [], "library": [], "playlist": [], "current": [], "start": [], "poll": []}
+    var listener = {"control": [], "config": [], "library": [], "playlist": [], "current": [], "outputs": [], "start": [], "poll": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
     };
@@ -342,6 +346,16 @@ vv.control = (function() {
         });
     };
 
+    var update_outputs = function() {
+        get_request("api/outputs", vv.storage.outputs_last_modified, function(ret, modified) {
+            if (ret["errors"] == null) {
+                vv.storage.outputs = ret["data"];
+                vv.storage.outputs_last_modified = modified;
+                raiseEvent("outputs");
+            }
+        });
+    };
+
     var prev = function() {
         get_request("api/control?action=prev", "");
     }
@@ -381,11 +395,16 @@ vv.control = (function() {
         post_request("/api/control", {"volume": num})
     }
 
+    var output = function(id, on) {
+        post_request("api/outputs/" + id, {"outputenabled": on})
+    }
+
     var init = function() {
         var polling = function() {
             vv.control.update_song();
             vv.control.update_status();
             vv.control.update_library();
+            vv.control.update_outputs();
             raiseEvent("poll");
             setTimeout(polling, 1000);
         }
@@ -407,6 +426,7 @@ vv.control = (function() {
         update_song: update_song,
         update_status: update_status,
         update_library: update_library,
+        update_outputs: update_outputs,
         prev: prev,
         play_pause: play_pause,
         next: next,
@@ -414,6 +434,7 @@ vv.control = (function() {
         toggle_repeat: toggle_repeat,
         toggle_random: toggle_random,
         volume: volume,
+        output: output,
         start: start,
     };
 }());
@@ -643,13 +664,38 @@ vv.view.config = (function(){
             vv.control.raiseEvent("config");
         });
     };
-    (function() {
-        if (document.readyState !== 'loading') {
-            init();
-        } else {
-            document.addEventListener('DOMContentLoaded', init);
+    var update_devices = function() {
+        var ul = document.getElementById("config").getElementsByClassName("devices")[0];
+        ul.innerHTML = "";
+        var i;
+        for (i in vv.storage.outputs) {
+            var o = vv.storage.outputs[i];
+            var li = document.createElement("li");
+            var desc = document.createElement("div");
+            desc.setAttribute("class", "description");
+            desc.textContent = o["outputname"];
+            var sw = document.createElement("div");
+            sw.setAttribute("class", "value switch");
+            var ch = document.createElement("input");
+            ch.setAttribute("type", "checkbox");
+            ch.setAttribute("id", "device_"+o["outputname"]);
+            ch.setAttribute("deviceid", o["outputid"]);
+            ch.checked = o["outputenabled"] == "1";
+            ch.addEventListener("change", function() {
+                vv.control.output(
+                    parseInt(this.getAttribute("deviceid")),
+                    this.checked);
+            });
+            var la = document.createElement("label");
+            la.setAttribute("for", "device_"+o["outputname"]);
+            sw.appendChild(ch);
+            sw.appendChild(la);
+            li.appendChild(desc);
+            li.appendChild(sw);
+            ul.appendChild(li);
         }
-    })();
+    }
+    vv.control.addEventListener("outputs", update_devices);
     var show = function() {
         var e = document.getElementById("config");
         e.style.display = "block";
@@ -661,6 +707,7 @@ vv.view.config = (function(){
     var hidden = function() {
         return document.getElementById("config").style.display == "none";
     }
+    vv.control.addEventListener("start", init);
     return {
         show: show,
         hide: hide,
