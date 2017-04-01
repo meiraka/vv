@@ -36,6 +36,8 @@ type Player struct {
 	libraryModified  time.Time
 	playlist         []mpd.Attrs
 	playlistModified time.Time
+	outputs          []mpd.Attrs
+	outputsModified  time.Time
 }
 
 /*Close mpd connection.*/
@@ -108,6 +110,21 @@ func (p *Player) Random(on bool) error {
 	return p.request(func() error { return p.mpc.Random(on) })
 }
 
+/*Outputs return output device list.*/
+func (p *Player) Outputs() ([]mpd.Attrs, time.Time) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.outputs, p.outputsModified
+}
+
+/*Output enable output if true.*/
+func (p *Player) Output(id int, on bool) error {
+	if on {
+		return p.request(func() error { return p.mpc.EnableOutput(id) })
+	}
+	return p.request(func() error { return p.mpc.DisableOutput(id) })
+}
+
 /*SortPlaylist sorts playlist by song tag name.*/
 func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
 	return p.request(func() error { return p.sortPlaylist(keys, uri) })
@@ -177,6 +194,9 @@ type mpdClient interface {
 	ListAllInfo(string) ([]mpd.Attrs, error)
 	PlaylistInfo(int, int) ([]mpd.Attrs, error)
 	BeginCommandList() *mpd.CommandList
+	ListOutputs() ([]mpd.Attrs, error)
+	DisableOutput(int) error
+	EnableOutput(int) error
 }
 
 func (p *Player) initIfNot() error {
@@ -185,7 +205,7 @@ func (p *Player) initIfNot() error {
 	if p.daemonStop == nil {
 		p.daemonStop = make(chan bool)
 		p.daemonRequest = make(chan *playerMessage)
-		fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus}
+		fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus, p.updateOutputs}
 		for i := range fs {
 			err := fs[i]()
 			if err != nil {
@@ -236,6 +256,8 @@ func (p *Player) watch() {
 		case "player", "mixer", "options":
 			p.requestAsync(p.updateCurrentSong, p.watcherResponse)
 			p.requestAsync(p.updateStatus, p.watcherResponse)
+		case "output":
+			p.requestAsync(p.updateOutputs, p.watcherResponse)
 		}
 	}
 }
@@ -330,5 +352,17 @@ func (p *Player) updatePlaylist() error {
 	defer p.mutex.Unlock()
 	p.playlist = songsAddReadableData(playlist)
 	p.playlistModified = time.Now()
+	return nil
+}
+
+func (p *Player) updateOutputs() error {
+	outputs, err := p.mpc.ListOutputs()
+	if err != nil {
+		return err
+	}
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.outputs = outputs
+	p.outputsModified = time.Now()
 	return nil
 }

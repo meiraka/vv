@@ -123,6 +123,74 @@ func TestPlaylist(t *testing.T) {
 		}
 	})
 }
+func TestOutput(t *testing.T) {
+	m := new(MockMusic)
+	setHandle(m)
+	ts := httptest.NewServer(http.DefaultServeMux)
+	defer ts.Close()
+	t.Run("no parameter", func(t *testing.T) {
+		m.OutputsRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.OutputsRet2 = time.Unix(0, 0)
+		res, err := http.Get(ts.URL + "/api/outputs")
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		st := struct {
+			Data   []mpd.Attrs `json:"data"`
+			Errors error       `json:"errors"`
+		}{[]mpd.Attrs{}, nil}
+		json.Unmarshal(body, &st)
+		if !reflect.DeepEqual(m.OutputsRet1, st.Data) {
+			t.Errorf("unexpected body: %s", body)
+		}
+		if st.Errors != nil {
+			t.Errorf("unexpected body: %s", body)
+		}
+	})
+	t.Run("If-Modified-Since", func(t *testing.T) {
+		m.OutputsRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.OutputsRet2 = time.Unix(60, 0)
+		req, _ := http.NewRequest("GET", ts.URL+"/api/outputs", nil)
+		req.Header.Set("If-Modified-Since", m.OutputsRet2.Format(http.TimeFormat))
+		client := new(http.Client)
+		res, err := client.Do(req)
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 304 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+	})
+	t.Run("enable", func(t *testing.T) {
+		j := strings.NewReader(
+			"{\"outputenabled\": true}",
+		)
+		res, err := http.Post(ts.URL+"/api/outputs/1", "application/json", j)
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+		if m.OutputArg1 != 1 || m.OutputArg2 != true {
+			t.Errorf("unexpected arguments: %d, %t", m.OutputArg1, m.OutputArg2)
+		}
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		b := struct {
+			Errors error `json:"errors"`
+		}{nil}
+		json.Unmarshal(body, &b)
+		if b.Errors != nil {
+			t.Errorf("unexpected body: %s", body)
+		}
+	})
+}
 func TestCurrent(t *testing.T) {
 	m := new(MockMusic)
 	api := apiHandler{m}
@@ -331,6 +399,11 @@ type MockMusic struct {
 	PlaylistRet2     time.Time
 	LibraryRet1      []mpd.Attrs
 	LibraryRet2      time.Time
+	OutputsRet1      []mpd.Attrs
+	OutputsRet2      time.Time
+	OutputArg1       int
+	OutputArg2       bool
+	OutputRet1       error
 	CurrentRet1      mpd.Attrs
 	CurrentRet2      time.Time
 	CommentsRet1     mpd.Attrs
@@ -375,6 +448,13 @@ func (p *MockMusic) Current() (mpd.Attrs, time.Time) {
 }
 func (p *MockMusic) Library() ([]mpd.Attrs, time.Time) {
 	return p.LibraryRet1, p.LibraryRet2
+}
+func (p *MockMusic) Outputs() ([]mpd.Attrs, time.Time) {
+	return p.OutputsRet1, p.OutputsRet2
+}
+func (p *MockMusic) Output(id int, on bool) error {
+	p.OutputArg1, p.OutputArg2 = id, on
+	return p.OutputRet1
 }
 func (p *MockMusic) Playlist() ([]mpd.Attrs, time.Time) {
 	return p.PlaylistRet1, p.PlaylistRet2

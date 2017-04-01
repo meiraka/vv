@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -184,6 +186,35 @@ func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
+	d, l := h.player.Outputs()
+	if r.Method == "POST" {
+		id, err := strconv.Atoi(
+			strings.Replace(r.URL.Path, "/api/outputs/", "", -1),
+		)
+		if err != nil {
+			writeJSON(w, err)
+			return
+		}
+		decoder := json.NewDecoder(r.Body)
+		var s map[string]interface{}
+		err = decoder.Decode(&s)
+		if v, exist := s["outputenabled"]; exist {
+			switch v.(type) {
+			case bool:
+				err = h.player.Output(id, v.(bool))
+				writeJSON(w, err)
+				return
+			}
+		}
+	}
+	if modified(r, l) {
+		writeJSONAttrList(w, d, l, nil)
+	} else {
+		notModified(w, l)
+	}
+}
+
 func modified(r *http.Request, l time.Time) bool {
 	return r.Header.Get("If-Modified-Since") != l.Format(http.TimeFormat)
 }
@@ -201,14 +232,15 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 	}
 }
 
-// App serves http request.
-func App(p Music, config ServerConfig) {
+func setHandle(p Music) {
 	var api = new(apiHandler)
 	api.player = p
 	http.HandleFunc("/api/library", api.library)
 	http.HandleFunc("/api/songs", api.playlist)
 	http.HandleFunc("/api/songs/current", api.current)
 	http.HandleFunc("/api/control", api.control)
+	http.HandleFunc("/api/outputs", api.outputs)
+	http.HandleFunc("/api/outputs/", api.outputs)
 	for _, f := range AssetNames() {
 		p := "/" + f
 		if f == "assets/app.html" {
@@ -226,6 +258,11 @@ func App(p Music, config ServerConfig) {
 			http.HandleFunc(p, makeHandleAssets(f, data))
 		}
 	}
+}
+
+// App serves http request.
+func App(p Music, config ServerConfig) {
+	setHandle(p)
 	http.ListenAndServe(fmt.Sprintf(":%s", config.Port), nil)
 }
 
@@ -242,5 +279,7 @@ type Music interface {
 	Library() ([]mpd.Attrs, time.Time)
 	Current() (mpd.Attrs, time.Time)
 	Status() (PlayerStatus, time.Time)
+	Output(int, bool) error
+	Outputs() ([]mpd.Attrs, time.Time)
 	SortPlaylist([]string, string) error
 }

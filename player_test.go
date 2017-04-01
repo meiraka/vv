@@ -15,6 +15,7 @@ func initMock(dialError, newWatcherError error) *mockMpc {
 	m.StatusRet1 = mpd.Attrs{}
 	m.ReadCommentsRet1 = mpd.Attrs{}
 	m.CurrentSongRet1 = mpd.Attrs{}
+	m.ListOutputsRet1 = []mpd.Attrs{}
 	playerMpdDial = func(n, a, s string) (mpdClient, error) {
 		m.DialCalled++
 		return m, dialError
@@ -344,6 +345,33 @@ func TestPlayerCurrent(t *testing.T) {
 	}
 }
 
+func TestPlayerOutputs(t *testing.T) {
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "")
+	p.watcherResponse = make(chan error)
+	m.ListOutputsCalled = 0
+	m.ListOutputsRet1 = []mpd.Attrs{{"foo": "bar"}}
+	m.ListOutputsRet2 = nil
+	// if mpd.Watcher.Event recieve "output"
+	p.watcher.Event <- "output"
+	if err := <-p.watcherResponse; err != nil {
+		t.Errorf("unexpected watcher error: %s", err.Error())
+	}
+
+	// mpd.Client.ListOutputs was Called
+	if m.ListOutputsCalled != 1 {
+		t.Errorf("Client.ListOutputs does not Called")
+	}
+	if !reflect.DeepEqual(m.ListOutputsRet1, p.outputs) {
+		t.Errorf("unexpected stored outputs")
+	}
+	// Player.Library returns mpd.Client.ListOutputs result
+	outputs, _ := p.Outputs()
+	if !reflect.DeepEqual(m.ListOutputsRet1, outputs) {
+		t.Errorf("unexpected get outputs")
+	}
+}
+
 type mockMpc struct {
 	DialCalled             int
 	NewWatcherCalled       int
@@ -389,6 +417,15 @@ type mockMpc struct {
 	StatusRet2             error
 	PingCalled             int
 	PingRet1               error
+	ListOutputsCalled      int
+	ListOutputsRet1        []mpd.Attrs
+	ListOutputsRet2        error
+	DisableOutputCalled    int
+	DisableOutputArg1      int
+	DisableOutputRet1      error
+	EnableOutputCalled     int
+	EnableOutputArg1       int
+	EnableOutputRet1       error
 	begincommandlistCalled int
 }
 
@@ -456,6 +493,23 @@ func (p *mockMpc) ListAllInfo(ListAllInfoArg1 string) ([]mpd.Attrs, error) {
 	p.ListAllInfoCalled++
 	p.ListAllInfoArg1 = ListAllInfoArg1
 	return p.ListAllInfoRet1, p.ListAllInfoRet2
+}
+
+func (p *mockMpc) ListOutputs() ([]mpd.Attrs, error) {
+	p.ListOutputsCalled++
+	return p.ListOutputsRet1, p.ListOutputsRet2
+}
+
+func (p *mockMpc) DisableOutput(arg1 int) error {
+	p.DisableOutputCalled++
+	p.DisableOutputArg1 = arg1
+	return p.DisableOutputRet1
+}
+
+func (p *mockMpc) EnableOutput(arg1 int) error {
+	p.EnableOutputCalled++
+	p.EnableOutputArg1 = arg1
+	return p.EnableOutputRet1
 }
 
 func (p *mockMpc) BeginCommandList() *mpd.CommandList {
