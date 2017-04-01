@@ -209,9 +209,13 @@ section {
     margin: 10px;
 }
 
+#config ul {
+    list-style-type: none;
+}
 #config ul li {
     position: relative;
     height: 40px;
+    border-bottom: dashed 1px #f0f0f0;
 }
 #config ul li .description {
     position: absolute;
@@ -220,6 +224,9 @@ section {
     width: 50%;
     font-size: 18px;
     color: #404040;
+    padding: 4px;
+    vertical-align: middle;
+    height: 30px;
 }
 
 #config ul li .value {
@@ -228,7 +235,7 @@ section {
     left: 50%;
 }
 
-#config .switch {
+.switch {
     width: 100px;
     height: 30px;
 }
@@ -270,6 +277,21 @@ section {
 .switch input:checked + label:after {
     border: solid 3px #404040;
     background-color: #ffffff;
+}
+
+#config select {
+    outline: 0;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 100px;
+    height: 30px;
+    border-radius: 30px;
+    background-color: #404040;
+    font-size: 18px;
+    color: #ffffff;
+    padding: 5px 5px 0px 50px;
+    text-align: -webkit-center;
 }
 
 
