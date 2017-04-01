@@ -197,16 +197,16 @@ func (h *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		decoder := json.NewDecoder(r.Body)
-		var s map[string]interface{}
+		var s = struct {
+			OutputEnabled bool `json:"outputenabled"`
+		}{}
 		err = decoder.Decode(&s)
-		if v, exist := s["outputenabled"]; exist {
-			switch v.(type) {
-			case bool:
-				err = h.player.Output(id, v.(bool))
-				writeJSON(w, err)
-				return
-			}
+		if err != nil {
+			writeJSON(w, err)
+			return
 		}
+		writeJSON(w, h.player.Output(id, s.OutputEnabled))
+		return
 	}
 	if modified(r, l) {
 		writeJSONAttrList(w, d, l, nil)
