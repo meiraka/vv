@@ -33,11 +33,20 @@
     <ul class="detail"></ul>
 </section>
 <section id="config" style="display: none">
+    <h1>configuration</h1>
+    <article>
     <h3>Volume</h3>
     <ul>
-        <li><input type="checkbox" id="show_volume">Show volume nob</li>
-        <li>Max volume: <input type="number" id="max_volume" min="10" max="100" step="10" value="100"></li>
+        <li>
+            <div class="description">show volume nob</div>
+            <div class="value switch"><input type="checkbox" id="show_volume"><label for="show_volume"></label></div>
+        </li>
+        <li>
+            <div class="description">Max volume: </div>
+            <input type="number" class="value" id="max_volume" min="10" max="100" step="10" value="100">
+        </li>
     </ul>
+    </article>
 </section>
 <article id="error">
     <h3 class="title">error title</h3>

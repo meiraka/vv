@@ -59,6 +59,9 @@ section {
     #main {
         left: 50%;
     }
+    #config {
+        width: 100%;
+    }
 }
 
 #list ol {
@@ -201,6 +204,74 @@ section {
     bottom: 140px;
     right: 10px;
 }
+
+#config {
+    margin: 10px;
+}
+
+#config ul li {
+    position: relative;
+    height: 40px;
+}
+#config ul li .description {
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    width: 50%;
+    font-size: 18px;
+    color: #404040;
+}
+
+#config ul li .value {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+}
+
+#config .switch {
+    width: 100px;
+    height: 30px;
+}
+.switch input {
+    display: none;
+}
+.switch label, .switch input:checked + label {
+    position: relative;
+    display: block;
+    width: 100px;
+    height: 30px;
+    border-radius: 30px;
+    background-color: #d0d0d0;
+}
+.switch input:checked + label {
+    background-color: #404040;
+}
+.switch label:before, .switch label:after, .switch input:checked + label:before, .switch input:checked + label:after {
+    position: absolute;
+    top: 0px;
+    content: "";
+    display: block; width: 50%;
+    height: 24px;
+    border-radius: 24px;
+}
+.switch label:before {
+    left: 0px;
+    border: solid 3px #404040;
+    background-color: #ffffff;
+}
+.switch label:after {
+    left: 44px;
+    background-color: transparent;
+}
+.switch input:checked + label:before {
+    border: none;
+    background-color: transparent;
+}
+.switch input:checked + label:after {
+    border: solid 3px #404040;
+    background-color: #ffffff;
+}
+
 
 #error {
     position: fixed;
