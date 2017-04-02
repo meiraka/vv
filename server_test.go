@@ -404,6 +404,20 @@ func TestControl(t *testing.T) {
 			}
 		}
 	})
+	t.Run("state unknown", func(t *testing.T) {
+		j := strings.NewReader("{\"state\": \"unknown\"}")
+		res, err := http.Post(ts.URL, "application/json", j)
+		if err != nil {
+			t.Errorf("unexpected request error: %s", err.Error())
+			return
+		}
+		defer res.Body.Close()
+		b, err := decodeJSONError(res.Body)
+		if res.StatusCode != 200 || err != nil || b.Error != "unknown state value: unknown" {
+			t.Errorf("unexpected response")
+		}
+
+	})
 }
 
 type jsonError struct {
