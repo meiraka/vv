@@ -14,11 +14,21 @@ header {
     width: 100%;
     top: 0px;
     height: 70px;
+    background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,1.0) 80%,
+        rgba(255,255,255,0.0) 100%
+    );
 }
 
 footer {
     bottom: 0px;
     width: 100%;
+    background: linear-gradient(
+        to top,
+        rgba(255,255,255,1.0) 80%,
+        rgba(255,255,255,0.0) 100%
+    );
 }
 @media (orientation: portrait) {
     footer {
@@ -169,8 +179,11 @@ section {
     }
     #main .elapsed_img, #main .elapsed_img svg {
         left: 0px;
-        top: 0px;
+        top: 70px;
         width: 100%;
+        height: calc(100% - 140px);
+    }
+    #main .elapsed_img svg {
         height: 100%;
     }
 }
@@ -181,8 +194,8 @@ section {
         width: 100%;
     }
     #main .elapsed_img {
-        top: 0px;
-        height: 100%;
+        top: 70px;
+        height: calc(100% - 140px);
     }
     #main .elapsed_img svg {
         width: 50%;
