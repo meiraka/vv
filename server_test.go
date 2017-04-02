@@ -31,14 +31,14 @@ func TestLibrary(t *testing.T) {
 		defer res.Body.Close()
 		body, _ := ioutil.ReadAll(res.Body)
 		st := struct {
-			Data   []mpd.Attrs `json:"data"`
-			Errors error       `json:"errors"`
-		}{[]mpd.Attrs{}, nil}
+			Data  []mpd.Attrs `json:"data"`
+			Error string      `json:"error"`
+		}{[]mpd.Attrs{}, ""}
 		json.Unmarshal(body, &st)
 		if !reflect.DeepEqual(m.LibraryRet1, st.Data) {
 			t.Errorf("unexpected body: %s", body)
 		}
-		if st.Errors != nil {
+		if st.Error != "" {
 			t.Errorf("unexpected body: %s", body)
 		}
 	})
@@ -75,14 +75,14 @@ func TestPlaylist(t *testing.T) {
 		defer res.Body.Close()
 		body, _ := ioutil.ReadAll(res.Body)
 		st := struct {
-			Data   []mpd.Attrs `json:"data"`
-			Errors error       `json:"errors"`
-		}{[]mpd.Attrs{}, nil}
+			Data  []mpd.Attrs `json:"data"`
+			Error string      `json:"error"`
+		}{[]mpd.Attrs{}, ""}
 		json.Unmarshal(body, &st)
 		if !reflect.DeepEqual(m.PlaylistRet1, st.Data) {
 			t.Errorf("unexpected body: %s", body)
 		}
-		if st.Errors != nil {
+		if st.Error != "" {
 			t.Errorf("unexpected body: %s", body)
 		}
 	})
@@ -112,15 +112,10 @@ func TestPlaylist(t *testing.T) {
 		if res.StatusCode != 200 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
-
 		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		b := struct {
-			Errors error `json:"errors"`
-		}{nil}
-		json.Unmarshal(body, &b)
-		if b.Errors != nil {
-			t.Errorf("unexpected body: %s", body)
+		b, err := decodeJSONError(res.Body)
+		if res.StatusCode != 200 || err != nil || b.Error != "" {
+			t.Errorf("unexpected response")
 		}
 	})
 }
@@ -142,14 +137,14 @@ func TestOutput(t *testing.T) {
 		defer res.Body.Close()
 		body, _ := ioutil.ReadAll(res.Body)
 		st := struct {
-			Data   []mpd.Attrs `json:"data"`
-			Errors error       `json:"errors"`
-		}{[]mpd.Attrs{}, nil}
+			Data  []mpd.Attrs `json:"data"`
+			Error string      `json:"error"`
+		}{[]mpd.Attrs{}, ""}
 		json.Unmarshal(body, &st)
 		if !reflect.DeepEqual(m.OutputsRet1, st.Data) {
 			t.Errorf("unexpected body: %s", body)
 		}
-		if st.Errors != nil {
+		if st.Error != "" {
 			t.Errorf("unexpected body: %s", body)
 		}
 	})
@@ -182,13 +177,9 @@ func TestOutput(t *testing.T) {
 			t.Errorf("unexpected arguments: %d, %t", m.OutputArg1, m.OutputArg2)
 		}
 		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		b := struct {
-			Errors error `json:"errors"`
-		}{nil}
-		json.Unmarshal(body, &b)
-		if b.Errors != nil {
-			t.Errorf("unexpected body: %s", body)
+		b, err := decodeJSONError(res.Body)
+		if res.StatusCode != 200 || err != nil || b.Error != "" {
+			t.Errorf("unexpected response")
 		}
 	})
 }
@@ -210,14 +201,14 @@ func TestCurrent(t *testing.T) {
 		defer res.Body.Close()
 		body, _ := ioutil.ReadAll(res.Body)
 		st := struct {
-			Data   mpd.Attrs `json:"data"`
-			Errors error     `json:"errors"`
-		}{mpd.Attrs{}, nil}
+			Data  mpd.Attrs `json:"data"`
+			Error string    `json:"error"`
+		}{mpd.Attrs{}, ""}
 		json.Unmarshal(body, &st)
 		if !reflect.DeepEqual(m.CurrentRet1, st.Data) {
 			t.Errorf("unexpected body: %s", body)
 		}
-		if st.Errors != nil {
+		if st.Error != "" {
 			t.Errorf("unexpected body: %s", body)
 		}
 	})
@@ -255,14 +246,14 @@ func TestControl(t *testing.T) {
 		defer res.Body.Close()
 		body, _ := ioutil.ReadAll(res.Body)
 		st := struct {
-			Data   PlayerStatus `json:"data"`
-			Errors error        `json:"errors"`
-		}{PlayerStatus{}, nil}
+			Data  PlayerStatus `json:"data"`
+			Error string       `json:"error"`
+		}{PlayerStatus{}, ""}
 		json.Unmarshal(body, &st)
 		if !reflect.DeepEqual(s, st.Data) {
 			t.Errorf("unexpected body: %s", body)
 		}
-		if st.Errors != nil {
+		if st.Error != "" {
 			t.Errorf("unexpected body: %s", body)
 		}
 	})
@@ -334,7 +325,7 @@ func TestControl(t *testing.T) {
 		}
 		defer res.Body.Close()
 		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Errors != nil {
+		if res.StatusCode != 200 || err != nil || b.Error != "" {
 			t.Errorf("unexpected response")
 		}
 	})
@@ -352,7 +343,7 @@ func TestControl(t *testing.T) {
 		}
 		defer res.Body.Close()
 		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Errors != nil {
+		if res.StatusCode != 200 || err != nil || b.Error != "" {
 			t.Errorf("unexpected response")
 		}
 	})
@@ -370,7 +361,7 @@ func TestControl(t *testing.T) {
 		}
 		defer res.Body.Close()
 		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Errors != nil {
+		if res.StatusCode != 200 || err != nil || b.Error != "" {
 			t.Errorf("unexpected response")
 		}
 	})
@@ -408,7 +399,7 @@ func TestControl(t *testing.T) {
 			}
 			defer res.Body.Close()
 			b, err := decodeJSONError(res.Body)
-			if res.StatusCode != 200 || err != nil || b.Errors != nil {
+			if res.StatusCode != 200 || err != nil || b.Error != "" {
 				t.Errorf("unexpected response")
 			}
 		}
@@ -416,7 +407,8 @@ func TestControl(t *testing.T) {
 }
 
 type jsonError struct {
-	Errors error `json:"errors"`
+	Errors error  `json:"errors"`
+	Error  string `json:"error"`
 }
 
 func decodeJSONError(b io.Reader) (jsonError, error) {

@@ -17,7 +17,11 @@ import (
 func writeJSONInterface(w http.ResponseWriter, d interface{}, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
-	v := jsonMap{"errors": err, "data": d}
+	errstr := ""
+	if err != nil {
+		errstr = err.Error()
+	}
+	v := jsonMap{"error": errstr, "errors": err, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
 		return
@@ -28,7 +32,11 @@ func writeJSONInterface(w http.ResponseWriter, d interface{}, l time.Time, err e
 
 func writeJSON(w http.ResponseWriter, err error) {
 	w.Header().Add("Content-Type", "application/json")
-	v := jsonMap{"errors": err}
+	errstr := ""
+	if err != nil {
+		errstr = err.Error()
+	}
+	v := jsonMap{"error": errstr, "errors": err}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
 		return
