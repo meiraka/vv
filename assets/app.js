@@ -321,7 +321,7 @@ vv.control = (function() {
 
     var update_song = function() {
         get_request("api/songs/current", vv.storage.current_last_modified, function(ret, modified) {
-            if (ret["errors"] == null) {
+            if (!ret.error) {
                 vv.storage.current = ret["data"];
                 vv.storage.current_last_modified = modified;
                 if (vv.model.list.rootname() != "root" && vv.storage.config.playback.view_follow) {
@@ -334,7 +334,7 @@ vv.control = (function() {
 
     var update_status = function() {
         get_request("api/control", vv.storage.control_last_modified, function(ret, modified) {
-            if (ret["errors"] == null) {
+            if (!ret.error) {
                 vv.storage.control = ret["data"];
                 vv.storage.control_last_modified = modified;
                 raiseEvent("control");
@@ -344,7 +344,7 @@ vv.control = (function() {
 
     var update_library = function() {
         get_request("api/library", vv.storage.library_last_modified, function(ret, modified) {
-            if (ret["errors"] == null) {
+            if (!ret.error) {
                 vv.model.list.update(ret["data"]);
                 vv.storage.library_last_modified = modified;
                 raiseEvent("library");
@@ -354,7 +354,7 @@ vv.control = (function() {
 
     var update_outputs = function() {
         get_request("api/outputs", vv.storage.outputs_last_modified, function(ret, modified) {
-            if (ret["errors"] == null) {
+            if (!ret.error) {
                 vv.storage.outputs = ret["data"];
                 vv.storage.outputs_last_modified = modified;
                 raiseEvent("outputs");

@@ -407,8 +407,7 @@ func TestControl(t *testing.T) {
 }
 
 type jsonError struct {
-	Errors error  `json:"errors"`
-	Error  string `json:"error"`
+	Error string `json:"error"`
 }
 
 func decodeJSONError(b io.Reader) (jsonError, error) {

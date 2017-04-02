@@ -21,7 +21,7 @@ func writeJSONInterface(w http.ResponseWriter, d interface{}, l time.Time, err e
 	if err != nil {
 		errstr = err.Error()
 	}
-	v := jsonMap{"error": errstr, "errors": err, "data": d}
+	v := jsonMap{"error": errstr, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
 		return
@@ -36,7 +36,7 @@ func writeJSON(w http.ResponseWriter, err error) {
 	if err != nil {
 		errstr = err.Error()
 	}
-	v := jsonMap{"error": errstr, "errors": err}
+	v := jsonMap{"error": errstr}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
 		return
