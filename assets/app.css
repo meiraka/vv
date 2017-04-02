@@ -514,6 +514,7 @@ button {
     width: 100%;
 }
 #submenu button {
+    font-size: 14px;
     width: 100%;
     height: 40px;
     background-color: #d0d0d0;
