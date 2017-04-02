@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"mime"
@@ -111,6 +112,21 @@ func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 			func() error {
 				return j.execIfBool("random", func(b bool) error {
 					return h.player.Random(b)
+				})
+			},
+			func() error {
+				return j.execIfString("state", func(s string) error {
+					switch s {
+					case "play":
+						return h.player.Play()
+					case "pause":
+						return h.player.Pause()
+					case "next":
+						return h.player.Next()
+					case "prev":
+						return h.player.Prev()
+					}
+					return errors.New("unknown state value: " + s)
 				})
 			},
 		}

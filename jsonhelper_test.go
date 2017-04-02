@@ -14,7 +14,7 @@ func TestParseSimpleJson(t *testing.T) {
 		}
 	})
 	t.Run("parse OK", func(t *testing.T) {
-		r := strings.NewReader("{\"int\": 1, \"bool\": true}")
+		r := strings.NewReader("{\"int\": 1, \"bool\": true, \"string\": \"foo\"}")
 		j, err := parseSimpleJSON(r)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err.Error())
@@ -84,6 +84,41 @@ func TestParseSimpleJson(t *testing.T) {
 					t.Errorf("unexpected error: %s", err.Error())
 				}
 				if store != true {
+					t.Errorf("expected function call")
+				}
+			})
+		})
+
+		t.Run("execIfString", func(t *testing.T) {
+			store := ""
+			execFunc := func(s string) error {
+				store = s
+				return nil
+			}
+			t.Run("not found", func(t *testing.T) {
+				err = j.execIfString("foo", execFunc)
+				if err != nil {
+					t.Errorf("unexpected error: %s", err.Error())
+				}
+				if store != "" {
+					t.Errorf("unexpected function call")
+				}
+			})
+			t.Run("unexpected type", func(t *testing.T) {
+				err = j.execIfString("int", execFunc)
+				if err == nil {
+					t.Errorf("unexpected nil error")
+				}
+				if store != "" {
+					t.Errorf("unexpected function call")
+				}
+			})
+			t.Run("called", func(t *testing.T) {
+				err = j.execIfString("string", execFunc)
+				if err != nil {
+					t.Errorf("unexpected error: %s", err.Error())
+				}
+				if store != "foo" {
 					t.Errorf("expected function call")
 				}
 			})

@@ -39,3 +39,16 @@ func (j *jsonMap) execIfBool(key string, f func(bool) error) error {
 	}
 	return nil
 }
+
+func (j *jsonMap) execIfString(key string, f func(string) error) error {
+	d := *j
+	if v, exist := d[key]; exist {
+		switch v.(type) {
+		case string:
+			return f(v.(string))
+		default:
+			return errors.New("unexpected type for " + key)
+		}
+	}
+	return nil
+}

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/fhs/gompd/mpd"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -325,19 +326,16 @@ func TestControl(t *testing.T) {
 		)
 		res, err := http.Post(ts.URL, "application/json", j)
 		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
+			t.Errorf("unexpected request error: %s", err.Error())
+			return
 		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
+		if m.VolumeArg1 != 1 {
+			t.Errorf("unexpected arguments: %d", m.VolumeArg1)
 		}
 		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		b := struct {
-			Errors error `json:"errors"`
-		}{nil}
-		json.Unmarshal(body, &b)
-		if b.Errors != nil {
-			t.Errorf("unexpected body: %s", body)
+		b, err := decodeJSONError(res.Body)
+		if res.StatusCode != 200 || err != nil || b.Errors != nil {
+			t.Errorf("unexpected response")
 		}
 	})
 	t.Run("repeat", func(t *testing.T) {
@@ -346,19 +344,16 @@ func TestControl(t *testing.T) {
 		)
 		res, err := http.Post(ts.URL, "application/json", j)
 		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
+			t.Errorf("unexpected request error: %s", err.Error())
+			return
 		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
+		if m.RepeatArg1 != true {
+			t.Errorf("unexpected arguments: %t", m.RepeatArg1)
 		}
 		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		b := struct {
-			Errors error `json:"errors"`
-		}{nil}
-		json.Unmarshal(body, &b)
-		if b.Errors != nil {
-			t.Errorf("unexpected body: %s", body)
+		b, err := decodeJSONError(res.Body)
+		if res.StatusCode != 200 || err != nil || b.Errors != nil {
+			t.Errorf("unexpected response")
 		}
 	})
 	t.Run("random", func(t *testing.T) {
@@ -367,28 +362,85 @@ func TestControl(t *testing.T) {
 		)
 		res, err := http.Post(ts.URL, "application/json", j)
 		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
+			t.Errorf("unexpected request error: %s", err.Error())
+			return
 		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
+		if m.RandomArg1 != true {
+			t.Errorf("unexpected arguments: %t", m.RandomArg1)
 		}
 		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		b := struct {
-			Errors error `json:"errors"`
-		}{nil}
-		json.Unmarshal(body, &b)
-		if b.Errors != nil {
-			t.Errorf("unexpected body: %s", body)
+		b, err := decodeJSONError(res.Body)
+		if res.StatusCode != 200 || err != nil || b.Errors != nil {
+			t.Errorf("unexpected response")
+		}
+	})
+	t.Run("state", func(t *testing.T) {
+		candidates := []struct {
+			input string
+			check func() bool
+		}{
+			{
+				"{\"state\": \"play\"}",
+				func() bool { return m.PlayCalled == 1 },
+			},
+			{
+				"{\"state\": \"pause\"}",
+				func() bool { return m.PauseCalled == 1 },
+			},
+			{
+				"{\"state\": \"next\"}",
+				func() bool { return m.NextCalled == 1 },
+			},
+			{
+				"{\"state\": \"prev\"}",
+				func() bool { return m.PrevCalled == 1 },
+			},
+		}
+		for _, c := range candidates {
+			j := strings.NewReader(c.input)
+			res, err := http.Post(ts.URL, "application/json", j)
+			if err != nil {
+				t.Errorf("unexpected request error: %s", err.Error())
+				return
+			}
+			if c.check() {
+				t.Errorf("unexpected function call")
+			}
+			defer res.Body.Close()
+			b, err := decodeJSONError(res.Body)
+			if res.StatusCode != 200 || err != nil || b.Errors != nil {
+				t.Errorf("unexpected response")
+			}
 		}
 	})
 }
 
+type jsonError struct {
+	Errors error `json:"errors"`
+}
+
+func decodeJSONError(b io.Reader) (jsonError, error) {
+	d := jsonError{}
+	body, err := ioutil.ReadAll(b)
+	if err != nil {
+		return d, err
+	}
+	err = json.Unmarshal(body, &d)
+	if err != nil {
+		return d, err
+	}
+	return d, nil
+}
+
 type MockMusic struct {
 	PlayErr          error
+	PlayCalled       int
 	PauseErr         error
+	PauseCalled      int
 	NextErr          error
+	NextCalled       int
 	PrevErr          error
+	PrevCalled       int
 	VolumeArg1       int
 	VolumeErr        error
 	RepeatArg1       bool
@@ -416,16 +468,20 @@ type MockMusic struct {
 }
 
 func (p *MockMusic) Play() error {
+	p.PlayCalled++
 	return p.PlayErr
 }
 
 func (p *MockMusic) Pause() error {
+	p.PauseCalled++
 	return p.PauseErr
 }
 func (p *MockMusic) Next() error {
+	p.NextCalled++
 	return p.NextErr
 }
 func (p *MockMusic) Prev() error {
+	p.PrevCalled++
 	return p.PrevErr
 }
 func (p *MockMusic) Volume(i int) error {
