@@ -107,7 +107,7 @@ vv.storage = (function(){
     var library_last_modified = "";
     var outputs = [];
     var outputs_last_modified = "";
-    var config = {"volume": {"show": true, "max": 100}}
+    var config = {"volume": {"show": true, "max": 100}, "playback": {"view_follow": true}}
 
     var save = function() {
         try {
@@ -123,7 +123,13 @@ vv.storage = (function(){
                 tree = JSON.parse(localStorage.tree);
             }
             if (localStorage.config) {
-                config = JSON.parse(localStorage.config);
+                var c = JSON.parse(localStorage.config);
+                var i, j;
+                for (i in c) {
+                    for (j in c[i]) {
+                        config[i][j] = c[i][j];
+                    }
+                }
             }
         } catch (e) {
             // private browsing
@@ -318,7 +324,7 @@ vv.control = (function() {
             if (ret["errors"] == null) {
                 vv.storage.current = ret["data"];
                 vv.storage.current_last_modified = modified;
-                if (vv.model.list.rootname() != "root") {
+                if (vv.model.list.rootname() != "root" && vv.storage.config.playback.view_follow) {
                     vv.model.list.abs(ret["data"]);
                 }
                 raiseEvent("current")
@@ -649,6 +655,14 @@ vv.view.list = (function(){
 }());
 vv.view.config = (function(){
     var init = function() {
+        // TODO: fix loop unrolling
+        var playback_view_follow = document.getElementById("playback_view_follow");
+        playback_view_follow.checked = vv.storage.config.playback.view_follow;
+        playback_view_follow.addEventListener("change", function() {
+            vv.storage.config.playback.view_follow = this.checked;
+            vv.storage.save();
+            vv.control.raiseEvent("config");
+        });
         var show_volume = document.getElementById("show_volume");
         show_volume.checked = vv.storage.config.volume.show;
         show_volume.addEventListener("change", function() {
