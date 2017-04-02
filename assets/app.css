@@ -58,6 +58,7 @@ section {
     }
     #main {
         left: 50%;
+        height: 100%;
     }
     #config {
         width: 100%;
@@ -152,13 +153,19 @@ section {
     border: 0px;
 }
 
-
+#main span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 @media (orientation: portrait) {
-    #main .title, #main .artist, #main .elapsed, #main .detail, #main .elapsed_img {
+    #main .title, #main .artist, #main .detail, #main .elapsed_img {
         position: fixed;
         left: 10px;
         width: 100%;
+        width: calc(100% - 20px);
+
     }
     #main .elapsed_img, #main .elapsed_img svg {
         left: 0px;
@@ -168,7 +175,7 @@ section {
     }
 }
 @media (orientation: landscape) {
-    #main .title, #main .artist, #main .elapsed, #main .detail, #main .elapsed_img {
+    #main .title, #main .artist, #main .detail, #main .elapsed, #main .elapsed_img {
         position: fixed;
         left: 50%;
         width: 100%;
@@ -184,28 +191,19 @@ section {
 }
 
 #main .title {
-    top: 80px;
-    font-size: 32px;
+    top: 90px;
+    font-size: 20px;
 }
-
 #main .artist {
-    top: 130px;
-    height: 20px;
-    font-size: 26px;
-}
-
-#main .elapsed {
-    top: 50%;
-    left: 60%;
-    height: 100%;
-    font-size: 48px;
+    top: 120px;
+    font-size: 20px;
 }
 
 #main .detail {
     top: 150px;
     list-style-type: none;
     padding: 10px;
-
+    z-index: 0;
 }
 
 #main li {
