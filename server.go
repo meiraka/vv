@@ -148,27 +148,11 @@ func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, err)
 		return
 	case "GET":
-		// TODO: post action
-		method := r.FormValue("action")
-		if method == "prev" {
-			writeJSON(w, h.player.Prev())
-			return
-		} else if method == "play" {
-			writeJSON(w, h.player.Play())
-			return
-		} else if method == "pause" {
-			writeJSON(w, h.player.Pause())
-			return
-		} else if method == "next" {
-			writeJSON(w, h.player.Next())
-			return
+		d, l := h.player.Status()
+		if modified(r, l) {
+			writeJSONInterface(w, d, l, nil)
 		} else {
-			d, l := h.player.Status()
-			if modified(r, l) {
-				writeJSONInterface(w, d, l, nil)
-			} else {
-				notModified(w, l)
-			}
+			notModified(w, l)
 		}
 	}
 }

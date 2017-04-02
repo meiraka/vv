@@ -272,45 +272,6 @@ func TestControl(t *testing.T) {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
 	})
-	t.Run("action=play", func(t *testing.T) {
-		res, err := http.Get(ts.URL + "?action=play")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
-		}
-	})
-
-	t.Run("action=pause", func(t *testing.T) {
-		res, err := http.Get(ts.URL + "?action=pause")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
-		}
-	})
-
-	t.Run("action=next", func(t *testing.T) {
-		res, err := http.Get(ts.URL + "?action=next")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
-		}
-	})
-
-	t.Run("action=prev", func(t *testing.T) {
-		res, err := http.Get(ts.URL + "?action=prev")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
-		}
-	})
 	t.Run("volume", func(t *testing.T) {
 		j := strings.NewReader(
 			"{\"volume\": 1}",
@@ -368,23 +329,18 @@ func TestControl(t *testing.T) {
 	t.Run("state", func(t *testing.T) {
 		candidates := []struct {
 			input string
-			check func() bool
 		}{
 			{
 				"{\"state\": \"play\"}",
-				func() bool { return m.PlayCalled == 1 },
 			},
 			{
 				"{\"state\": \"pause\"}",
-				func() bool { return m.PauseCalled == 1 },
 			},
 			{
 				"{\"state\": \"next\"}",
-				func() bool { return m.NextCalled == 1 },
 			},
 			{
 				"{\"state\": \"prev\"}",
-				func() bool { return m.PrevCalled == 1 },
 			},
 		}
 		for _, c := range candidates {
@@ -394,14 +350,14 @@ func TestControl(t *testing.T) {
 				t.Errorf("unexpected request error: %s", err.Error())
 				return
 			}
-			if c.check() {
-				t.Errorf("unexpected function call")
-			}
 			defer res.Body.Close()
 			b, err := decodeJSONError(res.Body)
 			if res.StatusCode != 200 || err != nil || b.Error != "" {
 				t.Errorf("unexpected response")
 			}
+		}
+		if m.PlayCalled != 1 || m.PauseCalled != 1 || m.NextCalled != 1 || m.PrevCalled != 1 {
+			t.Errorf("unexpected function call")
 		}
 	})
 	t.Run("state unknown", func(t *testing.T) {
@@ -473,6 +429,7 @@ type MockMusic struct {
 }
 
 func (p *MockMusic) Play() error {
+	// TODO: lock
 	p.PlayCalled++
 	return p.PlayErr
 }

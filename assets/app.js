@@ -363,17 +363,17 @@ vv.control = (function() {
     };
 
     var prev = function() {
-        get_request("api/control?action=prev", "");
+        post_request("api/control", {"state": "prev"})
     }
 
     var play_pause = function() {
         var state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
         var action = state == "play" ? "pause" : "play";
-        get_request("api/control?action="+action, "");
+        post_request("api/control", {"state": action})
     }
 
     var next = function() {
-        get_request("api/control?action=next", "");
+        post_request("api/control", {"state": "next"})
     }
 
     var toggle_repeat = function() {
