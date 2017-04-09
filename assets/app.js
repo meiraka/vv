@@ -182,6 +182,7 @@ vv.model.list = (function() {
                 ]
         }
     }
+    var focus = {};
     var update = function(data) {
         var key;
         for (key in TREE) {
@@ -195,6 +196,9 @@ vv.model.list = (function() {
         }
         return r;
     };
+    var focused = function() {
+        return focus;
+    };
     var sortkeys = function() {
         var r = rootname();
         if (r == "root") {
@@ -203,6 +207,7 @@ vv.model.list = (function() {
         return TREE[r]["sort"];
     }
     var up = function() {
+        focus = list()[1][0];
         if (rootname() != "root") {
             vv.storage.tree.pop();
             vv.storage.save();
@@ -216,8 +221,10 @@ vv.model.list = (function() {
         }
         vv.storage.tree.push([key, value]);
         vv.storage.save();
+        focus = list()[1][0];
     };
     var abs = function(song) {
+        focus = song;
         var i, root, key, selected;
         if (rootname() != "root") {
             vv.storage.tree = [vv.storage.tree[0]];
@@ -268,6 +275,7 @@ vv.model.list = (function() {
         return ["root", ret, "plain", "dir"];
     }
     return {
+        focused: focused,
         update: update,
         rootname: rootname,
         sortkeys: sortkeys,
@@ -585,8 +593,12 @@ vv.view.list = (function(){
             li;
         ul.innerHTML = "";
         var i;
+        var focus_li = null;
         for (i in songs) {
             li = make_list_item(songs[i], ls[0], ls[2]);
+            if (songs[i]['file'] == vv.model.list.focused()['file']) {
+                focus_li = li;
+            }
             li.addEventListener('click', function() {
                 if (!vv.view.dropdown.hidden()) {
                     vv.view.dropdown.hide();
@@ -604,6 +616,14 @@ vv.view.list = (function(){
             newul.appendChild(li);
         }
         document.getElementById("list").children[0].appendChild(newul);
+        if (focus_li) {
+            var pos = focus_li.getBoundingClientRect().top;
+            var h = vv.view.menu.height();
+            if (h <= pos && pos <= window.innerHeight - vv.view.playback.height()) {
+                return;
+            }
+            window.scrollTo(0, pos + window.pageYOffset - h);
+        }
     };
     var make_list_item = function(song, key, style) {
         var li = document.createElement("li");
@@ -793,11 +813,15 @@ vv.view.menu = (function(){
     var hidden_sub = function() {
         return document.getElementById("submenu").style.display == "none";
     };
+    var height = function() {
+        return document.getElementsByTagName("header")[0].offsetHeight;
+    };
     vv.control.addEventListener("start", init);
     return {
         show_sub: show_sub,
         hide_sub: hide_sub,
         hidden_sub: hidden_sub,
+        height: height,
     };
 }());
 vv.view.playback = (function(){
@@ -846,8 +870,12 @@ vv.view.playback = (function(){
     }
     vv.control.addEventListener("start", init);
     vv.control.addEventListener("control", update);
+    var height = function() {
+        return document.getElementsByTagName("footer")[0].offsetHeight;
+    };
     return {
         update: update,
+        height: height,
     }
 }());
 vv.view.elapsed = (function() {
