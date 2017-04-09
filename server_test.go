@@ -57,6 +57,59 @@ func TestLibrary(t *testing.T) {
 		}
 	})
 }
+func TestLibraryOne(t *testing.T) {
+	m := new(MockMusic)
+	api := apiHandler{m}
+	ts := httptest.NewServer(http.HandlerFunc(api.libraryOne))
+	defer ts.Close()
+	t.Run("not found", func(t *testing.T) {
+		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.LibraryRet2 = time.Unix(0, 0)
+		res, err := http.Get(ts.URL + "/api/library/hoge")
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 404 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+	})
+	t.Run("not found(out of range)", func(t *testing.T) {
+		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.LibraryRet2 = time.Unix(0, 0)
+		res, err := http.Get(ts.URL + "/api/library/1")
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 404 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+	})
+	t.Run("ok", func(t *testing.T) {
+		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.LibraryRet2 = time.Unix(0, 0)
+		res, err := http.Get(ts.URL + "/api/library/0")
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+	})
+	t.Run("If-Modified-Since", func(t *testing.T) {
+		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.LibraryRet2 = time.Unix(60, 0)
+		req, _ := http.NewRequest("GET", ts.URL+"/api/library/0", nil)
+		req.Header.Set("If-Modified-Since", m.LibraryRet2.Format(http.TimeFormat))
+		client := new(http.Client)
+		res, err := client.Do(req)
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 304 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+	})
+}
 func TestPlaylist(t *testing.T) {
 	m := new(MockMusic)
 	api := apiHandler{m}
@@ -116,6 +169,60 @@ func TestPlaylist(t *testing.T) {
 		b, err := decodeJSONError(res.Body)
 		if res.StatusCode != 200 || err != nil || b.Error != "" {
 			t.Errorf("unexpected response")
+		}
+	})
+}
+
+func TestPlaylistOne(t *testing.T) {
+	m := new(MockMusic)
+	api := apiHandler{m}
+	ts := httptest.NewServer(http.HandlerFunc(api.playlistOne))
+	defer ts.Close()
+	t.Run("not found", func(t *testing.T) {
+		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.PlaylistRet2 = time.Unix(0, 0)
+		res, err := http.Get(ts.URL + "/api/songs/hoge")
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 404 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+	})
+	t.Run("not found(out of range)", func(t *testing.T) {
+		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.PlaylistRet2 = time.Unix(0, 0)
+		res, err := http.Get(ts.URL + "/api/songs/1")
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 404 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+	})
+	t.Run("ok", func(t *testing.T) {
+		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.PlaylistRet2 = time.Unix(0, 0)
+		res, err := http.Get(ts.URL + "/api/songs/0")
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+	})
+	t.Run("If-Modified-Since", func(t *testing.T) {
+		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.PlaylistRet2 = time.Unix(60, 0)
+		req, _ := http.NewRequest("GET", ts.URL+"/api/songs/0", nil)
+		req.Header.Set("If-Modified-Since", m.PlaylistRet2.Format(http.TimeFormat))
+		client := new(http.Client)
+		res, err := client.Do(req)
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 304 {
+			t.Errorf("unexpected status %d", res.StatusCode)
 		}
 	})
 }

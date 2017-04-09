@@ -52,6 +52,11 @@ func notModified(w http.ResponseWriter, l time.Time) {
 	return
 }
 
+func notFound(w http.ResponseWriter) {
+	w.WriteHeader(404)
+	return
+}
+
 type apiHandler struct {
 	player Music
 }
@@ -80,6 +85,34 @@ func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func returnOne(w http.ResponseWriter, r *http.Request, path string, d []mpd.Attrs, l time.Time) {
+	id, err := strconv.Atoi(path)
+	if err != nil {
+		notFound(w)
+		return
+	}
+	if len(d) <= id || id < 0 {
+		notFound(w)
+		return
+	}
+	s := d[id]
+	if modified(r, l) {
+		writeJSONInterface(w, s, l, nil)
+	} else {
+		notModified(w, l)
+	}
+}
+
+func (h *apiHandler) playlistOne(w http.ResponseWriter, r *http.Request) {
+	p := strings.Replace(r.URL.Path, "/api/songs/", "", -1)
+	if p == "" {
+		h.playlist(w, r)
+		return
+	}
+	d, l := h.player.Playlist()
+	returnOne(w, r, p, d, l)
+}
+
 func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
 	d, l := h.player.Library()
 	if modified(r, l) {
@@ -87,6 +120,16 @@ func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
 	} else {
 		notModified(w, l)
 	}
+}
+
+func (h *apiHandler) libraryOne(w http.ResponseWriter, r *http.Request) {
+	p := strings.Replace(r.URL.Path, "/api/library/", "", -1)
+	if p == "" {
+		h.library(w, r)
+		return
+	}
+	d, l := h.player.Library()
+	returnOne(w, r, p, d, l)
 }
 
 func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
@@ -207,7 +250,9 @@ func setHandle(p Music) {
 	var api = new(apiHandler)
 	api.player = p
 	http.HandleFunc("/api/library", api.library)
+	http.HandleFunc("/api/library/", api.libraryOne)
 	http.HandleFunc("/api/songs", api.playlist)
+	http.HandleFunc("/api/songs/", api.playlistOne)
 	http.HandleFunc("/api/songs/current", api.current)
 	http.HandleFunc("/api/control", api.control)
 	http.HandleFunc("/api/outputs", api.outputs)
