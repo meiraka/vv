@@ -14,11 +14,14 @@ func TestReadConfig(t *testing.T) {
 		"mpd:\n" +
 			"    host: \"hoge.local\"\n" +
 			"    port: \"6600\"\n" +
+			"    music_directory: \"hoge\"\n" +
 			"server:\n" +
 			"    port: \"8080\"\n",
 	)
 	ioutil.WriteFile(path, input, os.ModePerm)
-	expected := Config{Mpd: MpdConfig{Host: "hoge.local", Port: "6600"}, Server: ServerConfig{Port: "8080"}}
+	expected := Config{
+		Mpd:    MpdConfig{"hoge.local", "6600", "hoge"},
+		Server: ServerConfig{Port: "8080"}}
 	actual, err := ReadConfig()
 	if err != nil {
 		t.Errorf("got unexpected err: %v", err)

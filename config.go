@@ -12,6 +12,7 @@ func ReadConfig() (Config, error) {
 	viper.SetDefault("mpd.host", "localhost")
 	viper.SetDefault("mpd.port", "6600")
 	viper.SetDefault("server.port", "8080")
+	viper.SetDefault("mpd.music_directory", "")
 	err := viper.ReadInConfig()
 	if err != nil {
 		return Config{}, err
@@ -21,6 +22,7 @@ func ReadConfig() (Config, error) {
 		MpdConfig{
 			viper.GetString("mpd.host"),
 			viper.GetString("mpd.port"),
+			viper.GetString("mpd.music_directory"),
 		},
 	}, nil
 }
@@ -33,8 +35,9 @@ type Config struct {
 
 // MpdConfig represents local mpd information.
 type MpdConfig struct {
-	Host string `toml:"host"`
-	Port string `toml:"port"`
+	Host           string `toml:"host"`
+	Port           string `toml:"port"`
+	MusicDirectory string
 }
 
 // ServerConfig represents HTTP server information.
