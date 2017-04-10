@@ -165,8 +165,8 @@ func (p *Player) sortPlaylist(keys []string, uri string) (err error) {
 	if err != nil {
 		return
 	}
-	for i := range p.playlist {
-		if p.playlist[i]["file"] == uri {
+	for i := range l {
+		if l[i]["file"] == uri {
 			err = p.mpc.Play(i)
 			return
 		}

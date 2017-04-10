@@ -228,8 +228,8 @@ func TestPlaylistOne(t *testing.T) {
 }
 func TestOutput(t *testing.T) {
 	m := new(MockMusic)
-	setHandle(m)
-	ts := httptest.NewServer(http.DefaultServeMux)
+	handler := makeHandle(m, "")
+	ts := httptest.NewServer(handler)
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		m.OutputsRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}

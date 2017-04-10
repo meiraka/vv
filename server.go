@@ -246,7 +246,7 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 	}
 }
 
-func setHandle(p Music) {
+func makeHandle(p Music, musicDir string) http.Handler {
 	var api = new(apiHandler)
 	api.player = p
 	http.HandleFunc("/api/library", api.library)
@@ -274,12 +274,13 @@ func setHandle(p Music) {
 			http.HandleFunc(p, makeHandleAssets(f, data))
 		}
 	}
+	return http.DefaultServeMux
 }
 
 // App serves http request.
-func App(p Music, config ServerConfig) {
-	setHandle(p)
-	http.ListenAndServe(fmt.Sprintf(":%s", config.Port), nil)
+func App(p Music, config Config) {
+	handler := makeHandle(p, config.Mpd.MusicDirectory)
+	http.ListenAndServe(fmt.Sprintf(":%s", config.Server.Port), handler)
 }
 
 // Music Represents music player.
