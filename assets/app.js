@@ -511,22 +511,9 @@ vv.view.main = (function(){
     }
     var update = function() {
         var e = document.getElementById("main");
-        var key;
-        var ul = e.getElementsByClassName("detail")[0];
-        var newul = document.createDocumentFragment();
-        var li;
         e.getElementsByClassName("title")[0].textContent = vv.storage.current["Title"];
         e.getElementsByClassName("artist")[0].textContent = vv.storage.current["Artist"];
-        ul.innerHTML = "";
-        for (key in vv.storage.current) {
-            if (key == "Title" || key == "Artist") {
-                continue;
-            }
-            li = document.createElement("li");
-            li.textContent = key + ": " + vv.storage.current[key];
-            newul.appendChild(li);
-        }
-        ul.appendChild(newul);
+        document.getElementById("current_cover").style.backgroundImage = "url(/api/songs/"+vv.storage.current["Pos"]+"?detail=cover)";
     };
     var update_elapsed = function() {
         if (hidden()) {

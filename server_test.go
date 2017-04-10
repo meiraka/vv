@@ -15,16 +15,14 @@ import (
 
 func TestLibrary(t *testing.T) {
 	m := new(MockMusic)
-	api := apiHandler{m}
-	ts := httptest.NewServer(http.HandlerFunc(api.library))
+	handler := makeHandle(m, Config{})
+	ts := httptest.NewServer(handler)
+	url := ts.URL + "/api/library"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.LibraryRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url) })
 		if res.StatusCode != 200 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -45,13 +43,10 @@ func TestLibrary(t *testing.T) {
 	t.Run("If-Modified-Since", func(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.LibraryRet2 = time.Unix(60, 0)
-		req, _ := http.NewRequest("GET", ts.URL, nil)
+		req, _ := http.NewRequest("GET", ts.URL+"/api/library", nil)
 		req.Header.Set("If-Modified-Since", m.LibraryRet2.Format(http.TimeFormat))
 		client := new(http.Client)
-		res, err := client.Do(req)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
 		if res.StatusCode != 304 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -59,16 +54,14 @@ func TestLibrary(t *testing.T) {
 }
 func TestLibraryOne(t *testing.T) {
 	m := new(MockMusic)
-	api := apiHandler{m}
-	ts := httptest.NewServer(http.HandlerFunc(api.libraryOne))
+	handler := makeHandle(m, Config{})
+	ts := httptest.NewServer(handler)
+	url := ts.URL + "/api/library"
 	defer ts.Close()
 	t.Run("not found", func(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.LibraryRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL + "/api/library/hoge")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url + "/hoge") })
 		if res.StatusCode != 404 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -76,10 +69,7 @@ func TestLibraryOne(t *testing.T) {
 	t.Run("not found(out of range)", func(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.LibraryRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL + "/api/library/1")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url + "/1") })
 		if res.StatusCode != 404 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -87,10 +77,7 @@ func TestLibraryOne(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.LibraryRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL + "/api/library/0")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url + "/0") })
 		if res.StatusCode != 200 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -101,10 +88,7 @@ func TestLibraryOne(t *testing.T) {
 		req, _ := http.NewRequest("GET", ts.URL+"/api/library/0", nil)
 		req.Header.Set("If-Modified-Since", m.LibraryRet2.Format(http.TimeFormat))
 		client := new(http.Client)
-		res, err := client.Do(req)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
 		if res.StatusCode != 304 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -112,16 +96,14 @@ func TestLibraryOne(t *testing.T) {
 }
 func TestPlaylist(t *testing.T) {
 	m := new(MockMusic)
-	api := apiHandler{m}
-	ts := httptest.NewServer(http.HandlerFunc(api.playlist))
+	handler := makeHandle(m, Config{})
+	ts := httptest.NewServer(handler)
+	url := ts.URL + "/api/songs"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.PlaylistRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url) })
 		if res.StatusCode != 200 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -142,13 +124,10 @@ func TestPlaylist(t *testing.T) {
 	t.Run("If-Modified-Since", func(t *testing.T) {
 		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.PlaylistRet2 = time.Unix(60, 0)
-		req, _ := http.NewRequest("GET", ts.URL, nil)
+		req, _ := http.NewRequest("GET", url, nil)
 		req.Header.Set("If-Modified-Since", m.PlaylistRet2.Format(http.TimeFormat))
 		client := new(http.Client)
-		res, err := client.Do(req)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
 		if res.StatusCode != 304 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -158,7 +137,7 @@ func TestPlaylist(t *testing.T) {
 		j := strings.NewReader(
 			"{\"action\": \"sort\", \"keys\": [\"file\"], \"uri\": \"path\"}",
 		)
-		res, err := http.Post(ts.URL, "application/json", j)
+		res, err := http.Post(url, "application/json", j)
 		if err != nil {
 			t.Errorf("unexpected error %s", err.Error())
 		}
@@ -175,16 +154,14 @@ func TestPlaylist(t *testing.T) {
 
 func TestPlaylistOne(t *testing.T) {
 	m := new(MockMusic)
-	api := apiHandler{m}
-	ts := httptest.NewServer(http.HandlerFunc(api.playlistOne))
+	handler := makeHandle(m, Config{})
+	ts := httptest.NewServer(handler)
+	url := ts.URL + "/api/songs"
 	defer ts.Close()
 	t.Run("not found", func(t *testing.T) {
 		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.PlaylistRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL + "/api/songs/hoge")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url + "/hoge") })
 		if res.StatusCode != 404 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -192,10 +169,7 @@ func TestPlaylistOne(t *testing.T) {
 	t.Run("not found(out of range)", func(t *testing.T) {
 		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.PlaylistRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL + "/api/songs/1")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url + "/1") })
 		if res.StatusCode != 404 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -203,10 +177,7 @@ func TestPlaylistOne(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.PlaylistRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL + "/api/songs/0")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url + "/0") })
 		if res.StatusCode != 200 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -214,13 +185,10 @@ func TestPlaylistOne(t *testing.T) {
 	t.Run("If-Modified-Since", func(t *testing.T) {
 		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.PlaylistRet2 = time.Unix(60, 0)
-		req, _ := http.NewRequest("GET", ts.URL+"/api/songs/0", nil)
+		req, _ := http.NewRequest("GET", url+"/0", nil)
 		req.Header.Set("If-Modified-Since", m.PlaylistRet2.Format(http.TimeFormat))
 		client := new(http.Client)
-		res, err := client.Do(req)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
 		if res.StatusCode != 304 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -228,16 +196,14 @@ func TestPlaylistOne(t *testing.T) {
 }
 func TestOutput(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, "")
+	handler := makeHandle(m, Config{})
 	ts := httptest.NewServer(handler)
+	url := ts.URL + "/api/outputs"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		m.OutputsRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.OutputsRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL + "/api/outputs")
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url) })
 		if res.StatusCode != 200 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -258,13 +224,10 @@ func TestOutput(t *testing.T) {
 	t.Run("If-Modified-Since", func(t *testing.T) {
 		m.OutputsRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.OutputsRet2 = time.Unix(60, 0)
-		req, _ := http.NewRequest("GET", ts.URL+"/api/outputs", nil)
+		req, _ := http.NewRequest("GET", url, nil)
 		req.Header.Set("If-Modified-Since", m.OutputsRet2.Format(http.TimeFormat))
 		client := new(http.Client)
-		res, err := client.Do(req)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
 		if res.StatusCode != 304 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -273,7 +236,7 @@ func TestOutput(t *testing.T) {
 		j := strings.NewReader(
 			"{\"outputenabled\": true}",
 		)
-		res, err := http.Post(ts.URL+"/api/outputs/1", "application/json", j)
+		res, err := http.Post(url+"/1", "application/json", j)
 		if err != nil {
 			t.Errorf("unexpected error %s", err.Error())
 		}
@@ -292,16 +255,14 @@ func TestOutput(t *testing.T) {
 }
 func TestCurrent(t *testing.T) {
 	m := new(MockMusic)
-	api := apiHandler{m}
-	ts := httptest.NewServer(http.HandlerFunc(api.current))
+	handler := makeHandle(m, Config{})
+	ts := httptest.NewServer(handler)
+	url := ts.URL + "/api/songs/current"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		m.CurrentRet1 = mpd.Attrs{"foo": "bar"}
 		m.CurrentRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url) })
 		if res.StatusCode != 200 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -322,13 +283,10 @@ func TestCurrent(t *testing.T) {
 	t.Run("If-Modified-Since", func(t *testing.T) {
 		m.CurrentRet1 = mpd.Attrs{"foo": "bar"}
 		m.CurrentRet2 = time.Unix(60, 0)
-		req, _ := http.NewRequest("GET", ts.URL, nil)
+		req, _ := http.NewRequest("GET", url, nil)
 		req.Header.Set("If-Modified-Since", m.CurrentRet2.Format(http.TimeFormat))
 		client := new(http.Client)
-		res, err := client.Do(req)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
 		if res.StatusCode != 304 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -336,17 +294,15 @@ func TestCurrent(t *testing.T) {
 }
 func TestControl(t *testing.T) {
 	m := new(MockMusic)
-	api := apiHandler{m}
-	ts := httptest.NewServer(http.HandlerFunc(api.control))
+	handler := makeHandle(m, Config{})
+	ts := httptest.NewServer(handler)
+	url := ts.URL + "/api/control"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		s := convStatus(mpd.Attrs{}, 0)
 		m.StatusRet1 = s
 		m.StatusRet2 = time.Unix(0, 0)
-		res, err := http.Get(ts.URL)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url) })
 		if res.StatusCode != 200 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -368,13 +324,10 @@ func TestControl(t *testing.T) {
 		s := convStatus(mpd.Attrs{}, 60)
 		m.StatusRet1 = s
 		m.StatusRet2 = time.Unix(60, 0)
-		req, _ := http.NewRequest("GET", ts.URL, nil)
+		req, _ := http.NewRequest("GET", url, nil)
 		req.Header.Set("If-Modified-Since", m.StatusRet2.Format(http.TimeFormat))
 		client := new(http.Client)
-		res, err := client.Do(req)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
-		}
+		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
 		if res.StatusCode != 304 {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
@@ -383,7 +336,7 @@ func TestControl(t *testing.T) {
 		j := strings.NewReader(
 			"{\"volume\": 1}",
 		)
-		res, err := http.Post(ts.URL, "application/json", j)
+		res, err := http.Post(url, "application/json", j)
 		if err != nil {
 			t.Errorf("unexpected request error: %s", err.Error())
 			return
@@ -401,7 +354,7 @@ func TestControl(t *testing.T) {
 		j := strings.NewReader(
 			"{\"repeat\": true}",
 		)
-		res, err := http.Post(ts.URL, "application/json", j)
+		res, err := http.Post(url, "application/json", j)
 		if err != nil {
 			t.Errorf("unexpected request error: %s", err.Error())
 			return
@@ -419,7 +372,7 @@ func TestControl(t *testing.T) {
 		j := strings.NewReader(
 			"{\"random\": true}",
 		)
-		res, err := http.Post(ts.URL, "application/json", j)
+		res, err := http.Post(url, "application/json", j)
 		if err != nil {
 			t.Errorf("unexpected request error: %s", err.Error())
 			return
@@ -452,7 +405,7 @@ func TestControl(t *testing.T) {
 		}
 		for _, c := range candidates {
 			j := strings.NewReader(c.input)
-			res, err := http.Post(ts.URL, "application/json", j)
+			res, err := http.Post(url, "application/json", j)
 			if err != nil {
 				t.Errorf("unexpected request error: %s", err.Error())
 				return
@@ -469,7 +422,7 @@ func TestControl(t *testing.T) {
 	})
 	t.Run("state unknown", func(t *testing.T) {
 		j := strings.NewReader("{\"state\": \"unknown\"}")
-		res, err := http.Post(ts.URL, "application/json", j)
+		res, err := http.Post(url, "application/json", j)
 		if err != nil {
 			t.Errorf("unexpected request error: %s", err.Error())
 			return
@@ -498,6 +451,14 @@ func decodeJSONError(b io.Reader) (jsonError, error) {
 		return d, err
 	}
 	return d, nil
+}
+
+func checkRequestError(t *testing.T, f func() (*http.Response, error)) *http.Response {
+	r, err := f()
+	if err != nil {
+		t.Fatalf("failed to request: %s", err.Error())
+	}
+	return r
 }
 
 type MockMusic struct {

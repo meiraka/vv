@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const musicDirectory = "/music_directory/"
+
 func writeJSONInterface(w http.ResponseWriter, d interface{}, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
@@ -45,6 +47,11 @@ func writeJSON(w http.ResponseWriter, err error) {
 	return
 }
 
+/*modifiedSince compares If-Modified-Since header given time.Time.*/
+func modifiedSince(r *http.Request, l time.Time) bool {
+	return r.Header.Get("If-Modified-Since") != l.Format(http.TimeFormat)
+}
+
 func notModified(w http.ResponseWriter, l time.Time) {
 	w.Header().Add("Content-Type", "application/json")
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
@@ -52,24 +59,27 @@ func notModified(w http.ResponseWriter, l time.Time) {
 	return
 }
 
-func notFound(w http.ResponseWriter) {
-	w.WriteHeader(404)
-	return
+/*redirectCover returns 302 found with song cover addr.*/
+func redirectCover(dir, file string, w http.ResponseWriter, r *http.Request) {
+	cover := findCover(path.Join(dir, file), "cover.*")
+	if cover != "" {
+		addr := strings.Replace(cover, dir, musicDirectory, -1)
+		http.RedirectHandler(addr, 302).ServeHTTP(w, r)
+		return
+	}
+	http.NotFound(w, r)
 }
 
 type apiHandler struct {
 	player Music
+	config Config
 }
 
-func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
+func (a *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		d, l := h.player.Playlist()
-		if modified(r, l) {
-			writeJSONInterface(w, d, l, nil)
-		} else {
-			notModified(w, l)
-		}
+		d, l := a.player.Playlist()
+		a.returnList(w, r, d, l)
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
 		var s struct {
@@ -79,69 +89,43 @@ func (h *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
 		}
 		err := decoder.Decode(&s)
 		if err == nil {
-			h.player.SortPlaylist(s.Keys, s.URI)
+			a.player.SortPlaylist(s.Keys, s.URI)
 		}
 		writeJSON(w, err)
 	}
 }
 
-func returnOne(w http.ResponseWriter, r *http.Request, path string, d []mpd.Attrs, l time.Time) {
-	id, err := strconv.Atoi(path)
-	if err != nil {
-		notFound(w)
-		return
-	}
-	if len(d) <= id || id < 0 {
-		notFound(w)
-		return
-	}
-	s := d[id]
-	if modified(r, l) {
-		writeJSONInterface(w, s, l, nil)
-	} else {
-		notModified(w, l)
-	}
-}
-
-func (h *apiHandler) playlistOne(w http.ResponseWriter, r *http.Request) {
+func (a *apiHandler) playlistOne(w http.ResponseWriter, r *http.Request) {
 	p := strings.Replace(r.URL.Path, "/api/songs/", "", -1)
 	if p == "" {
-		h.playlist(w, r)
+		a.playlist(w, r)
 		return
 	}
-	d, l := h.player.Playlist()
-	returnOne(w, r, p, d, l)
+	d, l := a.player.Playlist()
+	a.returnListInSong(w, r, p, d, l)
 }
 
-func (h *apiHandler) library(w http.ResponseWriter, r *http.Request) {
-	d, l := h.player.Library()
-	if modified(r, l) {
-		writeJSONInterface(w, d, l, nil)
-	} else {
-		notModified(w, l)
-	}
+func (a *apiHandler) library(w http.ResponseWriter, r *http.Request) {
+	d, l := a.player.Library()
+	a.returnList(w, r, d, l)
 }
 
-func (h *apiHandler) libraryOne(w http.ResponseWriter, r *http.Request) {
+func (a *apiHandler) libraryOne(w http.ResponseWriter, r *http.Request) {
 	p := strings.Replace(r.URL.Path, "/api/library/", "", -1)
 	if p == "" {
-		h.library(w, r)
+		a.library(w, r)
 		return
 	}
-	d, l := h.player.Library()
-	returnOne(w, r, p, d, l)
+	d, l := a.player.Library()
+	a.returnListInSong(w, r, p, d, l)
 }
 
-func (h *apiHandler) current(w http.ResponseWriter, r *http.Request) {
-	d, l := h.player.Current()
-	if modified(r, l) {
-		writeJSONInterface(w, d, l, nil)
-	} else {
-		notModified(w, l)
-	}
+func (a *apiHandler) current(w http.ResponseWriter, r *http.Request) {
+	d, l := a.player.Current()
+	a.returnSong(w, r, d, l)
 }
 
-func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
+func (a *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		j, err := parseSimpleJSON(r.Body)
@@ -150,32 +134,20 @@ func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		funcs := []func() error{
-			func() error {
-				return j.execIfInt("volume", func(i int) error {
-					return h.player.Volume(i)
-				})
-			},
-			func() error {
-				return j.execIfBool("repeat", func(b bool) error {
-					return h.player.Repeat(b)
-				})
-			},
-			func() error {
-				return j.execIfBool("random", func(b bool) error {
-					return h.player.Random(b)
-				})
-			},
+			func() error { return j.execIfInt("volume", a.player.Volume) },
+			func() error { return j.execIfBool("repeat", a.player.Repeat) },
+			func() error { return j.execIfBool("random", a.player.Random) },
 			func() error {
 				return j.execIfString("state", func(s string) error {
 					switch s {
 					case "play":
-						return h.player.Play()
+						return a.player.Play()
 					case "pause":
-						return h.player.Pause()
+						return a.player.Pause()
 					case "next":
-						return h.player.Next()
+						return a.player.Next()
 					case "prev":
-						return h.player.Prev()
+						return a.player.Prev()
 					}
 					return errors.New("unknown state value: " + s)
 				})
@@ -191,8 +163,8 @@ func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, err)
 		return
 	case "GET":
-		d, l := h.player.Status()
-		if modified(r, l) {
+		d, l := a.player.Status()
+		if modifiedSince(r, l) {
 			writeJSONInterface(w, d, l, nil)
 		} else {
 			notModified(w, l)
@@ -200,8 +172,8 @@ func (h *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
-	d, l := h.player.Outputs()
+func (a *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
+	d, l := a.player.Outputs()
 	if r.Method == "POST" {
 		id, err := strconv.Atoi(
 			strings.Replace(r.URL.Path, "/api/outputs/", "", -1),
@@ -219,18 +191,49 @@ func (h *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, err)
 			return
 		}
-		writeJSON(w, h.player.Output(id, s.OutputEnabled))
+		writeJSON(w, a.player.Output(id, s.OutputEnabled))
 		return
 	}
-	if modified(r, l) {
+	if modifiedSince(r, l) {
 		writeJSONInterface(w, d, l, nil)
 	} else {
 		notModified(w, l)
 	}
 }
 
-func modified(r *http.Request, l time.Time) bool {
-	return r.Header.Get("If-Modified-Since") != l.Format(http.TimeFormat)
+func (a *apiHandler) returnSong(w http.ResponseWriter, r *http.Request, s mpd.Attrs, l time.Time) {
+	detail := r.FormValue("detail")
+	if detail == "cover" {
+		redirectCover(a.config.Mpd.MusicDirectory, s["file"], w, r)
+		return
+	}
+	if modifiedSince(r, l) {
+		writeJSONInterface(w, s, l, nil)
+	} else {
+		notModified(w, l)
+	}
+}
+
+func (a *apiHandler) returnListInSong(w http.ResponseWriter, r *http.Request, path string, d []mpd.Attrs, l time.Time) {
+	id, err := strconv.Atoi(path)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if len(d) <= id || id < 0 {
+		http.NotFound(w, r)
+		return
+	}
+	s := d[id]
+	a.returnSong(w, r, s, l)
+}
+
+func (a *apiHandler) returnList(w http.ResponseWriter, r *http.Request, d []mpd.Attrs, l time.Time) {
+	if modifiedSince(r, l) {
+		writeJSONInterface(w, d, l, nil)
+	} else {
+		notModified(w, l)
+	}
 }
 
 func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Request) {
@@ -246,19 +249,19 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 	}
 }
 
-func makeHandle(p Music, musicDir string) http.Handler {
-	var api = new(apiHandler)
-	api.player = p
-	http.HandleFunc("/api/library", api.library)
-	http.HandleFunc("/api/library/", api.libraryOne)
-	http.HandleFunc("/api/songs", api.playlist)
-	http.HandleFunc("/api/songs/", api.playlistOne)
-	http.HandleFunc("/api/songs/current", api.current)
-	http.HandleFunc("/api/control", api.control)
-	http.HandleFunc("/api/outputs", api.outputs)
-	http.HandleFunc("/api/outputs/", api.outputs)
-	fs := http.StripPrefix("/music_directory/", http.FileServer(http.Dir(musicDir)))
-	http.HandleFunc("/music_directory/", func(w http.ResponseWriter, r *http.Request) {
+func makeHandle(p Music, c Config) http.Handler {
+	api := apiHandler{p, c}
+	h := http.NewServeMux()
+	h.HandleFunc("/api/library", api.library)
+	h.HandleFunc("/api/library/", api.libraryOne)
+	h.HandleFunc("/api/songs", api.playlist)
+	h.HandleFunc("/api/songs/", api.playlistOne)
+	h.HandleFunc("/api/songs/current", api.current)
+	h.HandleFunc("/api/control", api.control)
+	h.HandleFunc("/api/outputs", api.outputs)
+	h.HandleFunc("/api/outputs/", api.outputs)
+	fs := http.StripPrefix(musicDirectory, http.FileServer(http.Dir(c.Mpd.MusicDirectory)))
+	h.HandleFunc(musicDirectory, func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
 	})
 	for _, f := range AssetNames() {
@@ -269,22 +272,22 @@ func makeHandle(p Music, musicDir string) http.Handler {
 		_, err := os.Stat(f)
 		if !os.IsNotExist(err) {
 			func(path, rpath string) {
-				http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+				h.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 					http.ServeFile(w, r, rpath)
 				})
 			}(p, f)
 		} else {
 			data, _ := Asset(f)
-			http.HandleFunc(p, makeHandleAssets(f, data))
+			h.HandleFunc(p, makeHandleAssets(f, data))
 		}
 	}
-	return http.DefaultServeMux
+	return h
 }
 
 // App serves http request.
-func App(p Music, config Config) {
-	handler := makeHandle(p, config.Mpd.MusicDirectory)
-	http.ListenAndServe(fmt.Sprintf(":%s", config.Server.Port), handler)
+func App(p Music, c Config) {
+	handler := makeHandle(p, c)
+	http.ListenAndServe(fmt.Sprintf(":%s", c.Server.Port), handler)
 }
 
 // Music Represents music player.

@@ -5,6 +5,7 @@ body {
     padding: 0px;
 }
 
+
 header, footer {
     position: fixed;
     z-index: 10;
@@ -168,8 +169,18 @@ section {
     white-space: nowrap;
 }
 
+#current_cover {
+    position: fixed;
+    top: 20%;
+    height: 60%;
+    z-index: -100;
+	background-position: center center; 
+	background-repeat: no-repeat;
+    background-size: contain;
+}
+
 @media (orientation: portrait) {
-    #main .title, #main .artist, #main .detail, #main .elapsed_img {
+    #main .title, #main .artist, #main .elapsed_img {
         position: fixed;
         left: 10px;
         width: 100%;
@@ -185,9 +196,13 @@ section {
     #main .elapsed_img svg {
         height: 100%;
     }
+    #current_cover {
+        left: 20%;
+        width: 60%;
+    }
 }
 @media (orientation: landscape) {
-    #main .title, #main .artist, #main .detail, #main .elapsed, #main .elapsed_img {
+    #main .title, #main .artist, #main .elapsed, #main .elapsed_img {
         position: fixed;
         left: 50%;
         width: 100%;
@@ -200,6 +215,10 @@ section {
         width: 50%;
         height: 100%;
     }
+    #current_cover {
+        left: 60%;
+        width: 30%;
+    }
 }
 
 #main .title {
@@ -209,13 +228,6 @@ section {
 #main .artist {
     top: 120px;
     font-size: 20px;
-}
-
-#main .detail {
-    top: 150px;
-    list-style-type: none;
-    padding: 10px;
-    z-index: 0;
 }
 
 #main li {
