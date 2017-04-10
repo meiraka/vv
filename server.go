@@ -257,6 +257,10 @@ func makeHandle(p Music, musicDir string) http.Handler {
 	http.HandleFunc("/api/control", api.control)
 	http.HandleFunc("/api/outputs", api.outputs)
 	http.HandleFunc("/api/outputs/", api.outputs)
+	fs := http.StripPrefix("/music_directory/", http.FileServer(http.Dir(musicDir)))
+	http.HandleFunc("/music_directory/", func(w http.ResponseWriter, r *http.Request) {
+		fs.ServeHTTP(w, r)
+	})
 	for _, f := range AssetNames() {
 		p := "/" + f
 		if f == "assets/app.html" {
