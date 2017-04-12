@@ -3,8 +3,8 @@ body {
     margin: 0px;
     border: 0px;
     padding: 0px;
+    font-family: Arial,sans-serif;
 }
-
 
 header, footer {
     position: fixed;
@@ -21,7 +21,11 @@ header {
         rgba(255,255,255,0.0) 100%
     );
 }
-
+section {
+    position: absolute;
+    top: 80px;
+    z-index: 1;
+}
 footer {
     bottom: 0px;
     width: 100%;
@@ -32,24 +36,6 @@ footer {
     );
 }
 @media (orientation: portrait) {
-    footer {
-        height: 140px;
-    }
-}
-@media (orientation: landscape) {
-    footer {
-        height: 90px;
-    }
-}
-
-
-section {
-    position: absolute;
-    top: 80px;
-    z-index: 1;
-}
-
-@media (orientation: portrait) {
     section {
         left: 0px;
         width: 100%;
@@ -58,20 +44,28 @@ section {
     #list {
         display: none;
     }
+    footer {
+        height: 140px;
+    }
 }
 @media (orientation: landscape) {
     section {
-        width: 50%;
         padding: 0px 0px 90px;
     }
     #list {
         left: 0px;
+        width: 50%;
     }
     #main {
         left: 50%;
+        width: 50%;
     }
     #config {
+        left: 0px;
         width: 100%;
+    }
+    footer {
+        height: 90px;
     }
 }
 
@@ -82,84 +76,105 @@ section {
     margin: 0px 12px;
     padding: 0px;
 }
-
+#list ol li {
+    position: relative;
+    margin-top: 1px;
+    border-bottom: dashed 1px #f0f0f0;
+}
+#list ol li span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 #list .plain {
-    position: relative;
-    padding-top: 8px;
-    height: 30px;
-    font-size: 18px;
-    border-bottom: solid 1px #f0f0f0;
-}
-
-#list .song {
-    position: relative;
     height: 40px;
-    border-bottom: solid 1px #f0f0f0;
-    margin-bottom: 2px;
-    margin-top: 4px;
 }
-#list .song .track, #list .song .length, #list .song .length_separator, #list .song .elapsed {
+#list .plain .key {
     position: absolute;
-    bottom: 14px;
-    font-size: 12px;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 20px;
+    padding: 10px 0px;
+    font-size: 18px;
+    color: #404040;
+}
+#list .song {
+    height: 40px;
+}
+#list .song span {
+    position: absolute;
+    position: absolute;
+    padding: 10px 0px;
+    top: 0px;
+    height: 20px;
 }
 #list .song .track {
+    top: 0px;
     left: 0px;
+    font-size: 18px;
 }
 #list .song .elapsed {
-    right: 63px;
-    text-shadow: 1px 1px 0px white;
+    top: 0px;
+    right: 65px;
+    font-size: 18px;
 }
 #list .song .length_separator {
-    right: 50px;
-    text-shadow: 1px 1px 0px white;
+    top: 0px;
+    right: 57px;
+    font-size: 18px;
 }
 #list .song .length {
+    top: 0px;
     right: 10px;
-    text-shadow: 1px 1px 0px white;
+    font-size: 18px;
 }
 #list .song .title {
-    position: absolute;
-    left: 40px;
-    top: 10px;
-    width: calc(100% - 120px);
+    top: 0px;
+    left: 50px;
     font-size: 18px;
-    line-height: 14px;
-    text-shadow: 1px 1px 0px white,1px 0px 0px white;
+    width: calc(100% - 120px);
 }
 #list .song .artist {
-    position: absolute;
-    top: 24px;
-    left: 40px;
+    top: 16px;
+    left: 50px;
     font-size: 12px;
 }
 #list .album {
     position: relative;
-    height: 50px;
-    border-bottom: solid 1px #f0f0f0;
+    height: 80px;
 }
-#list .album .date {
-    position: absolute;
-    top: 14px;
-    left: 10px;
-    font-size: 12px;
-    color: #808080;
-    border: 0px;
+#list .album .cover {
+    position: relative;
+    top: 5px;
+    left: 5px;
+    width: auto;
+    height: 70px;
 }
 #list .album .album {
     position: absolute;
-    top: 12px;
-    left: 50px;
-    line-height: 13px;
-    text-shadow: 1px 1px 0px white,1px 0px 0px white;
+    top: 5px;
+    left: 80px;
     font-size: 22px;
+    border: 0px;
+    width: calc(100% - 80px);
+    height: 50px;
+    white-space: normal;
+    overflow: hidden;
+}
+#list .album .date {
+    position: absolute;
+    top: 54px;
+    left: 80px;
+    font-size: 8px;
+    color: #808080;
     border: 0px;
 }
 #list .album .albumartist {
     position: absolute;
-    top: 30px;
-    left: 20px;
-    font-size: 14px;
+    top: 60px;
+    left: 80px;
+    font-size: 12px;
     border: 0px;
 }
 
