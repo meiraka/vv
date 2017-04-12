@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -339,6 +340,9 @@ func (p *Player) updateLibrary() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.library = songsAddReadableData(library)
+	for i := range p.library {
+		p.library[i]["Pos"] = strconv.Itoa(i)
+	}
 	p.libraryModified = time.Now()
 	return nil
 }
