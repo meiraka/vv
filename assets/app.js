@@ -485,12 +485,6 @@ vv.view.main = (function(){
         document.getElementById("playback_volume").children[0].value=vv.storage.control["volume"]
     });
     vv.control.addEventListener("config", load_volume_config);
-    var init = function() {
-        document.getElementById("playback_volume").children[0].addEventListener("change", function() {
-            vv.control.volume(parseInt(this.value));
-        });
-        load_volume_config();
-    };
     (function() {
         if (document.readyState !== 'loading') {
             init();
@@ -514,6 +508,18 @@ vv.view.main = (function(){
         e.getElementsByClassName("title")[0].textContent = vv.storage.current["Title"];
         e.getElementsByClassName("artist")[0].textContent = vv.storage.current["Artist"];
         document.getElementById("current_cover").style.backgroundImage = "url(/api/songs/"+vv.storage.current["Pos"]+"?detail=cover)";
+    };
+    var resize_image = function() {
+        var p = window.matchMedia('(orientation: portrait)').matches
+        var w = document.body.clientWidth;
+        if (!p) {w = parseInt(w / 2);}
+        var h = window.innerHeight;
+        var e = document.getElementById("current_cover");
+        var cs = parseInt((w < h ? w : h) * 0.7);
+        e.style.top = (h - cs) / 2 + "px";
+        // e.style.left = (p? ((w - cs) / 2) : ((w - cs)/2 + w)) + "px";
+        // e.style.width = cs + "px";
+        e.style.height = cs + "px";
     };
     var update_elapsed = function() {
         if (hidden()) {
@@ -548,10 +554,19 @@ vv.view.main = (function(){
         }
         show();
     }
+    var init = function() {
+        document.getElementById("playback_volume").children[0].addEventListener("change", function() {
+            vv.control.volume(parseInt(this.value));
+        });
+        load_volume_config();
+        window.addEventListener("resize", resize_image, false);
+        resize_image();
+    };
     window.matchMedia("(orientation: portrait)").addListener(orientation);
     window.matchMedia("(orientation: landscape)").addListener(orientation);
     vv.control.addEventListener("current", update);
     vv.control.addEventListener("poll", update_elapsed);
+    vv.control.addEventListener("start", init);
     return {
         show: show,
         hide: hide,
