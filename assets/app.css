@@ -134,6 +134,7 @@ footer {
 #list .album .cover {
     width: auto;
     height: 70px;
+    max-height: 100%;
 }
 #list .album .album {
     font-size: 22px;
