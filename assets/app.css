@@ -76,106 +76,73 @@ footer {
     margin: 0px 12px;
     padding: 0px;
 }
-#list ol li {
-    position: relative;
+#list li {
+    display: flex;
     margin-top: 1px;
     border-bottom: dashed 1px #f0f0f0;
 }
-#list ol li span {
+#list li span {
+}
+#list .plain {
+    align-items: baseline;
+}
+#list .plain .key {
+    color: #404040;
+    margin: 8px 4px;
+    font-size: 20px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-#list .plain {
-    height: 40px;
-}
-#list .plain .key {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    width: 100%;
-    height: 20px;
-    padding: 10px 0px;
-    font-size: 18px;
-    color: #404040;
-}
 #list .song {
-    height: 40px;
+    align-items: center;
 }
 #list .song span {
-    position: absolute;
-    position: absolute;
-    padding: 10px 0px;
-    top: 0px;
-    height: 20px;
-}
-#list .song .track {
-    top: 0px;
-    left: 0px;
-    font-size: 18px;
-}
-#list .song .elapsed {
-    top: 0px;
-    right: 65px;
-    font-size: 18px;
-}
-#list .song .length_separator {
-    top: 0px;
-    right: 57px;
-    font-size: 18px;
-}
-#list .song .length {
-    top: 0px;
-    right: 10px;
-    font-size: 18px;
+    margin: 8px;
 }
 #list .song .title {
-    top: 0px;
-    left: 50px;
-    font-size: 18px;
-    width: calc(100% - 120px);
+    flex: 1 1 auto;
+    font-size: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-#list .song .artist {
-    top: 16px;
-    left: 50px;
+#list .song .track,
+#list .song .artist,
+#list .song .elapsed,
+#list .song .length_separator,
+#list .song .length {
     font-size: 12px;
 }
+#list .song .length_separator {
+    margin: 0;
+}
 #list .album {
-    position: relative;
-    height: 80px;
+    align-items: center;
+}
+#list .album .detail {
+    display: flex;
+    flex-direction: column;
+}
+#list .album .img-sq {
+    display: flex;
+    justify-content: flex-end;
+    width: 70px;
+    height: 70px;
+    padding: 5px;
 }
 #list .album .cover {
-    position: relative;
-    top: 5px;
-    left: 5px;
     width: auto;
     height: 70px;
 }
 #list .album .album {
-    position: absolute;
-    top: 5px;
-    left: 80px;
     font-size: 22px;
-    border: 0px;
-    width: calc(100% - 80px);
-    height: 50px;
-    white-space: normal;
-    overflow: hidden;
 }
 #list .album .date {
-    position: absolute;
-    top: 54px;
-    left: 80px;
-    font-size: 8px;
-    color: #808080;
-    border: 0px;
+    font-size: 10px;
 }
 #list .album .albumartist {
-    position: absolute;
-    top: 60px;
-    left: 80px;
-    font-size: 12px;
-    border: 0px;
+    font-size: 14px;
 }
 
 #main span {
@@ -265,42 +232,25 @@ footer {
     padding: 0 20px;
 }
 #config ul li {
-    position: relative;
-    height: 40px;
+    align-items: center;
+    display: flex;
     margin-top: 1px;
     border-bottom: dashed 1px #f0f0f0;
 }
 #config ul li .description {
-    position: absolute;
-    top: 0px;
-    left: 0px;
     font-size: 18px;
     color: #404040;
-    padding: 10px 0px;
-    height: 20px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1 1 auto;
 }
-@media (min-width: 600px) { #config ul li .description {
-    width: 50%;
-}}
-@media (max-width: 600px) { #config ul li .description {
-    width: calc(100% - 100px);
-}}
 
 #config ul li .value {
-    position: absolute;
-    top: 5px;
 }
-@media (min-width: 600px) { #config ul li .value {
-    left: 50%;
-}}
-@media (max-width: 600px) { #config ul li .value {
-    right: 0px;
-}}
 
 .switch {
+    margin: 5px;
     width: 100px;
     height: 30px;
 }
@@ -357,8 +307,8 @@ footer {
     font-size: 18px;
     color: #ffffff;
     padding: 5px 5px 0px 50px;
+    margin: 5px;
 }
-
 
 #error {
     position: fixed;

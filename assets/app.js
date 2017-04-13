@@ -645,10 +645,12 @@ vv.view.list = (function(){
             }
             inner += "<span class=length>"+vv.song.get(song, "Length")+"</span>";
         } else if (style == "album") {
-            inner += '<img class=cover src="/api/library/'+song["Pos"]+'?detail=cover">';
+            inner += '<div class=img-sq><img class=cover src="/api/library/'+song["Pos"]+'?detail=cover"></div>';
+            inner += "<div class=detail>"
             inner += "<span class=date>"+vv.song.get(song, "Date")+"</span>";
             inner += "<span class=album>"+vv.song.get(song, "Album")+"</span>";
             inner += "<span class=albumartist>"+vv.song.get(song, "AlbumArtist")+"</span>";
+            inner += "</div>"
         } else {
             inner = "<span class=key>"+vv.song.get(song, key)+"</span>";
         }
