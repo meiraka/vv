@@ -10,11 +10,12 @@ import (
 )
 
 /*Dial Connects to mpd server.*/
-func Dial(network, addr, passwd string) (*Player, error) {
+func Dial(network, addr, passwd, musicDirectory string) (*Player, error) {
 	p := new(Player)
 	p.network = network
 	p.addr = addr
 	p.passwd = passwd
+	p.musicDirectory = musicDirectory
 	return p, p.initIfNot()
 }
 
@@ -23,11 +24,13 @@ type Player struct {
 	network          string
 	addr             string
 	passwd           string
+	musicDirectory   string
 	mpc              mpdClient
 	watcher          mpd.Watcher
 	watcherResponse  chan error
 	daemonStop       chan bool
 	daemonRequest    chan *playerMessage
+	coverCache       map[string]string
 	init             sync.Mutex
 	mutex            sync.Mutex
 	current          mpd.Attrs
@@ -206,6 +209,7 @@ func (p *Player) initIfNot() error {
 	if p.daemonStop == nil {
 		p.daemonStop = make(chan bool)
 		p.daemonRequest = make(chan *playerMessage)
+		p.coverCache = make(map[string]string)
 		fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus, p.updateOutputs}
 		for i := range fs {
 			err := fs[i]()
@@ -316,6 +320,7 @@ func (p *Player) updateCurrentSong() error {
 		p.mutex.Lock()
 		defer p.mutex.Unlock()
 		p.current = songAddReadableData(song)
+		p.current = songFindCover(p.current, p.musicDirectory, p.coverCache)
 		p.currentModified = time.Now()
 	}
 	return nil
@@ -340,6 +345,7 @@ func (p *Player) updateLibrary() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.library = songsAddReadableData(library)
+	p.library = songsFindCover(p.library, p.musicDirectory, p.coverCache)
 	for i := range p.library {
 		p.library[i]["Pos"] = strconv.Itoa(i)
 	}
@@ -355,6 +361,7 @@ func (p *Player) updatePlaylist() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.playlist = songsAddReadableData(playlist)
+	p.playlist = songsFindCover(p.playlist, p.musicDirectory, p.coverCache)
 	p.playlistModified = time.Now()
 	return nil
 }

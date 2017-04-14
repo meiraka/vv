@@ -31,7 +31,7 @@ func initMock(dialError, newWatcherError error) *mockMpc {
 
 func TestDial(t *testing.T) {
 	m := initMock(nil, nil)
-	_, err := Dial("tcp", "localhost:6600", "")
+	_, err := Dial("tcp", "localhost:6600", "", "./")
 	if err != nil {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
@@ -44,7 +44,7 @@ func TestDial(t *testing.T) {
 
 	me := new(mockError)
 	m = initMock(me, nil)
-	_, err = Dial("tcp", "localhost:6600", "")
+	_, err = Dial("tcp", "localhost:6600", "", "./")
 	if err != me {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
@@ -56,7 +56,7 @@ func TestDial(t *testing.T) {
 	}
 
 	m = initMock(nil, me)
-	_, err = Dial("tcp", "localhost:6600", "")
+	_, err = Dial("tcp", "localhost:6600", "", "./")
 	if err != me {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
@@ -73,7 +73,7 @@ func TestDial(t *testing.T) {
 
 func TestPlayerPlay(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	m.PlayRet1 = new(mockError)
 	err := p.Play()
 	if m.PlayCalled != 1 {
@@ -102,7 +102,7 @@ func TestPlayerPlay(t *testing.T) {
 
 func TestPlayerPause(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	m.PauseRet1 = new(mockError)
 	err := p.Pause()
 	if m.PauseCalled != 1 {
@@ -131,7 +131,7 @@ func TestPlayerPause(t *testing.T) {
 
 func TestPlayerNext(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	m.NextRet1 = new(mockError)
 	err := p.Next()
 	if m.NextCalled != 1 {
@@ -152,7 +152,7 @@ func TestPlayerNext(t *testing.T) {
 
 func TestPlayerPrevious(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	m.PreviousRet1 = new(mockError)
 	err := p.Prev()
 	if m.PreviousCalled != 1 {
@@ -173,7 +173,7 @@ func TestPlayerPrevious(t *testing.T) {
 
 func TestPlayerSetVolume(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	err := p.Volume(1)
 	if m.SetVolumeCalled != 1 {
 		t.Errorf("Client.SetVolume does not Called")
@@ -185,7 +185,7 @@ func TestPlayerSetVolume(t *testing.T) {
 
 func TestPlayerRepeat(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	err := p.Repeat(true)
 	if m.RepeatCalled != 1 {
 		t.Errorf("Client.Repeat does not Called")
@@ -200,7 +200,7 @@ func TestPlayerRepeat(t *testing.T) {
 
 func TestPlayerRandom(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	err := p.Random(true)
 	if m.RandomCalled != 1 {
 		t.Errorf("Client.Random does not Called")
@@ -215,7 +215,7 @@ func TestPlayerRandom(t *testing.T) {
 
 func TestPlayerPlaylist(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	p.watcherResponse = make(chan error)
 	m.PlaylistInfoCalled = 0
 	m.PlaylistInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
@@ -246,7 +246,7 @@ func TestPlayerPlaylist(t *testing.T) {
 
 func TestPlayerLibrary(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	p.watcherResponse = make(chan error)
 	m.ListAllInfoCalled = 0
 	m.ListAllInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
@@ -277,7 +277,7 @@ func TestPlayerLibrary(t *testing.T) {
 
 func TestPlayerCurrent(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	p.watcherResponse = make(chan error)
 	m.CurrentSongCalled = 0
 	m.StatusCalled = 0
@@ -302,7 +302,7 @@ func TestPlayerCurrent(t *testing.T) {
 		// update current/status/comments
 		{
 			mpd.Attrs{"file": "p"}, nil, 2,
-			songAddReadableData(mpd.Attrs{"file": "p"}),
+			songFindCover(songAddReadableData(mpd.Attrs{"file": "p"}), p.musicDirectory, p.coverCache),
 			mpd.Attrs{}, nil, 2,
 			convStatus(mpd.Attrs{}, time.Now().Unix()),
 		},
@@ -347,7 +347,7 @@ func TestPlayerCurrent(t *testing.T) {
 
 func TestPlayerOutputs(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "")
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	p.watcherResponse = make(chan error)
 	m.ListOutputsCalled = 0
 	m.ListOutputsRet1 = []mpd.Attrs{{"foo": "bar"}}

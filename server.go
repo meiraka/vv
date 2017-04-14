@@ -59,17 +59,6 @@ func notModified(w http.ResponseWriter, l time.Time) {
 	return
 }
 
-/*redirectCover returns 302 found with song cover addr.*/
-func redirectCover(dir, file string, w http.ResponseWriter, r *http.Request) {
-	cover := findCover(path.Join(dir, file), "cover.*")
-	if cover != "" {
-		addr := strings.Replace(cover, dir, musicDirectory, -1)
-		http.RedirectHandler(addr, 302).ServeHTTP(w, r)
-		return
-	}
-	http.NotFound(w, r)
-}
-
 type apiHandler struct {
 	player Music
 	config Config
@@ -202,11 +191,6 @@ func (a *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiHandler) returnSong(w http.ResponseWriter, r *http.Request, s mpd.Attrs, l time.Time) {
-	detail := r.FormValue("detail")
-	if detail == "cover" {
-		redirectCover(a.config.Mpd.MusicDirectory, s["file"], w, r)
-		return
-	}
 	if modifiedSince(r, l) {
 		writeJSONInterface(w, s, l, nil)
 	} else {

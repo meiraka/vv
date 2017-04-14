@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/fhs/gompd/mpd"
+	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,6 +32,32 @@ func songAddReadableData(m mpd.Attrs) mpd.Attrs {
 		t = 0
 	}
 	m["Length"] = fmt.Sprintf("%02d:%02d", t/60, t%60)
+	return m
+}
+
+func findCover(dir, file, glob string, cache map[string]string) string {
+	addr := path.Join(dir, file)
+	d := path.Dir(addr)
+	k := path.Join(d, glob)
+	v, ok := cache[k]
+	if ok {
+		return v
+	}
+	m, err := filepath.Glob(k)
+	if err != nil || m == nil {
+		cache[k] = ""
+		return ""
+	}
+	cover := strings.Replace(m[0], dir, "", -1)
+	cache[k] = cover
+	return cover
+}
+
+func songFindCover(m mpd.Attrs, r string, cache map[string]string) mpd.Attrs {
+	if _, ok := m["file"]; !ok {
+		return m
+	}
+	m["cover"] = findCover(r, m["file"], "cover.*", cache)
 	return m
 }
 
@@ -70,6 +98,13 @@ func songSortKey(s mpd.Attrs, keys []string) string {
 func songsAddReadableData(ps []mpd.Attrs) []mpd.Attrs {
 	for i := range ps {
 		ps[i] = songAddReadableData(ps[i])
+	}
+	return ps
+}
+
+func songsFindCover(ps []mpd.Attrs, r string, cache map[string]string) []mpd.Attrs {
+	for i := range ps {
+		ps[i] = songFindCover(ps[i], r, cache)
 	}
 	return ps
 }

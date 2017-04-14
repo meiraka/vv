@@ -507,7 +507,7 @@ vv.view.main = (function(){
         var e = document.getElementById("main");
         e.getElementsByClassName("title")[0].textContent = vv.storage.current["Title"];
         e.getElementsByClassName("artist")[0].textContent = vv.storage.current["Artist"];
-        document.getElementById("current_cover").style.backgroundImage = "url(/api/songs/"+vv.storage.current["Pos"]+"?detail=cover)";
+        document.getElementById("current_cover").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
     };
     var resize_image = function() {
         var p = window.matchMedia('(orientation: portrait)').matches
@@ -645,7 +645,7 @@ vv.view.list = (function(){
             }
             inner += "<span class=length>"+vv.song.get(song, "Length")+"</span>";
         } else if (style == "album") {
-            inner += '<div class=img-sq><img class=cover src="/api/library/'+song["Pos"]+'?detail=cover"></div>';
+            inner += '<div class=img-sq><img class=cover src="/music_directory/'+song["cover"]+'"></div>';
             inner += "<div class=detail>"
             inner += "<span class=date>"+vv.song.get(song, "Date")+"</span>";
             inner += "<span class=album>"+vv.song.get(song, "Album")+"</span>";
