@@ -107,8 +107,10 @@ vv.storage = (function(){
     var library_last_modified = "";
     var outputs = [];
     var outputs_last_modified = "";
-    var config = {"volume": {"show": true, "max": 100}, "playback": {"view_follow": true}}
-
+    var config = {
+        "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
+        "appearance": {"black": false},
+    };
     var save = function() {
         try {
             localStorage.tree = JSON.stringify(tree);
@@ -699,6 +701,18 @@ vv.view.list = (function(){
 vv.view.config = (function(){
     var init = function() {
         // TODO: fix loop unrolling
+        var body_black = document.getElementById("body_black");
+        body_black.checked = vv.storage.config.appearance.black;
+        body_black.addEventListener("change", function() {
+            vv.storage.config.appearance.black = this.checked;
+            vv.storage.save();
+            if (vv.storage.config.appearance.black) {
+                document.body.classList.add("black");
+            } else {
+                document.body.classList.remove("black");
+            }
+            vv.control.raiseEvent("config");
+        });
         var playback_view_follow = document.getElementById("playback_view_follow");
         playback_view_follow.checked = vv.storage.config.playback.view_follow;
         playback_view_follow.addEventListener("change", function() {

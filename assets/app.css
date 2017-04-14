@@ -4,6 +4,12 @@ body {
     border: 0px;
     padding: 0px;
     font-family: Arial,sans-serif;
+    color: #404040;
+}
+
+body.black {
+    color: #d0d0d0;
+    background-color: #202020;
 }
 
 header, footer {
@@ -72,7 +78,6 @@ footer {
 #list ol {
     list-style-type: none;
     padding: 10px;
-    color: #404040;
     margin: 0px 12px;
     padding: 0px;
 }
@@ -87,7 +92,6 @@ footer {
     align-items: baseline;
 }
 #list .plain .key {
-    color: #404040;
     margin: 8px 4px;
     font-size: 20px;
     overflow: hidden;
@@ -215,7 +219,6 @@ footer {
 }
 
 #main li {
-    color: #808080;
 }
 
 #main .control {
@@ -240,7 +243,6 @@ footer {
 }
 #config ul li .description {
     font-size: 18px;
-    color: #404040;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -266,8 +268,14 @@ footer {
     border-radius: 30px;
     background-color: #d0d0d0;
 }
+.black .switch label, .black .switch input:checked + label {
+    background-color: #404040;
+}
 .switch input:checked + label {
     background-color: #404040;
+}
+.black .switch input:checked + label {
+    background-color: #d0d0d0;
 }
 .switch label:before, .switch label:after, .switch input:checked + label:before, .switch input:checked + label:after {
     position: absolute;
@@ -282,6 +290,9 @@ footer {
     border: solid 3px #404040;
     background-color: #ffffff;
 }
+.black .switch label:before {
+    background-color: #202020;
+}
 .switch label:after {
     left: 44px;
     background-color: transparent;
@@ -293,6 +304,9 @@ footer {
 .switch input:checked + label:after {
     border: solid 3px #404040;
     background-color: #ffffff;
+}
+.black .switch input:checked + label:after {
+    background-color: #202020;
 }
 
 #config select {
