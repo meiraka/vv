@@ -20,14 +20,14 @@ func TestSongString(t *testing.T) {
 func TestFindCover(t *testing.T) {
 	t.Run("found", func(t *testing.T) {
 		cache := make(map[string]string)
-		ret := findCover("./hoge", "song_test.*", cache)
+		ret := findCover("./", "hoge", "song_test.*", cache)
 		if ret != "song_test.go" {
 			t.Errorf("unexpected result: %s", ret)
 		}
 	})
 	t.Run("not found", func(t *testing.T) {
 		cache := make(map[string]string)
-		ret := findCover("./hoge", "cover_not_found.*", cache)
+		ret := findCover("./", "hoge", "cover_not_found.*", cache)
 		if ret != "" {
 			t.Errorf("unexpected result: %s", ret)
 		}
