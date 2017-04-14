@@ -535,8 +535,7 @@ vv.view.main = (function(){
         if (hidden()) {
             return;
         }
-        var r = document.getElementById("elapsed_right");
-        var l = document.getElementById("elapsed_left");
+        var c = document.getElementById("elapsed_circle");
         var elapsed = parseInt(vv.storage.control["song_elapsed"] * 1000);
         if (vv.storage.control["state"] == "play") {
             var last_modified = parseInt(vv.storage.control["last_modified"] * 1000);
@@ -551,11 +550,9 @@ vv.view.main = (function(){
         var x = 100 + 70 * Math.cos(d);
         var y = 100 + 70 * Math.sin(d);
         if (x <= 100) {
-            r.setAttribute("d", "M 100,30 L 100,30 A 70,70 0 0,1 100,170");
-            l.setAttribute("d", "M 100,170 L 100,170 A 70,70 0 0,1 " + x + "," + y);
+            c.setAttribute("d", "M 100,30 L 100,30 A 70,70 0 0,1 100,170 L 100,170 A 70,70 0 0,1 " + x + "," + y);
         } else {
-            r.setAttribute("d", "M 100,30 L 100,30 A 70,70 0 0,1 " + x + "," + y);
-            l.setAttribute("d", "M 100,170 L 100,170 A 70,70 0 0,1 100,170");
+            c.setAttribute("d", "M 100,30 L 100,30 A 70,70 0 0,1 " + x + "," + y);
         }
     }
     var orientation = function() {
