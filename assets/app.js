@@ -584,7 +584,17 @@ vv.view.list = (function(){
         e.style.display = "none";
     }
     var hidden = function() {
-        return document.getElementById("list").style.display == "none";
+        var d = document.getElementById("list").style.display;
+        // FIXME: remove orientation check
+        if (d == "") {
+            if (matchMedia("(orientation: portrait)").matches) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return d == "none";
+        }
     }
     var update = function() {
         var ls = vv.model.list.list(),
