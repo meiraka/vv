@@ -163,6 +163,14 @@ vv.model.list = (function() {
                  ["Title", "song"]
                 ],
         },
+        "Album": {
+            "sort":
+                ["AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
+            "tree":
+                [["Album", "album"],
+                 ["Title", "song"]
+                ],
+        },
         "Genre": {
             "sort":
                 ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
