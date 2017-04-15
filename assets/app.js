@@ -499,14 +499,24 @@ vv.view.error = (function() {
 
 vv.view.background = (function() {
     var update = function() {
+        var e = document.getElementById("background-image");
         if (vv.storage.config.appearance.background_image) {
-            document.getElementById("background-image").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
+            if (e.style.display == "none") {
+                e.style.display = "block";
+                document.getElementById("background").style.display = "block";
+            }
+            e.style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
         } else {
-            document.getElementById("background-image").style.backgroundImage = "";
+            if (e.style.display != "none") {
+                e.style.backgroundImage = "";
+                e.style.display = "none";
+                document.getElementById("background").style.display = "none";
+            }
         }
     };
     vv.control.addEventListener("current", update);
     vv.control.addEventListener("config", update);
+    vv.control.addEventListener("start", update);
 }());
 
 vv.view.main = (function(){
