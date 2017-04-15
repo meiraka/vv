@@ -4,7 +4,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {error: {}, main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
+    view: {background: {}, error: {}, main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
     control : {},
 };
 vv.obj = (function(){
@@ -109,7 +109,7 @@ vv.storage = (function(){
     var outputs_last_modified = "";
     var config = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
-        "appearance": {"dark": false},
+        "appearance": {"dark": false, "background_image": false},
     };
     var save = function() {
         try {
@@ -497,6 +497,18 @@ vv.view.error = (function() {
     }
 }());
 
+vv.view.background = (function() {
+    var update = function() {
+        if (vv.storage.config.appearance.background_image) {
+            document.getElementById("background-image").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
+        } else {
+            document.getElementById("background-image").style.backgroundImage = "";
+        }
+    };
+    vv.control.addEventListener("current", update);
+    vv.control.addEventListener("config", update);
+}());
+
 vv.view.main = (function(){
     var load_volume_config = function() {
         var c = document.getElementById("control-volume");
@@ -727,6 +739,13 @@ vv.view.config = (function(){
             }
         };
         update_theme();
+        var background_image = document.getElementById("toggle-background-image");
+        background_image.checked = vv.storage.config.appearance.background_image;
+        background_image.addEventListener("change", function() {
+            vv.storage.config.appearance.background_image = this.checked;
+            vv.storage.save();
+            vv.control.raiseEvent("config");
+        });
         var body_dark = document.getElementById("body_dark");
         body_dark.checked = vv.storage.config.appearance.dark;
         body_dark.addEventListener("change", function() {
