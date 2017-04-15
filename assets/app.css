@@ -7,9 +7,26 @@ body {
     color: #404040;
 }
 
-body.black {
+body.dark {
     color: #d0d0d0;
-    background-color: #202020;
+    background-color: #000000;
+}
+
+svg .fill {
+    stroke: #404040;
+    fill: #404040;
+}
+svg .stroke {
+    stroke: #404040;
+    fill: none;
+}
+.dark svg .fill {
+    stroke: #e0e0e0;
+    fill: #e0e0e0;
+}
+.dark svg .stroke {
+    stroke: #e0e0e0;
+    fill: none;
 }
 
 header, footer {
@@ -27,6 +44,14 @@ header {
         rgba(255,255,255,0.0) 100%
     );
 }
+.dark header {
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,1.0) 80%,
+        rgba(0,0,0,0.0) 100%
+    );
+
+}
 section {
     position: absolute;
     top: 80px;
@@ -39,6 +64,13 @@ footer {
         to top,
         rgba(255,255,255,1.0) 80%,
         rgba(255,255,255,0.0) 100%
+    );
+}
+.dark footer {
+    background: linear-gradient(
+        to top,
+        rgba(0,0,0,1.0) 80%,
+        rgba(0,0,0,0.0) 100%
     );
 }
 @media (orientation: portrait) {
@@ -167,6 +199,19 @@ footer {
     border-radius: 100%;
 }
 
+#main .elapsed_img svg {
+    stroke: #404040;
+    stroke-width: 4;
+    fill: none;
+}
+#main .elapsed_img svg .inactive {
+    stroke-opacity: 0.5;
+}
+
+.dark #main .elapsed_img svg {
+    stroke: #e0e0e0;
+}
+
 @media (orientation: portrait) {
     #main .title, #main .artist, #main .elapsed_img {
         position: fixed;
@@ -268,13 +313,13 @@ footer {
     border-radius: 30px;
     background-color: #d0d0d0;
 }
-.black .switch label, .black .switch input:checked + label {
+.dark .switch label, .dark .switch input:checked + label {
     background-color: #404040;
 }
 .switch input:checked + label {
     background-color: #404040;
 }
-.black .switch input:checked + label {
+.dark .switch input:checked + label {
     background-color: #d0d0d0;
 }
 .switch label:before, .switch label:after, .switch input:checked + label:before, .switch input:checked + label:after {
@@ -290,7 +335,7 @@ footer {
     border: solid 3px #404040;
     background-color: #ffffff;
 }
-.black .switch label:before {
+.dark .switch label:before {
     background-color: #202020;
 }
 .switch label:after {
@@ -305,7 +350,7 @@ footer {
     border: solid 3px #404040;
     background-color: #ffffff;
 }
-.black .switch input:checked + label:after {
+.dark .switch input:checked + label:after {
     background-color: #202020;
 }
 
@@ -384,9 +429,10 @@ button {
     	right: 5%;
     }
 }
-#menu button img {
+#menu button svg {
 	width: 40px;
 	height: 40px;
+    stroke-width: 20;
 }
 
 #playback {
@@ -419,24 +465,27 @@ button {
         width: 100%;
     }
 }
-#playback button, #playback button:focus, #playback button img {
-    outline: 0;
-    padding: 0px;
-    margin: 0px;
-    border: 0px;
-    background-color: rgba(255,255,255,0);
+#playback {
+    display: flex;
+    align-items: center;
+}
+#playback button.play svg,
+#playback button.pause svg {
     height: 90px;
-}
-#playback button.play img {
     width: 90px;
+    stroke-width: 8;
 }
-
-#playback button.prev img {
-    width: 60px;
+#playback button.play svg .pause {
+    opacity: 0;
 }
-
-#playback button.next img {
+#playback button.pause svg .play {
+    opacity: 0;
+}
+#playback button.next svg,
+#playback button.prev svg {
+    height: 60px;
     width: 60px;
+    stroke-width: 8
 }
 
 #playback_volume input[type=range] {
@@ -478,8 +527,13 @@ button {
     border-radius: 50%;
 }
 
-#playback_list button img {
+#playback_list button svg {
+    width: 40px;
     height: 40px;
+    stroke-width: 8;
+}
+#playback_list button.off svg {
+    opacity: 0.5;
 }
 @media (orientation: landscape) {
     #playback_list button {
@@ -530,10 +584,10 @@ button {
     background-color: #c0c0c0;
 }
 
-button:hover img {
+button:hover svg {
     animation: hover_img 0.5s;
 }
-button:active img {
+button:active svg {
     animation: active_img 2s;
 }
 

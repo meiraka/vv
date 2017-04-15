@@ -109,7 +109,7 @@ vv.storage = (function(){
     var outputs_last_modified = "";
     var config = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
-        "appearance": {"black": false},
+        "appearance": {"dark": false},
     };
     var save = function() {
         try {
@@ -698,16 +698,20 @@ vv.view.list = (function(){
 vv.view.config = (function(){
     var init = function() {
         // TODO: fix loop unrolling
-        var body_black = document.getElementById("body_black");
-        body_black.checked = vv.storage.config.appearance.black;
-        body_black.addEventListener("change", function() {
-            vv.storage.config.appearance.black = this.checked;
-            vv.storage.save();
-            if (vv.storage.config.appearance.black) {
-                document.body.classList.add("black");
+        var update_theme = function() {
+            if (vv.storage.config.appearance.dark) {
+                document.body.classList.add("dark");
             } else {
-                document.body.classList.remove("black");
+                document.body.classList.remove("dark");
             }
+        };
+        update_theme();
+        var body_dark = document.getElementById("body_dark");
+        body_dark.checked = vv.storage.config.appearance.dark;
+        body_dark.addEventListener("change", function() {
+            vv.storage.config.appearance.dark = this.checked;
+            vv.storage.save();
+            update_theme();
             vv.control.raiseEvent("config");
         });
         var playback_view_follow = document.getElementById("playback_view_follow");
@@ -865,7 +869,7 @@ vv.view.playback = (function(){
             vv.control.prev();
             e.stopPropagation();
         });
-        playback.getElementsByClassName("play")[0].addEventListener('click', function(e) {
+        document.getElementById("playback-toggleplay").addEventListener('click', function(e) {
             vv.control.play_pause();
             e.stopPropagation();
         });
@@ -886,20 +890,26 @@ vv.view.playback = (function(){
 
     var update = function() {
         if (vv.storage.control["state"] == "play") {
-            document.getElementById("playback").getElementsByClassName("play")[0].children[0].src = "/assets/pause.svg";
+            document.getElementById("playback-toggleplay").classList.add("pause");
+            document.getElementById("playback-toggleplay").classList.remove("play");
         } else {
-            document.getElementById("playback").getElementsByClassName("play")[0].children[0].src = "/assets/play.svg";
+            document.getElementById("playback-toggleplay").classList.add("play");
+            document.getElementById("playback-toggleplay").classList.remove("pause");
         }
         var current = document.getElementById("playback_list");
         if (vv.storage.control["repeat"]) {
-            current.getElementsByClassName("repeat")[0].children[0].style.opacity=1.0;
+            current.getElementsByClassName("repeat")[0].classList.add("on");
+            current.getElementsByClassName("repeat")[0].classList.remove("off");
         } else {
-            current.getElementsByClassName("repeat")[0].children[0].style.opacity=0.5;
+            current.getElementsByClassName("repeat")[0].classList.add("off");
+            current.getElementsByClassName("repeat")[0].classList.remove("on");
         }
         if (vv.storage.control["random"]) {
-            current.getElementsByClassName("random")[0].children[0].style.opacity=1.0;
+            current.getElementsByClassName("random")[0].classList.add("on");
+            current.getElementsByClassName("random")[0].classList.remove("off");
         } else {
-            current.getElementsByClassName("random")[0].children[0].style.opacity=0.5;
+            current.getElementsByClassName("random")[0].classList.add("off");
+            current.getElementsByClassName("random")[0].classList.remove("on");
         }
     }
     vv.control.addEventListener("start", init);
