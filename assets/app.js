@@ -283,12 +283,28 @@ vv.model.list = (function() {
             ret.push({"root": rootname});
         }
         return ["root", ret, "plain", "dir"];
-    }
+    };
+    var parent_item = function(v) {
+        if (!v) {
+            v = list();
+        }
+        var root = rootname();
+        if (root == "root") {
+            return;
+        }
+        if (vv.storage.tree.length > 1) {
+            var key = TREE[root]["tree"][vv.storage.tree.length - 2][0];
+            var style = TREE[root]["tree"][vv.storage.tree.length - 2][1];
+            return [key, v[0], style, "dir"];
+        }
+        return ["root", {"root": root}, "plain", ""];
+    };
     return {
         focused: focused,
         update: update,
         rootname: rootname,
         sortkeys: sortkeys,
+        parent_item: parent_item,
         up: up,
         down: down,
         abs: abs,
@@ -614,6 +630,11 @@ vv.view.list = (function(){
         var i;
         var focus_li = null;
         for (i in songs) {
+            if (i == 0 && vv.model.list.rootname() != "root") {
+                var p = vv.model.list.parent_item(songs);
+                li = make_list_item(p[1], p[0], p[2]);
+                newul.appendChild(li);
+            }
             li = make_list_item(songs[i], ls[0], ls[2]);
             if (songs[i]['file'] == vv.model.list.focused()['file']) {
                 focus_li = li;
@@ -791,7 +812,6 @@ vv.view.menu = (function(){
         document.body.addEventListener('click', function() {
             vv.view.menu.hide_sub();
         });
-        var menu = document.getElementById("menu");
         document.getElementById("menu-back").addEventListener('click', function(e) {
             if (!vv.view.list.hidden()) {
                 vv.model.list.up();
