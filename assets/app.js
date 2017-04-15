@@ -483,16 +483,16 @@ vv.view.error = (function() {
 
 vv.view.main = (function(){
     var load_volume_config = function() {
-        var c = document.getElementById("playback_volume").children[0];
+        var c = document.getElementById("control-volume");
         c.max = vv.storage.config["volume"]["max"];
         if (vv.storage.config["volume"]["show"]) {
-            c.style.display = "block";
+            c.style.visibility = "visible";
         } else {
-            c.style.display = "none";
+            c.style.visibility = "hidden";
         }
     };
     vv.control.addEventListener("control", function() {
-        document.getElementById("playback_volume").children[0].value=vv.storage.control["volume"]
+        document.getElementById("control-volume").value=vv.storage.control["volume"]
     });
     vv.control.addEventListener("config", load_volume_config);
     (function() {
@@ -562,7 +562,7 @@ vv.view.main = (function(){
         show();
     }
     var init = function() {
-        document.getElementById("playback_volume").children[0].addEventListener("change", function() {
+        document.getElementById("control-volume").addEventListener("change", function() {
             vv.control.volume(parseInt(this.value));
         });
         load_volume_config();
@@ -792,7 +792,7 @@ vv.view.menu = (function(){
             vv.view.menu.hide_sub();
         });
         var menu = document.getElementById("menu");
-        menu.getElementsByClassName("back")[0].addEventListener('click', function(e) {
+        document.getElementById("menu-back").addEventListener('click', function(e) {
             if (!vv.view.list.hidden()) {
                 vv.model.list.up();
             } else {
@@ -808,7 +808,7 @@ vv.view.menu = (function(){
             vv.view.list.show();
             e.stopPropagation();
         });
-        menu.getElementsByClassName("main")[0].addEventListener('click', function(e) {
+        document.getElementById("menu-main").addEventListener('click', function(e) {
             if (!window.matchMedia('(orientation: landscape)').matches) {
                 vv.view.list.hide();
             } else {
@@ -822,7 +822,7 @@ vv.view.menu = (function(){
             vv.view.main.show();
             e.stopPropagation();
         });
-        menu.getElementsByClassName("settings")[0].addEventListener('click', function(e) {
+        document.getElementById("menu-settings").addEventListener('click', function(e) {
             if (vv.view.menu.hidden_sub()) {
                 vv.view.menu.show_sub();
             } else {
@@ -864,25 +864,23 @@ vv.view.menu = (function(){
 }());
 vv.view.playback = (function(){
     var init = function() {
-        var playback = document.getElementById("playback");
-        playback.getElementsByClassName("prev")[0].addEventListener('click', function(e) {
+        document.getElementById("control-prev").addEventListener('click', function(e) {
             vv.control.prev();
             e.stopPropagation();
         });
-        document.getElementById("playback-toggleplay").addEventListener('click', function(e) {
+        document.getElementById("control-toggleplay").addEventListener('click', function(e) {
             vv.control.play_pause();
             e.stopPropagation();
         });
-        playback.getElementsByClassName("next")[0].addEventListener('click', function(e) {
+        document.getElementById("control-next").addEventListener('click', function(e) {
             vv.control.next();
             e.stopPropagation();
         });
-        var playback_list = document.getElementById("playback_list");
-        playback_list.getElementsByClassName("repeat")[0].addEventListener('click', function(e) {
+        document.getElementById("control-repeat").addEventListener('click', function(e) {
             vv.control.toggle_repeat();
             e.stopPropagation();
         });
-        playback_list.getElementsByClassName("random")[0].addEventListener('click', function(e) {
+        document.getElementById("control-random").addEventListener('click', function(e) {
             vv.control.toggle_random();
             e.stopPropagation();
         });
@@ -890,26 +888,25 @@ vv.view.playback = (function(){
 
     var update = function() {
         if (vv.storage.control["state"] == "play") {
-            document.getElementById("playback-toggleplay").classList.add("pause");
-            document.getElementById("playback-toggleplay").classList.remove("play");
+            document.getElementById("control-toggleplay").classList.add("pause");
+            document.getElementById("control-toggleplay").classList.remove("play");
         } else {
-            document.getElementById("playback-toggleplay").classList.add("play");
-            document.getElementById("playback-toggleplay").classList.remove("pause");
+            document.getElementById("control-toggleplay").classList.add("play");
+            document.getElementById("control-toggleplay").classList.remove("pause");
         }
-        var current = document.getElementById("playback_list");
         if (vv.storage.control["repeat"]) {
-            current.getElementsByClassName("repeat")[0].classList.add("on");
-            current.getElementsByClassName("repeat")[0].classList.remove("off");
+            document.getElementById("control-repeat").classList.add("on");
+            document.getElementById("control-repeat").classList.remove("off");
         } else {
-            current.getElementsByClassName("repeat")[0].classList.add("off");
-            current.getElementsByClassName("repeat")[0].classList.remove("on");
+            document.getElementById("control-repeat").classList.add("off");
+            document.getElementById("control-repeat").classList.remove("on");
         }
         if (vv.storage.control["random"]) {
-            current.getElementsByClassName("random")[0].classList.add("on");
-            current.getElementsByClassName("random")[0].classList.remove("off");
+            document.getElementById("control-random").classList.add("on");
+            document.getElementById("control-random").classList.remove("off");
         } else {
-            current.getElementsByClassName("random")[0].classList.add("off");
-            current.getElementsByClassName("random")[0].classList.remove("on");
+            document.getElementById("control-random").classList.add("off");
+            document.getElementById("control-random").classList.remove("on");
         }
     }
     vv.control.addEventListener("start", init);

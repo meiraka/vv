@@ -12,17 +12,17 @@
 <body>
 <header>
     <nav id="menu">
-        <button class=back type="button">
+        <button id=menu-back class=back type="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
                 <path class="stroke" d="M 40,100 100,40 160,40 160,160  100,160 z"/>
             </svg>
         </button>
-        <button class=main type="button">
+        <button id=menu-main class=main type="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
                 <path class="stroke" d="M 100,40 160,100 160,160 40,160 40,100 z"/>
             </svg>
         </button>
-        <button class=settings type="button">
+        <button id=menu-settings class=settings type="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
                 <path class="stroke"
                  d="M 100,30 100,60 z
@@ -106,36 +106,34 @@
 
 </section>
 <footer>
-    <nav id="playback">
-        <button class=prev type="button" value="prev">
-            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-                <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
-            </svg>
-        </button>
-        <button id=playback-toggleplay class=play type="button" value="play/pause">
-            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-                <path class="fill play" d="M 70,60 140,100 70,140 z"/>
-                <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
-                <path class="stroke play_circle" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
-            </svg>
-        </button>
-        <button class=next type="button" value="next">
-            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-                <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
-            </svg>
-        </button>
-    </nav>
-    <nav id="playback_volume">
-        <input type="range" min=0 max=100 step=1>
-    </nav>
-    <nav id="playback_list">
-        <button class="repeat on">
+    <nav id="control">
+        <nav id="control-playback">
+            <button id=control-prev class=prev type="button" value="prev">
+                <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                    <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
+                </svg>
+            </button>
+            <button id=control-toggleplay class=play type="button" value="play/pause">
+                <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                    <path class="fill play" d="M 70,60 140,100 70,140 z"/>
+                    <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
+                    <path class="stroke play_circle" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
+                </svg>
+            </button>
+            <button id=control-next class=next type="button" value="next">
+                <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+                    <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
+                </svg>
+            </button>
+        </nav>
+        <input id=control-volume type="range" min=0 max=100 step=1>
+        <button id=control-repeat class="repeat on">
             <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
                 <path class=fill d="M 85,25 115,40 85,55 z"/>
                 <rect class=stroke x="40" y="40" width="120" height="120" rx="30" ry="30"/>
             </svg>
         </button>
-        <button class="random on">
+        <button id=control-random class="random on">
             <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
                 <path class=fill d="M 155,25 185,40 155,55 z M 155,145 185,160 155,175 z"/>
                 <path class=stroke d="M 40,40 A 60,60 0 1,1 40,160 M 160,160 A 60,60 0 1,1 160,40 "/>

@@ -83,7 +83,7 @@ footer {
         display: none;
     }
     footer {
-        height: 140px;
+        height: 120px;
     }
 }
 @media (orientation: landscape) {
@@ -213,14 +213,14 @@ footer {
 }
 
 @media (orientation: portrait) {
-    #main .title, #main .artist, #main .elapsed_img {
+    #main .title, #main .artist {
         position: fixed;
         left: 10px;
         width: 100%;
-        width: calc(100% - 20px);
 
     }
     #main .elapsed_img, #main .elapsed_img svg {
+        position: fixed;
         left: 0px;
         top: 0px;
         width: 100%;
@@ -393,122 +393,82 @@ button {
     background-color: rgba(255,255,255,0);
 }
 
-
-#menu, #menu nav, #menu nav button {
-    border: 0px;
-    margin: 0px;
-    padding: 0px;
+#menu,
+#menu nav,
+#menu nav button {
 }
 
-#menu button {
-	position: absolute;
-    top: 15px;
-    outline: 0;
-	width: 40px;
-	height: 40px;
+#menu {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
 }
-@media (orientation: landscape) {
-    #menu .back {
-        left: 10px;
-    }
-    #menu .main{
-        left: 70px;
-    }
-    #menu .settings {
-    	right: 10px;
-    }
-}
+
 @media (orientation: portrait) {
-    #menu .back {
-        left: 5%;
-    }
-    #menu .main{
-        left: calc(50% - 20px);
-    }
-    #menu .settings {
-    	right: 5%;
+    #menu {
+        padding: 15px 5%;
     }
 }
-#menu button svg {
+
+#menu svg {
 	width: 40px;
 	height: 40px;
     stroke-width: 20;
 }
 
-#playback {
-    width: 210px;
+#control {
+    padding: 0 10px;
     border: 0px;
     height: 90px;
-}
-@media (orientation: landscape) {
-    #playback {
-        position: fixed;
-        left: 10px;
-        bottom: 0px;
-        margin: 0px;
-    }
-    #playback_volume {
-        position: fixed;
-        left: 210px;
-        width: 70%;
-        width: calc(100% - 300px);
-        margin: 41px 0;
-    }
-}
-@media (orientation: portrait) {
-    #playback {
-        margin: 50px auto 0;
-    }
-    #playback_volume {
-        position: fixed;
-        bottom: 110px;
-        width: 100%;
-    }
-}
-#playback {
     display: flex;
     align-items: center;
+    align-content: space-around;
+    flex-wrap: wrap;
+    justify-content: space-between;
 }
-#playback button.play svg,
-#playback button.pause svg {
+#control-playback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#control-toggleplay svg {
     height: 90px;
     width: 90px;
     stroke-width: 8;
 }
-#playback button.play svg .pause {
+
+#control-toggleplay.play .pause,
+#control-toggleplay.pause .play {
     opacity: 0;
 }
-#playback button.pause svg .play {
-    opacity: 0;
-}
-#playback button.next svg,
-#playback button.prev svg {
+
+#control-prev svg,
+#control-next svg {
     height: 60px;
     width: 60px;
-    stroke-width: 8
+    stroke-width: 8;
 }
 
-#playback_volume input[type=range] {
+#control-volume {
+    height: 8px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: #404040;
+    border-radius: 50px;
+    flex: 1 1 auto;
+}
+#control-volume::-moz-range-track {
     height: 8px;
     width: 90%;
-    margin: 0px 5%;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
     background: #404040;
     border-radius: 50px;
 }
-#playback_volume input[type=range]::-moz-range-track {
-    height: 8px;
-    width: 90%;
-    margin: 0px 5%;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background: #404040;
-    border-radius: 50px;
-}
-#playback_volume input[type=range]::-webkit-slider-thumb {
+#control-volume::-webkit-slider-thumb {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -517,7 +477,7 @@ button {
     height: 24px;
     border-radius: 50%;
 }
-#playback_volume input[type=range]::-moz-range-thumb {
+#control-volume::-moz-range-thumb {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -527,36 +487,28 @@ button {
     border-radius: 50%;
 }
 
-#playback_list button svg {
+#control-repeat svg,
+#control-random svg {
     width: 40px;
     height: 40px;
     stroke-width: 8;
 }
-#playback_list button.off svg {
+
+#control-repeat.off svg,
+#control-random.off svg {
     opacity: 0.5;
 }
-@media (orientation: landscape) {
-    #playback_list button {
-        position: absolute;
-        top: 25px;
-    }
-    #playback_list .repeat {
-        right: 50px;
-    }
-    #playback_list .random {
-        right: 10px;
-    }
-}
+
 @media (orientation: portrait) {
-    #playback_list button {
-        position: absolute;
-        top: 75px;
+    #control {
+        padding: 10px 5%;
     }
-    #playback_list .repeat {
-        left: 5%;
+    #control-volume {
+        width: 100%;
+        order: -2;
     }
-    #playback_list .random {
-        right: 5%;
+    #control-repeat {
+        order: -1;
     }
 }
 
