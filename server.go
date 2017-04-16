@@ -233,7 +233,7 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 	}
 }
 
-func makeHandle(p Music, c Config) http.Handler {
+func makeHandle(p Music, c Config, bindata bool) http.Handler {
 	api := apiHandler{p, c}
 	h := http.NewServeMux()
 	h.HandleFunc("/api/library", api.library)
@@ -254,15 +254,15 @@ func makeHandle(p Music, c Config) http.Handler {
 			p = "/"
 		}
 		_, err := os.Stat(f)
-		if !os.IsNotExist(err) {
+		if os.IsNotExist(err) || bindata {
+			data, _ := Asset(f)
+			h.HandleFunc(p, makeHandleAssets(f, data))
+		} else {
 			func(path, rpath string) {
 				h.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 					http.ServeFile(w, r, rpath)
 				})
 			}(p, f)
-		} else {
-			data, _ := Asset(f)
-			h.HandleFunc(p, makeHandleAssets(f, data))
 		}
 	}
 	return h
@@ -270,7 +270,7 @@ func makeHandle(p Music, c Config) http.Handler {
 
 // App serves http request.
 func App(p Music, c Config) {
-	handler := makeHandle(p, c)
+	handler := makeHandle(p, c, false)
 	http.ListenAndServe(fmt.Sprintf(":%s", c.Server.Port), handler)
 }
 
