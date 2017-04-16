@@ -71,7 +71,7 @@ section {
 #background-image {
     z-index: 0;
     background-size: cover;
-    filter: blur(40px);
+    filter: blur(0px);
 }
 #background-overlay {
     width: 100%;

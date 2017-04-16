@@ -109,7 +109,7 @@ vv.storage = (function(){
     var outputs_last_modified = "";
     var config = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
-        "appearance": {"dark": false, "background_image": false},
+        "appearance": {"dark": false, "background_image": false, "background_image_blur": 0},
     };
     var save = function() {
         try {
@@ -506,6 +506,7 @@ vv.view.background = (function() {
                 document.getElementById("background").style.display = "block";
             }
             e.style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
+            e.style.filter = "blur(" + vv.storage.config.appearance.background_image_blur + "px)";
         } else {
             if (e.style.display != "none") {
                 e.style.backgroundImage = "";
@@ -749,19 +750,26 @@ vv.view.config = (function(){
             }
         };
         update_theme();
-        var background_image = document.getElementById("toggle-background-image");
+        var dark = document.getElementById("appearance-dark");
+        dark.checked = vv.storage.config.appearance.dark;
+        dark.addEventListener("change", function() {
+            vv.storage.config.appearance.dark = this.checked;
+            vv.storage.save();
+            update_theme();
+            vv.control.raiseEvent("config");
+        });
+        var background_image = document.getElementById("appearance-background-image");
         background_image.checked = vv.storage.config.appearance.background_image;
         background_image.addEventListener("change", function() {
             vv.storage.config.appearance.background_image = this.checked;
             vv.storage.save();
             vv.control.raiseEvent("config");
         });
-        var body_dark = document.getElementById("body_dark");
-        body_dark.checked = vv.storage.config.appearance.dark;
-        body_dark.addEventListener("change", function() {
-            vv.storage.config.appearance.dark = this.checked;
+        var background_image_blur = document.getElementById("appearance-background-image-blur");
+        background_image_blur.value = String(vv.storage.config.appearance.background_image_blur);
+        background_image_blur.addEventListener("change", function() {
+            vv.storage.config.appearance.background_image_blur = parseInt(this.value);
             vv.storage.save();
-            update_theme();
             vv.control.raiseEvent("config");
         });
         var playback_view_follow = document.getElementById("playback_view_follow");

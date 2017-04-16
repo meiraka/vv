@@ -65,15 +65,26 @@
 </section>
 <section id="config" style="display: none">
     <h1>configuration</h1>
-    <article>
+    <article id="config-appearance">
         <h3>Appearance</h3>
         <ul>
             <li>
                 <div class="description">Dark</div>
-                <div class="value switch"><input type="checkbox" id="body_dark"><label for="body_dark"></label></div>
+                <div class="value switch"><input type="checkbox" id="appearance-dark"><label for="appearance-dark"></label></div>
             <li>
                 <div class="description">Background image</div>
-                <div class="value switch"><input type="checkbox" id="toggle-background-image"><label for="toggle-background-image"></label></div>
+                <div class="value switch"><input type="checkbox" id="appearance-background-image"><label for="appearance-background-image"></label></div>
+            <li>
+                <div class="description">Background image blur</div>
+                <select class="value" id="appearance-background-image-blur">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="4">4</option>
+                    <option value="8">8</option>
+                    <option value="16">16</option>
+                    <option value="32">32</option>
+                </select>
         </ul>
     <article>
         <h3>Playback</h3>
