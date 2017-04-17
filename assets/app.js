@@ -528,7 +528,7 @@ vv.view.main = (function(){
     }
     var hidden = function() {
         var e = document.getElementById("main");
-        return !(e.classList.contains("sub") || e.classList.contains("show"));
+        return !e.classList.contains("show");
     }
     var update = function() {
         var e = document.getElementById("main");
@@ -537,16 +537,15 @@ vv.view.main = (function(){
         document.getElementById("current_cover").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
     };
     var resize_image = function() {
-        var p = window.matchMedia('(orientation: portrait)').matches
-        var w = document.body.clientWidth;
-        if (!p) {w = parseInt(w / 2);}
-        var h = window.innerHeight;
-        var e = document.getElementById("current_cover");
+        var e = document.getElementById("main");
+        var w = e.clientWidth;
+        var h = e.clientHeight;
+        var c = document.getElementById("current_cover");
         var cs = parseInt((w < h ? w : h) * 0.7);
-        e.style.top = (h - cs) / 2 + "px";
-        // e.style.left = (p? ((w - cs) / 2) : ((w - cs)/2 + w)) + "px";
-        // e.style.width = cs + "px";
-        e.style.height = cs + "px";
+        c.style.top = (h - cs) / 2 + "px";
+        // c.style.left = (p? ((w - cs) / 2) : ((w - cs)/2 + w)) + "px";
+        // c.style.width = cs + "px";
+        c.style.height = cs + "px";
     };
     var update_elapsed = function() {
         if (hidden()) {
@@ -610,7 +609,11 @@ vv.view.list = (function(){
     }
     var hidden = function() {
         var e = document.getElementById("list");
-        return !(e.classList.contains("sub") || e.classList.contains("show"));
+        if (window.matchMedia('(orientation: portrait)').matches) {
+            return !e.classList.contains("show");
+        } else {
+            return !(e.classList.contains("show") || e.classList.contains("sub"));
+        }
     }
     var update = function() {
         var ls = vv.model.list.list(),

@@ -51,9 +51,17 @@ header {
     top: 0px;
     height: 70px;
 }
-section {
+#list,
+#config {
     position: absolute;
     top: 80px;
+    z-index: 10;
+}
+#main {
+    position: fixed;
+    top: 0;
+    padding: 0;
+    height: 100%;
     z-index: 10;
 }
 #background,
@@ -216,15 +224,24 @@ footer {
 }
 
 #current_cover {
-    position: fixed;
-    top: 20%;
+    position: absolute;
+    top: 30%;
     height: 60%;
+    left: 15%;
+    width: 70%;
 	background-position: center center; 
 	background-repeat: no-repeat;
     background-size: cover;
     border-radius: 100%;
 }
 
+#main .elapsed_img, #main .elapsed_img svg {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+}
 #main .elapsed_img svg {
     stroke: #404040;
     stroke-width: 4;
@@ -238,46 +255,11 @@ footer {
     stroke: #e0e0e0;
 }
 
-@media (orientation: portrait) {
-    #main .title, #main .artist {
-        position: fixed;
-        left: 10px;
-        width: 100%;
+#main .title, #main .artist {
+    position: relative;
+    left: 10px;
+    width: 100%;
 
-    }
-    #main .elapsed_img, #main .elapsed_img svg {
-        position: fixed;
-        left: 0px;
-        top: 0px;
-        width: 100%;
-        height: 100%;
-    }
-    #main .elapsed_img svg {
-        height: 100%;
-    }
-    #current_cover {
-        left: 15%;
-        width: 70%;
-    }
-}
-@media (orientation: landscape) {
-    #main .title, #main .artist, #main .elapsed, #main .elapsed_img {
-        position: fixed;
-        left: 50%;
-        width: 100%;
-    }
-    #main .elapsed_img {
-        top: 0px;
-        height: 100%;
-    }
-    #main .elapsed_img svg {
-        width: 50%;
-        height: 100%;
-    }
-    #current_cover {
-        left: 57.5%;
-        width: 35%;
-    }
 }
 
 #main .title {
