@@ -4,7 +4,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {background: {}, error: {}, main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
+    view: {background: {}, main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
     control : {},
 };
 vv.obj = (function(){
@@ -479,40 +479,17 @@ vv.control = (function() {
     };
 }());
 
-vv.view.error = (function() {
-    var hide = function() {
-        var e = document.getElementById("error");
-        e.children[1].textContent = "";
-        e.display = "none";
-    }
-    var show = function(description) {
-        var e = document.getElementById("error");
-        e.children[1].textContent = e.children[1].textContent + description;
-        e.display = "block";
-        setTimeout(5000, hide);
-    }
-    return {
-        hide: hide,
-        show: show,
-    }
-}());
-
 vv.view.background = (function() {
     var update = function() {
         var e = document.getElementById("background-image");
         if (vv.storage.config.appearance.background_image) {
-            if (e.style.display == "none") {
-                e.style.display = "block";
-                document.getElementById("background").style.display = "block";
-            }
+            e.classList.add("show");
+            document.getElementById("background").classList.add("show");
             e.style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
             e.style.filter = "blur(" + vv.storage.config.appearance.background_image_blur + "px)";
         } else {
-            if (e.style.display != "none") {
-                e.style.backgroundImage = "";
-                e.style.display = "none";
-                document.getElementById("background").style.display = "none";
-            }
+            e.classList.remove("show");
+            document.getElementById("background").classList.remove("show");
         }
     };
     vv.control.addEventListener("current", update);
@@ -875,14 +852,14 @@ vv.view.menu = (function(){
     };
     var show_sub = function() {
         var e = document.getElementById("submenu");
-        e.style.display = "block";
+        e.classList.add("show");
     };
     var hide_sub = function() {
         var e = document.getElementById("submenu");
-        e.style.display = "none";
+        e.classList.remove("show");
     };
     var hidden_sub = function() {
-        return document.getElementById("submenu").style.display == "none";
+        return !document.getElementById("submenu").classList.contains("show");
     };
     var height = function() {
         return document.getElementsByTagName("header")[0].offsetHeight;
