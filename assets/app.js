@@ -483,13 +483,13 @@ vv.view.background = (function() {
     var update = function() {
         var e = document.getElementById("background-image");
         if (vv.storage.config.appearance.background_image) {
-            e.classList.add("show");
-            document.getElementById("background").classList.add("show");
+            e.classList.remove("hide");
+            document.getElementById("background").classList.remove("hide");
             e.style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
             e.style.filter = "blur(" + vv.storage.config.appearance.background_image_blur + "px)";
         } else {
-            e.classList.remove("show");
-            document.getElementById("background").classList.remove("show");
+            e.classList.add("hide");
+            document.getElementById("background").classList.add("hide");
         }
     };
     vv.control.addEventListener("current", update);
@@ -657,7 +657,8 @@ vv.view.list = (function(){
             }, false);
             newul.appendChild(li);
         }
-        document.getElementById("list").children[0].appendChild(newul);
+        var e = document.getElementById("list").children[0];
+        e.appendChild(newul);
         if (focus_li) {
             var pos = focus_li.getBoundingClientRect().top;
             var h = vv.view.menu.height();
