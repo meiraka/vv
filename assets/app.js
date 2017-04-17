@@ -513,11 +513,13 @@ vv.view.main = (function(){
     vv.control.addEventListener("config", load_volume_config);
     var show = function() {
         var e = document.getElementById("main");
+        e.classList.remove("hide");
         e.classList.remove("sub");
         e.classList.add("show");
     };
     var show_sub = function() {
         var e = document.getElementById("main");
+        e.classList.remove("hide");
         e.classList.remove("show");
         e.classList.add("sub");
     }
@@ -525,6 +527,7 @@ vv.view.main = (function(){
         var e = document.getElementById("main");
         e.classList.remove("show");
         e.classList.remove("sub");
+        e.classList.add("hide");
     }
     var hidden = function() {
         var e = document.getElementById("main");
@@ -594,11 +597,13 @@ vv.view.main = (function(){
 vv.view.list = (function(){
     var show = function() {
         var e = document.getElementById("list");
+        e.classList.remove("hide");
         e.classList.remove("sub");
         e.classList.add("show");
     };
     var show_sub = function() {
         var e = document.getElementById("list");
+        e.classList.remove("hide");
         e.classList.remove("show");
         e.classList.add("sub");
     }
@@ -606,6 +611,7 @@ vv.view.list = (function(){
         var e = document.getElementById("list");
         e.classList.remove("show");
         e.classList.remove("sub");
+        e.classList.add("hide");
     }
     var hidden = function() {
         var e = document.getElementById("list");
@@ -704,6 +710,7 @@ vv.view.list = (function(){
 }());
 vv.view.config = (function(){
     var init = function() {
+        hide();
         // TODO: fix loop unrolling
         var update_theme = function() {
             if (vv.storage.config.appearance.dark) {
@@ -791,11 +798,13 @@ vv.view.config = (function(){
     vv.control.addEventListener("outputs", update_devices);
     var show = function() {
         var e = document.getElementById("config");
+        e.classList.remove("hide");
         e.classList.add("show");
     };
     var hide = function() {
         var e = document.getElementById("config");
         e.classList.remove("show");
+        e.classList.add("hide");
     }
     var hidden = function() {
         var e = document.getElementById("config");
