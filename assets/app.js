@@ -534,23 +534,24 @@ vv.view.main = (function(){
         document.getElementById("control-volume").value=vv.storage.control["volume"]
     });
     vv.control.addEventListener("config", load_volume_config);
-    (function() {
-        if (document.readyState !== 'loading') {
-            init();
-        } else {
-            document.addEventListener('DOMContentLoaded', init);
-        }
-    })();
     var show = function() {
         var e = document.getElementById("main");
-        e.style.display = "block";
+        e.classList.remove("sub");
+        e.classList.add("show");
     };
+    var show_sub = function() {
+        var e = document.getElementById("main");
+        e.classList.remove("show");
+        e.classList.add("sub");
+    }
     var hide = function() {
         var e = document.getElementById("main");
-        e.style.display = "none";
+        e.classList.remove("show");
+        e.classList.remove("sub");
     }
     var hidden = function() {
-        return document.getElementById("main").style.display == "none";
+        var e = document.getElementById("main");
+        return !(e.classList.contains("sub") || e.classList.contains("show"));
     }
     var update = function() {
         var e = document.getElementById("main");
@@ -594,13 +595,8 @@ vv.view.main = (function(){
             c.setAttribute("d", "M 100,30 L 100,30 A 70,70 0 0,1 " + x + "," + y);
         }
     }
-    var orientation = function() {
-        if (!vv.view.config.hidden()) {
-            return;
-        }
-        show();
-    }
     var init = function() {
+        show();
         document.getElementById("control-volume").addEventListener("change", function() {
             vv.control.volume(parseInt(this.value));
         });
@@ -608,13 +604,12 @@ vv.view.main = (function(){
         window.addEventListener("resize", resize_image, false);
         resize_image();
     };
-    window.matchMedia("(orientation: portrait)").addListener(orientation);
-    window.matchMedia("(orientation: landscape)").addListener(orientation);
     vv.control.addEventListener("current", update);
     vv.control.addEventListener("poll", update_elapsed);
     vv.control.addEventListener("start", init);
     return {
         show: show,
+        show_sub: show_sub,
         hide: hide,
         hidden: hidden,
         update: update,
@@ -623,24 +618,22 @@ vv.view.main = (function(){
 vv.view.list = (function(){
     var show = function() {
         var e = document.getElementById("list");
-        e.style.display = "block";
+        e.classList.remove("sub");
+        e.classList.add("show");
     };
+    var show_sub = function() {
+        var e = document.getElementById("list");
+        e.classList.remove("show");
+        e.classList.add("sub");
+    }
     var hide = function() {
         var e = document.getElementById("list");
-        e.style.display = "none";
+        e.classList.remove("show");
+        e.classList.remove("sub");
     }
     var hidden = function() {
-        var d = document.getElementById("list").style.display;
-        // FIXME: remove orientation check
-        if (d == "") {
-            if (matchMedia("(orientation: portrait)").matches) {
-                return true;
-            } else {
-                return false;
-            }
-        } else {
-            return d == "none";
-        }
+        var e = document.getElementById("list");
+        return !(e.classList.contains("sub") || e.classList.contains("show"));
     }
     var update = function() {
         var ls = vv.model.list.list(),
@@ -719,21 +712,11 @@ vv.view.list = (function(){
         return li;
     };
     vv.control.addEventListener("library", update);
-    var orientation = function() {
-        if (!vv.view.config.hidden()) {
-            return;
-        }
-        if (matchMedia("(orientation: portrait)").matches) {
-            hide();
-        } else {
-            show();
-        }
-    }
-    window.matchMedia("(orientation: portrait)").addListener(orientation);
-    window.matchMedia("(orientation: landscape)").addListener(orientation);
     vv.control.addEventListener("current", update);
+    vv.control.addEventListener("start", show_sub);
     return {
         show: show,
+        show_sub: show_sub,
         hide: hide,
         hidden: hidden,
         update: update,
@@ -828,14 +811,15 @@ vv.view.config = (function(){
     vv.control.addEventListener("outputs", update_devices);
     var show = function() {
         var e = document.getElementById("config");
-        e.style.display = "block";
+        e.classList.add("show");
     };
     var hide = function() {
         var e = document.getElementById("config");
-        e.style.display = "none";
+        e.classList.remove("show");
     }
     var hidden = function() {
-        return document.getElementById("config").style.display == "none";
+        var e = document.getElementById("config");
+        return !e.classList.contains("show");
     }
     vv.control.addEventListener("start", init);
     return {
@@ -855,27 +839,19 @@ vv.view.menu = (function(){
             } else {
                 vv.model.list.abs(vv.storage.current);
             }
-            if (!window.matchMedia('(orientation: landscape)').matches) {
-                vv.view.main.hide();
-            } else {
-                vv.view.main.show();
-            }
             vv.view.config.hide();
             vv.view.list.update();
+            vv.view.main.show_sub();
             vv.view.list.show();
             e.stopPropagation();
         });
         document.getElementById("menu-main").addEventListener('click', function(e) {
-            if (!window.matchMedia('(orientation: landscape)').matches) {
-                vv.view.list.hide();
-            } else {
-                vv.view.list.show();
-            }
             vv.model.list.abs(vv.storage.current);
             if (!vv.view.list.hidden()) {
                 vv.view.list.update();
             }
             vv.view.config.hide();
+            vv.view.list.show_sub();
             vv.view.main.show();
             e.stopPropagation();
         });

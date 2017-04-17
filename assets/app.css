@@ -83,12 +83,13 @@ footer {
 }
 @media (orientation: portrait) {
     section {
+        display: none;
         left: 0px;
         width: 100%;
         padding: 0px 0px 150px;
     }
-    #list {
-        display: none;
+    section.show {
+        display: block;
     }
     #background {
         padding: 70px 0 120px;
@@ -99,17 +100,23 @@ footer {
 }
 @media (orientation: landscape) {
     section {
+        display: none;
         padding: 0px 0px 90px;
     }
-    #list {
+    #list.show,
+    #list.sub {
+        display: block;
         left: 0px;
         width: 50%;
     }
-    #main {
+    #main.show,
+    #main.sub {
+        display: block;
         left: 50%;
         width: 50%;
     }
-    #config {
+    #config.show {
+        display: block;
         left: 0px;
         width: 100%;
     }
