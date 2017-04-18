@@ -229,7 +229,6 @@ footer {
     align-items: center;
     justify-content: center;
 }
-
 #main-cover {
     width: 70%;
     padding: 70% 0 0;
@@ -239,49 +238,40 @@ footer {
     border-radius: 100%;
 }
 
-#main .elapsed_img, #main .elapsed_img svg {
+#main-elapsed-circle-frame,
+#main-elapsed-circle {
     position: absolute;
     left: 0px;
     top: 0px;
     width: 100%;
     height: 100%;
 }
-#main .elapsed_img svg {
+#main-elapsed-circle {
     stroke: #404040;
     stroke-width: 4;
     fill: none;
 }
-#main .elapsed_img svg .inactive {
+#main-elapsed-circle.inactive {
     stroke-opacity: 0.5;
 }
-
-.dark #main .elapsed_img svg {
+.dark #main-elapsed-circle {
     stroke: #e0e0e0;
 }
 
-#main .title, #main .artist {
+#main-title,
+#main-artist {
     position: relative;
     left: 10px;
     width: 100%;
-
 }
 
-#main .title {
+#main-title {
     top: 90px;
     font-size: 20px;
 }
-#main .artist {
+#main-artist {
     top: 120px;
     font-size: 20px;
-}
-
-#main li {
-}
-
-#main .control {
-    position: absolute;
-    bottom: 140px;
-    right: 10px;
 }
 
 #config h1, #config h3 {

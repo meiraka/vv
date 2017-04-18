@@ -534,16 +534,15 @@ vv.view.main = (function(){
         return !e.classList.contains("show");
     }
     var update = function() {
-        var e = document.getElementById("main");
-        e.getElementsByClassName("title")[0].textContent = vv.storage.current["Title"];
-        e.getElementsByClassName("artist")[0].textContent = vv.storage.current["Artist"];
+        document.getElementById("main-title").textContent = vv.storage.current["Title"];
+        document.getElementById("main-artist").textContent = vv.storage.current["Artist"];
         document.getElementById("main-cover").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
     };
     var update_elapsed = function() {
         if (hidden()) {
             return;
         }
-        var c = document.getElementById("elapsed_circle");
+        var c = document.getElementById("main-elapsed-circle-active");
         var elapsed = parseInt(vv.storage.control["song_elapsed"] * 1000);
         if (vv.storage.control["state"] == "play") {
             var last_modified = parseInt(vv.storage.control["last_modified"] * 1000);
