@@ -247,15 +247,10 @@ footer {
     height: 100%;
 }
 #main-elapsed-circle {
-    stroke: #404040;
     stroke-width: 4;
-    fill: none;
 }
-#main-elapsed-circle.inactive {
+#main-elapsed-circle .inactive {
     stroke-opacity: 0.5;
-}
-.dark #main-elapsed-circle {
-    stroke: #e0e0e0;
 }
 
 #main-title,
