@@ -29,6 +29,16 @@ svg .stroke {
     fill: none;
 }
 
+li {
+    margin-top: 1px;
+    border-bottom: dashed 1px #404040;
+}
+
+.dark li {
+    margin-top: 1px;
+    border-bottom: dashed 1px #e0e0e0;
+}
+
 header,
 footer {
     position: fixed;
@@ -146,10 +156,6 @@ footer {
 }
 #list li {
     display: flex;
-    margin-top: 1px;
-    border-bottom: dashed 1px #f0f0f0;
-}
-#list li span {
 }
 #list .plain {
     align-items: baseline;
@@ -280,8 +286,6 @@ footer {
 #config ul li {
     align-items: center;
     display: flex;
-    margin-top: 1px;
-    border-bottom: dashed 1px #f0f0f0;
 }
 #config ul li .description {
     font-size: 18px;
@@ -524,6 +528,10 @@ button {
     padding: 0px;
     margin: 0px;
     width: 100%;
+}
+#submenu li {
+    margin: 0;
+    border: none;
 }
 #submenu button {
     font-size: 14px;
