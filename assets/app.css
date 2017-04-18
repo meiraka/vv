@@ -1,8 +1,8 @@
 body {
     -webkit-text-size-adjust: 100%;
-    margin: 0px;
-    border: 0px;
-    padding: 0px;
+    margin: 0;
+    border: 0;
+    padding: 0;
     font-family: Arial,sans-serif;
     color: #303030;
 }
@@ -56,9 +56,9 @@ footer,
     background: rgba(0,0,0,0.4);
 }
 header {
-    left: 0px;
+    left: 0;
     width: 100%;
-    top: 0px;
+    top: 0;
     height: 70px;
 }
 #list,
@@ -77,8 +77,8 @@ header {
 #background,
 #background-image {
     position: fixed;
-    top: 0px;
-    left: 0px;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
@@ -101,14 +101,14 @@ header {
     height: 100%;
 }
 footer {
-    bottom: 0px;
+    bottom: 0;
     width: 100%;
 }
 @media (orientation: portrait) {
     section {
-        left: 0px;
+        left: 0;
         width: 100%;
-        padding: 0px 0px 150px;
+        padding: 0 0 150px;
     }
     section.hide,
     section.sub {
@@ -123,13 +123,13 @@ footer {
 }
 @media (orientation: landscape) {
     section {
-        padding: 0px 0px 90px;
+        padding: 0 0 90px;
     }
     section.hide {
         display: none;
     }
     #list {
-        left: 0px;
+        left: 0;
         width: 50%;
     }
     #main {
@@ -137,7 +137,7 @@ footer {
         width: 50%;
     }
     #config {
-        left: 0px;
+        left: 0;
         width: 100%;
     }
     #background {
@@ -151,8 +151,8 @@ footer {
 #list ol {
     list-style-type: none;
     padding: 10px;
-    margin: 0px 12px;
-    padding: 0px;
+    margin: 0 12px;
+    padding: 0;
 }
 #list li {
     display: flex;
@@ -247,8 +247,8 @@ footer {
 #main-elapsed-circle-frame,
 #main-elapsed-circle {
     position: absolute;
-    left: 0px;
-    top: 0px;
+    left: 0;
+    top: 0;
     width: 100%;
     height: 100%;
 }
@@ -325,14 +325,14 @@ footer {
 }
 .switch label:before, .switch label:after, .switch input:checked + label:before, .switch input:checked + label:after {
     position: absolute;
-    top: 0px;
+    top: 0;
     content: "";
     display: block; width: 50%;
     height: 24px;
     border-radius: 24px;
 }
 .switch label:before {
-    left: 0px;
+    left: 0;
     border: solid 3px #404040;
     background-color: #ffffff;
 }
@@ -367,14 +367,14 @@ footer {
     background-color: #404040;
     font-size: 18px;
     color: #ffffff;
-    padding: 5px 5px 0px 50px;
+    padding: 5px 5px 0 50px;
     margin: 5px;
 }
 
 #error {
     position: fixed;
     top: 40px;
-    right: 0px;
+    right: 0;
     margin: 10px;
     padding: 5px;
     width: 300px;
@@ -388,9 +388,9 @@ footer {
 
 button {
     outline: 0;
-    padding: 0px;
-    margin: 0px;
-    border: 0px;
+    padding: 0;
+    margin: 0;
+    border: 0;
     background-color: rgba(255,255,255,0);
 }
 
@@ -420,7 +420,7 @@ button {
 
 #control {
     padding: 0 10px;
-    border: 0px;
+    border: 0;
     height: 90px;
     display: flex;
     align-items: center;
@@ -525,8 +525,8 @@ button {
 }
 #submenu ol {
     list-style-type: none;
-    padding: 0px;
-    margin: 0px;
+    padding: 0;
+    margin: 0;
     width: 100%;
 }
 #submenu li {
