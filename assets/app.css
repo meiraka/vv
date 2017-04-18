@@ -513,33 +513,30 @@ button {
     }
 }
 
-#submenu {
+#menu-settings-list {
     position: fixed;
     display: none;
     left: 66.66%;
     width: 33.33%;
     top: 55px;
-}
-#submenu.show {
-    display: block;
-}
-#submenu ol {
     list-style-type: none;
     padding: 0;
     margin: 0;
-    width: 100%;
 }
-#submenu li {
+#menu-settings-list.show {
+    display: block;
+}
+#menu-settings-list li {
     margin: 0;
     border: none;
 }
-#submenu button {
+#menu-settings-list button {
     font-size: 14px;
     width: 100%;
     height: 40px;
     background-color: #d0d0d0;
 }
-#submenu button:hover {
+#menu-settings-list button:hover {
     width: 100%;
     height: 40px;
     background-color: #c0c0c0;

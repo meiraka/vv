@@ -4,7 +4,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {background: {}, main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}, dropdown: {}},
+    view: {background: {}, main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}},
     control : {},
 };
 vv.obj = (function(){
@@ -628,8 +628,8 @@ vv.view.list = (function(){
                 focus_li = li;
             }
             li.addEventListener('click', function() {
-                if (!vv.view.dropdown.hidden()) {
-                    vv.view.dropdown.hide();
+                if (!vv.view.menu.hidden_sub()) {
+                    vv.view.menu.hide_sub();
                     return;
                 }
                 var value = this.getAttribute("key"),
@@ -839,26 +839,25 @@ vv.view.menu = (function(){
             }
             e.stopPropagation();
         });
-        var submenu = document.getElementById("submenu");
-        submenu.getElementsByClassName("reload")[0].addEventListener('click', function() {
+        document.getElementById("menu-settings-list-reload").addEventListener('click', function() {
             location.reload();
         });
-        submenu.getElementsByClassName("config")[0].addEventListener('click', function() {
+        document.getElementById("menu-settings-list-config").addEventListener('click', function() {
             vv.view.main.hide();
             vv.view.list.hide();
             vv.view.config.show();
         });
     };
     var show_sub = function() {
-        var e = document.getElementById("submenu");
+        var e = document.getElementById("menu-settings-list");
         e.classList.add("show");
     };
     var hide_sub = function() {
-        var e = document.getElementById("submenu");
+        var e = document.getElementById("menu-settings-list");
         e.classList.remove("show");
     };
     var hidden_sub = function() {
-        return !document.getElementById("submenu").classList.contains("show");
+        return !document.getElementById("menu-settings-list").classList.contains("show");
     };
     var height = function() {
         return document.getElementsByTagName("header")[0].offsetHeight;
@@ -955,17 +954,5 @@ vv.view.elapsed = (function() {
     vv.control.addEventListener("control", update);
     vv.control.addEventListener("poll", update);
     return {update: update};
-}());
-vv.view.dropdown = (function() {
-    var hidden = function() {
-        return vv.view.menu.hidden_sub();
-    }
-    var hide = function() {
-        vv.view.menu.hide_sub();
-    }
-    return {
-        hidden: hidden,
-        hide: hide,
-    }
 }());
 vv.control.start();
