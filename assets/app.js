@@ -537,18 +537,7 @@ vv.view.main = (function(){
         var e = document.getElementById("main");
         e.getElementsByClassName("title")[0].textContent = vv.storage.current["Title"];
         e.getElementsByClassName("artist")[0].textContent = vv.storage.current["Artist"];
-        document.getElementById("current_cover").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
-    };
-    var resize_image = function() {
-        var e = document.getElementById("main");
-        var w = e.clientWidth;
-        var h = e.clientHeight;
-        var c = document.getElementById("current_cover");
-        var cs = parseInt((w < h ? w : h) * 0.7);
-        c.style.top = (h - cs) / 2 + "px";
-        // c.style.left = (p? ((w - cs) / 2) : ((w - cs)/2 + w)) + "px";
-        // c.style.width = cs + "px";
-        c.style.height = cs + "px";
+        document.getElementById("main-cover").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
     };
     var update_elapsed = function() {
         if (hidden()) {
@@ -580,8 +569,6 @@ vv.view.main = (function(){
             vv.control.volume(parseInt(this.value));
         });
         load_volume_config();
-        window.addEventListener("resize", resize_image, false);
-        resize_image();
     };
     vv.control.addEventListener("current", update);
     vv.control.addEventListener("poll", update_elapsed);
