@@ -661,12 +661,16 @@ vv.view.list = (function(){
         li.setAttribute("key", vv.song.get(song, key));
         li.setAttribute("uri", song["file"]);
         if (style == "song") {
-            inner = "<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>"+
-                    "<span class=title>"+vv.song.get(song, "Title")+"</span>";
+            var now_playing = vv.song.get(song, "file") == vv.song.get(vv.storage.current, "file");
+            inner = "<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>";
+            if (now_playing) {
+                inner += '<svg width="100" height="100" viewBox="0 0 100 100"><path class="fill" d="M 25,20 80,50 25,80 z"/></svg>';
+            }
+            inner += "<span class=title>"+vv.song.get(song, "Title")+"</span>";
             if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
                 inner += "<span class=artist>"+vv.song.get(song, "Artist")+"</span>";
             }
-            if (vv.song.get(song, "file") == vv.song.get(vv.storage.current, "file")) {
+            if (now_playing) {
                 inner += "<span class=elapsed></span>"+
                          "<span class=length_separator>/</span>";
             }

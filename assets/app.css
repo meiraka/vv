@@ -173,6 +173,11 @@ footer {
 #list .song span {
     margin: 8px;
 }
+#list .song svg {
+    margin: 0;
+    width: 30px;
+    height: 30px;
+}
 #list .song .title {
     flex: 1 1 auto;
     font-size: 20px;
