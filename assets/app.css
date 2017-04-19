@@ -169,9 +169,10 @@ footer {
 }
 #list .song {
     align-items: center;
+    padding: 8px 4px;
 }
 #list .song span {
-    margin: 8px;
+    margin: 0 4px 0 0;
 }
 #list .song svg {
     margin: 0;
@@ -192,8 +193,29 @@ footer {
 #list .song .length {
     font-size: 12px;
 }
-#list .song .length_separator {
+#list .song .length {
     margin: 0;
+}
+@media (max-width: 400px), (max-width: 800px) and (orientation: landscape) {
+    #list .song {
+        flex-flow: row wrap;
+    }
+    #list .song .track,
+    #list .song .length_separator,
+    #list .song .length {
+        display: none;
+    }
+    #list .song .elapsed {
+        margin: 0;
+    }
+    #list .song .artist {
+        order: 10;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        opacity: 0.7;
+    }
 }
 #list .album {
     align-items: center;

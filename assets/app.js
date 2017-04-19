@@ -669,6 +669,8 @@ vv.view.list = (function(){
             inner += "<span class=title>"+vv.song.get(song, "Title")+"</span>";
             if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
                 inner += "<span class=artist>"+vv.song.get(song, "Artist")+"</span>";
+            } else {
+                inner += '<span class="artist low-prio">'+vv.song.get(song, "Artist")+"</span>";
             }
             if (now_playing) {
                 inner += "<span class=elapsed></span>"+
