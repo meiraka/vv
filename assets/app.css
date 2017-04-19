@@ -172,19 +172,22 @@ footer {
     padding: 8px 4px;
 }
 #list .song span {
-    margin: 0 4px 0 0;
+    margin: 0 8px 0 0;
 }
 #list .song svg {
     margin: 0;
-    width: 30px;
-    height: 30px;
+    width: 22px;
+    height: 22px;
 }
 #list .song .title {
-    flex: 1 1 auto;
     font-size: 20px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+#list .song .artist {
+    flex: 1 1 auto;
+    opacity: 0.7;
 }
 #list .song .track,
 #list .song .artist,
@@ -208,13 +211,16 @@ footer {
     #list .song .elapsed {
         margin: 0;
     }
+    #list .song .title {
+        flex: 1 1 auto;
+    }
     #list .song .artist {
+        flex: 0 1 auto;
         order: 10;
         width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        opacity: 0.7;
     }
 }
 #list .album {
