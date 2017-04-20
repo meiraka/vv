@@ -52,10 +52,47 @@ vv.song = (function(){
         }
         return sortkey;
     }
+    var element = function(e, song, key, style) {
+        var inner = "";
+        e.setAttribute("class", style);
+        e.setAttribute("key", vv.song.get(song, key));
+        e.setAttribute("uri", song["file"]);
+        if (style == "song") {
+            var now_playing = vv.song.get(song, "file") == vv.song.get(vv.storage.current, "file");
+            inner = "<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>";
+            if (now_playing) {
+                inner += '<svg width="100" height="100" viewBox="0 0 100 100"><path class="fill" d="M 25,20 80,50 25,80 z"/></svg>';
+            }
+            inner += "<span class=title>"+vv.song.get(song, "Title")+"</span>";
+            if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
+                inner += "<span class=artist>"+vv.song.get(song, "Artist")+"</span>";
+            } else {
+                inner += '<span class="artist low-prio">'+vv.song.get(song, "Artist")+"</span>";
+            }
+            if (now_playing) {
+                inner += "<span class=elapsed></span>"+
+                         "<span class=length_separator>/</span>";
+            }
+            inner += "<span class=length>"+vv.song.get(song, "Length")+"</span>";
+        } else if (style == "album") {
+            inner += '<div class=img-sq><img class=cover src="/music_directory/'+song["cover"]+'"></div>';
+            inner += "<div class=detail>"
+            inner += "<span class=date>"+vv.song.get(song, "Date")+"</span>";
+            inner += "<span class=album>"+vv.song.get(song, "Album")+"</span>";
+            inner += "<span class=albumartist>"+vv.song.get(song, "AlbumArtist")+"</span>";
+            inner += "</div>"
+        } else {
+            inner = "<span class=key>"+vv.song.get(song, key)+"</span>";
+        }
+        e.innerHTML = inner;
+        return e;
+    };
+
     return {
         getOrElse: getOrElse,
         get: get,
         str: str,
+        element: element,
     };
 }());
 vv.songs = (function(){
@@ -618,12 +655,14 @@ vv.view.list = (function(){
         var i;
         var focus_li = null;
         for (i in songs) {
+            li = document.createElement("li");
             if (i == 0 && vv.model.list.rootname() != "root") {
                 var p = vv.model.list.parent_item(songs);
-                li = make_list_item(p[1], p[0], p[2]);
+                li = vv.song.element(li, p[1], p[0], p[2]);
                 newul.appendChild(li);
             }
-            li = make_list_item(songs[i], ls[0], ls[2]);
+            li = document.createElement("li");
+            li = vv.song.element(li, songs[i], ls[0], ls[2]);
             if (songs[i]['file'] == vv.model.list.focused()['file']) {
                 focus_li = li;
             }
@@ -653,42 +692,6 @@ vv.view.list = (function(){
             }
             window.scrollTo(0, pos + window.pageYOffset - h);
         }
-    };
-    var make_list_item = function(song, key, style) {
-        var li = document.createElement("li");
-        var inner = "";
-        li.setAttribute("class", style);
-        li.setAttribute("key", vv.song.get(song, key));
-        li.setAttribute("uri", song["file"]);
-        if (style == "song") {
-            var now_playing = vv.song.get(song, "file") == vv.song.get(vv.storage.current, "file");
-            inner = "<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>";
-            if (now_playing) {
-                inner += '<svg width="100" height="100" viewBox="0 0 100 100"><path class="fill" d="M 25,20 80,50 25,80 z"/></svg>';
-            }
-            inner += "<span class=title>"+vv.song.get(song, "Title")+"</span>";
-            if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
-                inner += "<span class=artist>"+vv.song.get(song, "Artist")+"</span>";
-            } else {
-                inner += '<span class="artist low-prio">'+vv.song.get(song, "Artist")+"</span>";
-            }
-            if (now_playing) {
-                inner += "<span class=elapsed></span>"+
-                         "<span class=length_separator>/</span>";
-            }
-            inner += "<span class=length>"+vv.song.get(song, "Length")+"</span>";
-        } else if (style == "album") {
-            inner += '<div class=img-sq><img class=cover src="/music_directory/'+song["cover"]+'"></div>';
-            inner += "<div class=detail>"
-            inner += "<span class=date>"+vv.song.get(song, "Date")+"</span>";
-            inner += "<span class=album>"+vv.song.get(song, "Album")+"</span>";
-            inner += "<span class=albumartist>"+vv.song.get(song, "AlbumArtist")+"</span>";
-            inner += "</div>"
-        } else {
-            inner = "<span class=key>"+vv.song.get(song, key)+"</span>";
-        }
-        li.innerHTML = inner;
-        return li;
     };
     vv.control.addEventListener("library", update);
     vv.control.addEventListener("current", update);
