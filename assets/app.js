@@ -54,11 +54,18 @@ vv.song = (function(){
     }
     var element = function(e, song, key, style) {
         var inner = "";
-        e.setAttribute("class", style);
+        e.classList.remove("plain");
+        e.classList.remove("song");
+        e.classList.remove("album");
+        e.classList.remove("playing");
+        e.classList.add(style);
         e.setAttribute("key", vv.song.get(song, key));
         e.setAttribute("uri", song["file"]);
         if (style == "song") {
-            var now_playing = vv.song.get(song, "file") == vv.song.get(vv.storage.current, "file");
+            var now_playing = vv.storage.current && vv.storage.current.file && song.file == vv.storage.current.file;
+            if (now_playing) {
+                e.classList.add("playing");
+            }
             inner = "<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>";
             if (now_playing) {
                 inner += '<svg width="100" height="100" viewBox="0 0 100 100"><path class="fill" d="M 25,20 80,50 25,80 z"/></svg>';
@@ -230,6 +237,16 @@ vv.model.list = (function() {
         }
     }
     var focus = {};
+    var listener = {"changed": []}
+    var addEventListener = function(ev, func) {
+        listener[ev].push(func);
+    };
+    var raiseEvent = function(ev) {
+        var i;
+        for (i in listener[ev]) {
+            listener[ev][i]();
+        }
+    };
     var update = function(data) {
         var key;
         for (key in TREE) {
@@ -254,11 +271,13 @@ vv.model.list = (function() {
         return TREE[r]["sort"];
     }
     var up = function() {
-        focus = list()[1][0];
+        var songs = list().songs;
+        if (songs[0]) { focus = songs[0]; }
         if (rootname() != "root") {
             vv.storage.tree.pop();
             vv.storage.save();
         }
+        raiseEvent("changed");
     };
     var down = function(value) {
         var r = rootname();
@@ -268,12 +287,14 @@ vv.model.list = (function() {
         }
         vv.storage.tree.push([key, value]);
         vv.storage.save();
-        focus = list()[1][0];
+        var songs = list().songs;
+        if (songs[0]) { focus = songs[0]; }
+        raiseEvent("changed");
     };
     var abs = function(song) {
         focus = song;
         var i, root, key, selected;
-        if (rootname() != "root") {
+        if (rootname() != "root" && song.file) {
             vv.storage.tree = [vv.storage.tree[0]];
             root = vv.storage.tree[0][1];
             selected = TREE[root]["tree"];
@@ -285,7 +306,11 @@ vv.model.list = (function() {
                 vv.storage.tree.push([key, vv.song.get(song, key)]);
             }
             vv.storage.save();
+        } else {
+            vv.storage.tree = [];
+            vv.storage.save();
         }
+        raiseEvent("changed");
     };
     var list = function() {
         if (rootname() == "root") {
@@ -300,9 +325,9 @@ vv.model.list = (function() {
             filters = {},
             key = TREE[root]["tree"][vv.storage.tree.length - 1][0],
             style = TREE[root]["tree"][vv.storage.tree.length - 1][1],
-            type = "dir";
+            isdir = true;
         if (vv.storage.tree.length == TREE[root]["tree"].length) {
-            type = "file";
+            isdir = false;
         }
         var leef;
         for (leef in vv.storage.tree) {
@@ -311,7 +336,7 @@ vv.model.list = (function() {
         }
         library = vv.songs.filter(library, filters);
         library = vv.songs.uniq(library, key);
-        return [key, library, style, type];
+        return {"key": key, "songs": library, "style": style, "isdir": isdir}
     };
     var list_root = function() {
         var ret = [];
@@ -319,11 +344,11 @@ vv.model.list = (function() {
         for (rootname in TREE) {
             ret.push({"root": rootname});
         }
-        return ["root", ret, "plain", "dir"];
+        return {"key": "root", "songs": ret, "style": "plain", "isdir": true};
     };
-    var parent_item = function(v) {
+    var parent = function(v) {
         if (!v) {
-            v = list();
+            v = list().songs;
         }
         var root = rootname();
         if (root == "root") {
@@ -332,16 +357,35 @@ vv.model.list = (function() {
         if (vv.storage.tree.length > 1) {
             var key = TREE[root]["tree"][vv.storage.tree.length - 2][0];
             var style = TREE[root]["tree"][vv.storage.tree.length - 2][1];
-            return [key, v[0], style, "dir"];
+            return {"key": key, "song": v[0], "style": style, "isdir": true};
         }
-        return ["root", {"root": root}, "plain", ""];
+        return {"key": "top", "song": {"top": root}, "style": "plain", "isdir": true};
+    };
+    var grandparent = function(v) {
+        if (!v) {
+            v = list().songs;
+        }
+        var root = rootname();
+        if (root == "root") {
+            return;
+        }
+        if (vv.storage.tree.length > 2) {
+            var key = TREE[root]["tree"][vv.storage.tree.length - 3][0];
+            var style = TREE[root]["tree"][vv.storage.tree.length - 3][1];
+            return {"key": key, "song": v[0], "style": style, "isdir": true};
+        } else if (vv.storage.tree.length == 2) {
+            return {"key": "top", "song": {"top": root}, "style": "plain", "isdir": true};
+        } 
+        return {"key": "root", "song": {"root": "Library"}, "style": "plain", "isdir": true};
     };
     return {
+        addEventListener: addEventListener,
         focused: focused,
         update: update,
         rootname: rootname,
         sortkeys: sortkeys,
-        parent_item: parent_item,
+        parent: parent,
+        grandparent: grandparent,
         up: up,
         down: down,
         abs: abs,
@@ -393,10 +437,11 @@ vv.control = (function() {
     var update_song = function() {
         get_request("api/songs/current", vv.storage.current_last_modified, function(ret, modified) {
             if (!ret.error) {
-                vv.storage.current = ret["data"];
+                var song = ret.data? ret.data : {};
+                vv.storage.current = song;
                 vv.storage.current_last_modified = modified;
-                if (vv.model.list.rootname() != "root" && vv.storage.config.playback.view_follow) {
-                    vv.model.list.abs(ret["data"]);
+                if (vv.model.list.rootname() != "root" && vv.storage.config.playback.view_follow && song.file) {
+                    vv.model.list.abs(song);
                 }
                 raiseEvent("current")
             }
@@ -646,8 +691,10 @@ vv.view.list = (function(){
     }
     var update = function() {
         var ls = vv.model.list.list(),
-            songs = ls[1],
-            type = ls[3],
+            key = ls["key"],
+            songs = ls["songs"],
+            isdir = ls["isdir"],
+            style = ls["style"],
             newul = document.createDocumentFragment(),
             ul = document.getElementById("list").children[0],
             li;
@@ -655,25 +702,37 @@ vv.view.list = (function(){
         var i;
         var focus_li = null;
         for (i in songs) {
-            li = document.createElement("li");
             if (i == 0 && vv.model.list.rootname() != "root") {
-                var p = vv.model.list.parent_item(songs);
-                li = vv.song.element(li, p[1], p[0], p[2]);
+                li = document.createElement("li");
+                var p = vv.model.list.parent(songs);
+                li = vv.song.element(li, p.song, p.key, p.style);
                 newul.appendChild(li);
             }
             li = document.createElement("li");
-            li = vv.song.element(li, songs[i], ls[0], ls[2]);
-            if (songs[i]['file'] == vv.model.list.focused()['file']) {
+            li = vv.song.element(li, songs[i], key, style);
+            if (songs[i] && vv.model.list.focused() &&
+                songs[i].file == vv.model.list.focused().file) {
                 focus_li = li;
             }
             li.addEventListener('click', function() {
+                if (this.classList.contains("playing")) {
+                    vv.model.list.abs(vv.storage.current);
+                    if (!vv.view.list.hidden()) {
+                        vv.view.list.update();
+                    }
+                    vv.view.config.hide();
+                    vv.view.list.show_sub();
+                    vv.view.menu.sub();
+                    vv.view.main.show();
+                    return;
+                }
                 if (!vv.view.menu.hidden_sub()) {
                     vv.view.menu.hide_sub();
                     return;
                 }
-                var value = this.getAttribute("key"),
-                    uri = this.getAttribute("uri");
-                if (type == "dir") {
+                var value = this.getAttribute("key");
+                var uri = this.getAttribute("uri");
+                if (isdir) {
                     vv.model.list.down(value);
                     vv.view.list.update();
                 } else {
@@ -815,6 +874,7 @@ vv.view.config = (function(){
 }());
 vv.view.menu = (function(){
     var init = function() {
+        vv.view.menu.sub();
         document.body.addEventListener('click', function() {
             vv.view.menu.hide_sub();
         });
@@ -828,6 +888,7 @@ vv.view.menu = (function(){
             vv.view.list.update();
             vv.view.main.show_sub();
             vv.view.list.show();
+            vv.view.menu.main();
             e.stopPropagation();
         });
         document.getElementById("menu-main").addEventListener('click', function(e) {
@@ -856,7 +917,24 @@ vv.view.menu = (function(){
             vv.view.list.hide();
             vv.view.config.show();
         });
+        update();
+        vv.model.list.addEventListener("changed", update);
+        vv.control.addEventListener("library", update);
     };
+    var update = function() {
+        var e = document.getElementById("menu-back-content");
+        var b = document.getElementById("menu-back");
+        if (vv.model.list.rootname() != "root") {
+            var songs = vv.model.list.list()["songs"];
+            if (songs[0]) {
+                b.classList.remove("root");
+                var p = vv.model.list.grandparent(songs);
+                vv.song.element(e, p["song"], p["key"], p["style"]);
+            }
+        } else {
+            b.classList.add("root");
+        }
+    }
     var show_sub = function() {
         var e = document.getElementById("menu-settings-list");
         e.classList.add("show");
@@ -871,8 +949,19 @@ vv.view.menu = (function(){
     var height = function() {
         return document.getElementsByTagName("header")[0].offsetHeight;
     };
+    var main = function() {
+        var e = document.getElementById("menu-back-content");
+        e.classList.remove("sub");
+    }
+    var sub = function() {
+        var e = document.getElementById("menu-back-content");
+        e.classList.add("sub");
+    }
     vv.control.addEventListener("start", init);
     return {
+        main: main,
+        sub: sub,
+        update: update,
         show_sub: show_sub,
         hide_sub: hide_sub,
         hidden_sub: hidden_sub,
@@ -903,7 +992,7 @@ vv.view.playback = (function(){
         });
     };
 
-    var update = function() {
+    var update_control = function() {
         if (vv.storage.control["state"] == "play") {
             document.getElementById("control-toggleplay").classList.add("pause");
             document.getElementById("control-toggleplay").classList.remove("play");
@@ -926,13 +1015,13 @@ vv.view.playback = (function(){
             document.getElementById("control-random").classList.remove("on");
         }
     }
+
     vv.control.addEventListener("start", init);
-    vv.control.addEventListener("control", update);
+    vv.control.addEventListener("control", update_control);
     var height = function() {
         return document.getElementsByTagName("footer")[0].offsetHeight;
     };
     return {
-        update: update,
         height: height,
     }
 }());
