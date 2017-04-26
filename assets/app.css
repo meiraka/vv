@@ -421,6 +421,7 @@ footer {
     width: 300px;
     display: none;
     background-color: #ffffff;
+    z-index: 200;
 }
 .dark #error {
     background-color: #404040;
