@@ -479,7 +479,7 @@ button {
     #menu-list {
         padding: 0 5%;
     }
-    #menu-back-content.sub {
+    .view-main #menu-back-content {
         display: none;
     }
 }
