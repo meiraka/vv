@@ -419,8 +419,14 @@ footer {
     margin: 10px;
     padding: 5px;
     width: 300px;
-    background-color: #ff1493;
     display: none;
+    background-color: #ffffff;
+}
+.dark #error {
+    background-color: #404040;
+}
+#error.show {
+    display: block;
 }
 
 #error > * {

@@ -412,6 +412,7 @@ vv.control = (function() {
 
     var get_request = function(path, ifmodified, callback) {
         var xhr = new XMLHttpRequest();
+        xhr.timeout = 1000;
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4) {
                 if (xhr.status == 200 && callback) {
@@ -419,6 +420,13 @@ vv.control = (function() {
                 }
             }
         };
+        xhr.ontimeout = function() {
+            var e = document.getElementById("error");
+            e.classList.add("show");
+            e.getElementsByClassName("title")[0].textContent = "timeout";
+            e.getElementsByClassName("description")[0].textContent = path;
+            setTimeout(function() {e.classList.remove("show");}, 5000);
+        }
         xhr.open("GET", path, true);
         if (ifmodified != "") {
             xhr.setRequestHeader("If-Modified-Since", ifmodified);
@@ -428,6 +436,7 @@ vv.control = (function() {
 
     var post_request = function(path, obj, callback) {
         var xhr = new XMLHttpRequest();
+        xhr.timeout = 1000;
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4) {
                 if (xhr.status == 200 && callback) {
@@ -435,6 +444,13 @@ vv.control = (function() {
                 }
             }
         };
+        xhr.ontimeout = function() {
+            var e = document.getElementById("error");
+            e.classList.add("show");
+            e.getElementsByClassName("title")[0].textContent = "timeout";
+            e.getElementsByClassName("description")[0].textContent = path;
+            setTimeout(function() {e.classList.remove("show");}, 5000);
+        }
         xhr.open("POST", path, true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(obj));
