@@ -280,14 +280,23 @@ footer {
     justify-content: center;
 }
 #main-cover {
-    width: 70%;
-    padding: 70% 0 0;
 	background-position: center center; 
 	background-repeat: no-repeat;
     background-size: cover;
     border-radius: 100%;
 }
-
+@media (orientation: portrait) {
+    #main-cover {
+        width: 70vw;
+        height: 70vw;
+    }
+}
+@media (orientation: landscape) {
+    #main-cover {
+        width: 35vw;
+        height: 35vw;
+    }
+}
 #main-elapsed-circle-frame,
 #main-elapsed-circle {
     position: absolute;
