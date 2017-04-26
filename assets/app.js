@@ -594,26 +594,12 @@ vv.view.main = (function(){
     });
     vv.control.addEventListener("config", load_volume_config);
     var show = function() {
-        var e = document.getElementById("main");
-        e.classList.remove("hide");
-        e.classList.remove("sub");
-        e.classList.add("show");
+        document.body.classList.add("view-main");
+        document.body.classList.remove("view-config");
+        document.body.classList.remove("view-list");
     };
-    var show_sub = function() {
-        var e = document.getElementById("main");
-        e.classList.remove("hide");
-        e.classList.remove("show");
-        e.classList.add("sub");
-    }
-    var hide = function() {
-        var e = document.getElementById("main");
-        e.classList.remove("show");
-        e.classList.remove("sub");
-        e.classList.add("hide");
-    }
     var hidden = function() {
-        var e = document.getElementById("main");
-        return !e.classList.contains("show");
+        return !document.body.classList.contains("view-main");
     }
     var update = function() {
         document.getElementById("main-title").textContent = vv.storage.current["Title"];
@@ -656,37 +642,22 @@ vv.view.main = (function(){
     vv.control.addEventListener("start", init);
     return {
         show: show,
-        show_sub: show_sub,
-        hide: hide,
         hidden: hidden,
         update: update,
     };
 }());
 vv.view.list = (function(){
     var show = function() {
-        var e = document.getElementById("list");
-        e.classList.remove("hide");
-        e.classList.remove("sub");
-        e.classList.add("show");
-    };
-    var show_sub = function() {
-        var e = document.getElementById("list");
-        e.classList.remove("hide");
-        e.classList.remove("show");
-        e.classList.add("sub");
-    }
-    var hide = function() {
-        var e = document.getElementById("list");
-        e.classList.remove("show");
-        e.classList.remove("sub");
-        e.classList.add("hide");
+        document.body.classList.add("view-list");
+        document.body.classList.remove("view-main");
+        document.body.classList.remove("view-config");
     }
     var hidden = function() {
-        var e = document.getElementById("list");
+        var e = document.body;
         if (window.matchMedia('(orientation: portrait)').matches) {
-            return !e.classList.contains("show");
+            return !e.classList.contains("view-list");
         } else {
-            return !(e.classList.contains("show") || e.classList.contains("sub"));
+            return !(e.classList.contains("view-list") || e.classList.contains("view-main"));
         }
     }
     var update = function() {
@@ -717,12 +688,7 @@ vv.view.list = (function(){
             li.addEventListener('click', function() {
                 if (this.classList.contains("playing")) {
                     vv.model.list.abs(vv.storage.current);
-                    if (!vv.view.list.hidden()) {
-                        vv.view.list.update();
-                    }
-                    vv.view.config.hide();
-                    vv.view.list.show_sub();
-                    vv.view.menu.sub();
+                    vv.view.list.update();
                     vv.view.main.show();
                     return;
                 }
@@ -754,18 +720,14 @@ vv.view.list = (function(){
     };
     vv.control.addEventListener("library", update);
     vv.control.addEventListener("current", update);
-    vv.control.addEventListener("start", show_sub);
     return {
         show: show,
-        show_sub: show_sub,
-        hide: hide,
         hidden: hidden,
         update: update,
     };
 }());
 vv.view.config = (function(){
     var init = function() {
-        hide();
         // TODO: fix loop unrolling
         var update_theme = function() {
             if (vv.storage.config.appearance.dark) {
@@ -852,29 +814,21 @@ vv.view.config = (function(){
     }
     vv.control.addEventListener("outputs", update_devices);
     var show = function() {
-        var e = document.getElementById("config");
-        e.classList.remove("hide");
-        e.classList.add("show");
+        document.body.classList.add("view-config");
+        document.body.classList.remove("view-list");
+        document.body.classList.remove("view-main");
     };
-    var hide = function() {
-        var e = document.getElementById("config");
-        e.classList.remove("show");
-        e.classList.add("hide");
-    }
     var hidden = function() {
-        var e = document.getElementById("config");
-        return !e.classList.contains("show");
+        return !document.body.classList.contains("view-config");
     }
     vv.control.addEventListener("start", init);
     return {
         show: show,
-        hide: hide,
         hidden: hidden,
     };
 }());
 vv.view.menu = (function(){
     var init = function() {
-        vv.view.menu.sub();
         document.body.addEventListener('click', function() {
             vv.view.menu.hide_sub();
         });
@@ -884,11 +838,8 @@ vv.view.menu = (function(){
             } else {
                 vv.model.list.abs(vv.storage.current);
             }
-            vv.view.config.hide();
             vv.view.list.update();
-            vv.view.main.show_sub();
             vv.view.list.show();
-            vv.view.menu.main();
             e.stopPropagation();
         });
         document.getElementById("menu-main").addEventListener('click', function(e) {
@@ -900,9 +851,6 @@ vv.view.menu = (function(){
             if (!vv.view.list.hidden()) {
                 vv.view.list.update();
             }
-            vv.view.config.hide();
-            vv.view.list.show_sub();
-            vv.view.menu.sub();
             vv.view.main.show();
             e.stopPropagation();
         });
@@ -918,8 +866,6 @@ vv.view.menu = (function(){
             location.reload();
         });
         document.getElementById("menu-settings-list-config").addEventListener('click', function() {
-            vv.view.main.hide();
-            vv.view.list.hide();
             vv.view.config.show();
         });
         update();
@@ -957,18 +903,8 @@ vv.view.menu = (function(){
     var height = function() {
         return document.getElementsByTagName("header")[0].offsetHeight;
     };
-    var main = function() {
-        var e = document.getElementById("menu-back-content");
-        e.classList.remove("sub");
-    }
-    var sub = function() {
-        var e = document.getElementById("menu-back-content");
-        e.classList.add("sub");
-    }
     vv.control.addEventListener("start", init);
     return {
-        main: main,
-        sub: sub,
         update: update,
         show_sub: show_sub,
         hide_sub: hide_sub,

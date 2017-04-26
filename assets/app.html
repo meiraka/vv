@@ -10,7 +10,7 @@
 <title>vv</title>
 </head>
 <body>
-<header>
+<header class="background-overlay">
     <nav id="menu">
         <ol id="menu-list">
             <li id=menu-back>
@@ -43,16 +43,15 @@
             <li><button id=menu-settings-list-config type="button">config</button>
         </ol>
     </nav>
-    </nav>
 </header>
-<div id="background-image"></div>
-<div id="background">
-    <div id="background-overlay"></div>
+<div id="background-image" class=fit></div>
+<div id="background" class=fit>
+    <div id="background-overlay" class=background-overlay></div>
 </div>
-<section id="list">
-    <ol></ol>
+<section id="list" class="scrollable">
+    <ol class=note></ol>
 </section>
-<section id="main">
+<section id="main" class="unscrollable">
     <cite id=main-title>no title</cite>
     <span id=main-artist>no artist</span>
     <div id=main-cover-frame>
@@ -65,11 +64,11 @@
         </svg>
     </div>
 </section>
-<section id="config">
+<section id="config" class="scrollable">
     <h1>configuration</h1>
     <article id="config-appearance">
         <h3>Appearance</h3>
-        <ul>
+        <ul class=note>
             <li>
                 <div class="description">Dark</div>
                 <div class="value switch"><input type="checkbox" id="appearance-dark"><label for="appearance-dark"></label></div>
@@ -90,7 +89,7 @@
         </ul>
     <article>
         <h3>Playback</h3>
-        <ul>
+        <ul class=note>
             <li>
                 <div class="description">Listview follows playback</div>
                 <div class="value switch"><input type="checkbox" id="playback_view_follow"><label for="playback_view_follow"></label></div>
@@ -98,7 +97,7 @@
     </article>
     <article>
         <h3>Volume</h3>
-        <ul>
+        <ul class=note>
             <li>
                 <div class="description">Show volume nob</div>
                 <div class="value switch"><input type="checkbox" id="show_volume"><label for="show_volume"></label></div>
@@ -116,7 +115,7 @@
     </article>
     <article>
         <h3>Devices</h3>
-        <ul class="devices"></ul>
+        <ul class="devices note"></ul>
     </article>
 </section>
 <article id="error">
@@ -125,7 +124,7 @@
 </article>
 
 </section>
-<footer>
+<footer class=background-overlay>
     <nav id="control">
         <nav id="control-playback">
             <button id=control-prev class=prev type="button" value="prev">

@@ -6,7 +6,6 @@ body {
     font-family: Arial,sans-serif;
     color: #303030;
 }
-
 body.dark {
     color: #d0d0d0;
     background-color: #000000;
@@ -29,15 +28,11 @@ svg .stroke {
     fill: none;
 }
 
-#list li,
-#config li {
+.note li {
     margin-top: 1px;
     border-bottom: dashed 1px #404040;
 }
-
-.dark #list li,
-.dark #config li {
-    margin-top: 1px;
+.dark .note li {
     border-bottom: dashed 1px #e0e0e0;
 }
 
@@ -47,14 +42,10 @@ footer {
     z-index: 100;
 }
 
-header,
-footer,
-#background-overlay {
+.background-overlay {
     background: rgba(255,255,255,0.4);
 }
-.dark header,
-.dark footer,
-.dark #background-overlay {
+.dark .background-overlay {
     background: rgba(0,0,0,0.4);
 }
 header {
@@ -63,21 +54,19 @@ header {
     top: 0;
     height: 70px;
 }
-#list,
-#config {
+.scrollable {
     position: absolute;
     top: 80px;
     z-index: 10;
 }
-#main {
+.unscrollable {
     position: fixed;
     top: 0;
     padding: 0;
     height: 100%;
     z-index: 10;
 }
-#background,
-#background-image {
+.fit {
     position: fixed;
     top: 0;
     left: 0;
@@ -85,9 +74,7 @@ header {
     height: 100%;
     box-sizing: border-box;
 }
-
-#background.hide,
-#background-image.hide{
+.fit.hide {
     display: none;
 }
 #background {
@@ -112,8 +99,17 @@ footer {
         width: 100%;
         padding: 0 0 150px;
     }
-    section.hide,
-    section.sub {
+    .view-config #config,
+    .view-list #list,
+    .view-main #main {
+        display: block;
+    }
+    .view-main #list,
+    .view-main #config,
+    .view-list #main,
+    .view-list #config,
+    .view-config #list,
+    .view-config #main {
         display: none;
     }
     #background {
@@ -127,7 +123,17 @@ footer {
     section {
         padding: 0 0 90px;
     }
-    section.hide {
+    .view-config #config,
+    .view-list #list,
+    .view-list #main,
+    .view-main #main,
+    .view-main #list {
+        display: block;
+    }
+    .view-main #config,
+    .view-list #config,
+    .view-config #list,
+    .view-config #main {
         display: none;
     }
     #list {
@@ -156,13 +162,15 @@ footer {
     margin: 0 12px;
     padding: 0;
 }
-#list li {
+.plain,
+.song,
+.album {
     display: flex;
 }
-#list .plain {
+.plain {
     align-items: baseline;
 }
-#list .plain .key {
+.plain .key {
     margin: 8px 4px;
     font-size: 20px;
     overflow: hidden;
@@ -331,9 +339,6 @@ footer {
     flex: 1 1 auto;
 }
 
-#config ul li .value {
-}
-
 .switch {
     margin: 5px;
     width: 100px;
@@ -459,7 +464,8 @@ button {
 }
 
 #menu-main.root,
-#menu-back.root {
+#menu-back.root,
+.view-main #menu-main {
     visibility: hidden;
 }
 @media (orientation: portrait) {
