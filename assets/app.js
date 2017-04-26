@@ -892,12 +892,17 @@ vv.view.menu = (function(){
             e.stopPropagation();
         });
         document.getElementById("menu-main").addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (vv.model.list.rootname() == "root") {
+                return;
+            }
             vv.model.list.abs(vv.storage.current);
             if (!vv.view.list.hidden()) {
                 vv.view.list.update();
             }
             vv.view.config.hide();
             vv.view.list.show_sub();
+            vv.view.menu.sub();
             vv.view.main.show();
             e.stopPropagation();
         });
@@ -924,15 +929,18 @@ vv.view.menu = (function(){
     var update = function() {
         var e = document.getElementById("menu-back-content");
         var b = document.getElementById("menu-back");
+        var m = document.getElementById("menu-main");
         if (vv.model.list.rootname() != "root") {
+            b.classList.remove("root");
+            m.classList.remove("root");
             var songs = vv.model.list.list()["songs"];
             if (songs[0]) {
-                b.classList.remove("root");
                 var p = vv.model.list.grandparent(songs);
                 vv.song.element(e, p["song"], p["key"], p["style"]);
             }
         } else {
             b.classList.add("root");
+            m.classList.add("root");
         }
     }
     var show_sub = function() {

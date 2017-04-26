@@ -458,6 +458,7 @@ button {
     margin: 0 12px;
 }
 
+#menu-main.root,
 #menu-back.root {
     visibility: hidden;
 }
