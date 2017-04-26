@@ -287,8 +287,7 @@ vv.model.list = (function() {
         }
         vv.storage.tree.push([key, value]);
         vv.storage.save();
-        var songs = list().songs;
-        if (songs[0]) { focus = songs[0]; }
+        focus = {};
         raiseEvent("changed");
     };
     var abs = function(song) {
@@ -716,6 +715,8 @@ vv.view.list = (function(){
                 return;
             }
             window.scrollTo(0, pos + window.pageYOffset - h);
+        } else {
+            window.scrollTo(0, 0);
         }
     };
     vv.control.addEventListener("library", update);
