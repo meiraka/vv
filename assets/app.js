@@ -687,7 +687,6 @@ vv.view.list = (function(){
             li.addEventListener('click', function() {
                 if (this.classList.contains("playing")) {
                     vv.model.list.abs(vv.storage.current);
-                    vv.view.list.update();
                     vv.view.main.show();
                     return;
                 }
@@ -699,7 +698,6 @@ vv.view.list = (function(){
                 var uri = this.getAttribute("uri");
                 if (isdir) {
                     vv.model.list.down(value);
-                    vv.view.list.update();
                 } else {
                     vv.control.play(uri);
                 }
@@ -721,10 +719,10 @@ vv.view.list = (function(){
     };
     vv.control.addEventListener("library", update);
     vv.control.addEventListener("current", update);
+    vv.model.list.addEventListener("changed", update);
     return {
         show: show,
         hidden: hidden,
-        update: update,
     };
 }());
 vv.view.config = (function(){
@@ -839,7 +837,6 @@ vv.view.menu = (function(){
             } else {
                 vv.model.list.abs(vv.storage.current);
             }
-            vv.view.list.update();
             vv.view.list.show();
             e.stopPropagation();
         });
@@ -849,9 +846,6 @@ vv.view.menu = (function(){
                 return;
             }
             vv.model.list.abs(vv.storage.current);
-            if (!vv.view.list.hidden()) {
-                vv.view.list.update();
-            }
             vv.view.main.show();
             e.stopPropagation();
         });
