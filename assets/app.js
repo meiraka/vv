@@ -237,6 +237,7 @@ vv.model.list = (function() {
         }
     }
     var focus = {};
+    var list_cache = {};
     var listener = {"changed": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
@@ -252,6 +253,7 @@ vv.model.list = (function() {
         for (key in TREE) {
             vv.storage.library[key] = vv.songs.sort(data, TREE[key]["sort"]);
         }
+        update_list();
     };
     var rootname = function() {
         var r = "root";
@@ -277,6 +279,7 @@ vv.model.list = (function() {
             vv.storage.tree.pop();
             vv.storage.save();
         }
+        update_list();
         raiseEvent("changed");
     };
     var down = function(value) {
@@ -288,6 +291,7 @@ vv.model.list = (function() {
         vv.storage.tree.push([key, value]);
         vv.storage.save();
         focus = {};
+        update_list();
         raiseEvent("changed");
     };
     var abs = function(song) {
@@ -309,13 +313,20 @@ vv.model.list = (function() {
             vv.storage.tree = [];
             vv.storage.save();
         }
+        update_list();
         raiseEvent("changed");
     };
     var list = function() {
+        if (!list_cache.songs || !list_cache.songs.length == 0) {
+            update_list();
+        }
+        return list_cache;
+    }
+    var update_list = function() {
         if (rootname() == "root") {
-            return list_root();
+            list_cache = list_root();
         } else {
-            return list_child();
+            list_cache = list_child();
         }
     };
     var list_child = function() {
@@ -345,10 +356,8 @@ vv.model.list = (function() {
         }
         return {"key": "root", "songs": ret, "style": "plain", "isdir": true};
     };
-    var parent = function(v) {
-        if (!v) {
-            v = list().songs;
-        }
+    var parent = function() {
+        var v = list().songs;
         var root = rootname();
         if (root == "root") {
             return;
@@ -360,10 +369,8 @@ vv.model.list = (function() {
         }
         return {"key": "top", "song": {"top": root}, "style": "plain", "isdir": true};
     };
-    var grandparent = function(v) {
-        if (!v) {
-            v = list().songs;
-        }
+    var grandparent = function() {
+        var v = list().songs;
         var root = rootname();
         if (root == "root") {
             return;
@@ -674,7 +681,7 @@ vv.view.list = (function(){
         for (i in songs) {
             if (i == 0 && vv.model.list.rootname() != "root") {
                 li = document.createElement("li");
-                var p = vv.model.list.parent(songs);
+                var p = vv.model.list.parent();
                 li = vv.song.element(li, p.song, p.key, p.style);
                 newul.appendChild(li);
             }
@@ -876,7 +883,7 @@ vv.view.menu = (function(){
             m.classList.remove("root");
             var songs = vv.model.list.list()["songs"];
             if (songs[0]) {
-                var p = vv.model.list.grandparent(songs);
+                var p = vv.model.list.grandparent();
                 vv.song.element(e, p["song"], p["key"], p["style"]);
             }
         } else {
