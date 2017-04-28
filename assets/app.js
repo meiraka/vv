@@ -4,7 +4,7 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {background: {}, main: {}, list: {}, config: {}, menu: {}, playback: {}, elapsed: {}},
+    view: {header: {}, background: {}, main: {}, list: {}, config: {}, footer: {}, elapsed: {}},
     control : {},
 };
 vv.obj = (function(){
@@ -713,8 +713,8 @@ vv.view.list = (function(){
                     vv.view.main.show();
                     return;
                 }
-                if (!vv.view.menu.hidden_sub()) {
-                    vv.view.menu.hide_sub();
+                if (!vv.view.header.hidden_sub()) {
+                    vv.view.header.hide_sub();
                     return;
                 }
                 var value = this.getAttribute("key");
@@ -731,8 +731,8 @@ vv.view.list = (function(){
         e.appendChild(newul);
         if (focus_li) {
             var pos = focus_li.getBoundingClientRect().top;
-            var h = vv.view.menu.height();
-            if (h <= pos && pos <= window.innerHeight - vv.view.playback.height()) {
+            var h = vv.view.header.height();
+            if (h <= pos && pos <= window.innerHeight - vv.view.footer.height()) {
                 return;
             }
             window.scrollTo(0, pos + window.pageYOffset - h);
@@ -849,10 +849,10 @@ vv.view.config = (function(){
         hidden: hidden,
     };
 }());
-vv.view.menu = (function(){
+vv.view.header = (function(){
     var init = function() {
         document.body.addEventListener('click', function() {
-            vv.view.menu.hide_sub();
+            vv.view.header.hide_sub();
         });
         document.getElementById("menu-back").addEventListener('click', function(e) {
             if (!vv.view.list.hidden()) {
@@ -873,10 +873,10 @@ vv.view.menu = (function(){
             e.stopPropagation();
         });
         document.getElementById("menu-settings").addEventListener('click', function(e) {
-            if (vv.view.menu.hidden_sub()) {
-                vv.view.menu.show_sub();
+            if (vv.view.header.hidden_sub()) {
+                vv.view.header.show_sub();
             } else {
-                vv.view.menu.hide_sub();
+                vv.view.header.hide_sub();
             }
             e.stopPropagation();
         });
@@ -930,7 +930,7 @@ vv.view.menu = (function(){
         height: height,
     };
 }());
-vv.view.playback = (function(){
+vv.view.footer = (function(){
     var init = function() {
         document.getElementById("control-prev").addEventListener('click', function(e) {
             vv.control.prev();
