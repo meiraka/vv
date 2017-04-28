@@ -865,10 +865,9 @@ vv.view.header = (function(){
         });
         document.getElementById("menu-main").addEventListener('click', function(e) {
             e.stopPropagation();
-            if (vv.model.list.rootname() == "root") {
-                return;
+            if (vv.model.list.rootname() != "root") {
+                vv.model.list.abs(vv.storage.current);
             }
-            vv.model.list.abs(vv.storage.current);
             vv.view.main.show();
             e.stopPropagation();
         });

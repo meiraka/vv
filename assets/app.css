@@ -479,9 +479,8 @@ button {
     margin: 0 12px;
 }
 
-#menu-main.root,
-#menu-back.root,
-.view-main #menu-main {
+.view-main #menu-main,
+.view-list #menu-back.root {
     visibility: hidden;
 }
 @media (orientation: portrait) {
