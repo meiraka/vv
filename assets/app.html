@@ -11,152 +11,152 @@
 </head>
 <body>
 <header class="background-overlay">
-    <ol id="menu-list">
-        <li id=menu-back class=header-item>
-            <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
-                <path class="stroke" d="M 40,100 100,40 160,40 160,160 100,160 z"/>
-            </svg>
-            <div id=menu-back-content></div>
-        <li id=menu-main class=header-item>
-            <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
-                <path class="stroke" d="M 100,40 160,100 160,160 40,160 40,100 z"/>
-            </svg>
-        <li id=menu-settings class=header-item>
-            <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
-                <path class="stroke"
-                 d="M 100,30 100,60 z
-                 M 100,170 100,140 z
-                 M 30,100 60,100 z
-                 M 170,100 140,100 z
-                 M 170,100 140,100 z
-                 M 100,60 A 40,40 0 1,1 100,140
-                 M 100,140 A 40,40 0 1,1 100,60
-                 M 50,50 71,71 z
-                 M 50,150 71,129 z
-                 M 150,50 129,71 z
-                 M 150,150 129,129 z"/>
-            </svg>
-    </ol>
-    <ol id=menu-settings-list>
-        <li><button id=menu-settings-list-reload type="button">reload</button>
-        <li><button id=menu-settings-list-config type="button">config</button>
-    </ol>
+  <ol id="menu-list">
+    <li id=menu-back class=header-item>
+      <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
+        <path class="stroke" d="M 40,100 100,40 160,40 160,160 100,160 z"/>
+      </svg>
+      <div id=menu-back-content></div>
+    <li id=menu-main class=header-item>
+      <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
+        <path class="stroke" d="M 100,40 160,100 160,160 40,160 40,100 z"/>
+      </svg>
+    <li id=menu-settings class=header-item>
+      <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
+        <path class="stroke"
+         d="M 100,30 100,60 z
+         M 100,170 100,140 z
+         M 30,100 60,100 z
+         M 170,100 140,100 z
+         M 170,100 140,100 z
+         M 100,60 A 40,40 0 1,1 100,140
+         M 100,140 A 40,40 0 1,1 100,60
+         M 50,50 71,71 z
+         M 50,150 71,129 z
+         M 150,50 129,71 z
+         M 150,150 129,129 z"/>
+      </svg>
+  </ol>
+  <ol id=menu-settings-list>
+    <li><button id=menu-settings-list-reload type="button">reload</button>
+    <li><button id=menu-settings-list-config type="button">config</button>
+  </ol>
 </header>
 <div id="background-image" class=fit></div>
 <div id="background" class=fit>
-    <div id="background-overlay" class=background-overlay></div>
+  <div id="background-overlay" class=background-overlay></div>
 </div>
 <section id="list" class="scrollable">
-    <ol class=note></ol>
+  <ol class=note></ol>
 </section>
 <section id="main" class="unscrollable">
-    <cite id=main-title>no title</cite>
-    <span id=main-artist>no artist</span>
-    <div id=main-cover-frame>
-        <div id=main-cover></div>
-    </div>
-    <div id=main-elapsed-circle-frame>
-        <svg id=main-elapsed-circle width="200" height="200" viewBox="0 0 200 200">
-            <path id="main-elapsed-circle-active" class="stroke" d=""></path>
-            <path class="inactive stroke" d="M 100,30 L 100,30 A 70,70 0 0,1 100,170 L 100,170 A 70,70 0 0,1 100,30"></path>
-        </svg>
-    </div>
+  <cite id=main-title>no title</cite>
+  <span id=main-artist>no artist</span>
+  <div id=main-cover-frame>
+    <div id=main-cover></div>
+  </div>
+  <div id=main-elapsed-circle-frame>
+    <svg id=main-elapsed-circle width="200" height="200" viewBox="0 0 200 200">
+      <path id="main-elapsed-circle-active" class="stroke" d=""></path>
+      <path class="inactive stroke" d="M 100,30 L 100,30 A 70,70 0 0,1 100,170 L 100,170 A 70,70 0 0,1 100,30"></path>
+    </svg>
+  </div>
 </section>
 <section id="config" class="scrollable">
-    <h1>configuration</h1>
-    <article id="config-appearance">
-        <h3>Appearance</h3>
-        <ul class=note>
-            <li>
-                <div class="description">Dark</div>
-                <div class="value switch"><input type="checkbox" id="appearance-dark"><label for="appearance-dark"></label></div>
-            <li>
-                <div class="description">Background image</div>
-                <div class="value switch"><input type="checkbox" id="appearance-background-image"><label for="appearance-background-image"></label></div>
-            <li>
-                <div class="description">Background image blur</div>
-                <select class="value" id="appearance-background-image-blur">
-                    <option value="0">0</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="4">4</option>
-                    <option value="8">8</option>
-                    <option value="16">16</option>
-                    <option value="32">32</option>
-                </select>
-        </ul>
-    <article>
-        <h3>Playback</h3>
-        <ul class=note>
-            <li>
-                <div class="description">Listview follows playback</div>
-                <div class="value switch"><input type="checkbox" id="playback_view_follow"><label for="playback_view_follow"></label></div>
-        </ul>
-    </article>
-    <article>
-        <h3>Volume</h3>
-        <ul class=note>
-            <li>
-                <div class="description">Show volume nob</div>
-                <div class="value switch"><input type="checkbox" id="show_volume"><label for="show_volume"></label></div>
-            <li>
-                <div class="description">Max volume</div>
-                <select class="value" id="max_volume">
-                    <option value="50">50</option>
-                    <option value="60">60</option>
-                    <option value="70">70</option>
-                    <option value="80">80</option>
-                    <option value="90">90</option>
-                    <option value="100">100</option>
-                </select>
-        </ul>
-    </article>
-    <article>
-        <h3>Devices</h3>
-        <ul class="devices note"></ul>
-    </article>
+  <h1>configuration</h1>
+  <article id="config-appearance">
+    <h3>Appearance</h3>
+    <ul class=note>
+      <li>
+        <div class="description">Dark</div>
+        <div class="value switch"><input type="checkbox" id="appearance-dark"><label for="appearance-dark"></label></div>
+      <li>
+        <div class="description">Background image</div>
+        <div class="value switch"><input type="checkbox" id="appearance-background-image"><label for="appearance-background-image"></label></div>
+      <li>
+        <div class="description">Background image blur</div>
+        <select class="value" id="appearance-background-image-blur">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="4">4</option>
+          <option value="8">8</option>
+          <option value="16">16</option>
+          <option value="32">32</option>
+        </select>
+    </ul>
+  <article>
+    <h3>Playback</h3>
+    <ul class=note>
+      <li>
+        <div class="description">Listview follows playback</div>
+        <div class="value switch"><input type="checkbox" id="playback_view_follow"><label for="playback_view_follow"></label></div>
+    </ul>
+  </article>
+  <article>
+    <h3>Volume</h3>
+    <ul class=note>
+      <li>
+        <div class="description">Show volume nob</div>
+        <div class="value switch"><input type="checkbox" id="show_volume"><label for="show_volume"></label></div>
+      <li>
+        <div class="description">Max volume</div>
+        <select class="value" id="max_volume">
+          <option value="50">50</option>
+          <option value="60">60</option>
+          <option value="70">70</option>
+          <option value="80">80</option>
+          <option value="90">90</option>
+          <option value="100">100</option>
+        </select>
+    </ul>
+  </article>
+  <article>
+    <h3>Devices</h3>
+    <ul class="devices note"></ul>
+  </article>
 </section>
 <article id="error">
-    <h3 class="title">error title</h3>
-    <span class="description">error description</span>
+  <h3 class="title">error title</h3>
+  <span class="description">error description</span>
 </article>
 
 </section>
 <footer class=background-overlay>
-    <nav id="control">
-        <nav id="control-playback">
-            <button id=control-prev class=prev type="button" value="prev">
-                <svg width="200" height="200" viewBox="0 0 200 200">
-                    <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
-                </svg>
-            </button>
-            <button id=control-toggleplay class=play type="button" value="play/pause">
-                <svg width="200" height="200" viewBox="0 0 200 200">
-                    <path class="fill play" d="M 70,60 140,100 70,140 z"/>
-                    <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
-                    <path class="stroke play_circle" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
-                </svg>
-            </button>
-            <button id=control-next class=next type="button" value="next">
-                <svg width="200" height="200" viewBox="0 0 200 200">
-                    <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
-                </svg>
-            </button>
-        </nav>
-        <input id=control-volume type="range" min=0 max=100 step=1>
-        <button id=control-repeat class="repeat on">
-            <svg width="200" height="200" viewBox="0 0 200 200">
-                <path class=fill d="M 85,25 115,40 85,55 z"/>
-                <rect class=stroke x="40" y="40" width="120" height="120" rx="30" ry="30"/>
-            </svg>
-        </button>
-        <button id=control-random class="random on">
-            <svg width="200" height="200" viewBox="0 0 200 200">
-                <path class=fill d="M 155,25 185,40 155,55 z M 155,145 185,160 155,175 z"/>
-                <path class=stroke d="M 40,40 A 60,60 0 1,1 40,160 M 160,160 A 60,60 0 1,1 160,40 "/>
-            </svg>
-        </button>
+  <nav id="control">
+    <nav id="control-playback">
+      <button id=control-prev class=prev type="button" value="prev">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
+        </svg>
+      </button>
+      <button id=control-toggleplay class=play type="button" value="play/pause">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <path class="fill play" d="M 70,60 140,100 70,140 z"/>
+          <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
+          <path class="stroke play_circle" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
+        </svg>
+      </button>
+      <button id=control-next class=next type="button" value="next">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
+        </svg>
+      </button>
     </nav>
+    <input id=control-volume type="range" min=0 max=100 step=1>
+    <button id=control-repeat class="repeat on">
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        <path class=fill d="M 85,25 115,40 85,55 z"/>
+        <rect class=stroke x="40" y="40" width="120" height="120" rx="30" ry="30"/>
+      </svg>
+    </button>
+    <button id=control-random class="random on">
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        <path class=fill d="M 155,25 185,40 155,55 z M 155,145 185,160 155,175 z"/>
+        <path class=stroke d="M 40,40 A 60,60 0 1,1 40,160 M 160,160 A 60,60 0 1,1 160,40 "/>
+      </svg>
+    </button>
+  </nav>
 </footer>
 </body>
 

@@ -1,643 +1,643 @@
 body {
-    -webkit-text-size-adjust: 100%;
-    margin: 0;
-    border: 0;
-    padding: 0;
-    font-family: Arial,sans-serif;
-    color: #303030;
+  -webkit-text-size-adjust: 100%;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font-family: Arial,sans-serif;
+  color: #303030;
 }
 body.dark {
-    color: #d0d0d0;
-    background-color: #000000;
+  color: #d0d0d0;
+  background-color: #000000;
 }
 
 svg .fill {
-    stroke: #404040;
-    fill: #404040;
+  stroke: #404040;
+  fill: #404040;
 }
 svg .stroke {
-    stroke: #404040;
-    fill: none;
+  stroke: #404040;
+  fill: none;
 }
 .dark svg .fill {
-    stroke: #e0e0e0;
-    fill: #e0e0e0;
+  stroke: #e0e0e0;
+  fill: #e0e0e0;
 }
 .dark svg .stroke {
-    stroke: #e0e0e0;
-    fill: none;
+  stroke: #e0e0e0;
+  fill: none;
 }
 
 .note li {
-    margin-top: 1px;
-    border-bottom: dashed 1px #404040;
+  margin-top: 1px;
+  border-bottom: dashed 1px #404040;
 }
 .dark .note li {
-    border-bottom: dashed 1px #e0e0e0;
+  border-bottom: dashed 1px #e0e0e0;
 }
 
 header,
 footer {
-    position: fixed;
-    z-index: 100;
+  position: fixed;
+  z-index: 100;
 }
 
 .background-overlay {
-    background: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.4);
 }
 .dark .background-overlay {
-    background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.4);
 }
 header {
-    left: 0;
-    width: 100%;
-    top: 0;
-    height: 70px;
+  left: 0;
+  width: 100%;
+  top: 0;
+  height: 70px;
 }
 .scrollable {
-    position: absolute;
-    top: 80px;
-    z-index: 10;
+  position: absolute;
+  top: 80px;
+  z-index: 10;
 }
 .unscrollable {
-    position: fixed;
-    top: 0;
-    padding: 0;
-    height: 100%;
-    z-index: 10;
+  position: fixed;
+  top: 0;
+  padding: 0;
+  height: 100%;
+  z-index: 10;
 }
 .fit {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
 }
 .fit.hide {
-    display: none;
+  display: none;
 }
 #background {
-    z-index: 1;
+  z-index: 1;
 }
 #background-image {
-    z-index: 0;
-    background-size: cover;
-    filter: blur(0px);
+  z-index: 0;
+  background-size: cover;
+  filter: blur(0px);
 }
 #background-overlay {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
 footer {
-    bottom: 0;
-    width: 100%;
+  bottom: 0;
+  width: 100%;
 }
 @media (orientation: portrait) {
-    section {
-        left: 0;
-        width: 100%;
-        padding: 0 0 150px;
-    }
-    .view-config #config,
-    .view-list #list,
-    .view-main #main {
-        display: block;
-    }
-    .view-main #list,
-    .view-main #config,
-    .view-list #main,
-    .view-list #config,
-    .view-config #list,
-    .view-config #main {
-        display: none;
-    }
-    #background {
-        padding: 70px 0 120px;
-    }
-    footer {
-        height: 120px;
-    }
+  section {
+    left: 0;
+    width: 100%;
+    padding: 0 0 150px;
+  }
+  .view-config #config,
+  .view-list #list,
+  .view-main #main {
+    display: block;
+  }
+  .view-main #list,
+  .view-main #config,
+  .view-list #main,
+  .view-list #config,
+  .view-config #list,
+  .view-config #main {
+    display: none;
+  }
+  #background {
+    padding: 70px 0 120px;
+  }
+  footer {
+    height: 120px;
+  }
 }
 @media (orientation: landscape) {
-    section {
-        padding: 0 0 90px;
-    }
-    .view-config #config,
-    .view-list #list,
-    .view-list #main,
-    .view-main #main,
-    .view-main #list {
-        display: block;
-    }
-    .view-main #config,
-    .view-list #config,
-    .view-config #list,
-    .view-config #main {
-        display: none;
-    }
-    #list {
-        left: 0;
-        width: 50%;
-    }
-    #main {
-        left: 50%;
-        width: 50%;
-    }
-    #config {
-        left: 0;
-        width: 100%;
-    }
-    #background {
-        padding: 70px 0 90px;
-    }
-    footer {
-        height: 90px;
-    }
+  section {
+    padding: 0 0 90px;
+  }
+  .view-config #config,
+  .view-list #list,
+  .view-list #main,
+  .view-main #main,
+  .view-main #list {
+    display: block;
+  }
+  .view-main #config,
+  .view-list #config,
+  .view-config #list,
+  .view-config #main {
+    display: none;
+  }
+  #list {
+    left: 0;
+    width: 50%;
+  }
+  #main {
+    left: 50%;
+    width: 50%;
+  }
+  #config {
+    left: 0;
+    width: 100%;
+  }
+  #background {
+    padding: 70px 0 90px;
+  }
+  footer {
+    height: 90px;
+  }
 }
 
 #list ol {
-    list-style-type: none;
-    padding: 10px;
-    margin: 0 12px;
-    padding: 0;
+  list-style-type: none;
+  padding: 10px;
+  margin: 0 12px;
+  padding: 0;
 }
 .plain,
 .song,
 .album {
-    display: flex;
+  display: flex;
 }
 .plain {
-    align-items: baseline;
+  align-items: baseline;
 }
 .plain .key {
-    margin: 8px 4px;
-    font-size: 20px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  margin: 8px 4px;
+  font-size: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .song {
-    align-items: center;
-    padding: 8px 4px;
+  align-items: center;
+  padding: 8px 4px;
 }
 .song span {
-    margin: 0 8px 0 0;
+  margin: 0 8px 0 0;
 }
 .song svg {
-    margin: 0;
-    width: 22px;
-    height: 22px;
+  margin: 0;
+  width: 22px;
+  height: 22px;
 }
 .song .title {
-    font-size: 20px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-size: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .song .artist {
-    flex: 1 1 auto;
-    opacity: 0.7;
+  flex: 1 1 auto;
+  opacity: 0.7;
 }
 .song .track,
 .song .artist,
 .song .elapsed,
 .song .length_separator,
 .song .length {
-    font-size: 12px;
+  font-size: 12px;
 }
 .song .length {
-    margin: 0;
+  margin: 0;
 }
 @media (max-width: 400px), (max-width: 800px) and (orientation: landscape) {
-    .song {
-        flex-flow: row wrap;
-    }
-    .song .track,
-    .song .length_separator,
-    .song .length {
-        display: none;
-    }
-    .song .elapsed {
-        margin: 0;
-    }
-    .song .title {
-        flex: 1 1 auto;
-    }
-    .song .artist {
-        flex: 0 1 auto;
-        order: 10;
-        width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-}
-.album {
-    display: flex;
-    align-items: center;
-}
-.album .detail {
-    display: flex;
-    flex-direction: column;
-}
-.album .img-sq {
-    display: flex;
-    justify-content: flex-end;
-    width: 70px;
-    height: 70px;
-    padding: 5px;
-}
-.album .cover {
-    width: auto;
-    height: 70px;
-    max-height: 100%;
-}
-.album .album {
-    font-size: 22px;
-}
-.album .date {
-    font-size: 10px;
-}
-.album .albumartist {
-    font-size: 14px;
-}
-
-#main span {
+  .song {
+    flex-flow: row wrap;
+  }
+  .song .track,
+  .song .length_separator,
+  .song .length {
+    display: none;
+  }
+  .song .elapsed {
+    margin: 0;
+  }
+  .song .title {
+    flex: 1 1 auto;
+  }
+  .song .artist {
+    flex: 0 1 auto;
+    order: 10;
+    width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+.album {
+  display: flex;
+  align-items: center;
+}
+.album .detail {
+  display: flex;
+  flex-direction: column;
+}
+.album .img-sq {
+  display: flex;
+  justify-content: flex-end;
+  width: 70px;
+  height: 70px;
+  padding: 5px;
+}
+.album .cover {
+  width: auto;
+  height: 70px;
+  max-height: 100%;
+}
+.album .album {
+  font-size: 22px;
+}
+.album .date {
+  font-size: 10px;
+}
+.album .albumartist {
+  font-size: 14px;
+}
+
+#main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #main-cover-frame {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 #main-cover {
 	background-position: center center; 
 	background-repeat: no-repeat;
-    background-size: cover;
-    border-radius: 100%;
+  background-size: cover;
+  border-radius: 100%;
 }
 @media (orientation: portrait) {
-    #main-cover {
-        width: 70vw;
-        height: 70vw;
-    }
+  #main-cover {
+    width: 70vw;
+    height: 70vw;
+  }
 }
 @media (orientation: landscape) {
-    #main-cover {
-        width: 35vw;
-        height: 35vw;
-    }
+  #main-cover {
+    width: 35vw;
+    height: 35vw;
+  }
 }
 #main-elapsed-circle-frame,
 #main-elapsed-circle {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
 }
 #main-elapsed-circle {
-    stroke-width: 4;
+  stroke-width: 4;
 }
 #main-elapsed-circle .inactive {
-    stroke-opacity: 0.5;
+  stroke-opacity: 0.5;
 }
 
 #main-title,
 #main-artist {
-    position: relative;
-    left: 10px;
-    width: 100%;
+  position: relative;
+  left: 10px;
+  width: 100%;
 }
 
 #main-title {
-    top: 90px;
-    font-size: 20px;
+  top: 90px;
+  font-size: 20px;
 }
 #main-artist {
-    top: 120px;
-    font-size: 20px;
+  top: 120px;
+  font-size: 20px;
 }
 
 #config h1, #config h3 {
-    margin: 10px;
+  margin: 10px;
 }
 
 #config ul {
-    list-style-type: none;
-    padding: 0 20px;
+  list-style-type: none;
+  padding: 0 20px;
 }
 #config ul li {
-    align-items: center;
-    display: flex;
+  align-items: center;
+  display: flex;
 }
 #config ul li .description {
-    font-size: 18px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1 1 auto;
+  font-size: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
 }
 
 .switch {
-    margin: 5px;
-    width: 100px;
-    height: 30px;
+  margin: 5px;
+  width: 100px;
+  height: 30px;
 }
 .switch input {
-    display: none;
+  display: none;
 }
 .switch label, .switch input:checked + label {
-    position: relative;
-    display: block;
-    width: 100px;
-    height: 30px;
-    border-radius: 30px;
-    background-color: #d0d0d0;
+  position: relative;
+  display: block;
+  width: 100px;
+  height: 30px;
+  border-radius: 30px;
+  background-color: #d0d0d0;
 }
 .dark .switch label, .dark .switch input:checked + label {
-    background-color: #404040;
+  background-color: #404040;
 }
 .switch input:checked + label {
-    background-color: #404040;
+  background-color: #404040;
 }
 .dark .switch input:checked + label {
-    background-color: #d0d0d0;
+  background-color: #d0d0d0;
 }
 .switch label:before, .switch label:after, .switch input:checked + label:before, .switch input:checked + label:after {
-    position: absolute;
-    top: 0;
-    content: "";
-    display: block; width: 50%;
-    height: 24px;
-    border-radius: 24px;
+  position: absolute;
+  top: 0;
+  content: "";
+  display: block; width: 50%;
+  height: 24px;
+  border-radius: 24px;
 }
 .switch label:before {
-    left: 0;
-    border: solid 3px #404040;
-    background-color: #ffffff;
+  left: 0;
+  border: solid 3px #404040;
+  background-color: #ffffff;
 }
 .dark .switch label:before {
-    background-color: #202020;
+  background-color: #202020;
 }
 .switch label:after {
-    left: 44px;
-    background-color: transparent;
+  left: 44px;
+  background-color: transparent;
 }
 .switch input:checked + label:before {
-    border: none;
-    background-color: transparent;
+  border: none;
+  background-color: transparent;
 }
 .switch input:checked + label:after {
-    border: solid 3px #404040;
-    background-color: #ffffff;
+  border: solid 3px #404040;
+  background-color: #ffffff;
 }
 .dark .switch input:checked + label:after {
-    background-color: #202020;
+  background-color: #202020;
 }
 
 #config select {
-    outline: 0;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    width: 100px;
-    height: 30px;
-    border: none;
-    border-radius: 30px;
-    background-color: #404040;
-    font-size: 18px;
-    color: #ffffff;
-    padding: 5px 5px 0 50px;
-    margin: 5px;
+  outline: 0;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 100px;
+  height: 30px;
+  border: none;
+  border-radius: 30px;
+  background-color: #404040;
+  font-size: 18px;
+  color: #ffffff;
+  padding: 5px 5px 0 50px;
+  margin: 5px;
 }
 
 #error {
-    position: fixed;
-    top: 40px;
-    right: 0;
-    margin: 10px;
-    padding: 5px;
-    width: 300px;
-    display: none;
-    background-color: #ffffff;
-    z-index: 200;
+  position: fixed;
+  top: 40px;
+  right: 0;
+  margin: 10px;
+  padding: 5px;
+  width: 300px;
+  display: none;
+  background-color: #ffffff;
+  z-index: 200;
 }
 .dark #error {
-    background-color: #404040;
+  background-color: #404040;
 }
 #error.show {
-    display: block;
+  display: block;
 }
 
 #error > * {
-    margin: 10px;
+  margin: 10px;
 }
 
 button {
-    outline: 0;
-    padding: 0;
-    margin: 0;
-    border: 0;
-    background-color: rgba(255,255,255,0);
+  outline: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background-color: rgba(255,255,255,0);
 }
 
 #menu-list {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    align-content: space-around;
-    list-style-type: none;
-    margin: 0;
-    padding: 15px 10px;
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-content: space-around;
+  list-style-type: none;
+  margin: 0;
+  padding: 15px 10px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .header-icon {
 	width: 40px;
 	height: 40px;
-    stroke-width: 20;
+  stroke-width: 20;
 }
 .header-item:hover,
 .header-item:active {
-    outline: 0;
+  outline: 0;
 }
 .header-item:hover .header-icon {
-    animation: hover_img 0.5s;
+  animation: hover_img 0.5s;
 }
 .header-item:active .header-icon {
-    animation: active_img 2s;
+  animation: active_img 2s;
 }
 
 #menu-back {
-    display: flex;
-    align-items: center;
-    flex: 1 1 auto;
-    flex-flow: row nowrap;
-    width: 40px;
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  flex-flow: row nowrap;
+  width: 40px;
 }
 #menu-back-content {
-    flex: 1 1 auto;
-    width: 40px;
+  flex: 1 1 auto;
+  width: 40px;
 }
 
 #menu-main {
-    margin: 0 12px;
+  margin: 0 12px;
 }
 
 .view-main #menu-main,
 .view-list #menu-back.root {
-    visibility: hidden;
+  visibility: hidden;
 }
 @media (orientation: portrait) {
-    #menu-list {
-        padding: 15px 5% 0;
-    }
-    .view-main #menu-back-content {
-        display: none;
-    }
+  #menu-list {
+    padding: 15px 5% 0;
+  }
+  .view-main #menu-back-content {
+    display: none;
+  }
 }
 
 #control {
-    padding: 0 10px;
-    border: 0;
-    height: 90px;
-    display: flex;
-    align-items: center;
-    align-content: space-around;
-    flex-wrap: wrap;
-    justify-content: space-between;
+  padding: 0 10px;
+  border: 0;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  align-content: space-around;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 #control-playback {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 #control-toggleplay svg {
-    height: 90px;
-    width: 90px;
-    stroke-width: 8;
+  height: 90px;
+  width: 90px;
+  stroke-width: 8;
 }
 
 #control-toggleplay.play .pause,
 #control-toggleplay.pause .play {
-    opacity: 0;
+  opacity: 0;
 }
 
 #control-prev svg,
 #control-next svg {
-    height: 60px;
-    width: 60px;
-    stroke-width: 8;
+  height: 60px;
+  width: 60px;
+  stroke-width: 8;
 }
 
 #control-volume {
-    height: 8px;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background: #404040;
-    border-radius: 50px;
-    flex: 1 1 auto;
+  height: 8px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: #404040;
+  border-radius: 50px;
+  flex: 1 1 auto;
 }
 #control-volume::-moz-range-track {
-    height: 8px;
-    width: 90%;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background: #404040;
-    border-radius: 50px;
+  height: 8px;
+  width: 90%;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: #404040;
+  border-radius: 50px;
 }
 #control-volume::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background: #404040;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: #404040;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
 }
 #control-volume::-moz-range-thumb {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background: #404040;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: #404040;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
 }
 
 #control-repeat svg,
 #control-random svg {
-    width: 40px;
-    height: 40px;
-    stroke-width: 8;
+  width: 40px;
+  height: 40px;
+  stroke-width: 8;
 }
 
 #control-repeat.off svg,
 #control-random.off svg {
-    opacity: 0.5;
+  opacity: 0.5;
 }
 
 @media (orientation: portrait) {
-    #control {
-        padding: 10px 5%;
-    }
-    #control-volume {
-        width: 100%;
-        order: -2;
-    }
-    #control-repeat {
-        order: -1;
-    }
+  #control {
+    padding: 10px 5%;
+  }
+  #control-volume {
+    width: 100%;
+    order: -2;
+  }
+  #control-repeat {
+    order: -1;
+  }
 }
 
 #menu-settings-list {
-    position: fixed;
-    display: none;
-    left: 66.66%;
-    width: 33.33%;
-    top: 55px;
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
+  position: fixed;
+  display: none;
+  left: 66.66%;
+  width: 33.33%;
+  top: 55px;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
 }
 #menu-settings-list.show {
-    display: block;
+  display: block;
 }
 #menu-settings-list li {
-    margin: 0;
-    border: none;
+  margin: 0;
+  border: none;
 }
 #menu-settings-list button {
-    font-size: 14px;
-    width: 100%;
-    height: 40px;
-    background-color: #d0d0d0;
+  font-size: 14px;
+  width: 100%;
+  height: 40px;
+  background-color: #d0d0d0;
 }
 #menu-settings-list button:hover {
-    width: 100%;
-    height: 40px;
-    background-color: #c0c0c0;
+  width: 100%;
+  height: 40px;
+  background-color: #c0c0c0;
 }
 
 button:hover svg {
-    animation: hover_img 0.5s;
+  animation: hover_img 0.5s;
 }
 button:active svg {
-    animation: active_img 2s;
+  animation: active_img 2s;
 }
 
 @keyframes hover_img {
