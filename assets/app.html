@@ -11,38 +11,36 @@
 </head>
 <body>
 <header class="background-overlay">
-    <nav id="menu">
-        <ol id="menu-list">
-            <li id=menu-back>
-                <svg width="200" height="200" viewBox="0 0 200 200">
-                    <path class="stroke" d="M 40,100 100,40 160,40 160,160  100,160 z"/>
-                </svg>
-                <div id=menu-back-content></div>
-            <li id=menu-main>
-                <svg width="200" height="200" viewBox="0 0 200 200">
-                    <path class="stroke" d="M 100,40 160,100 160,160 40,160 40,100 z"/>
-                </svg>
-            <li id=menu-settings>
-                <svg width="200" height="200" viewBox="0 0 200 200">
-                    <path class="stroke"
-                     d="M 100,30 100,60 z
-                     M 100,170 100,140 z
-                     M 30,100 60,100 z
-                     M 170,100 140,100 z
-                     M 170,100 140,100 z
-                     M 100,60 A 40,40 0 1,1 100,140
-                     M 100,140 A 40,40 0 1,1 100,60
-                     M 50,50 71,71 z
-                     M 50,150 71,129 z
-                     M 150,50 129,71 z
-                     M 150,150 129,129 z"/>
-                </svg>
-        </ol>
-        <ol id=menu-settings-list>
-            <li><button id=menu-settings-list-reload type="button">reload</button>
-            <li><button id=menu-settings-list-config type="button">config</button>
-        </ol>
-    </nav>
+    <ol id="menu-list">
+        <li id=menu-back class=header-item>
+            <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
+                <path class="stroke" d="M 40,100 100,40 160,40 160,160 100,160 z"/>
+            </svg>
+            <div id=menu-back-content></div>
+        <li id=menu-main class=header-item>
+            <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
+                <path class="stroke" d="M 100,40 160,100 160,160 40,160 40,100 z"/>
+            </svg>
+        <li id=menu-settings class=header-item>
+            <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
+                <path class="stroke"
+                 d="M 100,30 100,60 z
+                 M 100,170 100,140 z
+                 M 30,100 60,100 z
+                 M 170,100 140,100 z
+                 M 170,100 140,100 z
+                 M 100,60 A 40,40 0 1,1 100,140
+                 M 100,140 A 40,40 0 1,1 100,60
+                 M 50,50 71,71 z
+                 M 50,150 71,129 z
+                 M 150,50 129,71 z
+                 M 150,150 129,129 z"/>
+            </svg>
+    </ol>
+    <ol id=menu-settings-list>
+        <li><button id=menu-settings-list-reload type="button">reload</button>
+        <li><button id=menu-settings-list-config type="button">config</button>
+    </ol>
 </header>
 <div id="background-image" class=fit></div>
 <div id="background" class=fit>
