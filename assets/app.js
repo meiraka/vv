@@ -82,7 +82,11 @@ vv.song = (function(){
             }
             inner += "<span class=length>"+vv.song.get(song, "Length")+"</span>";
         } else if (style == "album") {
-            inner += '<div class=img-sq><img class=cover src="/music_directory/'+song["cover"]+'"></div>';
+            var cover = "/assets/nocover.svg";
+            if (song.cover) {
+                cover = "/music_directory/" + song.cover;
+            }
+            inner += '<div class=img-sq><img class=cover src="'+cover+'"></div>';
             inner += "<div class=detail>"
             inner += "<span class=date>"+vv.song.get(song, "Date")+"</span>";
             inner += "<span class=album>"+vv.song.get(song, "Album")+"</span>";
@@ -589,7 +593,11 @@ vv.view.background = (function() {
         if (vv.storage.config.appearance.background_image) {
             e.classList.remove("hide");
             document.getElementById("background").classList.remove("hide");
-            e.style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
+            var cover = "/assets/nocover.svg";
+            if (vv.storage.current.cover) {
+                cover = "/music_directory/" + vv.storage.current.cover;
+            }
+            e.style.backgroundImage = 'url("'+cover+'")';
             e.style.filter = "blur(" + vv.storage.config.appearance.background_image_blur + "px)";
         } else {
             e.classList.add("hide");
@@ -626,7 +634,11 @@ vv.view.main = (function(){
     var update = function() {
         document.getElementById("main-title").textContent = vv.storage.current["Title"];
         document.getElementById("main-artist").textContent = vv.storage.current["Artist"];
-        document.getElementById("main-cover-img").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
+        if (vv.storage.current.cover) {
+            document.getElementById("main-cover-img").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
+        } else {
+            document.getElementById("main-cover-img").style.backgroundImage = '';
+        }
     };
     var update_elapsed = function() {
         if (hidden()) {
