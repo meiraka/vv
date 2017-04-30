@@ -13,16 +13,16 @@
 <header class="background-overlay">
   <ol id="menu-list">
     <li id=menu-back class=header-item>
-      <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
+      <svg class=header-icon width="40" height="40" viewBox="0 0 200 200">
         <path class="stroke" d="M 40,100 100,40 160,40 160,160 100,160 z"/>
       </svg>
       <div id=menu-back-content></div>
     <li id=menu-main class=header-item>
-      <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
+      <svg class=header-icon width="40" height="40" viewBox="0 0 200 200">
         <path class="stroke" d="M 100,40 160,100 160,160 40,160 40,100 z"/>
       </svg>
     <li id=menu-settings class=header-item>
-      <svg class=header-icon width="200" height="200" viewBox="0 0 200 200">
+      <svg class=header-icon width="40" height="40" viewBox="0 0 200 200">
         <path class="stroke"
          d="M 100,30 100,60 z
          M 100,170 100,140 z
@@ -50,16 +50,16 @@
   <ol class=note></ol>
 </section>
 <section id="main" class="unscrollable">
-  <cite id=main-title>no title</cite>
-  <span id=main-artist>no artist</span>
-  <div id=main-cover-frame>
-    <div id=main-cover></div>
-  </div>
-  <div id=main-elapsed-circle-frame>
-    <svg id=main-elapsed-circle width="200" height="200" viewBox="0 0 200 200">
-      <path id="main-elapsed-circle-active" class="stroke" d=""></path>
-      <path class="inactive stroke" d="M 100,30 L 100,30 A 70,70 0 0,1 100,170 L 100,170 A 70,70 0 0,1 100,30"></path>
-    </svg>
+  <div id="main-box">
+    <cite id=main-title>no title</cite>
+    <span id=main-artist>no artist</span>
+    <div id=main-cover>
+      <div id=main-cover-img></div>
+      <svg id=main-elapsed-circle width="200" height="200" viewBox="0 0 200 200">
+          <path id="main-elapsed-circle-active" class="stroke" d=""></path>
+          <path class="inactive stroke" d="M 100,10 L 100,10 A 90,90 0 0,1 100,190 L 100,190 A 90,90 0 0,1 100,10"></path>
+      </svg>
+    </div>
   </div>
 </section>
 <section id="config" class="scrollable">

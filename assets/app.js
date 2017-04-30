@@ -68,7 +68,7 @@ vv.song = (function(){
             }
             inner = "<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>";
             if (now_playing) {
-                inner += '<svg width="100" height="100" viewBox="0 0 100 100"><path class="fill" d="M 25,20 80,50 25,80 z"/></svg>';
+                inner += '<svg width="22" height="22" viewBox="0 0 100 100"><path class="fill" d="M 25,20 80,50 25,80 z"/></svg>';
             }
             inner += "<span class=title>"+vv.song.get(song, "Title")+"</span>";
             if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
@@ -626,7 +626,7 @@ vv.view.main = (function(){
     var update = function() {
         document.getElementById("main-title").textContent = vv.storage.current["Title"];
         document.getElementById("main-artist").textContent = vv.storage.current["Artist"];
-        document.getElementById("main-cover").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
+        document.getElementById("main-cover-img").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
     };
     var update_elapsed = function() {
         if (hidden()) {
@@ -644,12 +644,12 @@ vv.view.main = (function(){
         if (isNaN(d)) {
             return;
         }
-        var x = 100 + 70 * Math.cos(d);
-        var y = 100 + 70 * Math.sin(d);
+        var x = 100 + 90 * Math.cos(d);
+        var y = 100 + 90 * Math.sin(d);
         if (x <= 100) {
-            c.setAttribute("d", "M 100,30 L 100,30 A 70,70 0 0,1 100,170 L 100,170 A 70,70 0 0,1 " + x + "," + y);
+            c.setAttribute("d", "M 100,10 L 100,10 A 90,90 0 0,1 100,190 L 100,190 A 90,90 0 0,1 " + x + "," + y);
         } else {
-            c.setAttribute("d", "M 100,30 L 100,30 A 70,70 0 0,1 " + x + "," + y);
+            c.setAttribute("d", "M 100,10 L 100,10 A 90,90 0 0,1 " + x + "," + y);
         }
     }
     var init = function() {
