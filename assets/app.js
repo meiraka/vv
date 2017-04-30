@@ -629,7 +629,12 @@ vv.view.main = (function(){
         document.body.classList.remove("view-list");
     };
     var hidden = function() {
-        return !document.body.classList.contains("view-main");
+        var e = document.body;
+        if (window.matchMedia('(orientation: portrait)').matches) {
+            return !e.classList.contains("view-main");
+        } else {
+            return !(e.classList.contains("view-list") || e.classList.contains("view-main"));
+        }
     }
     var update = function() {
         document.getElementById("main-title").textContent = vv.storage.current["Title"];
