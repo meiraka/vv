@@ -422,11 +422,21 @@ footer {
   color: #e0e0e0;
   background-color: #404040;
 }
+.button-simple:hover {
+  animation: hover_img 0.5s;
+}
+.button-simple:disabled {
+  animation: none;
+  color: #a0a0a0;
+}
 .dark .button-simple {
   color: #404040;
   background-color: #e0e0e0;
 }
-
+.dark .button-simple:disabled {
+  color: #808080;
+  animation: none;
+}
 #config select {
   outline: 0;
   -webkit-appearance: none;
