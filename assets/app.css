@@ -556,6 +556,9 @@ button {
   width: 90px;
   stroke-width: 8;
 }
+#control-toggleplay .fill {
+  stroke-width: 12;
+}
 
 #control-toggleplay.play .pause,
 #control-toggleplay.pause .play {
@@ -566,7 +569,7 @@ button {
 #control-next svg {
   height: 60px;
   width: 60px;
-  stroke-width: 8;
+  stroke-width: 12;
 }
 
 #control-volume {
