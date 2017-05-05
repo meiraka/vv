@@ -518,11 +518,16 @@ button {
   margin: 0 12px;
 }
 
-.view-main #menu-main,
 .view-list #menu-back.root {
   visibility: hidden;
 }
+.view-config #menu-back-content {
+  display: none;
+}
 @media (orientation: portrait) {
+  .view-main #menu-main {
+    visibility: hidden;
+  }
   #menu-list {
     padding: 15px 5% 0;
   }
