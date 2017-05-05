@@ -3,6 +3,7 @@ var vv = vv || {
     song: {},
     songs: {},
     storage: {},
+    env: {},
     model: {list: {}},
     view: {header: {}, background: {}, main: {}, list: {}, config: {}, footer: {}, elapsed: {}},
     control : {},
@@ -200,6 +201,17 @@ vv.storage = (function(){
         save: save,
         load: load,
     };
+}());
+
+vv.env = (function() {
+    var click = "click";
+    var init = function() {
+        click = window.ontouchend===null?"touchend":"click";
+    }
+    return {
+        "click": click,
+        "init": init,
+    }
 }());
 
 vv.model.list = (function() {
@@ -552,6 +564,7 @@ vv.control = (function() {
     }
 
     var init = function() {
+        vv.env.init();
         var polling = function() {
             vv.control.update_song();
             vv.control.update_status();
@@ -729,7 +742,7 @@ vv.view.list = (function(){
                 songs[i].file == vv.model.list.focused().file) {
                 focus_li = li;
             }
-            li.addEventListener('click', function() {
+            li.addEventListener(vv.env.click, function() {
                 if (this.classList.contains("playing")) {
                     vv.model.list.abs(vv.storage.current);
                     vv.view.main.show();
@@ -825,7 +838,7 @@ vv.view.config = (function(){
             vv.control.raiseEvent("config");
         });
         var rescan = document.getElementById("library-rescan");
-        rescan.addEventListener("click", function() {
+        rescan.addEventListener(vv.env.click, function() {
             vv.control.rescan_library();
         });
     };
@@ -892,10 +905,10 @@ vv.view.config = (function(){
 }());
 vv.view.header = (function(){
     var init = function() {
-        document.body.addEventListener('click', function() {
+        document.body.addEventListener(vv.env.click, function() {
             vv.view.header.hide_sub();
         });
-        document.getElementById("menu-back").addEventListener('click', function(e) {
+        document.getElementById("menu-back").addEventListener(vv.env.click, function(e) {
             if (!vv.view.list.hidden()) {
                 vv.model.list.up();
             } else {
@@ -904,7 +917,7 @@ vv.view.header = (function(){
             vv.view.list.show();
             e.stopPropagation();
         });
-        document.getElementById("menu-main").addEventListener('click', function(e) {
+        document.getElementById("menu-main").addEventListener(vv.env.click, function(e) {
             e.stopPropagation();
             if (vv.model.list.rootname() != "root") {
                 vv.model.list.abs(vv.storage.current);
@@ -912,7 +925,7 @@ vv.view.header = (function(){
             vv.view.main.show();
             e.stopPropagation();
         });
-        document.getElementById("menu-settings").addEventListener('click', function(e) {
+        document.getElementById("menu-settings").addEventListener(vv.env.click, function(e) {
             if (vv.view.header.hidden_sub()) {
                 vv.view.header.show_sub();
             } else {
@@ -920,10 +933,10 @@ vv.view.header = (function(){
             }
             e.stopPropagation();
         });
-        document.getElementById("menu-settings-list-reload").addEventListener('click', function() {
+        document.getElementById("menu-settings-list-reload").addEventListener(vv.env.click, function() {
             location.reload();
         });
-        document.getElementById("menu-settings-list-config").addEventListener('click', function() {
+        document.getElementById("menu-settings-list-config").addEventListener(vv.env.click, function() {
             vv.view.config.show();
         });
         update();
@@ -972,23 +985,23 @@ vv.view.header = (function(){
 }());
 vv.view.footer = (function(){
     var init = function() {
-        document.getElementById("control-prev").addEventListener('click', function(e) {
+        document.getElementById("control-prev").addEventListener(vv.env.click, function(e) {
             vv.control.prev();
             e.stopPropagation();
         });
-        document.getElementById("control-toggleplay").addEventListener('click', function(e) {
+        document.getElementById("control-toggleplay").addEventListener(vv.env.click, function(e) {
             vv.control.play_pause();
             e.stopPropagation();
         });
-        document.getElementById("control-next").addEventListener('click', function(e) {
+        document.getElementById("control-next").addEventListener(vv.env.click, function(e) {
             vv.control.next();
             e.stopPropagation();
         });
-        document.getElementById("control-repeat").addEventListener('click', function(e) {
+        document.getElementById("control-repeat").addEventListener(vv.env.click, function(e) {
             vv.control.toggle_repeat();
             e.stopPropagation();
         });
-        document.getElementById("control-random").addEventListener('click', function(e) {
+        document.getElementById("control-random").addEventListener(vv.env.click, function(e) {
             vv.control.toggle_random();
             e.stopPropagation();
         });
