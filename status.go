@@ -7,15 +7,16 @@ import (
 
 /*PlayerStatus represents mpd status.*/
 type PlayerStatus struct {
-	Volume       int     `json:"volume"`
-	Repeat       bool    `json:"repeat"`
-	Random       bool    `json:"random"`
-	Single       bool    `json:"single"`
-	Consume      bool    `json:"consume"`
-	State        string  `json:"state"`
-	SongPos      int     `json:"song_pos"`
-	SongElapsed  float32 `json:"song_elapsed"`
-	LastModified int64   `json:"last_modified"`
+	Volume        int     `json:"volume"`
+	Repeat        bool    `json:"repeat"`
+	Random        bool    `json:"random"`
+	Single        bool    `json:"single"`
+	Consume       bool    `json:"consume"`
+	State         string  `json:"state"`
+	SongPos       int     `json:"song_pos"`
+	SongElapsed   float32 `json:"song_elapsed"`
+	LastModified  int64   `json:"last_modified"`
+	UpdateLibrary bool    `json:"update_library"`
 }
 
 func convStatus(status mpd.Attrs, modified int64) PlayerStatus {
@@ -39,6 +40,8 @@ func convStatus(status mpd.Attrs, modified int64) PlayerStatus {
 	if err != nil {
 		elapsed = 0.0
 	}
+	_, found := status["updating_db"]
+	updateLibrary := found
 	return PlayerStatus{
 		volume,
 		repeat,
@@ -49,6 +52,7 @@ func convStatus(status mpd.Attrs, modified int64) PlayerStatus {
 		songpos,
 		float32(elapsed),
 		modified,
+		updateLibrary,
 	}
 
 }

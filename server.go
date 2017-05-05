@@ -95,8 +95,25 @@ func (a *apiHandler) playlistOne(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiHandler) library(w http.ResponseWriter, r *http.Request) {
-	d, l := a.player.Library()
-	a.returnList(w, r, d, l)
+	switch r.Method {
+	case "GET":
+		d, l := a.player.Library()
+		a.returnList(w, r, d, l)
+	case "POST":
+		decoder := json.NewDecoder(r.Body)
+		var s struct {
+			Action string `json:"action"`
+		}
+		err := decoder.Decode(&s)
+		if err == nil {
+			if s.Action == "rescan" {
+				a.player.RescanLibrary()
+			} else {
+				err = errors.New("unknown action: " + s.Action)
+			}
+		}
+		writeJSON(w, err)
+	}
 }
 
 func (a *apiHandler) libraryOne(w http.ResponseWriter, r *http.Request) {
@@ -285,6 +302,7 @@ type Music interface {
 	Random(bool) error
 	Playlist() ([]mpd.Attrs, time.Time)
 	Library() ([]mpd.Attrs, time.Time)
+	RescanLibrary() error
 	Current() (mpd.Attrs, time.Time)
 	Status() (PlayerStatus, time.Time)
 	Output(int, bool) error

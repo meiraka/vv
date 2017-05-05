@@ -79,6 +79,14 @@ func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
 	return p.playlist, p.playlistModified
 }
 
+/*RescanLibrary scans music directory and update library database.*/
+func (p *Player) RescanLibrary() error {
+	return p.request(func() error {
+		_, err := p.mpc.Update("")
+		return err
+	})
+}
+
 /*Pause song.*/
 func (p *Player) Pause() error {
 	return p.request(func() error { return p.mpc.Pause(true) })
@@ -201,6 +209,7 @@ type mpdClient interface {
 	ListOutputs() ([]mpd.Attrs, error)
 	DisableOutput(int) error
 	EnableOutput(int) error
+	Update(string) (int, error)
 }
 
 func (p *Player) initIfNot() error {
@@ -260,6 +269,8 @@ func (p *Player) watch() {
 			p.requestAsync(p.updatePlaylist, p.watcherResponse)
 		case "player", "mixer", "options":
 			p.requestAsync(p.updateCurrentSong, p.watcherResponse)
+			p.requestAsync(p.updateStatus, p.watcherResponse)
+		case "update":
 			p.requestAsync(p.updateStatus, p.watcherResponse)
 		case "output":
 			p.requestAsync(p.updateOutputs, p.watcherResponse)

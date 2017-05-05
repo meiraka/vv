@@ -100,6 +100,22 @@ func TestPlayerPlay(t *testing.T) {
 	}
 }
 
+func TestPlayerRescanLibrary(t *testing.T) {
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
+	m.UpdateRet2 = nil
+	err := p.RescanLibrary()
+	if m.UpdateCalled != 1 {
+		t.Errorf("Client.Update did not Called")
+	}
+	if m.UpdateArg1 != "" {
+		t.Errorf("unexpected argument 1: %s", m.UpdateArg1)
+	}
+	if err != nil {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+}
+
 func TestPlayerPause(t *testing.T) {
 	m := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
@@ -426,6 +442,10 @@ type mockMpc struct {
 	EnableOutputCalled     int
 	EnableOutputArg1       int
 	EnableOutputRet1       error
+	UpdateCalled           int
+	UpdateArg1             string
+	UpdateRet1             int
+	UpdateRet2             error
 	begincommandlistCalled int
 }
 
@@ -515,6 +535,12 @@ func (p *mockMpc) EnableOutput(arg1 int) error {
 func (p *mockMpc) BeginCommandList() *mpd.CommandList {
 	p.begincommandlistCalled++
 	return nil
+}
+
+func (p *mockMpc) Update(arg1 string) (int, error) {
+	p.UpdateCalled++
+	p.UpdateArg1 = arg1
+	return p.UpdateRet1, p.UpdateRet2
 }
 
 type mockError struct{}

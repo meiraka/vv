@@ -460,6 +460,10 @@ vv.control = (function() {
         xhr.send(JSON.stringify(obj));
     }
 
+    var rescan_library = function() {
+        post_request("api/library", {"action": "rescan"})
+    }
+
     var update_song = function() {
         get_request("api/songs/current", vv.storage.current_last_modified, function(ret, modified) {
             if (!ret.error) {
@@ -571,6 +575,7 @@ vv.control = (function() {
     return {
         addEventListener: addEventListener,
         raiseEvent: raiseEvent,
+        rescan_library: rescan_library,
         update_song: update_song,
         update_status: update_status,
         update_library: update_library,
@@ -819,6 +824,10 @@ vv.view.config = (function(){
             vv.storage.save();
             vv.control.raiseEvent("config");
         });
+        var rescan = document.getElementById("library-rescan");
+        rescan.addEventListener("click", function() {
+            vv.control.rescan_library();
+        });
     };
     var update_devices = function() {
         var ul = document.getElementById("config").getElementsByClassName("devices")[0];
@@ -852,7 +861,22 @@ vv.view.config = (function(){
         }
     }
     vv.control.addEventListener("outputs", update_devices);
+    var update_control = function() {
+        if (vv.view.config.hidden()) {
+            return;
+        }
+        var e = document.getElementById("library-rescan");
+        if (vv.storage.control.update_library) {
+            e.disabled = true;
+            e.textContent = "Rescanning";
+        } else {
+            e.disabled = false;
+            e.textContent = "Rescan";
+        }
+    }
+    vv.control.addEventListener("control", update_control);
     var show = function() {
+        update_control();
         document.body.classList.add("view-config");
         document.body.classList.remove("view-list");
         document.body.classList.remove("view-main");

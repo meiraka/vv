@@ -90,6 +90,24 @@ func TestLibrary(t *testing.T) {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
 	})
+	t.Run("rescan", func(t *testing.T) {
+		m.SortPlaylistErr = nil
+		j := strings.NewReader(
+			"{\"action\": \"rescan\"}",
+		)
+		res, err := http.Post(url, "application/json", j)
+		if err != nil {
+			t.Errorf("unexpected error %s", err.Error())
+		}
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+		defer res.Body.Close()
+		b, err := decodeJSONError(res.Body)
+		if res.StatusCode != 200 || err != nil || b.Error != "" {
+			t.Errorf("unexpected response")
+		}
+	})
 }
 func TestLibraryOne(t *testing.T) {
 	m := new(MockMusic)
@@ -501,38 +519,39 @@ func checkRequestError(t *testing.T, f func() (*http.Response, error)) *http.Res
 }
 
 type MockMusic struct {
-	PlayErr          error
-	PlayCalled       int
-	PauseErr         error
-	PauseCalled      int
-	NextErr          error
-	NextCalled       int
-	PrevErr          error
-	PrevCalled       int
-	VolumeArg1       int
-	VolumeErr        error
-	RepeatArg1       bool
-	RepeatErr        error
-	RandomArg1       bool
-	RandomErr        error
-	PlaylistRet1     []mpd.Attrs
-	PlaylistRet2     time.Time
-	LibraryRet1      []mpd.Attrs
-	LibraryRet2      time.Time
-	OutputsRet1      []mpd.Attrs
-	OutputsRet2      time.Time
-	OutputArg1       int
-	OutputArg2       bool
-	OutputRet1       error
-	CurrentRet1      mpd.Attrs
-	CurrentRet2      time.Time
-	CommentsRet1     mpd.Attrs
-	CommentsRet2     time.Time
-	StatusRet1       PlayerStatus
-	StatusRet2       time.Time
-	SortPlaylistArg1 []string
-	SortPlaylistArg2 string
-	SortPlaylistErr  error
+	PlayErr           error
+	PlayCalled        int
+	PauseErr          error
+	PauseCalled       int
+	NextErr           error
+	NextCalled        int
+	PrevErr           error
+	PrevCalled        int
+	VolumeArg1        int
+	VolumeErr         error
+	RepeatArg1        bool
+	RepeatErr         error
+	RandomArg1        bool
+	RandomErr         error
+	PlaylistRet1      []mpd.Attrs
+	PlaylistRet2      time.Time
+	LibraryRet1       []mpd.Attrs
+	LibraryRet2       time.Time
+	RescanLibraryRet1 error
+	OutputsRet1       []mpd.Attrs
+	OutputsRet2       time.Time
+	OutputArg1        int
+	OutputArg2        bool
+	OutputRet1        error
+	CurrentRet1       mpd.Attrs
+	CurrentRet2       time.Time
+	CommentsRet1      mpd.Attrs
+	CommentsRet2      time.Time
+	StatusRet1        PlayerStatus
+	StatusRet2        time.Time
+	SortPlaylistArg1  []string
+	SortPlaylistArg2  string
+	SortPlaylistErr   error
 }
 
 func (p *MockMusic) Play() error {
@@ -573,6 +592,9 @@ func (p *MockMusic) Current() (mpd.Attrs, time.Time) {
 }
 func (p *MockMusic) Library() ([]mpd.Attrs, time.Time) {
 	return p.LibraryRet1, p.LibraryRet2
+}
+func (p *MockMusic) RescanLibrary() error {
+	return p.RescanLibraryRet1
 }
 func (p *MockMusic) Outputs() ([]mpd.Attrs, time.Time) {
 	return p.OutputsRet1, p.OutputsRet2
