@@ -718,15 +718,18 @@ vv.view.list = (function(){
         }
     }
     var update = function() {
-        var ls = vv.model.list.list(),
-            key = ls["key"],
-            songs = ls["songs"],
-            isdir = ls["isdir"],
-            style = ls["style"],
-            newul = document.createDocumentFragment(),
-            ul = document.getElementById("list").children[0],
-            li;
-        ul.innerHTML = "";
+        var ls = vv.model.list.list();
+        var key = ls.key;
+        var songs = ls.songs;
+        var isdir = ls.isdir;
+        var style = ls.style;
+        var newul = document.createDocumentFragment();
+        var root = document.getElementById("list");
+        var ul = document.getElementById("list-items");
+        while (ul.lastChild) {
+            ul.removeChild(ul.lastChild);
+        }
+        var li;
         var i;
         var focus_li = null;
         for (i in songs) {
@@ -844,7 +847,9 @@ vv.view.config = (function(){
     };
     var update_devices = function() {
         var ul = document.getElementById("config").getElementsByClassName("devices")[0];
-        ul.innerHTML = "";
+        while (ul.lastChild) {
+            ul.removeChild(ul.lastChild);
+        }
         var i;
         for (i in vv.storage.outputs) {
             var o = vv.storage.outputs[i];
