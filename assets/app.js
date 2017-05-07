@@ -953,7 +953,7 @@ vv.view.header = (function(){
             var songs = vv.model.list.list()["songs"];
             if (songs[0]) {
                 var p = vv.model.list.grandparent();
-                vv.song.element(e, p["song"], p["key"], p["style"]);
+                e.textContent = p.song[p.key];
             }
         } else {
             b.classList.add("root");

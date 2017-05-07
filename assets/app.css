@@ -179,7 +179,8 @@ footer {
 .plain {
   align-items: baseline;
 }
-.plain .key {
+.plain .key,
+#menu-back-content {
   margin: 8px 4px;
   font-size: 20px;
   overflow: hidden;
