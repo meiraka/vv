@@ -546,6 +546,12 @@ button {
     display: none;
   }
 }
+@media (orientation: landscape) {
+  .view-main #menu-back.root {
+    visibility: hidden;
+  }
+
+}
 
 #control {
   padding: 0 10px;
