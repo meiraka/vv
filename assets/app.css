@@ -364,7 +364,8 @@ footer {
 .switch input {
   display: none;
 }
-.switch label, .switch input:checked + label {
+.switch label,
+.switch input:checked + label {
   position: relative;
   display: block;
   width: 100px;
@@ -372,16 +373,20 @@ footer {
   border-radius: 30px;
   background-color: #d0d0d0;
 }
-.dark .switch label, .dark .switch input:checked + label {
+.dark .switch label,
+.dark .switch input:checked + label {
   background-color: #404040;
 }
 .switch input:checked + label {
   background-color: #404040;
 }
 .dark .switch input:checked + label {
-  background-color: #d0d0d0;
+  background-color: #e0e0e0;
 }
-.switch label:before, .switch label:after, .switch input:checked + label:before, .switch input:checked + label:after {
+.switch label:before,
+.switch label:after,
+.switch input:checked + label:before,
+.switch input:checked + label:after {
   position: absolute;
   top: 0;
   content: "";
@@ -395,6 +400,7 @@ footer {
   background-color: #ffffff;
 }
 .dark .switch label:before {
+  border: solid 3px #e0e0e0;
   background-color: #202020;
 }
 .switch label:after {
@@ -410,6 +416,7 @@ footer {
   background-color: #ffffff;
 }
 .dark .switch input:checked + label:after {
+  border: solid 3px #e0e0e0;
   background-color: #202020;
 }
 .button-simple {
@@ -452,6 +459,10 @@ footer {
   color: #ffffff;
   padding: 5px 5px 0 50px;
   margin: 5px;
+}
+.dark #config select {
+  background-color: #e0e0e0;
+  color: #404040;
 }
 
 #error {
@@ -598,6 +609,9 @@ button {
   border-radius: 50px;
   flex: 1 1 auto;
 }
+.dark #control-volume {
+  background: #e0e0e0;
+}
 #control-volume::-moz-range-track {
   height: 8px;
   width: 90%;
@@ -606,6 +620,9 @@ button {
   appearance: none;
   background: #404040;
   border-radius: 50px;
+}
+.dark #control-volume::-moz-range-track {
+  background: #e0e0e0;
 }
 #control-volume::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -616,6 +633,9 @@ button {
   height: 24px;
   border-radius: 50%;
 }
+.dark #control-volume::-webkit-slider-thumb {
+  background: #e0e0e0;
+}
 #control-volume::-moz-range-thumb {
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -624,6 +644,10 @@ button {
   width: 24px;
   height: 24px;
   border-radius: 50%;
+  border-width: 0;
+}
+.dark #control-volume::-moz-range-thumb {
+  background: #e0e0e0;
 }
 
 #control-repeat svg,
@@ -674,6 +698,7 @@ button {
   width: 100%;
   height: 40px;
   background-color: #d0d0d0;
+  color: #404040;
   transition: background-color 0.5s ease-out;
   font-size: 18px;
 }
