@@ -292,9 +292,6 @@ func (p *Player) initConn() error {
 	for i := range fs {
 		err := fs[i]()
 		if err != nil {
-			if i != 0 {
-				p.Close()
-			}
 			return err
 		}
 	}
@@ -318,12 +315,6 @@ func (p *Player) watch() {
 			p.requestAsync(p.updateOutputs, p.watcherResponse)
 		}
 	}
-}
-
-func (p *Player) reconnect() error {
-	p.watcher.Close()
-	p.mpc.Close()
-	return p.connect()
 }
 
 func playerRealMpdDial(net, addr, passwd string) (mpdClient, error) {
