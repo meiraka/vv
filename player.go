@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"sort"
 	"strconv"
@@ -159,13 +158,11 @@ func (p *Player) sortPlaylist(keys []string, uri string) (err error) {
 	update := false
 	if len(l) != len(p.playlist) {
 		update = true
-		fmt.Printf("length not match")
 	} else {
 		for i := range l {
 			n := l[i]["file"]
 			o := p.playlist[i]["file"]
 			if n != o {
-				fmt.Printf("index %d not match:\n'new:%s'\n'old:%s'", i, n, o)
 				update = true
 				break
 			}
@@ -234,7 +231,6 @@ func (p *Player) initIfNot() error {
 }
 
 func (p *Player) daemon() {
-	fmt.Printf("[info] player daemon start\n")
 	sendErr := func(ec chan error, err error) {
 		if ec != nil {
 			ec <- err
@@ -253,11 +249,9 @@ loop:
 			}
 		}
 	}
-	fmt.Printf("[info] player daemon end\n")
 }
 
 func (p *Player) ping() {
-	fmt.Printf("[info] player ping start\n")
 	last := false
 loop:
 	for {
@@ -270,17 +264,14 @@ loop:
 		if err != nil {
 			if last {
 				last = false
-				fmt.Printf("[error] connection error\n")
 			}
 			p.clearConn()
 			p.initConn()
 		} else if !last {
 			last = true
-			fmt.Printf("[info] connection ok\n")
 		}
 		time.Sleep(p.pingInterval * time.Millisecond)
 	}
-	fmt.Printf("[info] player ping end\n")
 }
 
 func (p *Player) clearConn() {
@@ -312,7 +303,6 @@ func (p *Player) initConn() error {
 }
 
 func (p *Player) watch() {
-	fmt.Printf("[info] player watch start\n")
 	for subsystem := range p.watcher.Event {
 		switch subsystem {
 		case "database":
@@ -328,7 +318,6 @@ func (p *Player) watch() {
 			p.requestAsync(p.updateOutputs, p.watcherResponse)
 		}
 	}
-	fmt.Printf("[info] player watch end\n")
 }
 
 func (p *Player) reconnect() error {
