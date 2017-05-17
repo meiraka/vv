@@ -10,13 +10,12 @@ import (
 )
 
 /*Dial Connects to mpd server.*/
-func Dial(network, addr, passwd, musicDirectory string, pingInterval time.Duration) (*Player, error) {
+func Dial(network, addr, passwd, musicDirectory string) (*Player, error) {
 	p := new(Player)
 	p.network = network
 	p.addr = addr
 	p.passwd = passwd
 	p.musicDirectory = musicDirectory
-	p.pingInterval = pingInterval
 	return p, p.initIfNot()
 }
 
@@ -26,7 +25,6 @@ type Player struct {
 	addr             string
 	passwd           string
 	musicDirectory   string
-	pingInterval     time.Duration
 	mpc              mpdClient
 	watcher          mpd.Watcher
 	watcherResponse  chan error
@@ -253,25 +251,26 @@ loop:
 
 func (p *Player) ping() {
 	last := false
+	t := time.NewTicker(1 * time.Second)
 loop:
 	for {
 		select {
 		case <-p.pingStop:
 			break loop
-		default:
-		}
-		err := p.request(func() error { return p.mpc.Ping() })
-		if err != nil {
-			if last {
-				last = false
+		case <-t.C:
+			err := p.request(func() error { return p.mpc.Ping() })
+			if err != nil {
+				if last {
+					last = false
+				}
+				p.clearConn()
+				p.initConn()
+			} else if !last {
+				last = true
 			}
-			p.clearConn()
-			p.initConn()
-		} else if !last {
-			last = true
 		}
-		time.Sleep(p.pingInterval * time.Millisecond)
 	}
+	t.Stop()
 }
 
 func (p *Player) clearConn() {

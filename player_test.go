@@ -36,7 +36,7 @@ func initMock(dialError, newWatcherError error) *mockMpc {
 
 func TestDial(t *testing.T) {
 	m := initMock(nil, nil)
-	p, err := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, err := Dial("tcp", "localhost:6600", "", "./")
 	if err != nil {
 		t.Errorf("unexpected return error: %s", err.Error())
 	}
@@ -49,7 +49,7 @@ func TestDial(t *testing.T) {
 	p.Close()
 	me := new(mockError)
 	m = initMock(me, nil)
-	p, err = Dial("tcp", "localhost:6600", "", "./", 0)
+	p, err = Dial("tcp", "localhost:6600", "", "./")
 	if m.DialCalled != 1 {
 		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
 	}
@@ -59,7 +59,7 @@ func TestDial(t *testing.T) {
 	p.Close()
 
 	m = initMock(nil, me)
-	p, err = Dial("tcp", "localhost:6600", "", "./", 0)
+	p, err = Dial("tcp", "localhost:6600", "", "./")
 	if m.DialCalled != 1 {
 		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
 	}
@@ -74,7 +74,7 @@ func TestDial(t *testing.T) {
 
 func TestPlayerPlay(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	m.PlayRet1 = new(mockError)
 	err := p.Play()
 	if m.PlayCalled != 1 {
@@ -104,7 +104,7 @@ func TestPlayerPlay(t *testing.T) {
 
 func TestPlayerRescanLibrary(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	m.UpdateRet2 = nil
 	err := p.RescanLibrary()
@@ -121,7 +121,7 @@ func TestPlayerRescanLibrary(t *testing.T) {
 
 func TestPlayerPause(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	m.PauseRet1 = new(mockError)
 	err := p.Pause()
@@ -151,7 +151,7 @@ func TestPlayerPause(t *testing.T) {
 
 func TestPlayerNext(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	m.NextRet1 = new(mockError)
 	err := p.Next()
@@ -173,7 +173,7 @@ func TestPlayerNext(t *testing.T) {
 
 func TestPlayerPrevious(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	m.PreviousRet1 = new(mockError)
 	err := p.Prev()
@@ -195,7 +195,7 @@ func TestPlayerPrevious(t *testing.T) {
 
 func TestPlayerSetVolume(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	err := p.Volume(1)
 	if m.SetVolumeCalled != 1 {
@@ -208,7 +208,7 @@ func TestPlayerSetVolume(t *testing.T) {
 
 func TestPlayerRepeat(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	err := p.Repeat(true)
 	if m.RepeatCalled != 1 {
@@ -224,7 +224,7 @@ func TestPlayerRepeat(t *testing.T) {
 
 func TestPlayerRandom(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	err := p.Random(true)
 	if m.RandomCalled != 1 {
@@ -240,7 +240,7 @@ func TestPlayerRandom(t *testing.T) {
 
 func TestPlayerPlaylist(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	p.watcherResponse = make(chan error)
 	m.PlaylistInfoCalled = 0
@@ -272,7 +272,7 @@ func TestPlayerPlaylist(t *testing.T) {
 
 func TestPlayerLibrary(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	p.watcherResponse = make(chan error)
 	m.ListAllInfoCalled = 0
@@ -304,7 +304,7 @@ func TestPlayerLibrary(t *testing.T) {
 
 func TestPlayerCurrent(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	p.watcherResponse = make(chan error)
 	m.CurrentSongCalled = 0
@@ -375,7 +375,7 @@ func TestPlayerCurrent(t *testing.T) {
 
 func TestPlayerOutputs(t *testing.T) {
 	m := initMock(nil, nil)
-	p, _ := Dial("tcp", "localhost:6600", "", "./", 0)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	p.watcherResponse = make(chan error)
 	m.ListOutputsCalled = 0
