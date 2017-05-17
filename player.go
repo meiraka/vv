@@ -273,31 +273,6 @@ loop:
 	t.Stop()
 }
 
-func (p *Player) clearConn() {
-	if p.mpc != nil {
-		p.daemonStop <- true
-		p.mpc.Close()
-		p.mpc = nil
-		go p.daemon()
-	}
-	if p.watcher.Event != nil {
-		playerMpdWatcherClose(p.watcher)
-		p.watcher.Event = nil
-	}
-}
-
-func (p *Player) initConn() error {
-	fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus, p.updateOutputs}
-	for i := range fs {
-		err := fs[i]()
-		if err != nil {
-			return err
-		}
-	}
-	go p.watch()
-	return nil
-}
-
 func (p *Player) watch() {
 	for subsystem := range p.watcher.Event {
 		switch subsystem {
@@ -332,6 +307,31 @@ var playerMpdDial = playerRealMpdDial
 var playerMpdNewWatcher = playerRealMpdNewWatcher
 var playerMpdWatcherClose = playerRealMpdWatcherClose
 
+func (p *Player) clearConn() {
+	if p.mpc != nil {
+		p.daemonStop <- true
+		p.mpc.Close()
+		p.mpc = nil
+		go p.daemon()
+	}
+	if p.watcher.Event != nil {
+		playerMpdWatcherClose(p.watcher)
+		p.watcher.Event = nil
+	}
+}
+
+func (p *Player) initConn() error {
+	fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus, p.updateOutputs}
+	for i := range fs {
+		err := fs[i]()
+		if err != nil {
+			return err
+		}
+	}
+	go p.watch()
+	return nil
+}
+
 func (p *Player) connect() error {
 	mpc, err := playerMpdDial(p.network, p.addr, p.passwd)
 	if err != nil {
@@ -346,6 +346,7 @@ func (p *Player) connect() error {
 	p.watcher = *watcher
 	return nil
 }
+
 func (p *Player) request(f func() error) error {
 	ec := make(chan error)
 	p.requestAsync(f, ec)
