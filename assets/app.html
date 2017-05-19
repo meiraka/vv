@@ -41,6 +41,7 @@
   <ol id=menu-settings-list>
     <li id=menu-settings-list-reload class=dropdown-item>reload
     <li id=menu-settings-list-config class=dropdown-item>config
+    <li id=menu-settings-list-about class=dropdown-item>about
   </ol>
 </header>
 <div id="background-image" class=fit></div>
@@ -129,6 +130,26 @@
   <h3 class="title">error title</h3>
   <span class="description">error description</span>
 </article>
+<div id=modal-background class=modal-background>
+</div>
+<div id=modal-outer class=modal-outer>
+  <div id=modal-about class=modal-window>
+    <button id=modal-about-close class=modal-close type="button" value="">close</button>
+    <h1>vv</h1>
+    <img class=modal-about-img src="/assets/app.svg">
+    <table class=modal-window-table>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey>Version:</th><td id=version class=modal-window-table-value>0.0.0</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey>Website:</th><td class=modal-window-table-value><a class=value href="https://github.com/meiraka/vv">https://github.com/meiraka/vv</a></td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey>License:</th><td class=modal-window-table-value><a class=value href="https://github.com/meiraka/vv/blob/master/LICENSE">MIT License</a></td>
+      </tr>
+    </table>
+  </div>
+</div>
 <footer class=background-overlay>
   <nav id="control">
     <nav id="control-playback">

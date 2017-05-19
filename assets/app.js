@@ -5,7 +5,7 @@ var vv = vv || {
     storage: {},
     env: {},
     model: {list: {}},
-    view: {header: {}, background: {}, main: {}, list: {}, config: {}, footer: {}, elapsed: {}},
+    view: {header: {}, background: {}, main: {}, list: {}, config: {}, footer: {}, elapsed: {}, modal: {about: {}}},
     control : {},
 };
 vv.obj = (function(){
@@ -724,7 +724,6 @@ vv.view.list = (function(){
         var isdir = ls.isdir;
         var style = ls.style;
         var newul = document.createDocumentFragment();
-        var root = document.getElementById("list");
         var ul = document.getElementById("list-items");
         while (ul.lastChild) {
             ul.removeChild(ul.lastChild);
@@ -944,6 +943,9 @@ vv.view.header = (function(){
         document.getElementById("menu-settings-list-config").addEventListener(vv.env.click, function() {
             vv.view.config.show();
         });
+        document.getElementById("menu-settings-list-about").addEventListener(vv.env.click, function() {
+            vv.view.modal.about.show();
+        });
         update();
         vv.model.list.addEventListener("changed", update);
         vv.control.addEventListener("library", update);
@@ -1072,5 +1074,54 @@ vv.view.elapsed = (function() {
     vv.control.addEventListener("control", update);
     vv.control.addEventListener("poll", update);
     return {update: update};
+}());
+vv.view.modal.hide = function() {
+    document.getElementById("modal-background").classList.remove("show");
+    document.getElementById("modal-outer").classList.remove("show");
+    var ws = document.getElementsByClassName("modal-window");
+    var i;
+    for (i in ws) {
+        if (ws[i].classList) {
+            ws[i].classList.remove("show");
+        }
+    }
+}
+vv.view.modal.about = (function() {
+    var show = function() {
+        var b = document.getElementById("modal-background");
+        if (b.classList.contains("show")) {
+            return;
+        }
+        b.classList.add("show");
+        document.getElementById("modal-outer").classList.add("show");
+        document.getElementById("modal-about").classList.add("show");
+    }
+    var hide = function() {
+        document.getElementById("modal-background").classList.remove("show");
+        document.getElementById("modal-outer").classList.remove("show");
+        document.getElementById("modal-about").classList.remove("show");
+    }
+    vv.control.addEventListener("start", function() {
+        document.getElementById("modal-about-close").addEventListener(
+            vv.env.click, hide);
+        document.getElementById("modal-outer").addEventListener(
+            vv.env.click, vv.view.modal.hide);
+        document.getElementById("modal-background").addEventListener(
+            vv.env.click, vv.view.modal.hide);
+        var ws = document.getElementsByClassName("modal-window");
+        var i;
+        for (i in ws) {
+            if (ws[i].addEventListener) {
+                ws[i].addEventListener(vv.env.click, function(e) {
+                    e.stopPropagation();
+                });
+            }
+        }
+
+    });
+    return {
+        "show": show,
+        "hide": hide,
+    }
 }());
 vv.control.start();
