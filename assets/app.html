@@ -42,6 +42,7 @@
     <li id=menu-settings-list-reload class=dropdown-item>reload
     <li id=menu-settings-list-config class=dropdown-item>config
     <li id=menu-settings-list-about class=dropdown-item>about
+    <li id=menu-settings-list-help class=dropdown-item>help
   </ol>
 </header>
 <div id="background-image" class=fit></div>
@@ -149,6 +150,23 @@
       </tr>
     </table>
   </div>
+  <div id=modal-help class=modal-window>
+    <button id=modal-help-close class=modal-close type="button" value="">close</button>
+    <h1>Help</h1>
+    <h2>Keyboard Shortcuts</h2>
+    <table class=modal-window-table>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><span class=keychar>?</span></th><td id=version class=modal-window-table-value>help</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><span class=keychar>&#xffe9;</span></th><td id=version class=modal-window-table-value>show list / parent</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><span class=keychar>&#xffeb;</span></th><td id=version class=modal-window-table-value>show now playing</td>
+      </tr>
+    </table>
+  </div>
+
 </div>
 <footer class=background-overlay>
   <nav id="control">

@@ -5,7 +5,8 @@ var vv = vv || {
     storage: {},
     env: {},
     model: {list: {}},
-    view: {header: {}, background: {}, main: {}, list: {}, config: {}, footer: {}, elapsed: {}, modal: {about: {}}},
+    view: {header: {}, background: {}, main: {}, list: {}, config: {}, footer: {}, elapsed: {}, modal: {about: {}, help: {}}},
+    keys: {},
     control : {},
 };
 vv.obj = (function(){
@@ -946,6 +947,9 @@ vv.view.header = (function(){
         document.getElementById("menu-settings-list-about").addEventListener(vv.env.click, function() {
             vv.view.modal.about.show();
         });
+        document.getElementById("menu-settings-list-help").addEventListener(vv.env.click, function() {
+            vv.view.modal.help.show();
+        });
         update();
         vv.model.list.addEventListener("changed", update);
         vv.control.addEventListener("library", update);
@@ -1108,6 +1112,7 @@ vv.view.modal.about = (function() {
             vv.env.click, vv.view.modal.hide);
         document.getElementById("modal-background").addEventListener(
             vv.env.click, vv.view.modal.hide);
+
         var ws = document.getElementsByClassName("modal-window");
         var i;
         for (i in ws) {
@@ -1124,4 +1129,64 @@ vv.view.modal.about = (function() {
         "hide": hide,
     }
 }());
+vv.view.modal.help = (function() {
+    var show = function() {
+        var b = document.getElementById("modal-background");
+        if (b.classList.contains("show")) {
+            return;
+        }
+        b.classList.add("show");
+        document.getElementById("modal-outer").classList.add("show");
+        document.getElementById("modal-help").classList.add("show");
+    }
+    var hide = function() {
+        document.getElementById("modal-background").classList.remove("show");
+        document.getElementById("modal-outer").classList.remove("show");
+        document.getElementById("modal-help").classList.remove("show");
+    }
+    vv.control.addEventListener("start", function() {
+        document.getElementById("modal-help-close").addEventListener(
+            vv.env.click, hide);
+    });
+    return {
+        "show": show,
+        "hide": hide,
+    }
+}());
+vv.keys = (function() {
+    vv.control.addEventListener("start", function() {
+        document.addEventListener("keydown", function(e) {
+            if (document.getElementById("modal-background").classList.contains("show")) {
+                if (e.key == "Escape" || e.key == "Esc") {
+                    vv.view.modal.hide();
+                }
+                return;
+            }
+            var buble = false;
+            var single = !e.altKey && !e.ctrlKey && !e.metaKey;
+            if (single && e.keyCode == 37) {
+                if (!vv.view.list.hidden()) {
+                    vv.model.list.up();
+                } else {
+                    vv.model.list.abs(vv.storage.current);
+                }
+                vv.view.list.show();
+            } else if (single && e.keyCode == 39) {
+                if (vv.model.list.rootname() != "root") {
+                    vv.model.list.abs(vv.storage.current);
+                }
+                vv.view.main.show();
+                e.stopPropagation();
+            } else if (single && e.key == "?") {
+                vv.view.modal.help.show();
+            } else {
+                buble = true;
+            }
+            if (!buble) {
+                e.stopPropagation();
+            }
+        });
+    });
+}());
+
 vv.control.start();

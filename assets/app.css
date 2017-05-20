@@ -796,10 +796,19 @@ button:active svg {
   padding: 6px;
 }
 .modal-window-tableitem {
-  margin: 3px;
+  margin: 6px;
 }
 
 .modal-about-img {
   width: 200px;
   height: 200px;
+}
+.keychar {
+  font-family: monospace;
+  font-size: 16px;
+  background-color: #e0e0e0;
+  color: #404040;
+  border-radius: 3px;
+  padding: 2px 6px;
+  margin: 3px;
 }
