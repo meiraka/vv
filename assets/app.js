@@ -427,15 +427,21 @@ vv.control = (function() {
         }
     };
 
+    var err_hide = 0;
     var err_timeout = function(description) {
         return function() {
             var e = document.getElementById("error");
-            if (!e.classList.contains("show")) {
-                e.getElementsByClassName("title")[0].textContent = "timeout";
-                e.getElementsByClassName("description")[0].textContent = description;
-                setTimeout(function() {e.classList.remove("show");}, 5000);
-                e.classList.add("show");
-            }
+            err_hide = (new Date()).getTime();
+            e.getElementsByClassName("title")[0].textContent = "timeout";
+            e.getElementsByClassName("description")[0].textContent = description;
+            setTimeout(function() {
+                if (err_hide + 4000 < (new Date()).getTime()) {
+                    e.classList.remove("show");
+                    e.classList.add("hide");
+                }
+            }, 5000);
+            e.classList.remove("hide");
+            e.classList.add("show");
         }
     }
 
