@@ -434,7 +434,7 @@ footer {
   background-color: #404040;
 }
 .button-simple:hover {
-  animation: hover_img 0.5s;
+  animation: hover_img 0.5s linear 0s;
 }
 .button-simple:disabled {
   animation: none;
@@ -532,10 +532,10 @@ button {
   outline: 0;
 }
 .header-item:hover .header-icon {
-  animation: hover_img 0.5s;
+  animation: hover_img 0.5s linear 0s;
 }
 .header-item:active .header-icon {
-  animation: active_img 2s;
+  animation: active_img 2s linear 0s;
 }
 
 #menu-back {
@@ -723,10 +723,10 @@ button {
 }
 
 button:hover svg {
-  animation: hover_img 0.5s;
+  animation: hover_img 0.5s linear 0s;
 }
 button:active svg {
-  animation: active_img 2s;
+  animation: active_img 2s linear 0s;
 }
 
 @keyframes hover_img {
