@@ -152,7 +152,9 @@ vv.storage = (function(){
     var control_last_modified = "";
     var library = {
         "AlbumArtist": [],
-         "Genre": [],
+        "Album": [],
+        "Genre": [],
+        "Date": [],
     }
     var library_last_modified = "";
     var outputs = [];
@@ -315,7 +317,10 @@ vv.model.list = (function() {
         focus = song;
         var i, root, key, selected;
         if (rootname() != "root" && song.file) {
-            vv.storage.tree = [vv.storage.tree[0]];
+            var r = vv.storage.tree[0];
+            vv.storage.tree.length = 0;
+            vv.storage.tree.splice(0, vv.storage.tree.length);
+            vv.storage.tree.push(r);
             root = vv.storage.tree[0][1];
             selected = TREE[root]["tree"];
             for (i in selected) {
@@ -327,7 +332,7 @@ vv.model.list = (function() {
             }
             vv.storage.save();
         } else {
-            vv.storage.tree = [];
+            vv.storage.tree.splice(0, vv.storage.tree.length);
             vv.storage.save();
         }
         update_list();
