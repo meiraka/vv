@@ -159,7 +159,7 @@ vv.storage = (function(){
     var outputs_last_modified = "";
     var config = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
-        "appearance": {"dark": false, "background_image": false, "background_image_blur": 0},
+        "appearance": {"dark": false, "background_image": false, "background_image_blur": 0, "circled_image": false},
     };
     var save = function() {
         try {
@@ -664,6 +664,16 @@ vv.view.main = (function(){
             document.getElementById("main-cover-img").style.backgroundImage = '';
         }
     };
+    var update_style = function() {
+        var e = document.getElementById("main-cover-img");
+        if (vv.storage.config.appearance.circled_image && !e.classList.contains("circled")) {
+            e.classList.add("circled");
+        }
+        if (!vv.storage.config.appearance.circled_image && e.classList.contains("circled")) {
+            e.classList.remove("circled");
+        }
+    }
+    vv.control.addEventListener("config", update_style);
     var update_elapsed = function() {
         if (hidden()) {
             return;
@@ -694,6 +704,7 @@ vv.view.main = (function(){
             vv.control.volume(parseInt(this.value));
         });
         load_volume_config();
+        update_style();
     };
     vv.control.addEventListener("current", update);
     vv.control.addEventListener("poll", update_elapsed);
@@ -816,6 +827,13 @@ vv.view.config = (function(){
         background_image_blur.value = String(vv.storage.config.appearance.background_image_blur);
         background_image_blur.addEventListener("change", function() {
             vv.storage.config.appearance.background_image_blur = parseInt(this.value);
+            vv.storage.save();
+            vv.control.raiseEvent("config");
+        });
+        var circled_image = document.getElementById("appearance-circled-image");
+        circled_image.checked = vv.storage.config.appearance.circled_image;
+        circled_image.addEventListener("change", function() {
+            vv.storage.config.appearance.circled_image = this.checked;
             vv.storage.save();
             vv.control.raiseEvent("config");
         });
