@@ -161,8 +161,13 @@ vv.storage = (function(){
     var outputs_last_modified = "";
     var config = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
-        "appearance": {"dark": false, "background_image": false, "background_image_blur": 0, "circled_image": false},
+        "appearance": {"dark": false, "background_image": true, "background_image_blur": 32, "circled_image": true},
     };
+    // Presto Opera
+    if (navigator.userAgent.indexOf("Presto/2") > 1) {
+        config.appearance.background_image_blur = 0;
+        config.appearance.circled_image = false;
+    }
     var save = function() {
         try {
             localStorage.tree = JSON.stringify(tree);
