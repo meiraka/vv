@@ -5,7 +5,7 @@ var vv = vv || {
     storage: {},
     env: {},
     model: {list: {}},
-    view: {header: {}, background: {}, main: {}, list: {}, config: {}, footer: {}, elapsed: {}, modal: {about: {}, help: {}}},
+    view: {header: {}, background: {}, main: {}, list: {}, config: {}, footer: {}, elapsed: {}, modal: {help: {}}},
     keys: {},
     control : {},
 };
@@ -586,7 +586,6 @@ vv.control = (function() {
             vv.control.update_song();
             vv.control.update_status();
             vv.control.update_library();
-            vv.control.update_outputs();
             raiseEvent("poll");
             setTimeout(polling, 1000);
         }
@@ -778,10 +777,6 @@ vv.view.list = (function(){
                     vv.view.main.show();
                     return;
                 }
-                if (!vv.view.header.hidden_sub()) {
-                    vv.view.header.hide_sub();
-                    return;
-                }
                 var value = this.getAttribute("key");
                 var uri = this.getAttribute("uri");
                 if (isdir) {
@@ -815,6 +810,24 @@ vv.view.list = (function(){
 }());
 vv.view.config = (function(){
     var init = function() {
+        document.getElementById("config-config").classList.add("active");
+        document.getElementById("tab-config").classList.add("active");
+        document.getElementById("tab-config").addEventListener(vv.env.click, function() {
+            document.getElementById("config-info").classList.remove("active");
+            document.getElementById("tab-info").classList.remove("active");
+            document.getElementById("config-config").classList.add("active");
+            document.getElementById("tab-config").classList.add("active");
+        });
+        document.getElementById("tab-info").addEventListener(vv.env.click, function() {
+            document.getElementById("config-config").classList.remove("active");
+            document.getElementById("tab-config").classList.remove("active");
+            document.getElementById("config-info").classList.add("active");
+            document.getElementById("tab-info").classList.add("active");
+        });
+        document.getElementById("system-reload").addEventListener(vv.env.click, function() {
+            location.reload();
+        });
+        
         // TODO: fix loop unrolling
         var update_theme = function() {
             if (vv.storage.config.appearance.dark) {
@@ -928,6 +941,7 @@ vv.view.config = (function(){
     }
     vv.control.addEventListener("control", update_control);
     var show = function() {
+        vv.control.update_outputs();
         update_control();
         document.body.classList.add("view-config");
         document.body.classList.remove("view-list");
@@ -944,9 +958,6 @@ vv.view.config = (function(){
 }());
 vv.view.header = (function(){
     var init = function() {
-        document.body.addEventListener(vv.env.click, function() {
-            vv.view.header.hide_sub();
-        });
         document.getElementById("menu-back").addEventListener(vv.env.click, function(e) {
             if (!vv.view.list.hidden()) {
                 vv.model.list.up();
@@ -965,24 +976,8 @@ vv.view.header = (function(){
             e.stopPropagation();
         });
         document.getElementById("menu-settings").addEventListener(vv.env.click, function(e) {
-            if (vv.view.header.hidden_sub()) {
-                vv.view.header.show_sub();
-            } else {
-                vv.view.header.hide_sub();
-            }
-            e.stopPropagation();
-        });
-        document.getElementById("menu-settings-list-reload").addEventListener(vv.env.click, function() {
-            location.reload();
-        });
-        document.getElementById("menu-settings-list-config").addEventListener(vv.env.click, function() {
             vv.view.config.show();
-        });
-        document.getElementById("menu-settings-list-about").addEventListener(vv.env.click, function() {
-            vv.view.modal.about.show();
-        });
-        document.getElementById("menu-settings-list-help").addEventListener(vv.env.click, function() {
-            vv.view.modal.help.show();
+            e.stopPropagation();
         });
         update();
         vv.model.list.addEventListener("changed", update);
@@ -1005,26 +1000,12 @@ vv.view.header = (function(){
             m.classList.add("root");
         }
     }
-    var show_sub = function() {
-        var e = document.getElementById("menu-settings-list");
-        e.classList.add("show");
-    };
-    var hide_sub = function() {
-        var e = document.getElementById("menu-settings-list");
-        e.classList.remove("show");
-    };
-    var hidden_sub = function() {
-        return !document.getElementById("menu-settings-list").classList.contains("show");
-    };
     var height = function() {
         return document.getElementsByTagName("header")[0].offsetHeight;
     };
     vv.control.addEventListener("start", init);
     return {
         update: update,
-        show_sub: show_sub,
-        hide_sub: hide_sub,
-        hidden_sub: hidden_sub,
         height: height,
     };
 }());
@@ -1124,45 +1105,6 @@ vv.view.modal.hide = function() {
         }
     }
 }
-vv.view.modal.about = (function() {
-    var show = function() {
-        var b = document.getElementById("modal-background");
-        if (b.classList.contains("show")) {
-            return;
-        }
-        b.classList.add("show");
-        document.getElementById("modal-outer").classList.add("show");
-        document.getElementById("modal-about").classList.add("show");
-    }
-    var hide = function() {
-        document.getElementById("modal-background").classList.remove("show");
-        document.getElementById("modal-outer").classList.remove("show");
-        document.getElementById("modal-about").classList.remove("show");
-    }
-    vv.control.addEventListener("start", function() {
-        document.getElementById("modal-about-close").addEventListener(
-            vv.env.click, hide);
-        document.getElementById("modal-outer").addEventListener(
-            vv.env.click, vv.view.modal.hide);
-        document.getElementById("modal-background").addEventListener(
-            vv.env.click, vv.view.modal.hide);
-
-        var ws = document.getElementsByClassName("modal-window");
-        var i;
-        for (i in ws) {
-            if (ws[i].addEventListener) {
-                ws[i].addEventListener(vv.env.click, function(e) {
-                    e.stopPropagation();
-                });
-            }
-        }
-
-    });
-    return {
-        "show": show,
-        "hide": hide,
-    }
-}());
 vv.view.modal.help = (function() {
     var show = function() {
         var b = document.getElementById("modal-background");
@@ -1181,6 +1123,20 @@ vv.view.modal.help = (function() {
     vv.control.addEventListener("start", function() {
         document.getElementById("modal-help-close").addEventListener(
             vv.env.click, hide);
+        document.getElementById("modal-outer").addEventListener(
+            vv.env.click, vv.view.modal.hide);
+        document.getElementById("modal-background").addEventListener(
+            vv.env.click, vv.view.modal.hide);
+
+        var ws = document.getElementsByClassName("modal-window");
+        var i;
+        for (i in ws) {
+            if (ws[i].addEventListener) {
+                ws[i].addEventListener(vv.env.click, function(e) {
+                    e.stopPropagation();
+                });
+            }
+        }
     });
     return {
         "show": show,

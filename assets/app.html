@@ -38,12 +38,6 @@
          M 150,150 129,129 z"/>
       </svg>
   </ol>
-  <ol id=menu-settings-list>
-    <li id=menu-settings-list-reload class=dropdown-item>reload
-    <li id=menu-settings-list-config class=dropdown-item>config
-    <li id=menu-settings-list-about class=dropdown-item>about
-    <li id=menu-settings-list-help class=dropdown-item>help
-  </ol>
 </header>
 <div id="background-image" class=fit></div>
 <div id="background" class=fit>
@@ -65,80 +59,86 @@
     </div>
   </div>
 </section>
-<section id="config" class="scrollable">
-  <h1>configuration</h1>
-  <article id="config-appearance">
-    <h3>Appearance</h3>
-    <ul class=note>
-      <li>
-        <div class="description">Dark</div>
-        <div class="value switch"><input type="checkbox" id="appearance-dark"><label for="appearance-dark"></label></div>
-      <li>
-        <div class="description">Background image</div>
-        <div class="value switch"><input type="checkbox" id="appearance-background-image"><label for="appearance-background-image"></label></div>
-      <li>
-        <div class="description">Background image blur</div>
-        <select class="value" id="appearance-background-image-blur">
-          <option value="0">0</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="4">4</option>
-          <option value="8">8</option>
-          <option value="16">16</option>
-          <option value="32">32</option>
-        </select>
-      <li>
-        <div class="description">Circled image</div>
-        <div class="value switch"><input type="checkbox" id="appearance-circled-image"><label for="appearance-circled-image"></label></div>
-    </ul>
+<section id="config" class="scrollable tabbed">
+  <nav id="config-nav" class="scrollable-tab">
+    <div class="tab-items">
+      <button class="tab-item" id="tab-config" type="button">Configuration</button>
+      <button class="tab-item" id="tab-info" type="button">Information</button>
+    </div>
+  </nav>
+  <article id="config-config" class="tab-page">
+    <h1>Configuration</h1>
+    <article id="config-system">
+      <h3>System</h3>
+      <ul class=note>
+        <li>
+          <button id=system-reload class="value button-simple" type="button">Reload Application</button>
+      </ul>
+    </article>
+    <article id="config-appearance">
+      <h3>Appearance</h3>
+      <ul class=note>
+        <li>
+          <div class="description">Dark</div>
+          <div class="value switch"><input type="checkbox" id="appearance-dark"><label for="appearance-dark"></label></div>
+        <li>
+          <div class="description">Background image</div>
+          <div class="value switch"><input type="checkbox" id="appearance-background-image"><label for="appearance-background-image"></label></div>
+        <li>
+          <div class="description">Background image blur</div>
+          <select class="value" id="appearance-background-image-blur">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="8">8</option>
+            <option value="16">16</option>
+            <option value="32">32</option>
+          </select>
+        <li>
+          <div class="description">Circled image</div>
+          <div class="value switch"><input type="checkbox" id="appearance-circled-image"><label for="appearance-circled-image"></label></div>
+      </ul>
+    </article>
+    <article>
+      <h3>Library</h3>
+      <ul class=note>
+        <li>
+          <button id=library-rescan class="value button-simple" type="button">Rescan</button>
+      </ul>
+    </article>
+    <article>
+      <h3>Playback</h3>
+      <ul class=note>
+        <li>
+          <div class="description">Listview follows playback</div>
+          <div class="value switch"><input type="checkbox" id="playback_view_follow"><label for="playback_view_follow"></label></div>
+      </ul>
+    </article>
+    <article>
+      <h3>Volume</h3>
+      <ul class=note>
+        <li>
+          <div class="description">Show volume nob</div>
+          <div class="value switch"><input type="checkbox" id="show_volume"><label for="show_volume"></label></div>
+        <li>
+          <div class="description">Max volume</div>
+          <select class="value" id="max_volume">
+            <option value="50">50</option>
+            <option value="60">60</option>
+            <option value="70">70</option>
+            <option value="80">80</option>
+            <option value="90">90</option>
+            <option value="100">100</option>
+          </select>
+      </ul>
+    </article>
+    <article>
+      <h3>Devices</h3>
+      <ul class="devices note"></ul>
+    </article>
   </article>
-  <article>
-    <h3>Library</h3>
-    <ul class=note>
-      <li>
-        <button id=library-rescan class="value button-simple" type="button">Rescan</button>
-    </ul>
-  </article>
-  <article>
-    <h3>Playback</h3>
-    <ul class=note>
-      <li>
-        <div class="description">Listview follows playback</div>
-        <div class="value switch"><input type="checkbox" id="playback_view_follow"><label for="playback_view_follow"></label></div>
-    </ul>
-  </article>
-  <article>
-    <h3>Volume</h3>
-    <ul class=note>
-      <li>
-        <div class="description">Show volume nob</div>
-        <div class="value switch"><input type="checkbox" id="show_volume"><label for="show_volume"></label></div>
-      <li>
-        <div class="description">Max volume</div>
-        <select class="value" id="max_volume">
-          <option value="50">50</option>
-          <option value="60">60</option>
-          <option value="70">70</option>
-          <option value="80">80</option>
-          <option value="90">90</option>
-          <option value="100">100</option>
-        </select>
-    </ul>
-  </article>
-  <article>
-    <h3>Devices</h3>
-    <ul class="devices note"></ul>
-  </article>
-</section>
-<article id="error">
-  <h3 class="title">error title</h3>
-  <span class="description">error description</span>
-</article>
-<div id=modal-background class=modal-background>
-</div>
-<div id=modal-outer class=modal-outer>
-  <div id=modal-about class=modal-window>
-    <button id=modal-about-close class=modal-close type="button" value="">close</button>
+  <article id="config-info" class="tab-page">
     <h1>vv</h1>
     <img class=modal-about-img src="/assets/app.svg">
     <table class=modal-window-table>
@@ -152,7 +152,15 @@
         <th class=modal-window-tablekey>License:</th><td class=modal-window-table-value><a class=value href="https://github.com/meiraka/vv/blob/master/LICENSE">MIT License</a></td>
       </tr>
     </table>
-  </div>
+  </article>
+</section>
+<article id="error">
+  <h3 class="title">error title</h3>
+  <span class="description">error description</span>
+</article>
+<div id=modal-background class=modal-background>
+</div>
+<div id=modal-outer class=modal-outer>
   <div id=modal-help class=modal-window>
     <button id=modal-help-close class=modal-close type="button" value="">close</button>
     <h1>Help</h1>
