@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/fhs/gompd/mpd"
 	"reflect"
 	"testing"
@@ -270,6 +271,35 @@ func TestPlayerPlaylist(t *testing.T) {
 	}
 }
 
+func TestPlayerStats(t *testing.T) {
+	m := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
+	defer p.Close()
+	p.watcherResponse = make(chan error)
+	m.StatsRet1 = mpd.Attrs{"foo": "bar"}
+	m.StatsRet2 = nil
+	expect := mpd.Attrs{"foo": "bar"}
+	actual, err := p.Stats()
+	if m.StatsCalled != 1 {
+		t.Errorf("mpd.Client.Stats does not called")
+	}
+	if err != nil {
+		t.Errorf("unexpected error: %s", err.Error())
+	}
+	if !reflect.DeepEqual(expect, actual) {
+		t.Errorf("unexpected get library")
+	}
+	m.StatsRet1 = nil
+	m.StatsRet2 = errors.New("hoge")
+	actual, err = p.Stats()
+	if m.StatsCalled != 2 {
+		t.Errorf("mpd.Client.Stats does not called")
+	}
+	if err == nil {
+		t.Errorf("unexpected error: nil")
+	}
+}
+
 func TestPlayerLibrary(t *testing.T) {
 	m := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
@@ -444,6 +474,9 @@ type mockMpc struct {
 	StatusCalled           int
 	StatusRet1             mpd.Attrs
 	StatusRet2             error
+	StatsCalled            int
+	StatsRet1              mpd.Attrs
+	StatsRet2              error
 	PingCalled             int
 	PingRet1               error
 	ListOutputsCalled      int
@@ -510,6 +543,10 @@ func (p *mockMpc) CurrentSong() (mpd.Attrs, error) {
 func (p *mockMpc) Status() (mpd.Attrs, error) {
 	p.StatusCalled++
 	return p.StatusRet1, p.StatusRet2
+}
+func (p *mockMpc) Stats() (mpd.Attrs, error) {
+	p.StatsCalled++
+	return p.StatsRet1, p.StatsRet2
 }
 func (p *mockMpc) ReadComments(ReadCommentsArg1 string) (mpd.Attrs, error) {
 	p.ReadCommentsCalled++

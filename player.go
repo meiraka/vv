@@ -37,6 +37,7 @@ type Player struct {
 	current          mpd.Attrs
 	currentModified  time.Time
 	status           PlayerStatus
+	stats            mpd.Attrs
 	library          []mpd.Attrs
 	libraryModified  time.Time
 	playlist         []mpd.Attrs
@@ -65,6 +66,17 @@ func (p *Player) Status() (PlayerStatus, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.status, time.Unix(p.status.LastModified, 0)
+}
+
+/*Stats returns mpd statistics.*/
+func (p *Player) Stats() (mpd.Attrs, error) {
+	err := p.updateStats()
+	if err != nil {
+		return nil, err
+	}
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.stats, nil
 }
 
 /*Library returns mpd library song data list.*/
@@ -203,6 +215,7 @@ type mpdClient interface {
 	Random(bool) error
 	CurrentSong() (mpd.Attrs, error)
 	Status() (mpd.Attrs, error)
+	Stats() (mpd.Attrs, error)
 	ListAllInfo(string) ([]mpd.Attrs, error)
 	PlaylistInfo(int, int) ([]mpd.Attrs, error)
 	BeginCommandList() *mpd.CommandList
@@ -383,6 +396,17 @@ func (p *Player) updateStatus() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.status = convStatus(status, time.Now().Unix())
+	return nil
+}
+
+func (p *Player) updateStats() error {
+	stats, err := p.mpc.Stats()
+	if err != nil {
+		return err
+	}
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.stats = stats
 	return nil
 }
 

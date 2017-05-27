@@ -131,6 +131,12 @@ func (a *apiHandler) current(w http.ResponseWriter, r *http.Request) {
 	a.returnSong(w, r, d, l)
 }
 
+func (a *apiHandler) stats(w http.ResponseWriter, r *http.Request) {
+	d, err := a.player.Stats()
+	l := time.Now()
+	writeJSONInterface(w, d, l, err)
+}
+
 func (a *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
@@ -261,6 +267,7 @@ func makeHandle(p Music, c Config, bindata bool) http.Handler {
 	h.HandleFunc("/api/control", api.control)
 	h.HandleFunc("/api/outputs", api.outputs)
 	h.HandleFunc("/api/outputs/", api.outputs)
+	h.HandleFunc("/api/stats", api.stats)
 	fs := http.StripPrefix(musicDirectory, http.FileServer(http.Dir(c.Mpd.MusicDirectory)))
 	h.HandleFunc(musicDirectory, func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
@@ -305,6 +312,7 @@ type Music interface {
 	RescanLibrary() error
 	Current() (mpd.Attrs, time.Time)
 	Status() (PlayerStatus, time.Time)
+	Stats() (mpd.Attrs, error)
 	Output(int, bool) error
 	Outputs() ([]mpd.Attrs, time.Time)
 	SortPlaylist([]string, string) error
