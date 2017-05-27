@@ -122,23 +122,23 @@ footer {
     padding: 80px 0 150px;
   }
 
-  .view-config #config,
+  .view-system #system,
   .view-list #list,
   .view-main #main {
     display: block;
   }
   .view-main #list,
-  .view-main #config,
+  .view-main #system,
   .view-list #main,
-  .view-list #config,
-  .view-config #list,
-  .view-config #main {
+  .view-list #system,
+  .view-system #list,
+  .view-system #main {
     display: none;
   }
   #background {
     padding: 70px 0 120px;
   }
-  .view-config #background {
+  .view-system #background {
     padding: 120px 0 120px;
   }
   footer {
@@ -152,17 +152,17 @@ footer {
   .unscrollable {
     padding: 80px 0 90px;
   }
-  .view-config #config,
+  .view-system #system,
   .view-list #list,
   .view-list #main,
   .view-main #main,
   .view-main #list {
     display: block;
   }
-  .view-main #config,
-  .view-list #config,
-  .view-config #list,
-  .view-config #main {
+  .view-main #system,
+  .view-list #system,
+  .view-system #list,
+  .view-system #main {
     display: none;
   }
   #list {
@@ -173,14 +173,14 @@ footer {
     left: 50%;
     width: 50%;
   }
-  #config {
+  #system {
     left: 0;
     width: 100%;
   }
   #background {
     padding: 70px 0 90px;
   }
-  .view-config #background {
+  .view-system #background {
     padding: 120px 0 90px;
   }
   footer {
@@ -362,19 +362,19 @@ footer {
   font-size: 20px;
 }
 
-#config h1, #config h3 {
+#system h1, #system h3 {
   margin: 10px;
 }
 
-#config .note {
+#system .note {
   list-style-type: none;
   padding: 0 20px;
 }
-#config .note li {
+#system .note li {
   align-items: center;
   display: flex;
 }
-#config .note li .description {
+#system .note li .description {
   font-size: 18px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -471,7 +471,7 @@ footer {
   color: #808080;
   animation: none;
 }
-#config select {
+#system select {
   outline: 0;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -486,7 +486,7 @@ footer {
   padding: 5px 5px 0 50px;
   margin: 5px;
 }
-.dark #config select {
+.dark #system select {
   background-color: #e0e0e0;
   color: #404040;
 }
@@ -580,7 +580,7 @@ button {
 .view-list #menu-back.root {
   visibility: hidden;
 }
-.view-config #menu-back-content {
+.view-system #menu-back-content {
   display: none;
 }
 @media (orientation: portrait) {

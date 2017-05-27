@@ -5,7 +5,7 @@ var vv = vv || {
     storage: {},
     env: {},
     model: {list: {}},
-    view: {header: {}, background: {}, main: {}, list: {}, config: {}, footer: {}, elapsed: {}, modal: {help: {}}},
+    view: {header: {}, background: {}, main: {}, list: {}, system: {}, footer: {}, elapsed: {}, modal: {help: {}}},
     keys: {},
     control : {},
 };
@@ -159,19 +159,19 @@ vv.storage = (function(){
     var library_last_modified = "";
     var outputs = [];
     var outputs_last_modified = "";
-    var config = {
+    var preferences = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
         "appearance": {"dark": false, "background_image": true, "background_image_blur": 32, "circled_image": true},
     };
     // Presto Opera
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
-        config.appearance.background_image_blur = 0;
-        config.appearance.circled_image = false;
+        preferences.appearance.background_image_blur = 0;
+        preferences.appearance.circled_image = false;
     }
     var save = function() {
         try {
             localStorage.tree = JSON.stringify(tree);
-            localStorage.config = JSON.stringify(config);
+            localStorage.preferences = JSON.stringify(preferences);
         } catch (e) {
             // private browsing
         }
@@ -181,12 +181,12 @@ vv.storage = (function(){
             if (localStorage.tree) {
                 tree = JSON.parse(localStorage.tree);
             }
-            if (localStorage.config) {
-                var c = JSON.parse(localStorage.config);
+            if (localStorage.preferences) {
+                var c = JSON.parse(localStorage.preferences);
                 var i, j;
                 for (i in c) {
                     for (j in c[i]) {
-                        config[i][j] = c[i][j];
+                        preferences[i][j] = c[i][j];
                     }
                 }
             }
@@ -205,7 +205,7 @@ vv.storage = (function(){
         library_last_modified: library_last_modified,
         outputs: outputs,
         outputs_last_modified: outputs_last_modified,
-        config: config,
+        preferences: preferences,
         save: save,
         load: load,
     };
@@ -426,7 +426,7 @@ vv.model.list = (function() {
     };
 }());
 vv.control = (function() {
-    var listener = {"control": [], "config": [], "library": [], "playlist": [], "current": [], "outputs": [], "start": [], "poll": []}
+    var listener = {"control": [], "preferences": [], "library": [], "playlist": [], "current": [], "outputs": [], "start": [], "poll": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
     };
@@ -499,7 +499,7 @@ vv.control = (function() {
                 var song = ret.data? ret.data : {};
                 vv.storage.current = song;
                 vv.storage.current_last_modified = modified;
-                if (vv.model.list.rootname() != "root" && vv.storage.config.playback.view_follow && song.file) {
+                if (vv.model.list.rootname() != "root" && vv.storage.preferences.playback.view_follow && song.file) {
                     vv.model.list.abs(song);
                 }
                 raiseEvent("current")
@@ -624,7 +624,7 @@ vv.control = (function() {
 vv.view.background = (function() {
     var update = function() {
         var e = document.getElementById("background-image");
-        if (vv.storage.config.appearance.background_image) {
+        if (vv.storage.preferences.appearance.background_image) {
             e.classList.remove("hide");
             document.getElementById("background").classList.remove("hide");
             var cover = "/assets/nocover.svg";
@@ -632,22 +632,22 @@ vv.view.background = (function() {
                 cover = "/music_directory/" + vv.storage.current.cover;
             }
             e.style.backgroundImage = 'url("'+cover+'")';
-            e.style.filter = "blur(" + vv.storage.config.appearance.background_image_blur + "px)";
+            e.style.filter = "blur(" + vv.storage.preferences.appearance.background_image_blur + "px)";
         } else {
             e.classList.add("hide");
             document.getElementById("background").classList.add("hide");
         }
     };
     vv.control.addEventListener("current", update);
-    vv.control.addEventListener("config", update);
+    vv.control.addEventListener("preferences", update);
     vv.control.addEventListener("start", update);
 }());
 
 vv.view.main = (function(){
-    var load_volume_config = function() {
+    var load_volume_preferences = function() {
         var c = document.getElementById("control-volume");
-        c.max = vv.storage.config["volume"]["max"];
-        if (vv.storage.config["volume"]["show"]) {
+        c.max = vv.storage.preferences["volume"]["max"];
+        if (vv.storage.preferences["volume"]["show"]) {
             c.style.visibility = "visible";
         } else {
             c.style.visibility = "hidden";
@@ -656,10 +656,10 @@ vv.view.main = (function(){
     vv.control.addEventListener("control", function() {
         document.getElementById("control-volume").value=vv.storage.control["volume"]
     });
-    vv.control.addEventListener("config", load_volume_config);
+    vv.control.addEventListener("preferences", load_volume_preferences);
     var show = function() {
         document.body.classList.add("view-main");
-        document.body.classList.remove("view-config");
+        document.body.classList.remove("view-system");
         document.body.classList.remove("view-list");
     };
     var hidden = function() {
@@ -681,14 +681,14 @@ vv.view.main = (function(){
     };
     var update_style = function() {
         var e = document.getElementById("main-cover-img");
-        if (vv.storage.config.appearance.circled_image && !e.classList.contains("circled")) {
+        if (vv.storage.preferences.appearance.circled_image && !e.classList.contains("circled")) {
             e.classList.add("circled");
         }
-        if (!vv.storage.config.appearance.circled_image && e.classList.contains("circled")) {
+        if (!vv.storage.preferences.appearance.circled_image && e.classList.contains("circled")) {
             e.classList.remove("circled");
         }
     }
-    vv.control.addEventListener("config", update_style);
+    vv.control.addEventListener("preferences", update_style);
     var update_elapsed = function() {
         if (hidden()) {
             return;
@@ -718,7 +718,7 @@ vv.view.main = (function(){
         document.getElementById("control-volume").addEventListener("change", function() {
             vv.control.volume(parseInt(this.value));
         });
-        load_volume_config();
+        load_volume_preferences();
         update_style();
     };
     vv.control.addEventListener("current", update);
@@ -734,7 +734,7 @@ vv.view.list = (function(){
     var show = function() {
         document.body.classList.add("view-list");
         document.body.classList.remove("view-main");
-        document.body.classList.remove("view-config");
+        document.body.classList.remove("view-system");
     }
     var hidden = function() {
         var e = document.body;
@@ -808,21 +808,21 @@ vv.view.list = (function(){
         hidden: hidden,
     };
 }());
-vv.view.config = (function(){
+vv.view.system = (function(){
     var init = function() {
-        document.getElementById("config-config").classList.add("active");
-        document.getElementById("tab-config").classList.add("active");
-        document.getElementById("tab-config").addEventListener(vv.env.click, function() {
-            document.getElementById("config-info").classList.remove("active");
-            document.getElementById("tab-info").classList.remove("active");
-            document.getElementById("config-config").classList.add("active");
-            document.getElementById("tab-config").classList.add("active");
+        document.getElementById("system-preferences").classList.add("active");
+        document.getElementById("system-tab-preferences").classList.add("active");
+        document.getElementById("system-tab-preferences").addEventListener(vv.env.click, function() {
+            document.getElementById("system-info").classList.remove("active");
+            document.getElementById("system-tab-info").classList.remove("active");
+            document.getElementById("system-preferences").classList.add("active");
+            document.getElementById("system-tab-preferences").classList.add("active");
         });
-        document.getElementById("tab-info").addEventListener(vv.env.click, function() {
-            document.getElementById("config-config").classList.remove("active");
-            document.getElementById("tab-config").classList.remove("active");
-            document.getElementById("config-info").classList.add("active");
-            document.getElementById("tab-info").classList.add("active");
+        document.getElementById("system-tab-info").addEventListener(vv.env.click, function() {
+            document.getElementById("system-preferences").classList.remove("active");
+            document.getElementById("system-tab-preferences").classList.remove("active");
+            document.getElementById("system-info").classList.add("active");
+            document.getElementById("system-tab-info").classList.add("active");
         });
         document.getElementById("system-reload").addEventListener(vv.env.click, function() {
             location.reload();
@@ -830,7 +830,7 @@ vv.view.config = (function(){
         
         // TODO: fix loop unrolling
         var update_theme = function() {
-            if (vv.storage.config.appearance.dark) {
+            if (vv.storage.preferences.appearance.dark) {
                 document.body.classList.add("dark");
             } else {
                 document.body.classList.remove("dark");
@@ -838,54 +838,54 @@ vv.view.config = (function(){
         };
         update_theme();
         var dark = document.getElementById("appearance-dark");
-        dark.checked = vv.storage.config.appearance.dark;
+        dark.checked = vv.storage.preferences.appearance.dark;
         dark.addEventListener("change", function() {
-            vv.storage.config.appearance.dark = this.checked;
+            vv.storage.preferences.appearance.dark = this.checked;
             vv.storage.save();
             update_theme();
-            vv.control.raiseEvent("config");
+            vv.control.raiseEvent("preferences");
         });
         var background_image = document.getElementById("appearance-background-image");
-        background_image.checked = vv.storage.config.appearance.background_image;
+        background_image.checked = vv.storage.preferences.appearance.background_image;
         background_image.addEventListener("change", function() {
-            vv.storage.config.appearance.background_image = this.checked;
+            vv.storage.preferences.appearance.background_image = this.checked;
             vv.storage.save();
-            vv.control.raiseEvent("config");
+            vv.control.raiseEvent("preferences");
         });
         var background_image_blur = document.getElementById("appearance-background-image-blur");
-        background_image_blur.value = String(vv.storage.config.appearance.background_image_blur);
+        background_image_blur.value = String(vv.storage.preferences.appearance.background_image_blur);
         background_image_blur.addEventListener("change", function() {
-            vv.storage.config.appearance.background_image_blur = parseInt(this.value);
+            vv.storage.preferences.appearance.background_image_blur = parseInt(this.value);
             vv.storage.save();
-            vv.control.raiseEvent("config");
+            vv.control.raiseEvent("preferences");
         });
         var circled_image = document.getElementById("appearance-circled-image");
-        circled_image.checked = vv.storage.config.appearance.circled_image;
+        circled_image.checked = vv.storage.preferences.appearance.circled_image;
         circled_image.addEventListener("change", function() {
-            vv.storage.config.appearance.circled_image = this.checked;
+            vv.storage.preferences.appearance.circled_image = this.checked;
             vv.storage.save();
-            vv.control.raiseEvent("config");
+            vv.control.raiseEvent("preferences");
         });
         var playback_view_follow = document.getElementById("playback_view_follow");
-        playback_view_follow.checked = vv.storage.config.playback.view_follow;
+        playback_view_follow.checked = vv.storage.preferences.playback.view_follow;
         playback_view_follow.addEventListener("change", function() {
-            vv.storage.config.playback.view_follow = this.checked;
+            vv.storage.preferences.playback.view_follow = this.checked;
             vv.storage.save();
-            vv.control.raiseEvent("config");
+            vv.control.raiseEvent("preferences");
         });
         var show_volume = document.getElementById("show_volume");
-        show_volume.checked = vv.storage.config.volume.show;
+        show_volume.checked = vv.storage.preferences.volume.show;
         show_volume.addEventListener("change", function() {
-            vv.storage.config.volume.show = this.checked;
+            vv.storage.preferences.volume.show = this.checked;
             vv.storage.save();
-            vv.control.raiseEvent("config");
+            vv.control.raiseEvent("preferences");
         });
         var max_volume = document.getElementById("max_volume");
-        max_volume.value = String(vv.storage.config.volume.max);
+        max_volume.value = String(vv.storage.preferences.volume.max);
         max_volume.addEventListener("change", function() {
-            vv.storage.config.volume.max = parseInt(this.value);
+            vv.storage.preferences.volume.max = parseInt(this.value);
             vv.storage.save();
-            vv.control.raiseEvent("config");
+            vv.control.raiseEvent("preferences");
         });
         var rescan = document.getElementById("library-rescan");
         rescan.addEventListener(vv.env.click, function() {
@@ -893,7 +893,7 @@ vv.view.config = (function(){
         });
     };
     var update_devices = function() {
-        var ul = document.getElementById("config").getElementsByClassName("devices")[0];
+        var ul = document.getElementById("system").getElementsByClassName("devices")[0];
         while (ul.lastChild) {
             ul.removeChild(ul.lastChild);
         }
@@ -927,7 +927,7 @@ vv.view.config = (function(){
     }
     vv.control.addEventListener("outputs", update_devices);
     var update_control = function() {
-        if (vv.view.config.hidden()) {
+        if (vv.view.system.hidden()) {
             return;
         }
         var e = document.getElementById("library-rescan");
@@ -943,12 +943,12 @@ vv.view.config = (function(){
     var show = function() {
         vv.control.update_outputs();
         update_control();
-        document.body.classList.add("view-config");
+        document.body.classList.add("view-system");
         document.body.classList.remove("view-list");
         document.body.classList.remove("view-main");
     };
     var hidden = function() {
-        return !document.body.classList.contains("view-config");
+        return !document.body.classList.contains("view-system");
     }
     vv.control.addEventListener("start", init);
     return {
@@ -975,8 +975,8 @@ vv.view.header = (function(){
             vv.view.main.show();
             e.stopPropagation();
         });
-        document.getElementById("menu-settings").addEventListener(vv.env.click, function(e) {
-            vv.view.config.show();
+        document.getElementById("menu-system").addEventListener(vv.env.click, function(e) {
+            vv.view.system.show();
             e.stopPropagation();
         });
         update();
