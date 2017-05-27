@@ -63,6 +63,7 @@
   <nav id="system-nav" class="scrollable-tab">
     <div class="tab-items">
       <button class="tab-item" id="system-tab-preferences" type="button">Preferences</button>
+      <button class="tab-item" id="system-tab-stats" type="button">Stats</button>
       <button class="tab-item" id="system-tab-info" type="button">Information</button>
     </div>
   </nav>
@@ -137,6 +138,26 @@
       <h3>Devices</h3>
       <ul class="devices note"></ul>
     </article>
+  </article>
+  <article id="system-stats" class="tab-page">
+    <h1>mpd</h1>
+    <table>
+      <tr>
+        <th>tracks:</th><td id=stat-tracks></td>
+      </tr>
+        <th>artists:</th><td id=stat-artists></td>
+      </tr>
+        <th>albums:</th><td id=stat-albums></td>
+      </tr>
+        <th>total length:</th><td id=stat-db-playtime></td>
+      </tr>
+        <th>total playtime:</th><td id=stat-playtime></td>
+      </tr>
+        <th>uptime:</th><td id=stat-uptime></td>
+      </tr>
+        <th>last library update:</th><td id=stat-db-update></td>
+      </tr>
+    </table>
   </article>
   <article id="system-info" class="tab-page">
     <h1>vv</h1>

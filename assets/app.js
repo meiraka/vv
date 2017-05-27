@@ -488,9 +488,12 @@ vv.control = (function() {
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(obj));
     }
+    var stats = function(callback) {
+        get_request("api/stats", "", callback);
+    }
 
     var rescan_library = function() {
-        post_request("api/library", {"action": "rescan"})
+        post_request("api/library", {"action": "rescan"});
     }
 
     var update_song = function() {
@@ -617,6 +620,7 @@ vv.control = (function() {
         toggle_random: toggle_random,
         volume: volume,
         output: output,
+        stats: stats,
         start: start,
     };
 }());
@@ -815,12 +819,35 @@ vv.view.system = (function(){
         document.getElementById("system-tab-preferences").addEventListener(vv.env.click, function() {
             document.getElementById("system-info").classList.remove("active");
             document.getElementById("system-tab-info").classList.remove("active");
+            document.getElementById("system-stats").classList.remove("active");
+            document.getElementById("system-tab-stats").classList.remove("active");
             document.getElementById("system-preferences").classList.add("active");
             document.getElementById("system-tab-preferences").classList.add("active");
+        });
+        document.getElementById("system-tab-stats").addEventListener(vv.env.click, function() {
+            document.getElementById("system-preferences").classList.remove("active");
+            document.getElementById("system-tab-preferences").classList.remove("active");
+            document.getElementById("system-info").classList.remove("active");
+            document.getElementById("system-tab-info").classList.remove("active");
+            document.getElementById("system-stats").classList.add("active");
+            document.getElementById("system-tab-stats").classList.add("active");
+            vv.control.stats(function(ret) {
+                if (!ret.error) {
+                    document.getElementById("stat-albums").textContent = ret.data.albums;
+                    document.getElementById("stat-artists").textContent = ret.data.artists;
+                    document.getElementById("stat-db-playtime").textContent = ret.data.db_playtime;
+                    document.getElementById("stat-db-update").textContent = ret.data.db_update;
+                    document.getElementById("stat-playtime").textContent = ret.data.playtime;
+                    document.getElementById("stat-tracks").textContent = ret.data.songs;
+                    document.getElementById("stat-uptime").textContent = ret.data.uptime;
+                }
+            });
         });
         document.getElementById("system-tab-info").addEventListener(vv.env.click, function() {
             document.getElementById("system-preferences").classList.remove("active");
             document.getElementById("system-tab-preferences").classList.remove("active");
+            document.getElementById("system-stats").classList.remove("active");
+            document.getElementById("system-tab-stats").classList.remove("active");
             document.getElementById("system-info").classList.add("active");
             document.getElementById("system-tab-info").classList.add("active");
         });
