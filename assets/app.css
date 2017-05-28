@@ -833,32 +833,60 @@ button:active svg {
 }
 .tab-item {
   padding: 3px;
-  background-color: #404040;
   color: #e0e0e0;
   font-size: 18px;
   box-sizing: border-box;
-  border: solid 3px #404040;
+  border-style: solid none solid solid;
+  border-width: 3px;
+  border-color: #404040;
+  color: #404040;
 }
 .dark .tab-item {
-  border: solid 3px #e0e0e0;
-  background-color: #e0e0e0;
-  color: #404040;
+  border-color: #e0e0e0;
+  color: #e0e0e0;
 }
 .tab-item:first-child {
   border-radius: 20px 0 0 20px / 20px 0 0 20px;
   padding: 3px 8px 3px 20px;
 }
 .tab-item:last-child {
+  border-style: solid;
   border-radius: 0 20px 20px 0 / 0 20px 20px 0;
   padding: 3px 20px 3px 8px;
 }
 .tab-item.active {
-  background-color: #ffffff;
-  color: #404040;
+  background-color: #404040;
+  color: #e0e0e0;
+}
+.tab-item:active {
+  animation: tab_active 0.2s linear 0s;
+}
+@keyframes tab_active {
+  from {
+    color: #404040;
+    background-color: rgba(64,64,64,0.0);
+  }
+  to {
+    color: #e0e0e0;
+    background-color: rgba(64,64,64,1.0);
+  }
 }
 .dark .tab-item.active {
-  background-color: #202020;
-  color: #d0d0d0;
+  background-color: #e0e0e0;
+  color: #404040;
+}
+.dark .tab-item:active {
+  animation: dark_tab_active 0.2s linear 0s;
+}
+@keyframes dark_tab_active {
+  from {
+    color: #e0e0e0;
+    background-color: rgba(224,224,224,0.0);
+  }
+  to {
+    color: #404040;
+    background-color: rgba(224,224,224,1.0);
+  }
 }
 .tab-page {
   display: none;
