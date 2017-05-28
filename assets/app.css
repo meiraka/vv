@@ -380,6 +380,7 @@ footer {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1 1 auto;
+  padding: 8px 0;
 }
 
 .switch {
