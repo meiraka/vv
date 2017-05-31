@@ -204,6 +204,7 @@ footer {
 .song,
 .album {
   display: flex;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 .plain {
   align-items: baseline;
@@ -393,6 +394,7 @@ footer {
   margin: 5px;
   width: 100px;
   height: 30px;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 .switch input {
   display: none;
@@ -462,6 +464,7 @@ footer {
   font-size: 18px;
   color: #e0e0e0;
   background-color: #404040;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 .button-simple:hover {
   animation: hover_img 0.5s linear 0s;
@@ -556,6 +559,9 @@ button {
 	width: 40px;
 	height: 40px;
   stroke-width: 20;
+}
+.header-item {
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 .header-item:hover,
 .header-item:active {
@@ -719,6 +725,9 @@ button {
   }
 }
 
+.control-button {
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
 .control-button:hover svg {
   animation: hover_img 0.5s linear 0s;
 }
@@ -846,6 +855,7 @@ button {
     border-width: 3px;
     border-color: #404040;
     color: #404040;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
   .dark .tab-item {
     border-color: #e0e0e0;
@@ -884,6 +894,7 @@ button {
     text-align: left;
     padding: 0 20px;
     margin: 0 10px;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
   }
   .dark .tab-item {
     color: #e0e0e0;
