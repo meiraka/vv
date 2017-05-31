@@ -719,10 +719,10 @@ button {
   }
 }
 
-button:hover svg {
+.control-button:hover svg {
   animation: hover_img 0.5s linear 0s;
 }
-button:active svg {
+.control-button:active svg {
   animation: active_img 2s linear 0s;
 }
 
