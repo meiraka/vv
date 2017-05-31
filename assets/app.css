@@ -406,11 +406,12 @@ footer {
   width: 100px;
   height: 30px;
   border-radius: 30px;
-  background-color: #d0d0d0;
+  border: solid 3px #404040;
+  box-sizing: border-box;
 }
 .dark .switch label,
 .dark .switch input:checked + label {
-  background-color: #404040;
+  border: solid 3px #e0e0e0;
 }
 .switch input:checked + label {
   background-color: #404040;
@@ -423,14 +424,14 @@ footer {
 .switch input:checked + label:before,
 .switch input:checked + label:after {
   position: absolute;
-  top: 0;
+  top: -3px;
   content: "";
   display: block; width: 50%;
   height: 24px;
   border-radius: 24px;
 }
 .switch label:before {
-  left: 0;
+  left: -3px;
   border: solid 3px #404040;
   background-color: #ffffff;
 }
@@ -847,7 +848,7 @@ button {
     justify-content: center;
   }
   .tab-item {
-    padding: 3px;
+    padding: 3px 8px;
     color: #e0e0e0;
     font-size: 18px;
     box-sizing: border-box;
