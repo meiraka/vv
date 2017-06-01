@@ -6,7 +6,6 @@ var vv = vv || {
     env: {},
     model: {list: {}},
     view: {header: {}, background: {}, main: {}, list: {}, system: {}, footer: {}, elapsed: {}, modal: {help: {}}},
-    keys: {},
     control : {},
 };
 vv.obj = (function(){
@@ -1170,7 +1169,7 @@ vv.view.modal.help = (function() {
         "hide": hide,
     }
 }());
-vv.keys = (function() {
+(function() {
     vv.control.addEventListener("start", function() {
         document.addEventListener("keydown", function(e) {
             if (document.getElementById("modal-background").classList.contains("show")) {
