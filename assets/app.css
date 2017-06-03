@@ -872,12 +872,12 @@ button {
     border-radius: 0 20px 20px 0 / 0 20px 20px 0;
     padding: 3px 20px 3px 8px;
   }
-  .tab-item.active {
+  .tab-item.on {
     background-color: #404040;
     color: #e0e0e0;
   }
 
-  .dark .tab-item.active {
+  .dark .tab-item.on {
     background-color: #e0e0e0;
     color: #404040;
   }
@@ -901,12 +901,12 @@ button {
   .dark .tab-item {
     color: #e0e0e0;
   }
-  .tab-item.active {
+  .tab-item.on {
     background-color: #404040;
     color: #e0e0e0;
     border-radius: 2px;
   }
-  .dark .tab-item.active {
+  .dark .tab-item.on {
     background-color: #e0e0e0;
     color: #404040;
   }
@@ -918,6 +918,6 @@ button {
 .tab-page {
   display: none;
 }
-.tab-page.active {
+.tab-page.on {
   display: block;
 }

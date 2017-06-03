@@ -213,7 +213,7 @@ vv.storage = (function(){
 vv.env = (function() {
     var click = "click";
     var init = function() {
-        click = window.ontouchend===null?"touchend":"click";
+        click = "ontouchstart" in window?"touchstart":"click";
     }
     return {
         "click": click,
@@ -813,23 +813,23 @@ vv.view.list = (function(){
 }());
 vv.view.system = (function(){
     var init = function() {
-        document.getElementById("system-preferences").classList.add("active");
-        document.getElementById("system-tab-preferences").classList.add("active");
+        document.getElementById("system-preferences").classList.add("on");
+        document.getElementById("system-tab-preferences").classList.add("on");
         document.getElementById("system-tab-preferences").addEventListener(vv.env.click, function() {
-            document.getElementById("system-info").classList.remove("active");
-            document.getElementById("system-tab-info").classList.remove("active");
-            document.getElementById("system-stats").classList.remove("active");
-            document.getElementById("system-tab-stats").classList.remove("active");
-            document.getElementById("system-preferences").classList.add("active");
-            document.getElementById("system-tab-preferences").classList.add("active");
+            document.getElementById("system-info").classList.remove("on");
+            document.getElementById("system-tab-info").classList.remove("on");
+            document.getElementById("system-stats").classList.remove("on");
+            document.getElementById("system-tab-stats").classList.remove("on");
+            document.getElementById("system-preferences").classList.add("on");
+            document.getElementById("system-tab-preferences").classList.add("on");
         });
         document.getElementById("system-tab-stats").addEventListener(vv.env.click, function() {
-            document.getElementById("system-preferences").classList.remove("active");
-            document.getElementById("system-tab-preferences").classList.remove("active");
-            document.getElementById("system-info").classList.remove("active");
-            document.getElementById("system-tab-info").classList.remove("active");
-            document.getElementById("system-stats").classList.add("active");
-            document.getElementById("system-tab-stats").classList.add("active");
+            document.getElementById("system-preferences").classList.remove("on");
+            document.getElementById("system-tab-preferences").classList.remove("on");
+            document.getElementById("system-info").classList.remove("on");
+            document.getElementById("system-tab-info").classList.remove("on");
+            document.getElementById("system-stats").classList.add("on");
+            document.getElementById("system-tab-stats").classList.add("on");
             vv.control.stats(function(ret) {
                 if (!ret.error) {
                     document.getElementById("stat-albums").textContent = ret.data.albums;
@@ -843,12 +843,12 @@ vv.view.system = (function(){
             });
         });
         document.getElementById("system-tab-info").addEventListener(vv.env.click, function() {
-            document.getElementById("system-preferences").classList.remove("active");
-            document.getElementById("system-tab-preferences").classList.remove("active");
-            document.getElementById("system-stats").classList.remove("active");
-            document.getElementById("system-tab-stats").classList.remove("active");
-            document.getElementById("system-info").classList.add("active");
-            document.getElementById("system-tab-info").classList.add("active");
+            document.getElementById("system-preferences").classList.remove("on");
+            document.getElementById("system-tab-preferences").classList.remove("on");
+            document.getElementById("system-stats").classList.remove("on");
+            document.getElementById("system-tab-stats").classList.remove("on");
+            document.getElementById("system-info").classList.add("on");
+            document.getElementById("system-tab-info").classList.add("on");
         });
         document.getElementById("system-reload").addEventListener(vv.env.click, function() {
             location.reload();
