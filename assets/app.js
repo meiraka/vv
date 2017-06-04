@@ -811,25 +811,146 @@ vv.view.list = (function(){
         hidden: hidden,
     };
 }());
-vv.view.system = (function(){
-    var init = function() {
-        document.getElementById("system-preferences").classList.add("on");
-        document.getElementById("system-tab-preferences").classList.add("on");
-        document.getElementById("system-tab-preferences").addEventListener(vv.env.click, function() {
-            document.getElementById("system-info").classList.remove("on");
-            document.getElementById("system-tab-info").classList.remove("on");
-            document.getElementById("system-stats").classList.remove("on");
-            document.getElementById("system-tab-stats").classList.remove("on");
-            document.getElementById("system-preferences").classList.add("on");
-            document.getElementById("system-tab-preferences").classList.add("on");
+vv.view.system = (function() {
+    var mkshow = function(p, e) {
+        return function() {
+            document.getElementById(p).classList.add("on");
+            document.getElementById(e).classList.add("on");
+        };
+    }
+    var mkhide = function(p, e) {
+        return function() {
+            document.getElementById(p).classList.remove("on");
+            document.getElementById(e).classList.remove("on");
+        };
+    }
+    var preferences = (function() {
+        vv.control.addEventListener('start', function() {
+            // TODO: fix loop unrolling
+            var update_theme = function() {
+                if (vv.storage.preferences.appearance.dark) {
+                    document.body.classList.add("dark");
+                } else {
+                    document.body.classList.remove("dark");
+                }
+            };
+            update_theme();
+            var dark = document.getElementById("appearance-dark");
+            dark.checked = vv.storage.preferences.appearance.dark;
+            dark.addEventListener("change", function() {
+                vv.storage.preferences.appearance.dark = this.checked;
+                vv.storage.save();
+                update_theme();
+                vv.control.raiseEvent("preferences");
+            });
+            var background_image = document.getElementById("appearance-background-image");
+            background_image.checked = vv.storage.preferences.appearance.background_image;
+            background_image.addEventListener("change", function() {
+                vv.storage.preferences.appearance.background_image = this.checked;
+                vv.storage.save();
+                vv.control.raiseEvent("preferences");
+            });
+            var background_image_blur = document.getElementById("appearance-background-image-blur");
+            background_image_blur.value = String(vv.storage.preferences.appearance.background_image_blur);
+            background_image_blur.addEventListener("change", function() {
+                vv.storage.preferences.appearance.background_image_blur = parseInt(this.value);
+                vv.storage.save();
+                vv.control.raiseEvent("preferences");
+            });
+            var circled_image = document.getElementById("appearance-circled-image");
+            circled_image.checked = vv.storage.preferences.appearance.circled_image;
+            circled_image.addEventListener("change", function() {
+                vv.storage.preferences.appearance.circled_image = this.checked;
+                vv.storage.save();
+                vv.control.raiseEvent("preferences");
+            });
+            var playback_view_follow = document.getElementById("playback_view_follow");
+            playback_view_follow.checked = vv.storage.preferences.playback.view_follow;
+            playback_view_follow.addEventListener("change", function() {
+                vv.storage.preferences.playback.view_follow = this.checked;
+                vv.storage.save();
+                vv.control.raiseEvent("preferences");
+            });
+            var show_volume = document.getElementById("show_volume");
+            show_volume.checked = vv.storage.preferences.volume.show;
+            show_volume.addEventListener("change", function() {
+                vv.storage.preferences.volume.show = this.checked;
+                vv.storage.save();
+                vv.control.raiseEvent("preferences");
+            });
+            var max_volume = document.getElementById("max_volume");
+            max_volume.value = String(vv.storage.preferences.volume.max);
+            max_volume.addEventListener("change", function() {
+                vv.storage.preferences.volume.max = parseInt(this.value);
+                vv.storage.save();
+                vv.control.raiseEvent("preferences");
+            });
+            var rescan = document.getElementById("library-rescan");
+            rescan.addEventListener(vv.env.click, function() {
+                vv.control.rescan_library();
+            });
         });
-        document.getElementById("system-tab-stats").addEventListener(vv.env.click, function() {
-            document.getElementById("system-preferences").classList.remove("on");
-            document.getElementById("system-tab-preferences").classList.remove("on");
-            document.getElementById("system-info").classList.remove("on");
-            document.getElementById("system-tab-info").classList.remove("on");
-            document.getElementById("system-stats").classList.add("on");
-            document.getElementById("system-tab-stats").classList.add("on");
+        var update_devices = function() {
+            var ul = document.getElementById("system").getElementsByClassName("devices")[0];
+            while (ul.lastChild) {
+                ul.removeChild(ul.lastChild);
+            }
+            var i;
+            for (i in vv.storage.outputs) {
+                var o = vv.storage.outputs[i];
+                var li = document.createElement("li");
+                var desc = document.createElement("div");
+                desc.setAttribute("class", "description");
+                desc.textContent = o["outputname"];
+                var sw = document.createElement("div");
+                sw.setAttribute("class", "value switch");
+                var ch = document.createElement("input");
+                ch.setAttribute("type", "checkbox");
+                ch.setAttribute("id", "device_"+o["outputname"]);
+                ch.setAttribute("deviceid", o["outputid"]);
+                ch.checked = o["outputenabled"] == "1";
+                ch.addEventListener("change", function() {
+                    vv.control.output(
+                        parseInt(this.getAttribute("deviceid")),
+                        this.checked);
+                });
+                var la = document.createElement("label");
+                la.setAttribute("for", "device_"+o["outputname"]);
+                sw.appendChild(ch);
+                sw.appendChild(la);
+                li.appendChild(desc);
+                li.appendChild(sw);
+                ul.appendChild(li);
+            }
+        }
+        vv.control.addEventListener("outputs", update_devices);
+        var update_control = function() {
+            if (vv.view.system.hidden()) {
+                return;
+            }
+            var e = document.getElementById("library-rescan");
+            if (vv.storage.control.update_library) {
+                e.disabled = true;
+                e.textContent = "Rescanning";
+            } else {
+                e.disabled = false;
+                e.textContent = "Rescan";
+            }
+        }
+        vv.control.addEventListener("control", update_control);
+        var show = mkshow("system-preferences", "system-tab-preferences");
+        var show_update = function() {
+            vv.control.update_outputs();
+            update_control();
+            show();
+        };
+        return {
+            'show': show_update,
+            'hide': mkhide("system-preferences", "system-tab-preferences"),
+        }
+    })();
+    var stats = (function() {
+        var update = function() {
             vv.control.stats(function(ret) {
                 if (!ret.error) {
                     document.getElementById("stat-albums").textContent = ret.data.albums;
@@ -841,134 +962,46 @@ vv.view.system = (function(){
                     document.getElementById("stat-uptime").textContent = ret.data.uptime;
                 }
             });
+        };
+        var show = mkshow("system-stats", "system-tab-stats");
+        var show_update = function() {
+            update();
+            show();
+        };
+        return {
+            'show': show_update,
+            'hide': mkhide("system-stats", "system-tab-stats"),
+        }
+    })();
+    var info = (function() {
+        return {
+            'show': mkshow("system-info", "system-tab-info"),
+            'hide': mkhide("system-info", "system-tab-info"),
+        }
+    })();
+    var init = function() {
+        preferences.show();
+        document.getElementById("system-tab-preferences").addEventListener(vv.env.click, function() {
+            stats.hide();
+            info.hide();
+            preferences.show();
+        });
+        document.getElementById("system-tab-stats").addEventListener(vv.env.click, function() {
+            preferences.hide();
+            info.hide();
+            stats.show();
         });
         document.getElementById("system-tab-info").addEventListener(vv.env.click, function() {
-            document.getElementById("system-preferences").classList.remove("on");
-            document.getElementById("system-tab-preferences").classList.remove("on");
-            document.getElementById("system-stats").classList.remove("on");
-            document.getElementById("system-tab-stats").classList.remove("on");
-            document.getElementById("system-info").classList.add("on");
-            document.getElementById("system-tab-info").classList.add("on");
+            preferences.hide();
+            stats.hide();
+            info.show();
         });
         document.getElementById("system-reload").addEventListener(vv.env.click, function() {
             location.reload();
         });
-        
-        // TODO: fix loop unrolling
-        var update_theme = function() {
-            if (vv.storage.preferences.appearance.dark) {
-                document.body.classList.add("dark");
-            } else {
-                document.body.classList.remove("dark");
-            }
-        };
-        update_theme();
-        var dark = document.getElementById("appearance-dark");
-        dark.checked = vv.storage.preferences.appearance.dark;
-        dark.addEventListener("change", function() {
-            vv.storage.preferences.appearance.dark = this.checked;
-            vv.storage.save();
-            update_theme();
-            vv.control.raiseEvent("preferences");
-        });
-        var background_image = document.getElementById("appearance-background-image");
-        background_image.checked = vv.storage.preferences.appearance.background_image;
-        background_image.addEventListener("change", function() {
-            vv.storage.preferences.appearance.background_image = this.checked;
-            vv.storage.save();
-            vv.control.raiseEvent("preferences");
-        });
-        var background_image_blur = document.getElementById("appearance-background-image-blur");
-        background_image_blur.value = String(vv.storage.preferences.appearance.background_image_blur);
-        background_image_blur.addEventListener("change", function() {
-            vv.storage.preferences.appearance.background_image_blur = parseInt(this.value);
-            vv.storage.save();
-            vv.control.raiseEvent("preferences");
-        });
-        var circled_image = document.getElementById("appearance-circled-image");
-        circled_image.checked = vv.storage.preferences.appearance.circled_image;
-        circled_image.addEventListener("change", function() {
-            vv.storage.preferences.appearance.circled_image = this.checked;
-            vv.storage.save();
-            vv.control.raiseEvent("preferences");
-        });
-        var playback_view_follow = document.getElementById("playback_view_follow");
-        playback_view_follow.checked = vv.storage.preferences.playback.view_follow;
-        playback_view_follow.addEventListener("change", function() {
-            vv.storage.preferences.playback.view_follow = this.checked;
-            vv.storage.save();
-            vv.control.raiseEvent("preferences");
-        });
-        var show_volume = document.getElementById("show_volume");
-        show_volume.checked = vv.storage.preferences.volume.show;
-        show_volume.addEventListener("change", function() {
-            vv.storage.preferences.volume.show = this.checked;
-            vv.storage.save();
-            vv.control.raiseEvent("preferences");
-        });
-        var max_volume = document.getElementById("max_volume");
-        max_volume.value = String(vv.storage.preferences.volume.max);
-        max_volume.addEventListener("change", function() {
-            vv.storage.preferences.volume.max = parseInt(this.value);
-            vv.storage.save();
-            vv.control.raiseEvent("preferences");
-        });
-        var rescan = document.getElementById("library-rescan");
-        rescan.addEventListener(vv.env.click, function() {
-            vv.control.rescan_library();
-        });
+
     };
-    var update_devices = function() {
-        var ul = document.getElementById("system").getElementsByClassName("devices")[0];
-        while (ul.lastChild) {
-            ul.removeChild(ul.lastChild);
-        }
-        var i;
-        for (i in vv.storage.outputs) {
-            var o = vv.storage.outputs[i];
-            var li = document.createElement("li");
-            var desc = document.createElement("div");
-            desc.setAttribute("class", "description");
-            desc.textContent = o["outputname"];
-            var sw = document.createElement("div");
-            sw.setAttribute("class", "value switch");
-            var ch = document.createElement("input");
-            ch.setAttribute("type", "checkbox");
-            ch.setAttribute("id", "device_"+o["outputname"]);
-            ch.setAttribute("deviceid", o["outputid"]);
-            ch.checked = o["outputenabled"] == "1";
-            ch.addEventListener("change", function() {
-                vv.control.output(
-                    parseInt(this.getAttribute("deviceid")),
-                    this.checked);
-            });
-            var la = document.createElement("label");
-            la.setAttribute("for", "device_"+o["outputname"]);
-            sw.appendChild(ch);
-            sw.appendChild(la);
-            li.appendChild(desc);
-            li.appendChild(sw);
-            ul.appendChild(li);
-        }
-    }
-    vv.control.addEventListener("outputs", update_devices);
-    var update_control = function() {
-        if (vv.view.system.hidden()) {
-            return;
-        }
-        var e = document.getElementById("library-rescan");
-        if (vv.storage.control.update_library) {
-            e.disabled = true;
-            e.textContent = "Rescanning";
-        } else {
-            e.disabled = false;
-            e.textContent = "Rescan";
-        }
-    }
-    vv.control.addEventListener("control", update_control);
     var show = function() {
-        vv.control.update_outputs();
-        update_control();
         document.body.classList.add("view-system");
         document.body.classList.remove("view-list");
         document.body.classList.remove("view-main");
