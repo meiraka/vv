@@ -448,11 +448,9 @@ footer {
 }
 .switch input:checked + label:before {
   width: 100px;
-  transition: all 0.2s 0s ease;
 }
 .switch input:checked + label:after {
   left: 41px;
-  transition: all 0.2s 0s ease;
 }
 .button-simple {
   border-radius: 24px;
@@ -897,6 +895,7 @@ button {
     padding: 0 20px;
     margin: 0 10px;
     -webkit-tap-highlight-color: rgba(0,0,0,0);
+    color: #404040;
   }
   .dark .tab-item {
     color: #e0e0e0;
