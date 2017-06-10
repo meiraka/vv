@@ -958,24 +958,52 @@ vv.view.system = (function() {
         }
     })();
     var stats = (function() {
+        var zfill2 = function(i) {
+            return ("00" + i).slice(-2);
+        }
+        var strtimedelta = function(i) {
+            var ud = parseInt(i / (24*60*60));
+            var uh = parseInt((i - ud*24*60*60) / (60*60));
+            var um = parseInt((i - ud*24*60*60 - uh*60*60) / 60);
+            var us = parseInt(i - ud*24*60*60 - uh*60*60 - um*60);
+            return ud + " days, " + zfill2(uh) + ":" + zfill2(um) + ":" + zfill2(us);
+        }
+
         var update = function() {
-            var diff = parseInt(((new Date()).getTime() - vv.storage.stats.last_modified_ms) / 1000);
             document.getElementById("stat-albums").textContent = vv.storage.stats.albums;
             document.getElementById("stat-artists").textContent = vv.storage.stats.artists;
-            document.getElementById("stat-db-playtime").textContent = vv.storage.stats.db_playtime;
-            document.getElementById("stat-db-update").textContent = vv.storage.stats.db_update;
-            document.getElementById("stat-playtime").textContent = vv.storage.stats.playtime;
+            document.getElementById("stat-db-playtime").textContent = strtimedelta(parseInt(vv.storage.stats.db_playtime));
+            document.getElementById("stat-playtime").textContent = strtimedelta(parseInt(vv.storage.stats.playtime));
             document.getElementById("stat-tracks").textContent = vv.storage.stats.songs;
-            document.getElementById("stat-uptime").textContent = parseInt(vv.storage.stats.uptime) + diff;
+            var db_update = new Date(parseInt(vv.storage.stats.db_update) * 1000);
+            var db_update_yyyymmdd = db_update.getFullYear()*1000+db_update.getMonth()*100+db_update.getDay;
+            var db_update_str = "";
+            var now = new Date();
+            var now_yyyymmdd = now.getFullYear()*1000+now.getMonth()*100+now.getDay;
+            if (db_update_yyyymmdd == now_yyyymmdd) {
+                db_update_str += "today, ";
+            } else if (db_update_yyyymmdd + 1 == now_yyyymmdd) {
+                db_update_str += "yesterday, ";
+            } else {
+                db_update_str += db_update.getFullYear() + '.' + db_update.getMonth() + '.' + db_update.getDay() + ' ';
+            }
+            db_update_str += db_update.getHours() + ":" + db_update.getMinutes() + ":" + db_update.getSeconds();
+            document.getElementById("stat-db-update").textContent = db_update_str;
+        }
+        var update_time = function() {
+            var diff = parseInt(((new Date()).getTime() - vv.storage.stats.last_modified_ms) / 1000);
+            var uptime = parseInt(vv.storage.stats.uptime) + diff;
+            document.getElementById("stat-uptime").textContent = strtimedelta(uptime);
         }
         vv.control.addEventListener("poll", function() {
             if (document.getElementById("system-stats").classList.contains("on")) {
-                update();
+                update_time();
             }
         });
         var show = mkshow("system-stats", "system-tab-stats");
         var show_update = function() {
             update();
+            update_time();
             show();
         }
         return {
