@@ -158,6 +158,7 @@ vv.storage = (function(){
     var library_last_modified = "";
     var outputs = [];
     var outputs_last_modified = "";
+    var stats = {};
     var preferences = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
         "appearance": {"dark": false, "background_image": true, "background_image_blur": 32, "circled_image": true},
@@ -205,6 +206,7 @@ vv.storage = (function(){
         outputs: outputs,
         outputs_last_modified: outputs_last_modified,
         preferences: preferences,
+        stats: stats,
         save: save,
         load: load,
     };
@@ -425,7 +427,7 @@ vv.model.list = (function() {
     };
 }());
 vv.control = (function() {
-    var listener = {"control": [], "preferences": [], "library": [], "playlist": [], "current": [], "outputs": [], "start": [], "poll": []}
+    var listener = {"control": [], "preferences": [], "library": [], "playlist": [], "current": [], "outputs": [], "stats": [], "start": [], "poll": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
     };
@@ -487,8 +489,14 @@ vv.control = (function() {
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(obj));
     }
-    var stats = function(callback) {
-        get_request("api/stats", "", callback);
+    var update_stats = function() {
+        get_request("api/stats", "", function(ret) {
+            if (!ret.error) {
+                vv.storage.stats = ret.data;
+                ret.data.last_modified_ms = (new Date()).getTime();
+                raiseEvent("stats");
+            }
+        });
     }
 
     var rescan_library = function() {
@@ -524,6 +532,7 @@ vv.control = (function() {
             if (!ret.error) {
                 vv.model.list.update(ret["data"]);
                 vv.storage.library_last_modified = modified;
+                update_stats();
                 raiseEvent("library");
             }
         });
@@ -619,7 +628,6 @@ vv.control = (function() {
         toggle_random: toggle_random,
         volume: volume,
         output: output,
-        stats: stats,
         start: start,
     };
 }());
@@ -951,23 +959,25 @@ vv.view.system = (function() {
     })();
     var stats = (function() {
         var update = function() {
-            vv.control.stats(function(ret) {
-                if (!ret.error) {
-                    document.getElementById("stat-albums").textContent = ret.data.albums;
-                    document.getElementById("stat-artists").textContent = ret.data.artists;
-                    document.getElementById("stat-db-playtime").textContent = ret.data.db_playtime;
-                    document.getElementById("stat-db-update").textContent = ret.data.db_update;
-                    document.getElementById("stat-playtime").textContent = ret.data.playtime;
-                    document.getElementById("stat-tracks").textContent = ret.data.songs;
-                    document.getElementById("stat-uptime").textContent = ret.data.uptime;
-                }
-            });
-        };
+            var diff = parseInt(((new Date()).getTime() - vv.storage.stats.last_modified_ms) / 1000);
+            document.getElementById("stat-albums").textContent = vv.storage.stats.albums;
+            document.getElementById("stat-artists").textContent = vv.storage.stats.artists;
+            document.getElementById("stat-db-playtime").textContent = vv.storage.stats.db_playtime;
+            document.getElementById("stat-db-update").textContent = vv.storage.stats.db_update;
+            document.getElementById("stat-playtime").textContent = vv.storage.stats.playtime;
+            document.getElementById("stat-tracks").textContent = vv.storage.stats.songs;
+            document.getElementById("stat-uptime").textContent = parseInt(vv.storage.stats.uptime) + diff;
+        }
+        vv.control.addEventListener("poll", function() {
+            if (document.getElementById("system-stats").classList.contains("on")) {
+                update();
+            }
+        });
         var show = mkshow("system-stats", "system-tab-stats");
         var show_update = function() {
             update();
             show();
-        };
+        }
         return {
             'show': show_update,
             'hide': mkhide("system-stats", "system-tab-stats"),
