@@ -408,7 +408,7 @@ footer {
   border-radius: 30px;
   border: solid 3px #404040;
   box-sizing: border-box;
-  transition: all 0.2s 0s ease;
+  transition: border 0.2s 0s ease;
 }
 .dark .switch label,
 .dark .switch input:checked + label {
@@ -427,7 +427,7 @@ footer {
   height: 30px;
   width: 40px;
   border-radius: 30px;
-  transition: all 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease, width 0.2s 0s ease;
 }
 .dark .switch label:before {
   background-color: #e0e0e0;
@@ -440,7 +440,7 @@ footer {
   border: solid 3px #404040;
   border-radius: 30px;
   box-sizing: border-box;
-  transition: all 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease, border 0.2s 0s ease, left 0.2s 0s ease;
 }
 .dark .switch label:after {
   background-color: #202020;
@@ -463,7 +463,7 @@ footer {
   color: #e0e0e0;
   background-color: #404040;
   -webkit-tap-highlight-color: rgba(0,0,0,0);
-  transition: all 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
 }
 .button-simple:hover {
   animation: hover_img 0.5s linear 0s;
@@ -494,7 +494,7 @@ footer {
   color: #ffffff;
   padding: 5px 5px 0 50px;
   margin: 5px;
-  transition: all 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
 }
 .dark #system select {
   background-color: #e0e0e0;
@@ -911,7 +911,7 @@ button {
   }
 }
 .tab-item {
-  transition: all 0.1s 0s ease;
+  transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
 }
 
 .tab-page {
