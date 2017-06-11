@@ -170,8 +170,9 @@ vv.storage = (function(){
     }
     var save = function() {
         try {
-            localStorage.tree = JSON.stringify(tree);
-            localStorage.preferences = JSON.stringify(preferences);
+            localStorage.tree = JSON.stringify(data.tree);
+            localStorage.preferences = JSON.stringify(data.preferences);
+            localStorage.last_state = data.last_state;
         } catch (e) {
             // private browsing
         }
@@ -179,23 +180,25 @@ vv.storage = (function(){
     var load = function() {
         try {
             if (localStorage.tree) {
-                tree = JSON.parse(localStorage.tree);
+                data.tree = JSON.parse(localStorage.tree);
             }
             if (localStorage.preferences) {
                 var c = JSON.parse(localStorage.preferences);
                 var i, j;
                 for (i in c) {
                     for (j in c[i]) {
-                        preferences[i][j] = c[i][j];
+                        data.preferences[i][j] = c[i][j];
                     }
                 }
+            }
+            if (localStorage.last_state) {
+                data.last_state = localStorage.last_state;
             }
         } catch (e) {
             // private browsing
         }
     }
-    load();
-    return {
+    var data = {
         tree: tree,
         current: current,
         current_last_modified: current_last_modified,
@@ -209,7 +212,10 @@ vv.storage = (function(){
         stats: stats,
         save: save,
         load: load,
-    };
+        last_state: "main",
+    }
+    load();
+    return data;
 }());
 
 vv.env = (function() {
@@ -600,6 +606,12 @@ vv.control = (function() {
             raiseEvent("poll");
             setTimeout(polling, 1000);
         }
+        var show = {
+            "main": vv.view.main.show,
+            "list": vv.view.list.show,
+            "system": vv.view.system.show
+        };
+        show[vv.storage.last_state]();
         raiseEvent("start");
         polling();
     };
@@ -669,6 +681,8 @@ vv.view.main = (function(){
     });
     vv.control.addEventListener("preferences", load_volume_preferences);
     var show = function() {
+        vv.storage.last_state = "main";
+        vv.storage.save();
         document.body.classList.add("view-main");
         document.body.classList.remove("view-system");
         document.body.classList.remove("view-list");
@@ -725,7 +739,6 @@ vv.view.main = (function(){
         }
     }
     var init = function() {
-        show();
         document.getElementById("control-volume").addEventListener("change", function() {
             vv.control.volume(parseInt(this.value));
         });
@@ -743,6 +756,8 @@ vv.view.main = (function(){
 }());
 vv.view.list = (function(){
     var show = function() {
+        vv.storage.last_state = "list";
+        vv.storage.save();
         document.body.classList.add("view-list");
         document.body.classList.remove("view-main");
         document.body.classList.remove("view-system");
@@ -1040,6 +1055,8 @@ vv.view.system = (function() {
 
     };
     var show = function() {
+        vv.storage.last_state = "system";
+        vv.storage.save();
         document.body.classList.add("view-system");
         document.body.classList.remove("view-list");
         document.body.classList.remove("view-main");
