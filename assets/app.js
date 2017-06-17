@@ -771,6 +771,13 @@ vv.view.list = (function(){
         }
     }
     var update = function() {
+        if (vv.storage.tree.length % 2 == 0) {
+            document.getElementById("list").classList.remove("odd");
+            document.getElementById("list").classList.add("even");
+        } else {
+            document.getElementById("list").classList.remove("even");
+            document.getElementById("list").classList.add("odd");
+        }
         var ls = vv.model.list.list();
         var key = ls.key;
         var songs = ls.songs;

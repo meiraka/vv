@@ -123,10 +123,14 @@ footer {
   }
 
   .view-system #system,
-  .view-list #list,
+  .view-list #list.even,
   .view-main #main {
     display: block;
-    animation: show_opacity 0.2s linear 0s;
+    animation: show_opacity 100ms linear 0s;
+  }
+  .view-list #list.odd {
+    display: block;
+    animation: show_opacity2 100ms linear 0s;
   }
   .view-main #list,
   .view-main #system,
@@ -163,12 +167,17 @@ footer {
     background: none;
   }
   .view-system #system,
-  .view-list #list,
+  .view-list #list.even,
   .view-list #main,
   .view-main #main,
-  .view-main #list {
+  .view-main #list.even {
     display: block;
-    animation: show_opacity 0.2s linear 0s;
+    animation: show_opacity 100ms linear 0s;
+  }
+  .view-list #list.odd,
+  .view-main #list.odd {
+    display: block;
+    animation: show_opacity2 100ms linear 0s;
   }
   .view-main #system,
   .view-list #system,
@@ -197,6 +206,20 @@ footer {
 }
 
 @keyframes show_opacity {
+0% {
+  display: none;
+  opacity: 0;
+}
+1% {
+  display: block;
+  opacity: 0;
+}
+100% {
+  display: block;
+  opacity: 1;
+}
+}
+@keyframes show_opacity2 {
 0% {
   display: none;
   opacity: 0;
