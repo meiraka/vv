@@ -126,6 +126,7 @@ footer {
   .view-list #list,
   .view-main #main {
     display: block;
+    animation: show_opacity 0.2s linear 0s;
   }
   .view-main #list,
   .view-main #system,
@@ -167,6 +168,7 @@ footer {
   .view-main #main,
   .view-main #list {
     display: block;
+    animation: show_opacity 0.2s linear 0s;
   }
   .view-main #system,
   .view-list #system,
@@ -192,6 +194,21 @@ footer {
   footer {
     height: 90px;
   }
+}
+
+@keyframes show_opacity {
+0% {
+  display: none;
+  opacity: 0;
+}
+1% {
+  display: block;
+  opacity: 0;
+}
+100% {
+  display: block;
+  opacity: 1;
+}
 }
 
 #list-items {
