@@ -1114,7 +1114,7 @@ vv.view.header = (function(){
             var songs = vv.model.list.list()["songs"];
             if (songs[0]) {
                 var p = vv.model.list.grandparent();
-                e.textContent = p.song[p.key];
+                e.textContent = vv.song.get(p.song, p.key);
             }
         } else {
             b.classList.add("root");
