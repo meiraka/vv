@@ -209,6 +209,7 @@ vv.storage = (function(){
         outputs_last_modified: outputs_last_modified,
         preferences: preferences,
         stats: stats,
+        version: {},
         save: save,
         load: load,
         last_state: "main",
@@ -421,7 +422,8 @@ vv.model.list = (function() {
     };
 }());
 vv.control = (function() {
-    var listener = {"control": [], "preferences": [], "library": [], "playlist": [], "current": [], "outputs": [], "stats": [], "start": [], "poll": []}
+    var listener = {"control": [], "preferences": [], "library": [], "playlist": [],
+                    "current": [], "outputs": [], "stats": [], "version": [], "start": [], "poll": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
     };
@@ -498,6 +500,15 @@ vv.control = (function() {
                 vv.storage.stats = ret.data;
                 ret.data.last_modified_ms = (new Date()).getTime();
                 raiseEvent("stats");
+            }
+        });
+    }
+    var update_version = function() {
+        get_request("api/version", "", function(ret) {
+            if (!ret.error) {
+                vv.storage.version = ret.data;
+                ret.data.last_modified_ms = (new Date()).getTime();
+                raiseEvent("version");
             }
         });
     }
@@ -596,6 +607,7 @@ vv.control = (function() {
 
     var init = function() {
         var polling = function() {
+            vv.control.update_version();
             vv.control.update_song();
             vv.control.update_status();
             vv.control.update_library();
@@ -629,6 +641,7 @@ vv.control = (function() {
         update_status: update_status,
         update_library: update_library,
         update_outputs: update_outputs,
+        update_version: update_version,
         prev: prev,
         play_pause: play_pause,
         next: next,
@@ -1031,8 +1044,20 @@ vv.view.system = (function() {
         }
     })();
     var info = (function() {
+        var update = function() {
+            if (vv.storage.version.vv) {
+                document.getElementById("version").textContent = vv.storage.version.vv;
+            }
+        }
+        vv.control.addEventListener("version", update);
+        var show = mkshow("system-info", "system-tab-info");
+        var show_update = function() {
+            vv.control.update_version();
+            update();
+            show();
+        }
         return {
-            'show': mkshow("system-info", "system-tab-info"),
+            'show': show_update,
             'hide': mkhide("system-info", "system-tab-info"),
         }
     })();
