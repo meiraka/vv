@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+var version string
+
 const musicDirectory = "/music_directory/"
 
 func writeJSONInterface(w http.ResponseWriter, d interface{}, l time.Time, err error) {
@@ -213,6 +215,12 @@ func (a *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *apiHandler) version(w http.ResponseWriter, r *http.Request) {
+	l := time.Now()
+	d := map[string]string{"vv": version}
+	writeJSONInterface(w, d, l, nil)
+}
+
 func (a *apiHandler) returnSong(w http.ResponseWriter, r *http.Request, s mpd.Attrs, l time.Time) {
 	if modifiedSince(r, l) {
 		writeJSONInterface(w, s, l, nil)
@@ -268,6 +276,7 @@ func makeHandle(p Music, c Config, bindata bool) http.Handler {
 	h.HandleFunc("/api/outputs", api.outputs)
 	h.HandleFunc("/api/outputs/", api.outputs)
 	h.HandleFunc("/api/stats", api.stats)
+	h.HandleFunc("/api/version", api.version)
 	fs := http.StripPrefix(musicDirectory, http.FileServer(http.Dir(c.Mpd.MusicDirectory)))
 	h.HandleFunc(musicDirectory, func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
