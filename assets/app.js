@@ -3,7 +3,6 @@ var vv = vv || {
     song: {},
     songs: {},
     storage: {},
-    env: {},
     model: {list: {}},
     view: {header: {}, background: {}, main: {}, list: {}, system: {}, footer: {}, elapsed: {}, modal: {help: {}}},
     control : {},
@@ -216,17 +215,6 @@ vv.storage = (function(){
     }
     load();
     return data;
-}());
-
-vv.env = (function() {
-    var click = "click";
-    var init = function() {
-        click = "ontouchstart" in window?"touchstart":"click";
-    }
-    return {
-        "click": click,
-        "init": init,
-    }
 }());
 
 vv.model.list = (function() {
@@ -444,6 +432,15 @@ vv.control = (function() {
         }
     };
 
+    var click = function(e, f) {
+        if ("ontouchend" in e) {
+            e.addEventListener("touchstart", function() { this.touch = true; });
+            e.addEventListener("touchmove", function() { this.touch = false; });
+            e.addEventListener("touchend", function(a) { if (this.touch) {f(a);} });
+        } else {
+            e.addEventListener("click", f);
+        }
+    };
     var err_hide = 0;
     var err_timeout = function(description) {
         return function() {
@@ -598,7 +595,6 @@ vv.control = (function() {
     }
 
     var init = function() {
-        vv.env.init();
         var polling = function() {
             vv.control.update_song();
             vv.control.update_status();
@@ -627,6 +623,7 @@ vv.control = (function() {
     return {
         addEventListener: addEventListener,
         raiseEvent: raiseEvent,
+        click: click,
         rescan_library: rescan_library,
         update_song: update_song,
         update_status: update_status,
@@ -804,14 +801,14 @@ vv.view.list = (function(){
                 songs[i].file == vv.model.list.focused().file) {
                 focus_li = li;
             }
-            li.addEventListener(vv.env.click, function() {
-                if (this.classList.contains("playing")) {
+            vv.control.click(li, function(e) {
+                if (e.currentTarget.classList.contains("playing")) {
                     vv.model.list.abs(vv.storage.current);
                     vv.view.main.show();
                     return;
                 }
-                var value = this.getAttribute("key");
-                var uri = this.getAttribute("uri");
+                var value = e.currentTarget.getAttribute("key");
+                var uri = e.currentTarget.getAttribute("uri");
                 if (isdir) {
                     vv.model.list.down(value);
                 } else {
@@ -916,7 +913,7 @@ vv.view.system = (function() {
                 vv.control.raiseEvent("preferences");
             });
             var rescan = document.getElementById("library-rescan");
-            rescan.addEventListener(vv.env.click, function() {
+            vv.control.click(rescan, function() {
                 vv.control.rescan_library();
             });
         });
@@ -1041,22 +1038,22 @@ vv.view.system = (function() {
     })();
     var init = function() {
         preferences.show();
-        document.getElementById("system-tab-preferences").addEventListener(vv.env.click, function() {
+        vv.control.click(document.getElementById("system-tab-preferences"), function() {
             stats.hide();
             info.hide();
             preferences.show();
         });
-        document.getElementById("system-tab-stats").addEventListener(vv.env.click, function() {
+        vv.control.click(document.getElementById("system-tab-stats"), function() {
             preferences.hide();
             info.hide();
             stats.show();
         });
-        document.getElementById("system-tab-info").addEventListener(vv.env.click, function() {
+        vv.control.click(document.getElementById("system-tab-info"), function() {
             preferences.hide();
             stats.hide();
             info.show();
         });
-        document.getElementById("system-reload").addEventListener(vv.env.click, function() {
+        vv.control.click(document.getElementById("system-reload"), function() {
             location.reload();
         });
 
@@ -1079,7 +1076,7 @@ vv.view.system = (function() {
 }());
 vv.view.header = (function(){
     var init = function() {
-        document.getElementById("menu-back").addEventListener(vv.env.click, function(e) {
+        vv.control.click(document.getElementById("menu-back"), function(e) {
             if (!vv.view.list.hidden()) {
                 vv.model.list.up();
             } else {
@@ -1088,7 +1085,7 @@ vv.view.header = (function(){
             vv.view.list.show();
             e.stopPropagation();
         });
-        document.getElementById("menu-main").addEventListener(vv.env.click, function(e) {
+        vv.control.click(document.getElementById("menu-main"), function(e) {
             e.stopPropagation();
             if (vv.model.list.rootname() != "root") {
                 vv.model.list.abs(vv.storage.current);
@@ -1096,7 +1093,7 @@ vv.view.header = (function(){
             vv.view.main.show();
             e.stopPropagation();
         });
-        document.getElementById("menu-system").addEventListener(vv.env.click, function(e) {
+        vv.control.click(document.getElementById("menu-system"), function(e) {
             vv.view.system.show();
             e.stopPropagation();
         });
@@ -1132,23 +1129,23 @@ vv.view.header = (function(){
 }());
 vv.view.footer = (function(){
     var init = function() {
-        document.getElementById("control-prev").addEventListener(vv.env.click, function(e) {
+        vv.control.click(document.getElementById("control-prev"), function(e) {
             vv.control.prev();
             e.stopPropagation();
         });
-        document.getElementById("control-toggleplay").addEventListener(vv.env.click, function(e) {
+        vv.control.click(document.getElementById("control-toggleplay"), function(e) {
             vv.control.play_pause();
             e.stopPropagation();
         });
-        document.getElementById("control-next").addEventListener(vv.env.click, function(e) {
+        vv.control.click(document.getElementById("control-next"), function(e) {
             vv.control.next();
             e.stopPropagation();
         });
-        document.getElementById("control-repeat").addEventListener(vv.env.click, function(e) {
+        vv.control.click(document.getElementById("control-repeat"), function(e) {
             vv.control.toggle_repeat();
             e.stopPropagation();
         });
-        document.getElementById("control-random").addEventListener(vv.env.click, function(e) {
+        vv.control.click(document.getElementById("control-random"), function(e) {
             vv.control.toggle_random();
             e.stopPropagation();
         });
@@ -1242,18 +1239,15 @@ vv.view.modal.help = (function() {
         document.getElementById("modal-help").classList.remove("show");
     }
     vv.control.addEventListener("start", function() {
-        document.getElementById("modal-help-close").addEventListener(
-            vv.env.click, hide);
-        document.getElementById("modal-outer").addEventListener(
-            vv.env.click, vv.view.modal.hide);
-        document.getElementById("modal-background").addEventListener(
-            vv.env.click, vv.view.modal.hide);
+        vv.control.click(document.getElementById("modal-help-close"), hide);
+        vv.control.click(document.getElementById("modal-outer"), vv.view.modal.hide);
+        vv.control.click(document.getElementById("modal-background"), vv.view.modal.hide);
 
         var ws = document.getElementsByClassName("modal-window");
         var i;
         for (i in ws) {
             if (ws[i].addEventListener) {
-                ws[i].addEventListener(vv.env.click, function(e) {
+                vv.control.click(ws[i], function(e) {
                     e.stopPropagation();
                 });
             }
