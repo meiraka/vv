@@ -965,9 +965,6 @@ vv.view.system = (function() {
         }
         vv.control.addEventListener("outputs", update_devices);
         var update_control = function() {
-            if (vv.view.system.hidden()) {
-                return;
-            }
             var e = document.getElementById("library-rescan");
             if (vv.storage.control.update_library) {
                 e.disabled = true;
