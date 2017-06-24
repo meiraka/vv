@@ -1078,6 +1078,7 @@ vv.view.system = (function() {
         vv.control.click(document.getElementById("system-reload"), function() {
             location.reload();
         });
+        document.getElementById("user-agent").textContent = navigator.userAgent;
 
     };
     var show = function() {
