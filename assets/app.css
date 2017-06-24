@@ -383,11 +383,12 @@ footer {
   width: 90%;
   height: 90%;
   background-position: center center;
+  background-size: contain;
   background-repeat: no-repeat;
-  background-size: cover;
   border-radius: 1%;
 }
 #main-cover-img.circled {
+  background-size: cover;
   border-radius: 100%;
 }
 #main-elapsed-circle {
@@ -400,6 +401,9 @@ footer {
 }
 #main-elapsed-circle .inactive {
   stroke-opacity: 0.5;
+}
+#main-elapsed-circle.hide {
+  visibility: hidden;
 }
 
 #main-title {

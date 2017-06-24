@@ -716,16 +716,24 @@ vv.view.main = (function(){
     };
     var update_style = function() {
         var e = document.getElementById("main-cover-img");
+        var c = document.getElementById("main-elapsed-circle");
         if (vv.storage.preferences.appearance.circled_image && !e.classList.contains("circled")) {
             e.classList.add("circled");
         }
+        if (vv.storage.preferences.appearance.circled_image && c.classList.contains("hide")) {
+            c.classList.remove("hide");
+        }
         if (!vv.storage.preferences.appearance.circled_image && e.classList.contains("circled")) {
             e.classList.remove("circled");
+            c.classList.add("hide");
+        }
+        if (!vv.storage.preferences.appearance.circled_image && !c.classList.contains("hide")) {
+            c.classList.add("hide");
         }
     }
     vv.control.addEventListener("preferences", update_style);
     var update_elapsed = function() {
-        if (hidden()) {
+        if (hidden() || document.getElementById("main-elapsed-circle").classList.contains("hide")) {
             return;
         }
         var c = document.getElementById("main-elapsed-circle-active");
