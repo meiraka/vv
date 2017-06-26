@@ -160,10 +160,11 @@ vv.storage = (function(){
     var stats = {};
     var preferences = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
-        "appearance": {"dark": false, "background_image": true, "background_image_blur": 32, "circled_image": true},
+        "appearance": {"dark": false, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true},
     };
     // Presto Opera
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
+        preferences.appearance.animation = false;
         preferences.appearance.background_image_blur = 0;
         preferences.appearance.circled_image = false;
     }
@@ -889,6 +890,28 @@ vv.view.system = (function() {
                 vv.storage.preferences.appearance.dark = this.checked;
                 vv.storage.save();
                 update_theme();
+                vv.control.raiseEvent("preferences");
+            });
+            dark.addEventListener("change", function() {
+                vv.storage.preferences.appearance.dark = this.checked;
+                vv.storage.save();
+                update_theme();
+                vv.control.raiseEvent("preferences");
+            });
+            var update_animation = function() {
+                if (vv.storage.preferences.appearance.animation) {
+                    document.body.classList.add("animation");
+                } else {
+                    document.body.classList.remove("animation");
+                }
+            };
+            update_animation();
+            var animation = document.getElementById("appearance-animation");
+            animation.checked = vv.storage.preferences.appearance.animation;
+            animation.addEventListener("change", function() {
+                vv.storage.preferences.appearance.animation = this.checked;
+                vv.storage.save();
+                update_animation();
                 vv.control.raiseEvent("preferences");
             });
             var background_image = document.getElementById("appearance-background-image");

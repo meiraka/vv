@@ -129,13 +129,16 @@ footer {
   }
 
   .view-system #system,
-  .view-list #list.even,
+  .view-list #list
   .view-main #main {
     display: block;
+  }
+  .animation.view-system #system,
+  .animation.view-list #list.even,
+  .animation.view-main #main {
     animation: show_opacity 100ms linear 0s;
   }
-  .view-list #list.odd {
-    display: block;
+  .animation.view-list #list.odd {
     animation: show_opacity2 100ms linear 0s;
   }
   .view-main #list,
@@ -173,16 +176,21 @@ footer {
     background: none;
   }
   .view-system #system,
-  .view-list #list.even,
+  .view-list #list,
   .view-list #main,
   .view-main #main,
-  .view-main #list.even {
+  .view-main #list {
     display: block;
+  }
+  .animation.view-system #system,
+  .animation.view-list #list.even,
+  .animation.view-list #main,
+  .animation.view-main #main,
+  .animation.view-main #list.even {
     animation: show_opacity 100ms linear 0s;
   }
-  .view-list #list.odd,
-  .view-main #list.odd {
-    display: block;
+  .animation.view-list #list.odd,
+  .animation.view-main #list.odd {
     animation: show_opacity2 100ms linear 0s;
   }
   .view-main #system,
@@ -515,7 +523,7 @@ footer {
   -webkit-tap-highlight-color: rgba(0,0,0,0);
   transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
 }
-.button-simple:hover {
+.animation .button-simple:hover {
   animation: hover_img 0.5s linear 0s;
 }
 .button-simple:disabled {
@@ -575,10 +583,18 @@ footer {
   background-color: #404040;
 }
 #error.hide {
+  display: none;
+}
+.animation #error.hide {
+  display: block;
   animation: error-hide 0.3s linear 0s;
 }
+
 #error.show {
+  display: block;
   right: 0;
+}
+.animation #error.show {
   animation: error-show 0.3s linear 0s;
 }
 @keyframes error-show {
@@ -627,10 +643,10 @@ button {
 .header-item:active {
   outline: 0;
 }
-.header-item:hover .header-icon {
+.animation .header-item:hover .header-icon {
   animation: hover_img 0.5s linear 0s;
 }
-.header-item:active .header-icon {
+.animation .header-item:active .header-icon {
   animation: active_img 2s linear 0s;
 }
 
@@ -786,10 +802,10 @@ button {
 .control-button {
   -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
-.control-button:hover svg {
+.animation .control-button:hover svg {
   animation: hover_img 0.5s linear 0s;
 }
-.control-button:active svg {
+.animation .control-button:active svg {
   animation: active_img 2s linear 0s;
 }
 
@@ -816,6 +832,8 @@ button {
   background-color: #ffffff;
   z-index: 1000;
   opacity: 0.6;
+}
+.animation .modal-background {
   animation: hide-opacity-0.6 0.3s linear 0s;
 }
 .dark .modal-background {
@@ -827,12 +845,16 @@ button {
 }
 .modal-background.show {
   display: block;
+}
+.animation .modal-background.show {
   animation: show-opacity-6 0.3s linear 0s;
 }
 .modal-outer.show {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.animation .modal-outer.show {
   animation: show-opacity 0.3s linear 0s;
 }
 .modal-window {
