@@ -11,6 +11,12 @@ body.dark {
   background-color: #000000;
 }
 
+input::-moz-focus-inner,
+input[type=range]::-moz-focus-outer,
+button::-moz-focus-inner {
+  border: 0;
+}
+
 svg .fill {
   stroke: #404040;
   fill: #404040;
@@ -524,7 +530,7 @@ footer {
   color: #808080;
   animation: none;
 }
-#system select {
+.tool-select {
   outline: 0;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -540,9 +546,19 @@ footer {
   margin: 5px;
   transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
 }
-.dark #system select {
+.tool-select:-moz-focusring {
+  outline: 0;
+  color: transparent;
+  text-shadow: 0 0 0 #ffffff;
+  transition: none;
+}
+.dark .tool-select {
   background-color: #e0e0e0;
   color: #404040;
+}
+.dark .tool-select:-moz-focusring {
+  color: transparent;
+  text-shadow: 0 0 0 #404040;
 }
 
 #error {
@@ -709,7 +725,6 @@ button {
 #control-volume::-moz-range-track {
   height: 8px;
   width: 90%;
-  -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
   background: #404040;
@@ -720,7 +735,6 @@ button {
 }
 #control-volume::-webkit-slider-thumb {
   -webkit-appearance: none;
-  -moz-appearance: none;
   appearance: none;
   background: #404040;
   width: 24px;
