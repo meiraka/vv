@@ -164,6 +164,7 @@ vv.storage = (function(){
     };
     // Presto Opera
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
+        preferences.appearance.dark = true;
         preferences.appearance.animation = false;
         preferences.appearance.background_image_blur = 0;
         preferences.appearance.circled_image = false;
