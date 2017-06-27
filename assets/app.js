@@ -168,6 +168,7 @@ vv.storage = (function(){
         preferences.appearance.animation = false;
         preferences.appearance.background_image_blur = 0;
         preferences.appearance.circled_image = false;
+        preferences.volume.show = false;
     }
     var save = function() {
         try {
