@@ -387,7 +387,7 @@ func TestStats(t *testing.T) {
 	url := ts.URL + "/api/stats"
 	defer ts.Close()
 	m.StatsRet1 = mpd.Attrs{"foo": "bar"}
-	m.StatsRet2 = nil
+	m.StatsRet2 = time.Unix(60, 0)
 	res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url) })
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
@@ -601,7 +601,7 @@ type MockMusic struct {
 	StatusRet1        PlayerStatus
 	StatusRet2        time.Time
 	StatsRet1         mpd.Attrs
-	StatsRet2         error
+	StatsRet2         time.Time
 	SortPlaylistArg1  []string
 	SortPlaylistArg2  string
 	SortPlaylistErr   error
@@ -662,7 +662,7 @@ func (p *MockMusic) Playlist() ([]mpd.Attrs, time.Time) {
 func (p *MockMusic) Status() (PlayerStatus, time.Time) {
 	return p.StatusRet1, p.StatusRet2
 }
-func (p *MockMusic) Stats() (mpd.Attrs, error) {
+func (p *MockMusic) Stats() (mpd.Attrs, time.Time) {
 	return p.StatsRet1, p.StatsRet2
 }
 func (p *MockMusic) SortPlaylist(s []string, u string) error {

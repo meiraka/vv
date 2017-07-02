@@ -135,9 +135,8 @@ func (a *apiHandler) current(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiHandler) stats(w http.ResponseWriter, r *http.Request) {
-	d, err := a.player.Stats()
-	l := time.Now()
-	writeJSONInterface(w, d, l, err)
+	d, l := a.player.Stats()
+	writeJSONInterface(w, d, l, nil)
 }
 
 func (a *apiHandler) control(w http.ResponseWriter, r *http.Request) {
@@ -327,7 +326,7 @@ type Music interface {
 	RescanLibrary() error
 	Current() (mpd.Attrs, time.Time)
 	Status() (PlayerStatus, time.Time)
-	Stats() (mpd.Attrs, error)
+	Stats() (mpd.Attrs, time.Time)
 	Output(int, bool) error
 	Outputs() ([]mpd.Attrs, time.Time)
 	SortPlaylist([]string, string) error

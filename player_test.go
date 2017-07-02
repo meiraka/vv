@@ -276,27 +276,34 @@ func TestPlayerStats(t *testing.T) {
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	p.watcherResponse = make(chan error)
-	m.StatsRet1 = mpd.Attrs{"foo": "bar"}
-	m.StatsRet2 = nil
-	expect := mpd.Attrs{"foo": "bar"}
-	actual, err := p.Stats()
-	if m.StatsCalled != 1 {
-		t.Errorf("mpd.Client.Stats does not called")
+	var testsets = []struct {
+		ret1   mpd.Attrs
+		ret2   error
+		expect mpd.Attrs
+		event  string
+	}{
+		{nil, errors.New("hoge"), nil, "database"},
+		{mpd.Attrs{"foo": "bar"}, nil, mpd.Attrs{"foo": "bar"}, "database"},
+		{nil, errors.New("hoge"), mpd.Attrs{"foo": "bar"}, "database"},
 	}
-	if err != nil {
-		t.Errorf("unexpected error: %s", err.Error())
-	}
-	if !reflect.DeepEqual(expect, actual) {
-		t.Errorf("unexpected get library")
-	}
-	m.StatsRet1 = nil
-	m.StatsRet2 = errors.New("hoge")
-	actual, err = p.Stats()
-	if m.StatsCalled != 2 {
-		t.Errorf("mpd.Client.Stats does not called")
-	}
-	if err == nil {
-		t.Errorf("unexpected error: nil")
+	for _, tt := range testsets {
+		m.StatsRet1 = tt.ret1
+		m.StatsRet2 = tt.ret2
+		m.StatsCalled = 0
+		p.watcher.Event <- tt.event
+		if err := <-p.watcherResponse; err != nil {
+			t.Errorf("unexpected watcher error: %s from Library", err.Error())
+		}
+		if err := <-p.watcherResponse; err != tt.ret2 {
+			t.Errorf("unexpected watcher error from Stats")
+		}
+		actual, _ := p.Stats()
+		if m.StatsCalled != 1 {
+			t.Errorf("mpd.Client.Stats does not called")
+		}
+		if !reflect.DeepEqual(tt.expect, actual) {
+			t.Errorf("unexpected get stats")
+		}
 	}
 }
 
@@ -311,8 +318,10 @@ func TestPlayerLibrary(t *testing.T) {
 	expect := songsAddReadableData((m.ListAllInfoRet1))
 	// if mpd.Watcher.Event recieve "database"
 	p.watcher.Event <- "database"
-	if err := <-p.watcherResponse; err != nil {
-		t.Errorf("unexpected watcher error: %s", err.Error())
+	for i := 0; i < 2; i++ {
+		if err := <-p.watcherResponse; err != nil {
+			t.Errorf("unexpected watcher error: %s", err.Error())
+		}
 	}
 
 	// mpd.Client.ListAllInfo was Called
@@ -372,10 +381,13 @@ func TestPlayerCurrent(t *testing.T) {
 		m.StatusRet2 = c.StatusRet2
 		p.watcher.Event <- "player"
 		if err := <-p.watcherResponse; err != c.CurrentSongRet2 {
-			t.Errorf("unexpected watcher error")
+			t.Errorf("unexpected watcher error from CurrentSong")
 		}
 		if err := <-p.watcherResponse; err != c.StatusRet2 {
-			t.Errorf("unexpected watcher error")
+			t.Errorf("unexpected watcher error from Status")
+		}
+		if err := <-p.watcherResponse; err != nil {
+			t.Errorf("unexpected watcher error from Stats")
 		}
 		if m.CurrentSongCalled != c.CurrentSongCalled {
 			t.Errorf("unexpected function call")

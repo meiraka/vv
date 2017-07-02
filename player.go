@@ -38,6 +38,7 @@ type Player struct {
 	currentModified  time.Time
 	status           PlayerStatus
 	stats            mpd.Attrs
+	statsModifiled   time.Time
 	library          []mpd.Attrs
 	libraryModified  time.Time
 	playlist         []mpd.Attrs
@@ -69,14 +70,10 @@ func (p *Player) Status() (PlayerStatus, time.Time) {
 }
 
 /*Stats returns mpd statistics.*/
-func (p *Player) Stats() (mpd.Attrs, error) {
-	err := p.updateStats()
-	if err != nil {
-		return nil, err
-	}
+func (p *Player) Stats() (mpd.Attrs, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	return p.stats, nil
+	return p.stats, p.statsModifiled
 }
 
 /*Library returns mpd library song data list.*/
@@ -291,9 +288,14 @@ func (p *Player) watch() {
 		switch subsystem {
 		case "database":
 			p.requestAsync(p.updateLibrary, p.watcherResponse)
+			p.requestAsync(p.updateStats, p.watcherResponse)
 		case "playlist":
 			p.requestAsync(p.updatePlaylist, p.watcherResponse)
-		case "player", "mixer", "options":
+		case "player":
+			p.requestAsync(p.updateCurrentSong, p.watcherResponse)
+			p.requestAsync(p.updateStatus, p.watcherResponse)
+			p.requestAsync(p.updateStats, p.watcherResponse)
+		case "mixer", "options":
 			p.requestAsync(p.updateCurrentSong, p.watcherResponse)
 			p.requestAsync(p.updateStatus, p.watcherResponse)
 		case "update":
@@ -334,7 +336,7 @@ func (p *Player) clearConn() {
 }
 
 func (p *Player) initConn() error {
-	fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus, p.updateOutputs}
+	fs := []func() error{p.connect, p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus, p.updateStats, p.updateOutputs}
 	for i := range fs {
 		err := fs[i]()
 		if err != nil {
@@ -407,6 +409,7 @@ func (p *Player) updateStats() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.stats = stats
+	p.statsModifiled = time.Now()
 	return nil
 }
 

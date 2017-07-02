@@ -529,6 +529,7 @@ vv.control = (function() {
                 if (vv.model.list.rootname() != "root" && vv.storage.preferences.playback.view_follow && song.file) {
                     vv.model.list.abs(song);
                 }
+                update_stats();
                 raiseEvent("current")
             }
         });
@@ -539,6 +540,7 @@ vv.control = (function() {
             if (!ret.error) {
                 vv.storage.control = ret["data"];
                 vv.storage.control_last_modified = modified;
+                update_stats();
                 raiseEvent("control");
             }
         });
@@ -1055,6 +1057,10 @@ vv.view.system = (function() {
         var update_time = function() {
             var diff = parseInt(((new Date()).getTime() - vv.storage.stats.last_modified_ms) / 1000);
             var uptime = parseInt(vv.storage.stats.uptime) + diff;
+            if (vv.storage.control.state == "play") {
+                var playtime = parseInt(vv.storage.stats.playtime) + diff;
+                document.getElementById("stat-playtime").textContent = strtimedelta(playtime);
+            }
             document.getElementById("stat-uptime").textContent = strtimedelta(uptime);
         }
         vv.control.addEventListener("poll", function() {
