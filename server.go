@@ -62,8 +62,9 @@ func notModified(w http.ResponseWriter, l time.Time) {
 }
 
 type apiHandler struct {
-	player Music
-	config Config
+	player  Music
+	config  Config
+	devMode bool
 }
 
 func (a *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
@@ -217,7 +218,11 @@ func (a *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 
 func (a *apiHandler) version(w http.ResponseWriter, r *http.Request) {
 	l := time.Now()
-	d := map[string]string{"vv": version}
+	vvPostfix := ""
+	if a.devMode {
+		vvPostfix = vvPostfix + " dev mode"
+	}
+	d := map[string]string{"vv": version + vvPostfix}
 	writeJSONInterface(w, d, l, nil)
 }
 
@@ -265,7 +270,7 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 }
 
 func makeHandle(p Music, c Config, bindata bool) http.Handler {
-	api := apiHandler{p, c}
+	api := apiHandler{p, c, false}
 	h := http.NewServeMux()
 	h.HandleFunc("/api/library", api.library)
 	h.HandleFunc("/api/library/", api.libraryOne)
@@ -291,6 +296,7 @@ func makeHandle(p Music, c Config, bindata bool) http.Handler {
 			data, _ := Asset(f)
 			h.HandleFunc(p, makeHandleAssets(f, data))
 		} else {
+			api.devMode = true
 			func(path, rpath string) {
 				h.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 					http.ServeFile(w, r, rpath)

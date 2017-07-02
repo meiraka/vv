@@ -54,22 +54,32 @@ func TestMusicDirectory(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
-	ts := httptest.NewServer(handler)
-	defer ts.Close()
-	res := checkRequestError(t, func() (*http.Response, error) { return http.Get(ts.URL + "/api/version") })
-	if res.StatusCode != 200 {
-		t.Errorf("unexpected status %d", res.StatusCode)
+	var testsets = []struct {
+		bindata   bool
+		vvVersion string
+	}{
+		{true, version},
+		{false, version + " dev mode"},
 	}
-	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
-	st := struct {
-		Data  map[string]string `json:"data"`
-		Error string            `json:"error"`
-	}{map[string]string{}, ""}
-	json.Unmarshal(body, &st)
-	if _, ok := st.Data["vv"]; !ok {
-		t.Errorf("vv version not found")
+	for _, tt := range testsets {
+		handler := makeHandle(m, Config{}, tt.bindata)
+		ts := httptest.NewServer(handler)
+		defer ts.Close()
+		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(ts.URL + "/api/version") })
+		if res.StatusCode != 200 {
+			t.Errorf("unexpected status %d", res.StatusCode)
+		}
+		defer res.Body.Close()
+		body, _ := ioutil.ReadAll(res.Body)
+		st := struct {
+			Data  map[string]string `json:"data"`
+			Error string            `json:"error"`
+		}{map[string]string{}, ""}
+		json.Unmarshal(body, &st)
+		actual := st.Data["vv"]
+		if actual != tt.vvVersion {
+			t.Errorf("unexpected vv version, actual: %s expect: %s", actual, tt.vvVersion)
+		}
 	}
 }
 
