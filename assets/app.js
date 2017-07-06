@@ -439,9 +439,9 @@ vv.control = (function() {
 
     var click = function(e, f) {
         if ("ontouchend" in e) {
-            e.addEventListener("touchstart", function() { this.touch = true; });
-            e.addEventListener("touchmove", function() { this.touch = false; });
-            e.addEventListener("touchend", function(a) { if (this.touch) {f(a);} });
+            e.addEventListener("touchstart", function() { this.touch = true; this.classList.add("active");});
+            e.addEventListener("touchmove", function() { this.touch = false; this.classList.remove("active");});
+            e.addEventListener("touchend", function(a) { this.classList.remove("active"); if (this.touch) {f(a);} });
         } else {
             e.addEventListener("click", f);
         }

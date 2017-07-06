@@ -631,32 +631,41 @@ button {
   box-sizing: border-box;
 }
 
-.header-icon {
-	width: 40px;
-	height: 40px;
-  stroke-width: 20;
-}
 .header-item {
   -webkit-tap-highlight-color: rgba(0,0,0,0);
+  display: flex;
+  align-items: center;
+  width: 40px;
+}
+#menu-main,
+#menu-system {
+  justify-content: center;
+}
+#menu-back {
+  flex: 1 1 auto;
+  flex-flow: row nowrap;
+  width: 40px;
 }
 .header-item:hover,
 .header-item:active {
   outline: 0;
 }
+.header-icon {
+  width: 40px;
+  height: 40px;
+  stroke-width: 20;
+  transition: width 0.2s 0s ease, height 0.2s 0s ease;
+}
 .animation .header-item:hover .header-icon {
   animation: hover_img 0.5s linear 0s;
 }
-.animation .header-item:active .header-icon {
-  animation: active_img 2s linear 0s;
+
+.header-item:active .header-icon,
+.header-item.active .header-icon {
+  width: 36px;
+  height: 36px;
 }
 
-#menu-back {
-  display: flex;
-  align-items: center;
-  flex: 1 1 auto;
-  flex-flow: row nowrap;
-  width: 40px;
-}
 #menu-back-content {
   flex: 1 1 auto;
   width: 40px;
@@ -705,10 +714,19 @@ button {
   align-items: center;
   justify-content: center;
 }
+#control-toggleplay,
 #control-toggleplay svg {
   height: 90px;
   width: 90px;
+}
+#control-toggleplay svg {
   stroke-width: 8;
+  transition: width 0.2s 0s ease, height 0.2s 0s ease;
+}
+#control-toggleplay:active svg,
+#control-toggleplay.active svg {
+  height: 81px;
+  width: 81px;
 }
 #control-toggleplay .fill {
   stroke-width: 12;
@@ -719,11 +737,31 @@ button {
   opacity: 0;
 }
 
+#control-prev,
+#control-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#control-prev,
 #control-prev svg,
+#control-next,
 #control-next svg {
   height: 60px;
   width: 60px;
+}
+#control-prev svg,
+#control-next svg {
   stroke-width: 12;
+  transition: width 0.2s 0s ease, height 0.2s 0s ease;
+}
+
+#control-prev:active svg,
+#control-prev.active svg,
+#control-next:active svg,
+#control-next.active svg {
+  height: 54px;
+  width: 54px;
 }
 
 #control-volume {
@@ -774,11 +812,30 @@ button {
   background: #e0e0e0;
 }
 
+#control-random,
+#control-repeat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#control-repeat,
 #control-repeat svg,
+#control-random,
 #control-random svg {
   width: 40px;
   height: 40px;
+}
+#control-repeat svg,
+#control-random svg {
   stroke-width: 8;
+  transition: width 0.2s 0s ease, height 0.2s 0s ease;
+}
+#control-repeat:active svg,
+#control-repeat.active svg,
+#control-random:active svg,
+#control-random.active svg {
+  width: 36px;
+  height: 36px;
 }
 
 #control-repeat.off svg,
@@ -805,12 +862,10 @@ button {
 .animation .control-button:hover svg {
   animation: hover_img 0.5s linear 0s;
 }
-.animation .control-button:active svg {
-  animation: active_img 2s linear 0s;
-}
 
 @keyframes hover_img {
-0% {opacity: 0.5;}
+0% {opacity: 1.0;}
+5% {opacity: 0.8;}
 100% {opacity: 1.0;}
 }
 @keyframes active_img {
