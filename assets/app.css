@@ -1,3 +1,7 @@
+body,
+html {
+  position: fixed;
+}
 body {
   -webkit-text-size-adjust: 100%;
   margin: 0;
@@ -61,26 +65,31 @@ header {
   height: 70px;
 }
 
-.scrollable {
-  position: absolute;
-  top: 80px;
-  z-index: 10;
-}
-.scrollable-tab {
+.tab {
   position: fixed;
   left: 0;
   background: rgba(255,255,255,0.4);
 }
-.dark .scrollable-tab {
+.dark .tab {
   background: rgba(0,0,0,0.4);
 }
-.unscrollable {
+.full {
   position: fixed;
   top: 0;
   height: 100%;
-  z-index: 10;
+  z-index: 80;
   box-sizing: border-box;
 }
+.scrollable {
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  overflow-scrolling: touch;
+  width: 100%;
+  height: 100%;
+}
+
 .fit {
   position: fixed;
   top: 0;
@@ -109,20 +118,15 @@ footer {
   width: 100%;
 }
 @media (orientation: portrait) {
-  .scrollable {
+  .full {
     left: 0;
     width: 100%;
-    padding: 0 0 150px;
+    padding: 70px 0 120px;
   }
-  .unscrollable {
-    left: 0;
-    width: 100%;
-    padding: 80px 0 150px;
+  .full.tabbed {
+    padding: 130px 0 120px;
   }
-  .scrollable.tabbed {
-    top: 130px;
-  }
-  .scrollable-tab {
+  .tab {
     top: 70px;
     height: 50px;
     width: 100%;
@@ -160,19 +164,17 @@ footer {
   }
 }
 @media (orientation: landscape) {
-  .scrollable {
-    padding: 0 0 90px;
+  .full {
+    padding: 70px 0 90px;
   }
-  .unscrollable {
-    padding: 80px 0 90px;
-  }
-  .scrollable-tab {
+  .tab {
+    position: fixed;
     top: 70px;
     height: 100%;
     width: 25%;
     background: none;
   }
-  .dark .scrollable-tab {
+  .dark .tab {
     background: none;
   }
   .view-system #system,
@@ -250,9 +252,9 @@ footer {
 
 #list-items {
   list-style-type: none;
-  padding: 10px;
-  margin: 0 12px;
-  padding: 0;
+  padding: 0 12px;
+  margin: 0;
+  box-sizing: border-box;
 }
 .plain,
 .song,
@@ -969,7 +971,7 @@ button {
 }
 
 @media (orientation: portrait) {
-  .scrollable-tab {
+  .tab {
     display: flex;
     flex-direction: row;
     align-items: center;

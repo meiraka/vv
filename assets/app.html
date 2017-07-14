@@ -46,10 +46,10 @@
 <div id="background" class=fit>
   <div id="background-overlay" class=background-overlay></div>
 </div>
-<section id="list" class="scrollable">
-  <ol id="list-items" class=note></ol>
+<section id="list" class="full">
+  <ol id="list-items" class="note scrollable"></ol>
 </section>
-<section id="main" class="unscrollable">
+<section id="main" class="full">
   <div id="main-box">
     <cite id=main-title>no title</cite>
     <span id=main-artist>no artist</span>
@@ -62,126 +62,128 @@
     </div>
   </div>
 </section>
-<section id="system" class="scrollable tabbed">
-  <nav id="system-nav" class="scrollable-tab">
+<section id="system" class="full tabbed">
+  <nav id="system-nav" class="tab">
     <div class="tab-items">
       <button class="tab-item" id="system-tab-preferences" type="button">Preferences</button>
       <button class="tab-item" id="system-tab-stats" type="button">Stats</button>
       <button class="tab-item" id="system-tab-info" type="button">Information</button>
     </div>
   </nav>
-  <article id="system-preferences" class="tab-page">
-    <h1>Preferences</h1>
-    <article>
-      <h3>System</h3>
+  <div class="scrollable">
+    <article id="system-preferences" class="tab-page">
+      <h1>Preferences</h1>
+      <article>
+        <h3>System</h3>
+        <ul class=note>
+          <li>
+            <button id=system-reload class="value button-simple" type="button">Reload Application</button>
+        </ul>
+      </article>
+      <article>
+        <h3>Appearance</h3>
+        <ul class=note>
+          <li>
+            <div class="description">Dark</div>
+            <div class="value switch"><input type="checkbox" id="appearance-dark"><label for="appearance-dark"></label></div>
+          <li>
+            <div class="description">Animation</div>
+            <div class="value switch"><input type="checkbox" id="appearance-animation"><label for="appearance-animation"></label></div>
+          <li>
+            <div class="description">Background image</div>
+            <div class="value switch"><input type="checkbox" id="appearance-background-image"><label for="appearance-background-image"></label></div>
+          <li>
+            <div class="description">Background image blur</div>
+            <select class="tool-select value" id="appearance-background-image-blur">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="4">4</option>
+              <option value="8">8</option>
+              <option value="16">16</option>
+              <option value="32">32</option>
+            </select>
+          <li>
+            <div class="description">Circled image</div>
+            <div class="value switch"><input type="checkbox" id="appearance-circled-image"><label for="appearance-circled-image"></label></div>
+        </ul>
+      </article>
+      <article>
+        <h3>Library</h3>
+        <ul class=note>
+          <li>
+            <button id=library-rescan class="value button-simple" type="button">Rescan</button>
+        </ul>
+      </article>
+      <article>
+        <h3>Playback</h3>
+        <ul class=note>
+          <li>
+            <div class="description">Listview follows playback</div>
+            <div class="value switch"><input type="checkbox" id="playback_view_follow"><label for="playback_view_follow"></label></div>
+        </ul>
+      </article>
+      <article>
+        <h3>Volume</h3>
+        <ul class=note>
+          <li>
+            <div class="description">Show volume nob</div>
+            <div class="value switch"><input type="checkbox" id="show_volume"><label for="show_volume"></label></div>
+          <li>
+            <div class="description">Max volume</div>
+            <select class="tool-select value" id="max_volume">
+              <option value="50">50</option>
+              <option value="60">60</option>
+              <option value="70">70</option>
+              <option value="80">80</option>
+              <option value="90">90</option>
+              <option value="100">100</option>
+            </select>
+        </ul>
+      </article>
+      <article>
+        <h3>Devices</h3>
+        <ul class="devices note"></ul>
+      </article>
+    </article>
+    <article id="system-stats" class="tab-page">
+      <h1>mpd</h1>
       <ul class=note>
         <li>
-          <button id=system-reload class="value button-simple" type="button">Reload Application</button>
-      </ul>
+          <div class="description">tracks:</div><div class="value" id=stat-tracks></div>
+        <li>
+          <div class="description">artists:</div><div class="value" id=stat-artists></div>
+        <li>
+          <div class="description">albums:</div><div class="value" id=stat-albums></div>
+        <li>
+          <div class="description">total length:</div><div class="value" id=stat-db-playtime></div>
+        <li>
+          <div class="description">total playtime:</div><div class="value" id=stat-playtime></div>
+        <li>
+          <div class="description">uptime:</div><div class="value" id=stat-uptime></div>
+        <li>
+          <div class="description">last library update:</div><div class="value" id=stat-db-update></div>
     </article>
-    <article>
-      <h3>Appearance</h3>
+    <article id="system-info" class="tab-page">
+      <h1>vv</h1>
       <ul class=note>
         <li>
-          <div class="description">Dark</div>
-          <div class="value switch"><input type="checkbox" id="appearance-dark"><label for="appearance-dark"></label></div>
+          <div class="description">Version:</div>
+          <div id=version class="value">0.0.0</div>
         <li>
-          <div class="description">Animation</div>
-          <div class="value switch"><input type="checkbox" id="appearance-animation"><label for="appearance-animation"></label></div>
+          <div class="description">Website:</div>
+          <div class="value"><a class=value href="https://github.com/meiraka/vv">https://github.com/meiraka/vv</a></div>
         <li>
-          <div class="description">Background image</div>
-          <div class="value switch"><input type="checkbox" id="appearance-background-image"><label for="appearance-background-image"></label></div>
-        <li>
-          <div class="description">Background image blur</div>
-          <select class="tool-select value" id="appearance-background-image-blur">
-            <option value="0">0</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="4">4</option>
-            <option value="8">8</option>
-            <option value="16">16</option>
-            <option value="32">32</option>
-          </select>
-        <li>
-          <div class="description">Circled image</div>
-          <div class="value switch"><input type="checkbox" id="appearance-circled-image"><label for="appearance-circled-image"></label></div>
+          <div class="description">License:</div>
+          <div class="value"><a class=value href="https://github.com/meiraka/vv/blob/master/LICENSE">MIT License</a></div>
       </ul>
-    </article>
-    <article>
-      <h3>Library</h3>
+      <h1>renderer</h1>
       <ul class=note>
         <li>
-          <button id=library-rescan class="value button-simple" type="button">Rescan</button>
+          <div id=user-agent class="value"></div>
       </ul>
     </article>
-    <article>
-      <h3>Playback</h3>
-      <ul class=note>
-        <li>
-          <div class="description">Listview follows playback</div>
-          <div class="value switch"><input type="checkbox" id="playback_view_follow"><label for="playback_view_follow"></label></div>
-      </ul>
-    </article>
-    <article>
-      <h3>Volume</h3>
-      <ul class=note>
-        <li>
-          <div class="description">Show volume nob</div>
-          <div class="value switch"><input type="checkbox" id="show_volume"><label for="show_volume"></label></div>
-        <li>
-          <div class="description">Max volume</div>
-          <select class="tool-select value" id="max_volume">
-            <option value="50">50</option>
-            <option value="60">60</option>
-            <option value="70">70</option>
-            <option value="80">80</option>
-            <option value="90">90</option>
-            <option value="100">100</option>
-          </select>
-      </ul>
-    </article>
-    <article>
-      <h3>Devices</h3>
-      <ul class="devices note"></ul>
-    </article>
-  </article>
-  <article id="system-stats" class="tab-page">
-    <h1>mpd</h1>
-    <ul class=note>
-      <li>
-        <div class="description">tracks:</div><div class="value" id=stat-tracks></div>
-      <li>
-        <div class="description">artists:</div><div class="value" id=stat-artists></div>
-      <li>
-        <div class="description">albums:</div><div class="value" id=stat-albums></div>
-      <li>
-        <div class="description">total length:</div><div class="value" id=stat-db-playtime></div>
-      <li>
-        <div class="description">total playtime:</div><div class="value" id=stat-playtime></div>
-      <li>
-        <div class="description">uptime:</div><div class="value" id=stat-uptime></div>
-      <li>
-        <div class="description">last library update:</div><div class="value" id=stat-db-update></div>
-  </article>
-  <article id="system-info" class="tab-page">
-    <h1>vv</h1>
-    <ul class=note>
-      <li>
-        <div class="description">Version:</div>
-        <div id=version class="value">0.0.0</div>
-      <li>
-        <div class="description">Website:</div>
-        <div class="value"><a class=value href="https://github.com/meiraka/vv">https://github.com/meiraka/vv</a></div>
-      <li>
-        <div class="description">License:</div>
-        <div class="value"><a class=value href="https://github.com/meiraka/vv/blob/master/LICENSE">MIT License</a></div>
-    </ul>
-    <h1>renderer</h1>
-    <ul class=note>
-      <li>
-        <div id=user-agent class="value"></div>
-    </ul>
-  </article>
+  </div>
 </section>
 <article id="error">
   <h3 class="title">error title</h3>

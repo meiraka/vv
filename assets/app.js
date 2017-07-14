@@ -846,14 +846,14 @@ vv.view.list = (function(){
         var e = document.getElementById("list").children[0];
         e.appendChild(newul);
         if (focus_li) {
-            var pos = focus_li.getBoundingClientRect().top;
-            var h = vv.view.header.height();
-            if (h <= pos && pos <= window.innerHeight - vv.view.footer.height()) {
+            var pos = focus_li.offsetTop;
+            var t = ul.scrollTop;
+            if (t < pos && pos < t + ul.clientHeight) {
                 return;
             }
-            window.scrollTo(0, pos + window.pageYOffset - h);
+            ul.scrollTop = pos;
         } else {
-            window.scrollTo(0, 0);
+            ul.scrollTop = 0;
         }
     };
     vv.control.addEventListener("library", update);
