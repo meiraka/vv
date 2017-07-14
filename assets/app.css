@@ -89,6 +89,9 @@ header {
   width: 100%;
   height: 100%;
 }
+.auto-hide-scrollbar .scrollable {
+  overflow-y: auto;
+}
 
 .fit {
   position: fixed;

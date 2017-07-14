@@ -160,7 +160,7 @@ vv.storage = (function(){
     var stats = {};
     var preferences = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
-        "appearance": {"dark": false, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true},
+        "appearance": {"dark": false, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true, "auto_hide_scrollbar": true},
     };
     // Presto Opera
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
@@ -169,6 +169,10 @@ vv.storage = (function(){
         preferences.appearance.background_image_blur = 0;
         preferences.appearance.circled_image = false;
         preferences.volume.show = false;
+    }
+    // Mobile
+    if (navigator.userAgent.indexOf("Mobile") > 1) {
+        preferences.appearance.auto_hide_scrollbar = false;
     }
     var save = function() {
         try {
@@ -735,6 +739,13 @@ vv.view.main = (function(){
         if (!vv.storage.preferences.appearance.circled_image && !c.classList.contains("hide")) {
             c.classList.add("hide");
         }
+        if (vv.storage.preferences.appearance.auto_hide_scrollbar != document.body.classList.contains("auto-hide-scrollbar")) {
+            if (vv.storage.preferences.appearance.auto_hide_scrollbar) {
+                document.body.classList.add("auto-hide-scrollbar");
+            } else {
+                document.body.classList.remove("auto-hide-scrollbar");
+            }
+        }
     }
     vv.control.addEventListener("preferences", update_style);
     var update_elapsed = function() {
@@ -936,6 +947,13 @@ vv.view.system = (function() {
             circled_image.checked = vv.storage.preferences.appearance.circled_image;
             circled_image.addEventListener("change", function() {
                 vv.storage.preferences.appearance.circled_image = this.checked;
+                vv.storage.save();
+                vv.control.raiseEvent("preferences");
+            });
+            var auto_hide_scrollbar = document.getElementById("appearance-auto-hide-scrollbar");
+            auto_hide_scrollbar.checked = vv.storage.preferences.appearance.auto_hide_scrollbar;
+            auto_hide_scrollbar.addEventListener("change", function() {
+                vv.storage.preferences.appearance.auto_hide_scrollbar = this.checked;
                 vv.storage.save();
                 vv.control.raiseEvent("preferences");
             });
