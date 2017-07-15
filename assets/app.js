@@ -668,7 +668,7 @@ vv.view.background = (function() {
         var e = document.getElementById("background-image");
         if (vv.storage.preferences.appearance.background_image) {
             e.classList.remove("hide");
-            document.getElementById("background").classList.remove("hide");
+            document.getElementById("background-overlay").classList.remove("hide");
             var cover = "/assets/nocover.svg";
             if (vv.storage.current.cover) {
                 cover = "/music_directory/" + vv.storage.current.cover;
@@ -677,7 +677,7 @@ vv.view.background = (function() {
             e.style.filter = "blur(" + vv.storage.preferences.appearance.background_image_blur + "px)";
         } else {
             e.classList.add("hide");
-            document.getElementById("background").classList.add("hide");
+            document.getElementById("background-overlay").classList.add("hide");
         }
     };
     vv.control.addEventListener("current", update);
