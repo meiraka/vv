@@ -508,23 +508,36 @@ footer {
   font-size: 18px;
   color: #e0e0e0;
   background-color: #404040;
+  box-sizing: border-box;
   -webkit-tap-highlight-color: rgba(0,0,0,0);
-  transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease, color 0.2s 0s ease, padding 0.2s 0s linear;
 }
 .animation .button-simple:hover {
   animation: hover_img 0.5s linear 0s;
 }
+.button-simple.active,
+.button-simple:active {
+  color: #a0a0a0;
+  padding: 4px 24px 0 24px;
+}
 .button-simple:disabled {
   animation: none;
   color: #a0a0a0;
+  background-color: #303030;
+  padding: 4px 24px 0 24px;
 }
 .dark .button-simple {
   color: #404040;
   background-color: #e0e0e0;
 }
-.dark .button-simple:disabled {
+.dark .button-simple.active,
+.dark .button-simple:active {
   color: #808080;
+}
+.dark .button-simple:disabled {
   animation: none;
+  color: #808080;
+  background-color: #f0f0f0;
 }
 .tool-select {
   outline: 0;
