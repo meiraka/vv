@@ -502,7 +502,7 @@ vv.control = (function() {
         xhr.send(JSON.stringify(obj));
     }
     var update_stats = function() {
-        get_request("api/stats", "", function(ret) {
+        get_request("api/music/stats", "", function(ret) {
             if (!ret.error) {
                 vv.storage.stats = ret.data;
                 ret.data.last_modified_ms = (new Date()).getTime();
@@ -521,11 +521,11 @@ vv.control = (function() {
     }
 
     var rescan_library = function() {
-        post_request("api/library", {"action": "rescan"});
+        post_request("api/music/library", {"action": "rescan"});
     }
 
     var update_song = function() {
-        get_request("api/songs/current", vv.storage.current_last_modified, function(ret, modified) {
+        get_request("api/music/songs/current", vv.storage.current_last_modified, function(ret, modified) {
             if (!ret.error) {
                 var song = ret.data? ret.data : {};
                 vv.storage.current = song;
@@ -540,7 +540,7 @@ vv.control = (function() {
     };
 
     var update_status = function() {
-        get_request("api/control", vv.storage.control_last_modified, function(ret, modified) {
+        get_request("api/music/control", vv.storage.control_last_modified, function(ret, modified) {
             if (!ret.error) {
                 vv.storage.control = ret["data"];
                 vv.storage.control_last_modified = modified;
@@ -551,7 +551,7 @@ vv.control = (function() {
     };
 
     var update_library = function() {
-        get_request("api/library", vv.storage.library_last_modified, function(ret, modified) {
+        get_request("api/music/library", vv.storage.library_last_modified, function(ret, modified) {
             if (!ret.error) {
                 vv.model.list.update(ret["data"]);
                 vv.storage.library_last_modified = modified;
@@ -562,7 +562,7 @@ vv.control = (function() {
     };
 
     var update_outputs = function() {
-        get_request("api/outputs", vv.storage.outputs_last_modified, function(ret, modified) {
+        get_request("api/music/outputs", vv.storage.outputs_last_modified, function(ret, modified) {
             if (!ret.error) {
                 vv.storage.outputs = ret["data"];
                 vv.storage.outputs_last_modified = modified;
@@ -572,31 +572,31 @@ vv.control = (function() {
     };
 
     var prev = function() {
-        post_request("api/control", {"state": "prev"})
+        post_request("api/music/control", {"state": "prev"})
     }
 
     var play_pause = function() {
         var state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
         var action = state == "play" ? "pause" : "play";
-        post_request("api/control", {"state": action})
+        post_request("api/music/control", {"state": action})
     }
 
     var next = function() {
-        post_request("api/control", {"state": "next"})
+        post_request("api/music/control", {"state": "next"})
     }
 
     var toggle_repeat = function() {
-        post_request("api/control", {"repeat": !vv.storage.control["repeat"]})
+        post_request("api/music/control", {"repeat": !vv.storage.control["repeat"]})
     }
 
     var toggle_random = function() {
-        post_request("api/control", {"random": !vv.storage.control["random"]})
+        post_request("api/music/control", {"random": !vv.storage.control["random"]})
     }
 
     var play = function(uri) {
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {};
-        xhr.open("POST", "api/songs", true);
+        xhr.open("POST", "api/music/songs", true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(
             {"action": "sort",
@@ -607,11 +607,11 @@ vv.control = (function() {
     }
 
     var volume = function(num) {
-        post_request("/api/control", {"volume": num})
+        post_request("/api/music/control", {"volume": num})
     }
 
     var output = function(id, on) {
-        post_request("api/outputs/" + id, {"outputenabled": on})
+        post_request("api/music/outputs/" + id, {"outputenabled": on})
     }
 
     var init = function() {

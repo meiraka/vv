@@ -88,7 +88,7 @@ func (a *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiHandler) playlistOne(w http.ResponseWriter, r *http.Request) {
-	p := strings.Replace(r.URL.Path, "/api/songs/", "", -1)
+	p := strings.Replace(r.URL.Path, "/api/music/songs/", "", -1)
 	if p == "" {
 		a.playlist(w, r)
 		return
@@ -120,7 +120,7 @@ func (a *apiHandler) library(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiHandler) libraryOne(w http.ResponseWriter, r *http.Request) {
-	p := strings.Replace(r.URL.Path, "/api/library/", "", -1)
+	p := strings.Replace(r.URL.Path, "/api/music/library/", "", -1)
 	if p == "" {
 		a.library(w, r)
 		return
@@ -190,7 +190,7 @@ func (a *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 	d, l := a.player.Outputs()
 	if r.Method == "POST" {
 		id, err := strconv.Atoi(
-			strings.Replace(r.URL.Path, "/api/outputs/", "", -1),
+			strings.Replace(r.URL.Path, "/api/music/outputs/", "", -1),
 		)
 		if err != nil {
 			writeJSON(w, err)
@@ -271,16 +271,16 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 func makeHandle(p Music, c Config, bindata bool) http.Handler {
 	api := apiHandler{p, c, false}
 	h := http.NewServeMux()
-	h.HandleFunc("/api/library", api.library)
-	h.HandleFunc("/api/library/", api.libraryOne)
-	h.HandleFunc("/api/songs", api.playlist)
-	h.HandleFunc("/api/songs/", api.playlistOne)
-	h.HandleFunc("/api/songs/current", api.current)
-	h.HandleFunc("/api/control", api.control)
-	h.HandleFunc("/api/outputs", api.outputs)
-	h.HandleFunc("/api/outputs/", api.outputs)
-	h.HandleFunc("/api/stats", api.stats)
 	h.HandleFunc("/api/version", api.version)
+	h.HandleFunc("/api/music/library", api.library)
+	h.HandleFunc("/api/music/library/", api.libraryOne)
+	h.HandleFunc("/api/music/songs", api.playlist)
+	h.HandleFunc("/api/music/songs/", api.playlistOne)
+	h.HandleFunc("/api/music/songs/current", api.current)
+	h.HandleFunc("/api/music/control", api.control)
+	h.HandleFunc("/api/music/outputs", api.outputs)
+	h.HandleFunc("/api/music/outputs/", api.outputs)
+	h.HandleFunc("/api/music/stats", api.stats)
 	fs := http.StripPrefix(musicDirectory, http.FileServer(http.Dir(c.Mpd.MusicDirectory)))
 	h.HandleFunc(musicDirectory, func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)

@@ -87,7 +87,7 @@ func TestLibrary(t *testing.T) {
 	m := new(MockMusic)
 	handler := makeHandle(m, Config{}, false)
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/library"
+	url := ts.URL + "/api/music/library"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
@@ -113,7 +113,7 @@ func TestLibrary(t *testing.T) {
 	t.Run("If-Modified-Since", func(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.LibraryRet2 = time.Unix(60, 0)
-		req, _ := http.NewRequest("GET", ts.URL+"/api/library", nil)
+		req, _ := http.NewRequest("GET", ts.URL+"/api/music/library", nil)
 		req.Header.Set("If-Modified-Since", m.LibraryRet2.Format(http.TimeFormat))
 		client := new(http.Client)
 		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
@@ -144,7 +144,7 @@ func TestLibraryOne(t *testing.T) {
 	m := new(MockMusic)
 	handler := makeHandle(m, Config{}, false)
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/library"
+	url := ts.URL + "/api/music/library"
 	defer ts.Close()
 	t.Run("not found", func(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
@@ -173,7 +173,7 @@ func TestLibraryOne(t *testing.T) {
 	t.Run("If-Modified-Since", func(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.LibraryRet2 = time.Unix(60, 0)
-		req, _ := http.NewRequest("GET", ts.URL+"/api/library/0", nil)
+		req, _ := http.NewRequest("GET", ts.URL+"/api/music/library/0", nil)
 		req.Header.Set("If-Modified-Since", m.LibraryRet2.Format(http.TimeFormat))
 		client := new(http.Client)
 		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
@@ -186,7 +186,7 @@ func TestPlaylist(t *testing.T) {
 	m := new(MockMusic)
 	handler := makeHandle(m, Config{}, false)
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/songs"
+	url := ts.URL + "/api/music/songs"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
@@ -244,7 +244,7 @@ func TestPlaylistOne(t *testing.T) {
 	m := new(MockMusic)
 	handler := makeHandle(m, Config{}, false)
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/songs"
+	url := ts.URL + "/api/music/songs"
 	defer ts.Close()
 	t.Run("not found", func(t *testing.T) {
 		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
@@ -286,7 +286,7 @@ func TestOutput(t *testing.T) {
 	m := new(MockMusic)
 	handler := makeHandle(m, Config{}, false)
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/outputs"
+	url := ts.URL + "/api/music/outputs"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		m.OutputsRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
@@ -345,7 +345,7 @@ func TestCurrent(t *testing.T) {
 	m := new(MockMusic)
 	handler := makeHandle(m, Config{}, false)
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/songs/current"
+	url := ts.URL + "/api/music/songs/current"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		m.CurrentRet1 = mpd.Attrs{"foo": "bar"}
@@ -384,7 +384,7 @@ func TestStats(t *testing.T) {
 	m := new(MockMusic)
 	handler := makeHandle(m, Config{}, false)
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/stats"
+	url := ts.URL + "/api/music/stats"
 	defer ts.Close()
 	m.StatsRet1 = mpd.Attrs{"foo": "bar"}
 	m.StatsRet2 = time.Unix(60, 0)
@@ -404,7 +404,7 @@ func TestControl(t *testing.T) {
 	m := new(MockMusic)
 	handler := makeHandle(m, Config{}, false)
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/control"
+	url := ts.URL + "/api/music/control"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
 		s := convStatus(mpd.Attrs{}, 0)
