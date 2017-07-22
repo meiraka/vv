@@ -248,6 +248,16 @@ footer {
   display: flex;
   -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
+.plain.selected,
+.song.selected,
+.album.selected {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.dark .plain.selected,
+.dark .song.selected,
+.dark .album.selected {
+  background-color: rgba(0, 0, 0, 0.2);
+}
 .plain {
   align-items: baseline;
 }

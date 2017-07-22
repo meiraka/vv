@@ -875,10 +875,97 @@ vv.view.list = (function(){
             ul.scrollTop = 0;
         }
     };
+    var up = function() {
+        select_focused_or("up");
+    }
+    var down = function() {
+        select_focused_or("down");
+    }
+    var select_focused_or = function(target) {
+        var l = document.getElementById("list-items");
+        var t = l.scrollTop;
+        var h = l.clientHeight;
+        var s = l.getElementsByClassName("selected");
+        var f = l.getElementsByClassName("playing");
+        var p = 0;
+        var c = null;
+        var n = null;
+        var i = 0;
+        if (s.length == 0 && f.length == 1) {
+            p = f[0].offsetTop;
+            if (t < p && p < t + h) {
+                f[0].classList.add("selected");
+                return;
+            }
+        }
+        if (s.length > 0) {
+            p = s[0].offsetTop;
+            if (p < t || t + h < p + s[0].offsetHeight) {
+                select_near_item();
+                return;
+            }
+        }
+        if (s.length == 0 && f.length == 0) {
+            select_near_item();
+            return;
+        }
+        if (s.length > 0) {
+            for (i = 1; i < l.children.length; i++) {
+                c = l.children[i];
+                if (c == s[0]) {
+                    if (i > 1 && target == "up") {
+                        n = l.children[i-1];
+                        c.classList.remove("selected");
+                        n.classList.add("selected");
+                        p = n.offsetTop;
+                        if (p < t) {
+                            l.scrollTop = p;
+                        }
+                        return;
+                    }
+                    if (i != (l.children.length - 1) && target == "down") {
+                        n = l.children[i+1];
+                        c.classList.remove("selected");
+                        n.classList.add("selected");
+                        p = n.offsetTop + n.offsetHeight;
+                        if (t + h < p) {
+                            l.scrollTop = p - h ;
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    var select_near_item = function() {
+        var l = document.getElementById("list-items");
+        for (var i = 1; i < l.children.length; i++) {
+            var c = l.children[i];
+            var p = c.offsetTop;
+            if (l.scrollTop < p && p < l.scrollTop + l.clientHeight) {
+                c.classList.add("selected");
+                return;
+            }
+        }
+    }
+
+    var activate = function() {
+        var es = document.getElementById("list-items").getElementsByClassName("selected");
+        if (es.length != 0) {
+            es[0].click();
+            return true;
+        }
+        return false;
+    }
+
     vv.control.addEventListener("library", update);
     vv.control.addEventListener("current", update);
     vv.model.list.addEventListener("changed", update);
     return {
+        up: up,
+        down: down,
+        activate: activate,
         show: show,
         hidden: hidden,
     };
@@ -1357,19 +1444,36 @@ vv.view.modal.help = (function() {
             }
             var buble = false;
             var single = !e.altKey && !e.ctrlKey && !e.metaKey;
-            if (single && e.keyCode == 37) {
+            if (single && e.keyCode == 13) {
+                if (!vv.view.list.hidden() && vv.view.list.activate()) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            } else if (single && e.keyCode == 37) {
                 if (!vv.view.list.hidden()) {
                     vv.model.list.up();
                 } else {
                     vv.model.list.abs(vv.storage.current);
                 }
                 vv.view.list.show();
+            } else if (single && e.keyCode == 38) {
+                if (!vv.view.list.hidden()) {
+                    vv.view.list.up();
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
             } else if (single && e.keyCode == 39) {
                 if (vv.model.list.rootname() != "root") {
                     vv.model.list.abs(vv.storage.current);
                 }
                 vv.view.main.show();
                 e.stopPropagation();
+            } else if (single && e.keyCode == 40) {
+                if (!vv.view.list.hidden()) {
+                    vv.view.list.down();
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
             } else if (single && e.key == "?") {
                 vv.view.modal.help.show();
             } else {
