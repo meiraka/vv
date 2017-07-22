@@ -877,11 +877,19 @@ button {
 .animation .control-button:hover svg {
   animation: hover_img 0.5s linear 0s;
 }
+.animation .control-button.off:hover svg {
+  animation: hover_img_off 0.5s linear 0s;
+}
 
 @keyframes hover_img {
 0% {opacity: 1.0;}
 5% {opacity: 0.8;}
 100% {opacity: 1.0;}
+}
+@keyframes hover_img_off {
+0% {opacity: 0.5;}
+5% {opacity: 0.4;}
+100% {opacity: 0.5;}
 }
 
 .modal-background,
