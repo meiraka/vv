@@ -845,6 +845,7 @@ vv.view.list = (function(){
             if (songs[i] && vv.model.list.focused() &&
                 songs[i].file == vv.model.list.focused().file) {
                 focus_li = li;
+                focus_li.classList.add("selected");
             }
             vv.control.click(li, function(e) {
                 if (e.currentTarget.classList.contains("playing")) {
@@ -940,12 +941,15 @@ vv.view.list = (function(){
 
     var select_near_item = function() {
         var l = document.getElementById("list-items");
+        var updated = false;
         for (var i = 1; i < l.children.length; i++) {
             var c = l.children[i];
             var p = c.offsetTop;
-            if (l.scrollTop < p && p < l.scrollTop + l.clientHeight) {
+            if (l.scrollTop < p && p < l.scrollTop + l.clientHeight && !updated) {
                 c.classList.add("selected");
-                return;
+                updated = true;
+            } else {
+                c.classList.remove("selected");
             }
         }
     }
