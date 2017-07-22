@@ -733,9 +733,13 @@ button {
   stroke-width: 12;
 }
 
-#control-toggleplay.play .pause,
-#control-toggleplay.pause .play {
+#control-toggleplay .play,
+#control-toggleplay .pause {
   opacity: 0;
+}
+#control-toggleplay.play .play,
+#control-toggleplay.pause .pause {
+  opacity: 1;
 }
 
 #control-prev,
