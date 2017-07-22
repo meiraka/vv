@@ -522,6 +522,8 @@ vv.control = (function() {
 
     var rescan_library = function() {
         post_request("api/music/library", {"action": "rescan"});
+        vv.storage.control.update_library = true;
+        raiseEvent("control");
     }
 
     var update_song = function() {
@@ -579,6 +581,8 @@ vv.control = (function() {
         var state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
         var action = state == "play" ? "pause" : "play";
         post_request("api/music/control", {"state": action})
+        vv.storage.control.state = action;
+        raiseEvent("control");
     }
 
     var next = function() {
@@ -587,10 +591,14 @@ vv.control = (function() {
 
     var toggle_repeat = function() {
         post_request("api/music/control", {"repeat": !vv.storage.control["repeat"]})
+        vv.storage.control.repeat = !vv.storage.control.repeat;
+        raiseEvent("control");
     }
 
     var toggle_random = function() {
         post_request("api/music/control", {"random": !vv.storage.control["random"]})
+        vv.storage.control.random = !vv.storage.control.random;
+        raiseEvent("control");
     }
 
     var play = function(uri) {
