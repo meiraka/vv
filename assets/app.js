@@ -1447,38 +1447,54 @@ vv.view.modal.help = (function() {
                 return;
             }
             var buble = false;
-            var single = !e.altKey && !e.ctrlKey && !e.metaKey;
-            if (single && e.keyCode == 13) {
+            var mod = 0;
+            mod = mod | e.shiftKey << 3;
+            mod = mod | e.altKey << 2;
+            mod = mod | e.ctrlKey << 1;
+            mod = mod | e.metaKey;
+            if (mod == 0 && (e.key == " " || e.key == "Spacebar")) {
+                vv.control.play_pause();
+                e.stopPropagation();
+                e.preventDefault();
+            } else if (mod == 10 && e.keyCode == 37) {
+                vv.control.prev();
+                e.stopPropagation();
+                e.preventDefault();
+            } else if (mod == 10 && e.keyCode == 39) {
+                vv.control.next();
+                e.stopPropagation();
+                e.preventDefault();
+            } else if (mod == 0 && e.keyCode == 13) {
                 if (!vv.view.list.hidden() && vv.view.list.activate()) {
                     e.stopPropagation();
                     e.preventDefault();
                 }
-            } else if (single && e.keyCode == 37) {
+            } else if (mod == 0 && e.keyCode == 37) {
                 if (!vv.view.list.hidden()) {
                     vv.model.list.up();
                 } else {
                     vv.model.list.abs(vv.storage.current);
                 }
                 vv.view.list.show();
-            } else if (single && e.keyCode == 38) {
+            } else if (mod == 0 && e.keyCode == 38) {
                 if (!vv.view.list.hidden()) {
                     vv.view.list.up();
                     e.stopPropagation();
                     e.preventDefault();
                 }
-            } else if (single && e.keyCode == 39) {
+            } else if (mod == 0 && e.keyCode == 39) {
                 if (vv.model.list.rootname() != "root") {
                     vv.model.list.abs(vv.storage.current);
                 }
                 vv.view.main.show();
                 e.stopPropagation();
-            } else if (single && e.keyCode == 40) {
+            } else if (mod == 0 && e.keyCode == 40) {
                 if (!vv.view.list.hidden()) {
                     vv.view.list.down();
                     e.stopPropagation();
                     e.preventDefault();
                 }
-            } else if (single && e.key == "?") {
+            } else if ((mod & 7) == 0 && e.key == "?") {
                 vv.view.modal.help.show();
             } else {
                 buble = true;
