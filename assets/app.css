@@ -956,14 +956,30 @@ button {
 }
 .modal-close {
   position: absolute;
-  top: -9px;
-  left: 9px;
-  height: 18px;
-  font-size: 18px;
-  color: #404040;
+  top: -15px;
+  left: 15px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .dark .modal-close {
   color: #e0e0e0;
+}
+.close-icon {
+  width: 30px;
+  height: 30px;
+  transition: width 0.2s 0s ease, height 0.2s 0s ease;
+}
+.modal-close.active .close-icon,
+.modal-close:active .close-icon {
+  width: 24px;
+  height: 24px;
+}
+.close-button {
+  stroke-width: 24;
 }
 .modal-window-table {
   padding: 6px;
