@@ -15,7 +15,9 @@ func ReadConfig() (Config, error) {
 	viper.SetDefault("mpd.music_directory", "")
 	err := viper.ReadInConfig()
 	if err != nil {
-		return Config{}, err
+		if _, notfound := err.(viper.ConfigFileNotFoundError); !notfound {
+			return Config{}, err
+		}
 	}
 	return Config{
 		ServerConfig{viper.GetString("server.port")},
