@@ -948,7 +948,7 @@ vv.view.list = (function(){
         var l = document.getElementById("list-items");
         var selectable = l.getElementsByClassName("selectable");
         var updated = false;
-        for (var i = 1; i < selectable.length; i++) {
+        for (var i = 0; i < selectable.length; i++) {
             var c = selectable[i];
             var p = c.offsetTop;
             if (l.scrollTop < p && p < l.scrollTop + l.clientHeight && !updated) {
