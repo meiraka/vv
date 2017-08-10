@@ -842,6 +842,7 @@ vv.view.list = (function(){
             }
             li = document.createElement("li");
             li = vv.song.element(li, songs[i], key, style);
+            li.classList.add("selectable");
             if (songs[i] && vv.model.list.focused() &&
                 songs[i].file == vv.model.list.focused().file) {
                 focus_li = li;
@@ -911,11 +912,12 @@ vv.view.list = (function(){
             return;
         }
         if (s.length > 0) {
-            for (i = 1; i < l.children.length; i++) {
-                c = l.children[i];
+            var selectable = l.getElementsByClassName("selectable");
+            for (i = 0; i < selectable.length; i++) {
+                c = selectable[i];
                 if (c == s[0]) {
-                    if (i > 1 && target == "up") {
-                        n = l.children[i-1];
+                    if (i > 0 && target == "up") {
+                        n = selectable[i-1];
                         c.classList.remove("selected");
                         n.classList.add("selected");
                         p = n.offsetTop;
@@ -924,8 +926,8 @@ vv.view.list = (function(){
                         }
                         return;
                     }
-                    if (i != (l.children.length - 1) && target == "down") {
-                        n = l.children[i+1];
+                    if (i != (selectable.length - 1) && target == "down") {
+                        n = selectable[i+1];
                         c.classList.remove("selected");
                         n.classList.add("selected");
                         p = n.offsetTop + n.offsetHeight;
@@ -941,9 +943,10 @@ vv.view.list = (function(){
 
     var select_near_item = function() {
         var l = document.getElementById("list-items");
+        var selectable = l.getElementsByClassName("selectable");
         var updated = false;
-        for (var i = 1; i < l.children.length; i++) {
-            var c = l.children[i];
+        for (var i = 1; i < selectable.length; i++) {
+            var c = selectable[i];
             var p = c.offsetTop;
             if (l.scrollTop < p && p < l.scrollTop + l.clientHeight && !updated) {
                 c.classList.add("selected");
