@@ -128,7 +128,7 @@ footer {
   }
 
   .view-system #system,
-  .view-list #list
+  .view-list #list,
   .view-main #main {
     display: block;
   }
