@@ -843,7 +843,10 @@ vv.view.list = (function(){
             li = document.createElement("li");
             li = vv.song.element(li, songs[i], key, style);
             li.classList.add("selectable");
-            if (songs[i] && vv.model.list.focused() &&
+            // do not select root items.
+            // all root items have same song.
+            if (vv.model.list.rootname() != "root" &&
+                songs[i] && vv.model.list.focused() &&
                 songs[i].file == vv.model.list.focused().file) {
                 focus_li = li;
                 focus_li.classList.add("selected");
