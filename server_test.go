@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/fhs/gompd/mpd"
+	"github.com/gorilla/websocket"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -544,6 +545,27 @@ func TestControl(t *testing.T) {
 	})
 }
 
+func TestNotify(t *testing.T) {
+	m := new(MockMusic)
+	handler := makeHandle(m, Config{}, false)
+	ts := httptest.NewServer(handler)
+	url := strings.Replace(ts.URL, "http://", "ws://", 1) + "/api/music/notify"
+	defer ts.Close()
+	c, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		t.Errorf("failed to connect websocket: %s", url)
+		return
+	}
+	defer c.Close()
+	for _, ch := range m.Subscribers {
+		ch <- "test"
+	}
+	_, message, err := c.ReadMessage()
+	if string(message) != "test" {
+		t.Errorf("unexpected receive message. expect: %s, actual: %s", "test", message)
+	}
+}
+
 type jsonError struct {
 	Error string `json:"error"`
 }
@@ -605,6 +627,7 @@ type MockMusic struct {
 	SortPlaylistArg1  []string
 	SortPlaylistArg2  string
 	SortPlaylistErr   error
+	Subscribers       []chan string
 }
 
 func (p *MockMusic) Play() error {
@@ -669,4 +692,12 @@ func (p *MockMusic) SortPlaylist(s []string, u string) error {
 	p.SortPlaylistArg1 = s
 	p.SortPlaylistArg2 = u
 	return p.SortPlaylistErr
+}
+
+func (p *MockMusic) Subscribe(s chan string) {
+	p.Subscribers = []chan string{s}
+}
+
+func (p *MockMusic) Unsubscribe(s chan string) {
+	p.Subscribers = []chan string{}
 }

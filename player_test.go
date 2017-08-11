@@ -73,6 +73,38 @@ func TestDial(t *testing.T) {
 	p.Close()
 }
 
+func TestPlayerWatch(t *testing.T) {
+	initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
+	p.watcherResponse = make(chan error, 1)
+	defer p.Close()
+	testsets := []struct {
+		event     string
+		responses int
+	}{
+		{event: "database", responses: 2},
+		{event: "playlist", responses: 1},
+		{event: "player", responses: 3},
+		{event: "mixer", responses: 2},
+		{event: "options", responses: 2},
+		{event: "update", responses: 1},
+		{event: "output", responses: 1},
+	}
+	for _, tt := range testsets {
+		p.watcher.Event <- tt.event
+		for i := 0; i < tt.responses; i++ {
+			select {
+			case err := <-p.watcherResponse:
+				if err != nil {
+					t.Errorf("unexpected error for %s: %s", tt.event, err.Error())
+				}
+			case <-time.After(5 * time.Second):
+				t.Errorf("timeout: no response for %s", tt.event)
+			}
+		}
+	}
+}
+
 func TestPlayerPlay(t *testing.T) {
 	m := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
@@ -243,17 +275,14 @@ func TestPlayerPlaylist(t *testing.T) {
 	m := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
-	p.watcherResponse = make(chan error)
+	e := make(chan string, 1)
+	p.Subscribe(e)
+	defer p.Unsubscribe(e)
 	m.PlaylistInfoCalled = 0
 	m.PlaylistInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.PlaylistInfoRet2 = nil
 	expect := songsAddReadableData((m.PlaylistInfoRet1))
-	// if mpd.Watcher.Event recieve "playlist"
-	p.watcher.Event <- "playlist"
-	if err := <-p.watcherResponse; err != nil {
-		t.Errorf("unexpected watcher error: %s", err.Error())
-	}
-
+	p.updatePlaylist()
 	// mpd.Client.PlaylistInfo was Called
 	if m.PlaylistInfoCalled != 1 {
 		t.Errorf("Client.PlaylistInfo does not Called")
@@ -269,33 +298,51 @@ func TestPlayerPlaylist(t *testing.T) {
 	if !reflect.DeepEqual(expect, playlist) {
 		t.Errorf("unexpected get playlist")
 	}
+	if event := <-e; event != "playlist" {
+		t.Errorf("unexpected event. expect: playlist, actual: %s", event)
+	}
 }
 
 func TestPlayerStats(t *testing.T) {
 	m := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
-	p.watcherResponse = make(chan error)
+	e := make(chan string, 1)
+	p.Subscribe(e)
+	defer p.Unsubscribe(e)
 	var testsets = []struct {
+		desc   string
 		ret1   mpd.Attrs
 		ret2   error
 		expect mpd.Attrs
-		event  string
+		notify bool
 	}{
-		{nil, errors.New("hoge"), nil, "database"},
-		{mpd.Attrs{"foo": "bar"}, nil, mpd.Attrs{"foo": "bar"}, "database"},
-		{nil, errors.New("hoge"), mpd.Attrs{"foo": "bar"}, "database"},
+		{
+			desc: "no cache, error",
+			ret1: nil, ret2: errors.New("hoge"),
+			expect: nil,
+			notify: false,
+		},
+		{
+			desc: "no error",
+			ret1: mpd.Attrs{"foo": "bar"}, ret2: nil,
+			expect: mpd.Attrs{"foo": "bar"},
+			notify: true,
+		},
+		{
+			desc: "use cache, error",
+			ret1: nil, ret2: errors.New("hoge"),
+			expect: mpd.Attrs{"foo": "bar"},
+			notify: false,
+		},
 	}
 	for _, tt := range testsets {
 		m.StatsRet1 = tt.ret1
 		m.StatsRet2 = tt.ret2
 		m.StatsCalled = 0
-		p.watcher.Event <- tt.event
-		if err := <-p.watcherResponse; err != nil {
-			t.Errorf("unexpected watcher error: %s from Library", err.Error())
-		}
-		if err := <-p.watcherResponse; err != tt.ret2 {
-			t.Errorf("unexpected watcher error from Stats")
+		err := p.updateStats()
+		if err != tt.ret2 {
+			t.Errorf("[%s] unexpected error: %s", tt.desc, err.Error())
 		}
 		actual, _ := p.Stats()
 		if m.StatsCalled != 1 {
@@ -304,6 +351,12 @@ func TestPlayerStats(t *testing.T) {
 		if !reflect.DeepEqual(tt.expect, actual) {
 			t.Errorf("unexpected get stats")
 		}
+		if tt.notify {
+			if event := <-e; event != "stats" {
+				t.Errorf("[%s] unexpected stats event. expect: stats, actual: %s", tt.desc, event)
+			}
+		}
+
 	}
 }
 
@@ -311,19 +364,14 @@ func TestPlayerLibrary(t *testing.T) {
 	m := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
-	p.watcherResponse = make(chan error)
+	e := make(chan string, 1)
+	p.Subscribe(e)
+	defer p.Unsubscribe(e)
 	m.ListAllInfoCalled = 0
 	m.ListAllInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.ListAllInfoRet2 = nil
 	expect := songsAddReadableData((m.ListAllInfoRet1))
-	// if mpd.Watcher.Event recieve "database"
-	p.watcher.Event <- "database"
-	for i := 0; i < 2; i++ {
-		if err := <-p.watcherResponse; err != nil {
-			t.Errorf("unexpected watcher error: %s", err.Error())
-		}
-	}
-
+	p.updateLibrary()
 	// mpd.Client.ListAllInfo was Called
 	if m.ListAllInfoCalled != 1 {
 		t.Errorf("Client.ListAllInfo does not Called")
@@ -339,13 +387,18 @@ func TestPlayerLibrary(t *testing.T) {
 	if !reflect.DeepEqual(expect, library) {
 		t.Errorf("unexpected get library")
 	}
+	if event := <-e; event != "library" {
+		t.Errorf("unexpected event. expect: library, actual: %s", event)
+	}
 }
 
 func TestPlayerCurrent(t *testing.T) {
 	m := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
-	p.watcherResponse = make(chan error)
+	e := make(chan string, 1)
+	p.Subscribe(e)
+	defer p.Unsubscribe(e)
 	m.CurrentSongCalled = 0
 	m.StatusCalled = 0
 	errret := new(mockError)
@@ -379,15 +432,17 @@ func TestPlayerCurrent(t *testing.T) {
 		m.CurrentSongRet2 = c.CurrentSongRet2
 		m.StatusRet1 = c.StatusRet1
 		m.StatusRet2 = c.StatusRet2
-		p.watcher.Event <- "player"
-		if err := <-p.watcherResponse; err != c.CurrentSongRet2 {
-			t.Errorf("unexpected watcher error from CurrentSong")
+		p.updateCurrentSong()
+		if c.CurrentSongRet2 == nil {
+			if event := <-e; event != "current" {
+				t.Errorf("unexpected event. expect: current, actual: %s", event)
+			}
 		}
-		if err := <-p.watcherResponse; err != c.StatusRet2 {
-			t.Errorf("unexpected watcher error from Status")
-		}
-		if err := <-p.watcherResponse; err != nil {
-			t.Errorf("unexpected watcher error from Stats")
+		p.updateStatus()
+		if c.StatusRet2 == nil {
+			if event := <-e; event != "status" {
+				t.Errorf("unexpected event. expect: status, actual: %s", event)
+			}
 		}
 		if m.CurrentSongCalled != c.CurrentSongCalled {
 			t.Errorf("unexpected function call")
@@ -419,16 +474,13 @@ func TestPlayerOutputs(t *testing.T) {
 	m := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
-	p.watcherResponse = make(chan error)
+	e := make(chan string, 1)
+	p.Subscribe(e)
+	defer p.Unsubscribe(e)
 	m.ListOutputsCalled = 0
 	m.ListOutputsRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.ListOutputsRet2 = nil
-	// if mpd.Watcher.Event recieve "output"
-	p.watcher.Event <- "output"
-	if err := <-p.watcherResponse; err != nil {
-		t.Errorf("unexpected watcher error: %s", err.Error())
-	}
-
+	p.updateOutputs()
 	// mpd.Client.ListOutputs was Called
 	if m.ListOutputsCalled != 1 {
 		t.Errorf("Client.ListOutputs does not Called")
@@ -440,6 +492,9 @@ func TestPlayerOutputs(t *testing.T) {
 	outputs, _ := p.Outputs()
 	if !reflect.DeepEqual(m.ListOutputsRet1, outputs) {
 		t.Errorf("unexpected get outputs")
+	}
+	if event := <-e; event != "outputs" {
+		t.Errorf("unexpected event. expect: outputs, actual: %s", event)
 	}
 }
 

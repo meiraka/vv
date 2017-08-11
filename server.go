@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fhs/gompd/mpd"
+	"github.com/gorilla/websocket"
 	"mime"
 	"net/http"
 	"os"
@@ -62,9 +63,10 @@ func notModified(w http.ResponseWriter, l time.Time) {
 }
 
 type apiHandler struct {
-	player  Music
-	config  Config
-	devMode bool
+	player   Music
+	config   Config
+	upgrader websocket.Upgrader
+	devMode  bool
 }
 
 func (a *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
@@ -225,6 +227,32 @@ func (a *apiHandler) version(w http.ResponseWriter, r *http.Request) {
 	writeJSONInterface(w, d, l, nil)
 }
 
+func (a *apiHandler) notify(w http.ResponseWriter, r *http.Request) {
+	c, err := a.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+	defer c.Close()
+	n := make(chan string, 10)
+	a.player.Subscribe(n)
+	defer a.player.Unsubscribe(n)
+	for {
+		select {
+		case e := <-n:
+			err = c.WriteMessage(websocket.TextMessage, []byte(e))
+			if err != nil {
+				return
+			}
+		case <-time.After(time.Second * 5):
+			err = c.WriteMessage(websocket.TextMessage, []byte("ping"))
+			if err != nil {
+				return
+			}
+		}
+	}
+
+}
+
 func (a *apiHandler) returnSong(w http.ResponseWriter, r *http.Request, s mpd.Attrs, l time.Time) {
 	if modifiedSince(r, l) {
 		writeJSONInterface(w, s, l, nil)
@@ -269,7 +297,7 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 }
 
 func makeHandle(p Music, c Config, bindata bool) http.Handler {
-	api := apiHandler{p, c, false}
+	api := apiHandler{player: p, config: c, devMode: false}
 	h := http.NewServeMux()
 	h.HandleFunc("/api/version", api.version)
 	h.HandleFunc("/api/music/library", api.library)
@@ -281,6 +309,7 @@ func makeHandle(p Music, c Config, bindata bool) http.Handler {
 	h.HandleFunc("/api/music/outputs", api.outputs)
 	h.HandleFunc("/api/music/outputs/", api.outputs)
 	h.HandleFunc("/api/music/stats", api.stats)
+	h.HandleFunc("/api/music/notify", api.notify)
 	fs := http.StripPrefix(musicDirectory, http.FileServer(http.Dir(c.Mpd.MusicDirectory)))
 	h.HandleFunc(musicDirectory, func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
@@ -330,4 +359,6 @@ type Music interface {
 	Output(int, bool) error
 	Outputs() ([]mpd.Attrs, time.Time)
 	SortPlaylist([]string, string) error
+	Subscribe(chan string)
+	Unsubscribe(chan string)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"sort"
 	"strconv"
@@ -45,6 +46,8 @@ type Player struct {
 	playlistModified time.Time
 	outputs          []mpd.Attrs
 	outputsModified  time.Time
+	subscribers      []chan string
+	subscribersMutex sync.Mutex
 }
 
 /*Close mpd connection.*/
@@ -193,6 +196,54 @@ func (p *Player) sortPlaylist(keys []string, uri string) (err error) {
 		}
 	}
 	return
+}
+
+// Subscribe server events.
+func (p *Player) Subscribe(c chan string) {
+	p.subscribersMutex.Lock()
+	defer p.subscribersMutex.Unlock()
+	if p.subscribers == nil {
+		p.subscribers = []chan string{c}
+		return
+	}
+	p.subscribers = append(p.subscribers, c)
+}
+
+// Unsubscribe server events.
+func (p *Player) Unsubscribe(c chan string) {
+	p.subscribersMutex.Lock()
+	defer p.subscribersMutex.Unlock()
+	if p.subscribers == nil {
+		return
+	}
+	newSubscribers := []chan string{}
+	for _, s := range p.subscribers {
+		if s != c {
+			newSubscribers = append(newSubscribers, s)
+		}
+	}
+	p.subscribers = newSubscribers
+}
+
+func (p *Player) notify(n string) error {
+	p.subscribersMutex.Lock()
+	defer p.subscribersMutex.Unlock()
+	if p.subscribers == nil {
+		return nil
+	}
+
+	errcnt := 0
+	for _, s := range p.subscribers {
+		select {
+		case s <- n:
+		default:
+			errcnt++
+		}
+	}
+	if errcnt != 0 {
+		return fmt.Errorf("failed to send %s notify, %d", n, errcnt)
+	}
+	return nil
 }
 
 type playerMessage struct {
@@ -386,6 +437,7 @@ func (p *Player) updateCurrentSong() error {
 		p.current = songAddReadableData(song)
 		p.current = songFindCover(p.current, p.musicDirectory, p.coverCache)
 		p.currentModified = time.Now()
+		return p.notify("current")
 	}
 	return nil
 }
@@ -398,7 +450,7 @@ func (p *Player) updateStatus() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.status = convStatus(status, time.Now().Unix())
-	return nil
+	return p.notify("status")
 }
 
 func (p *Player) updateStats() error {
@@ -410,7 +462,7 @@ func (p *Player) updateStats() error {
 	defer p.mutex.Unlock()
 	p.stats = stats
 	p.statsModifiled = time.Now()
-	return nil
+	return p.notify("stats")
 }
 
 func (p *Player) updateLibrary() error {
@@ -426,7 +478,7 @@ func (p *Player) updateLibrary() error {
 		p.library[i]["Pos"] = strconv.Itoa(i)
 	}
 	p.libraryModified = time.Now()
-	return nil
+	return p.notify("library")
 }
 
 func (p *Player) updatePlaylist() error {
@@ -439,7 +491,7 @@ func (p *Player) updatePlaylist() error {
 	p.playlist = songsAddReadableData(playlist)
 	p.playlist = songsFindCover(p.playlist, p.musicDirectory, p.coverCache)
 	p.playlistModified = time.Now()
-	return nil
+	return p.notify("playlist")
 }
 
 func (p *Player) updateOutputs() error {
@@ -451,5 +503,5 @@ func (p *Player) updateOutputs() error {
 	defer p.mutex.Unlock()
 	p.outputs = outputs
 	p.outputsModified = time.Now()
-	return nil
+	return p.notify("outputs")
 }

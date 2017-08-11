@@ -161,6 +161,7 @@ vv.storage = (function(){
     var preferences = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
         "appearance": {"dark": false, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true, "auto_hide_scrollbar": true},
+        "system": {"use_websocket": false},
     };
     // Presto Opera
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
@@ -478,7 +479,12 @@ vv.control = (function() {
                 }
             }
         };
-        xhr.ontimeout = err_timeout("GET "+path);
+        xhr.ontimeout = function() {
+            err_timeout("GET "+path)();
+            if (vv.storage.preferences.system.use_websocket) {
+                setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
+            }
+        }
         xhr.open("GET", path, true);
         if (ifmodified != "") {
             xhr.setRequestHeader("If-Modified-Since", ifmodified);
@@ -622,12 +628,39 @@ vv.control = (function() {
         post_request("api/music/outputs/" + id, {"outputenabled": on})
     }
 
+    var listennotify = function() {
+        var uri = "ws://" + location.host + "/api/music/notify";
+        var ws = new WebSocket(uri);
+        ws.onmessage = function(e) {
+            if (e && e.data) {
+                if (e.data == "library") {
+                    vv.control.update_library();
+                }
+                if (e.data == "status") {
+                    vv.control.update_status();
+                }
+                if (e.data == "current") {
+                    vv.control.update_song();
+                }
+                if (e.data == "outputs") {
+                    vv.control.update_outputs();
+                }
+            }
+        };
+        ws.onclose = function() { setTimeout(listennotify, 1000) };
+    }
+
     var init = function() {
-        var polling = function() {
+        var update_all = function() {
             vv.control.update_version();
             vv.control.update_song();
             vv.control.update_status();
             vv.control.update_library();
+        }
+        var polling = function() {
+            if (!vv.storage.preferences.system.use_websocket) {
+                update_all();
+            }
             raiseEvent("poll");
             setTimeout(polling, 1000);
         }
@@ -638,6 +671,10 @@ vv.control = (function() {
         };
         show[vv.storage.last_state]();
         raiseEvent("start");
+        update_all();
+        if (vv.storage.preferences.system.use_websocket) {
+            listennotify();
+        }
         polling();
     };
 
@@ -1061,6 +1098,13 @@ vv.view.system = (function() {
                 vv.storage.preferences.appearance.auto_hide_scrollbar = this.checked;
                 vv.storage.save();
                 vv.control.raiseEvent("preferences");
+            });
+            var use_websocket = document.getElementById("system-use-websocket");
+            use_websocket.checked = vv.storage.preferences.system.use_websocket;
+            use_websocket.addEventListener("change", function() {
+                vv.storage.preferences.system.use_websocket = this.checked;
+                vv.storage.save();
+                location.reload();
             });
             var playback_view_follow = document.getElementById("playback_view_follow");
             playback_view_follow.checked = vv.storage.preferences.playback.view_follow;
