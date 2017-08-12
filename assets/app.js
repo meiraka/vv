@@ -543,7 +543,6 @@ vv.control = (function() {
                 if (vv.model.list.rootname() != "root" && vv.storage.preferences.playback.view_follow && song.file) {
                     vv.model.list.abs(song);
                 }
-                update_stats();
                 raiseEvent("current")
             }
         });
@@ -554,7 +553,6 @@ vv.control = (function() {
             if (!ret.error) {
                 vv.storage.control = ret["data"];
                 vv.storage.control_last_modified = modified;
-                update_stats();
                 raiseEvent("control");
             }
         });
@@ -565,7 +563,6 @@ vv.control = (function() {
             if (!ret.error) {
                 vv.model.list.update(ret["data"]);
                 vv.storage.library_last_modified = modified;
-                update_stats();
                 raiseEvent("library");
             }
         });
@@ -636,16 +633,19 @@ vv.control = (function() {
         ws.onmessage = function(e) {
             if (e && e.data) {
                 if (e.data == "library") {
-                    vv.control.update_library();
+                    update_library();
                 }
                 if (e.data == "status") {
-                    vv.control.update_status();
+                    update_status();
                 }
                 if (e.data == "current") {
-                    vv.control.update_song();
+                    update_song();
                 }
                 if (e.data == "outputs") {
-                    vv.control.update_outputs();
+                    update_outputs();
+                }
+                if (e.data == "stats") {
+                    update_stats();
                 }
             }
         };
@@ -654,10 +654,11 @@ vv.control = (function() {
 
     var init = function() {
         var update_all = function() {
-            vv.control.update_version();
-            vv.control.update_song();
-            vv.control.update_status();
-            vv.control.update_library();
+            update_version();
+            update_song();
+            update_status();
+            update_library();
+            update_stats();
         }
         var polling = function() {
             if (!vv.storage.preferences.system.use_websocket) {
