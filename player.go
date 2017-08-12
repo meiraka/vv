@@ -209,6 +209,7 @@ func (p *Player) Subscribe(c chan string) {
 	if p.stats != nil {
 		p.stats["subscribers"] = strconv.Itoa(len(p.subscribers))
 		p.statsModifiled = time.Now()
+		p.nolockedNotify("stats")
 	}
 }
 
@@ -231,12 +232,17 @@ func (p *Player) Unsubscribe(c chan string) {
 	if p.stats != nil {
 		p.stats["subscribers"] = strconv.Itoa(len(p.subscribers))
 		p.statsModifiled = time.Now()
+		p.nolockedNotify("stats")
 	}
 }
 
 func (p *Player) notify(n string) error {
 	p.subscribersMutex.Lock()
 	defer p.subscribersMutex.Unlock()
+	return p.nolockedNotify(n)
+}
+
+func (p *Player) nolockedNotify(n string) error {
 	if p.subscribers == nil {
 		return nil
 	}
