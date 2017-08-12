@@ -326,13 +326,13 @@ func TestPlayerStats(t *testing.T) {
 		{
 			desc: "no error",
 			ret1: mpd.Attrs{"foo": "bar"}, ret2: nil,
-			expect: mpd.Attrs{"foo": "bar"},
+			expect: mpd.Attrs{"foo": "bar", "subscribers": "1"},
 			notify: true,
 		},
 		{
 			desc: "use cache, error",
 			ret1: nil, ret2: errors.New("hoge"),
-			expect: mpd.Attrs{"foo": "bar"},
+			expect: mpd.Attrs{"foo": "bar", "subscribers": "1"},
 			notify: false,
 		},
 	}

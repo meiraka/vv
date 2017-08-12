@@ -200,13 +200,15 @@ func (p *Player) sortPlaylist(keys []string, uri string) (err error) {
 
 // Subscribe server events.
 func (p *Player) Subscribe(c chan string) {
+	p.initSubscribersIfNot()
 	p.subscribersMutex.Lock()
 	defer p.subscribersMutex.Unlock()
-	if p.subscribers == nil {
-		p.subscribers = []chan string{c}
-		return
-	}
 	p.subscribers = append(p.subscribers, c)
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	if p.stats != nil {
+		p.stats["subscribers"] = strconv.Itoa(len(p.subscribers))
+	}
 }
 
 // Unsubscribe server events.
@@ -223,6 +225,11 @@ func (p *Player) Unsubscribe(c chan string) {
 		}
 	}
 	p.subscribers = newSubscribers
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	if p.stats != nil {
+		p.stats["subscribers"] = strconv.Itoa(len(p.subscribers))
+	}
 }
 
 func (p *Player) notify(n string) error {
@@ -287,6 +294,14 @@ func (p *Player) initIfNot() error {
 		go p.ping()
 	}
 	return nil
+}
+
+func (p *Player) initSubscribersIfNot() {
+	p.subscribersMutex.Lock()
+	defer p.subscribersMutex.Unlock()
+	if p.subscribers == nil {
+		p.subscribers = []chan string{}
+	}
 }
 
 func (p *Player) daemon() {
@@ -460,6 +475,12 @@ func (p *Player) updateStats() error {
 	}
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
+	if stats != nil {
+		p.initSubscribersIfNot()
+		p.subscribersMutex.Lock()
+		stats["subscribers"] = strconv.Itoa(len(p.subscribers))
+		p.subscribersMutex.Unlock()
+	}
 	p.stats = stats
 	p.statsModifiled = time.Now()
 	return p.notify("stats")

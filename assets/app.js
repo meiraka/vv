@@ -1220,6 +1220,7 @@ vv.view.system = (function() {
             }
             db_update_str += db_update.getHours() + ":" + db_update.getMinutes() + ":" + db_update.getSeconds();
             document.getElementById("stat-db-update").textContent = db_update_str;
+            document.getElementById("stat-websockets").textContent = vv.storage.stats.subscribers;
         }
         var update_time = function() {
             var diff = parseInt(((new Date()).getTime() - vv.storage.stats.last_modified_ms) / 1000);
