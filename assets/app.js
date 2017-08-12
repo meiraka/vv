@@ -161,7 +161,7 @@ vv.storage = (function(){
     var preferences = {
         "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
         "appearance": {"dark": false, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true, "auto_hide_scrollbar": true},
-        "system": {"use_websocket": false},
+        "system": {"use_websocket": true},
     };
     // Presto Opera
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
