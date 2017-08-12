@@ -680,15 +680,22 @@ footer {
   text-shadow: 0 0 0 #404040;
 }
 
-.popup {
+#popup-box {
   position: fixed;
   top: 40px;
-  right: -400px;
-  margin: 10px;
-  padding: 5px;
-  width: 300px;
-  background-color: #ffffff;
+  right: 0;
   z-index: 101;
+}
+
+.popup {
+  margin: 10px;
+  width: 300px;
+  padding: 0 5px;
+  height: 0;
+  background-color: #ffffff;
+  transition: padding 0.2s linear 0s, height 0.2s linear 0s;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .dark .popup {
@@ -696,45 +703,17 @@ footer {
 }
 
 .popup.hide {
-  display: none;
-}
-
-.animation .popup.hide {
-  display: block;
-  animation: popup-hide 0.3s linear 0s;
+  padding: 0 5px;
+  height: 0;
 }
 
 .popup.show {
-  display: block;
-  right: 0;
-}
-
-.animation .popup.show {
-  animation: popup-show 0.3s linear 0s;
+  padding: 5px;
+  height: 72px;
 }
 
 .popup > * {
   margin: 10px;
-}
-
-@keyframes popup-show {
-  from {
-    right: -400px;
-  }
-
-  to {
-    right: 0;
-  }
-}
-
-@keyframes popup-hide {
-  from {
-    right: 0;
-  }
-
-  to {
-    right: -400px;
-  }
 }
 
 button {

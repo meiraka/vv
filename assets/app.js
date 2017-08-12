@@ -477,7 +477,11 @@ vv.control = (function() {
                     }
                     return;
                 }
-                vv.view.popup.show("GET "+path, xhr.statusText);
+                var description = xhr.statusText;
+                if (!description) {
+                    description = "[empty xhr.statusText status="+xhr.status+"]";
+                }
+                vv.view.popup.show("GET "+path, description);
                 if (vv.storage.preferences.system.use_websocket) {
                     setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
                 }
@@ -1450,26 +1454,35 @@ vv.view.footer = (function(){
     }
 }());
 vv.view.popup = (function(){
+    var data = {};
     var exists = function(title) {
-        var e = document.getElementById("popup");
-        return e.getElementsByClassName("popup-title")[0].textContent == title;
+        return title in data;
     }
     var show = function(title, description) {
-        var e = document.getElementById("popup");
-        e.getElementsByClassName("popup-title")[0].textContent = title;
-        e.getElementsByClassName("popup-description")[0].textContent = description;
-        e.classList.remove("hide");
-        e.classList.add("show");
-        e.timestamp = (new Date()).getTime();
+        var obj = null;
+        if (title in data) {
+            obj = data[title];
+            obj.getElementsByClassName("popup-description")[0].textContent = description;
+        } else {
+            obj = document.createElement("section");
+            obj.classList.add("popup");
+            obj.innerHTML = '<h3 class="popup-title">'+title+'</h3><span class="popup-description">'+description+'</span>';
+            data[title] = obj;
+            document.getElementById("popup-box").appendChild(obj);
+        }
+        obj.classList.remove("hide");
+        obj.classList.add("show");
+        obj.timestamp = (new Date()).getTime();
         setTimeout(function() {
-            if ((new Date()).getTime() - e.timestamp > 4000) {
-                e.classList.remove("show");
-                e.classList.add("hide");
-            }}, 5000);
+            if ((new Date()).getTime() - obj.timestamp > 4000) {
+                obj.classList.remove("show");
+                obj.classList.add("hide");
+            }
+        }, 5000);
     }
     var hide = function(title) {
-        if (exists(title)) {
-            var e = document.getElementById("popup");
+        if (title in data) {
+            var e = data[title];
             e.classList.remove("show");
             e.classList.add("hide");
         }
