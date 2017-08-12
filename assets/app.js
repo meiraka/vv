@@ -515,19 +515,28 @@ vv.control = (function() {
         xhr.send(JSON.stringify(obj));
     }
     var update_stats = function() {
-        get_request("api/music/stats", "", function(ret) {
+        var ifmodified = "";
+        if (vv.storage.stats.last_modified) {
+            ifmodified = vv.storage.stats.last_modified;
+        }
+        get_request("api/music/stats", ifmodified, function(ret, modified) {
             if (!ret.error) {
                 vv.storage.stats = ret.data;
-                ret.data.last_modified_ms = (new Date()).getTime();
+                vv.storage.stats.last_modified_ms = (new Date()).getTime();
+                vv.storage.stats.last_modified = modified;
                 raiseEvent("stats");
             }
         });
     }
     var update_version = function() {
-        get_request("api/version", "", function(ret) {
+        var ifmodified = "";
+        if (vv.storage.version.last_modified) {
+            ifmodified = vv.storage.version.last_modified;
+        }
+        get_request("api/version", ifmodified, function(ret, modified) {
             if (!ret.error) {
                 vv.storage.version = ret.data;
-                ret.data.last_modified_ms = (new Date()).getTime();
+                vv.storage.version.last_modified = modified;
                 raiseEvent("version");
             }
         });
@@ -535,7 +544,7 @@ vv.control = (function() {
 
     var rescan_library = function() {
         post_request("api/music/library", {"action": "rescan"});
-        vv.storage.control.update_library = true;
+        vv.storage.control.apdate_library = true;
         raiseEvent("control");
     }
 
