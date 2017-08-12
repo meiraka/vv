@@ -486,6 +486,8 @@ vv.control = (function() {
             }
         }
         xhr.open("GET", path, true);
+        xhr.setRequestHeader('Pragma', 'no-cache');
+        xhr.setRequestHeader('Cache-Control', 'no-cache');
         if (ifmodified != "") {
             xhr.setRequestHeader("If-Modified-Since", ifmodified);
         }
