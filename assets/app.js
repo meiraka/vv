@@ -4,7 +4,16 @@ var vv = vv || {
     songs: {},
     storage: {},
     model: {list: {}},
-    view: {header: {}, background: {}, main: {}, list: {}, system: {}, footer: {}, elapsed: {}, modal: {help: {}}},
+    view: {
+        header: {},
+        background: {},
+        main: {},
+        list: {},
+        system: {},
+        footer: {},
+        popup: {},
+        elapsed: {},
+        modal: {help: {}}},
     control : {},
 };
 vv.obj = (function(){
@@ -451,21 +460,9 @@ vv.control = (function() {
             e.addEventListener("click", f);
         }
     };
-    var err_hide = 0;
-    var err_timeout = function(description) {
+    var err_timeout = function(title) {
         return function() {
-            var e = document.getElementById("error");
-            err_hide = (new Date()).getTime();
-            e.getElementsByClassName("title")[0].textContent = "timeout";
-            e.getElementsByClassName("description")[0].textContent = description;
-            setTimeout(function() {
-                if (err_hide + 4000 < (new Date()).getTime()) {
-                    e.classList.remove("show");
-                    e.classList.add("hide");
-                }
-            }, 5000);
-            e.classList.remove("hide");
-            e.classList.add("show");
+            vv.view.popup(title, "Timeout");
         }
     }
 
@@ -627,8 +624,12 @@ vv.control = (function() {
         post_request("api/music/outputs/" + id, {"outputenabled": on})
     }
 
+    var notify_last_update = (new Date()).getTime();
     var listennotify = function() {
         var uri = "ws://" + location.host + "/api/music/notify";
+        if (ws != null) {
+            ws.close();
+        }
         var ws = new WebSocket(uri);
         ws.onmessage = function(e) {
             if (e && e.data) {
@@ -647,6 +648,7 @@ vv.control = (function() {
                 else if (e.data == "stats") {
                     update_stats();
                 }
+                notify_last_update = (new Date()).getTime();
             }
         };
         ws.onclose = function() { setTimeout(listennotify, 1000) };
@@ -663,7 +665,12 @@ vv.control = (function() {
         var polling = function() {
             if (!vv.storage.preferences.system.use_websocket) {
                 update_all();
+            } else if ((new Date()).getTime() - 10000 > notify_last_update) {
+                update_all();
+                vv.view.popup.show("WebSocket", "Reconnecting");
+                setTimeout(listennotify, 1000);
             }
+
             raiseEvent("poll");
             setTimeout(polling, 1000);
         }
@@ -1416,6 +1423,24 @@ vv.view.footer = (function(){
     return {
         height: height,
     }
+}());
+vv.view.popup = (function(){
+    var show = function(title, description) {
+        var e = document.getElementById("popup");
+        e.getElementsByClassName("popup-title")[0].textContent = title;
+        e.getElementsByClassName("popup-description")[0].textContent = description;
+        e.classList.remove("hide");
+        e.classList.add("show");
+        e.timestamp = (new Date()).getTime();
+        setTimeout(function() {
+            if ((new Date()).getTime() - e.timestamp > 4000) {
+                e.classList.remove("show");
+                e.classList.add("hide");
+            }}, 5000);
+    }
+    return {
+        "show": show,
+    };
 }());
 vv.view.elapsed = (function() {
     var update = function() {

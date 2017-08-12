@@ -680,7 +680,7 @@ footer {
   text-shadow: 0 0 0 #404040;
 }
 
-.error-popup {
+.popup {
   position: fixed;
   top: 40px;
   right: -400px;
@@ -691,33 +691,33 @@ footer {
   z-index: 101;
 }
 
-.dark .error-popup {
+.dark .popup {
   background-color: #404040;
 }
 
-.error-popup.hide {
+.popup.hide {
   display: none;
 }
 
-.animation .error-popup.hide {
+.animation .popup.hide {
   display: block;
-  animation: error-hide 0.3s linear 0s;
+  animation: popup-hide 0.3s linear 0s;
 }
 
-.error-popup.show {
+.popup.show {
   display: block;
   right: 0;
 }
 
-.animation .error-popup.show {
-  animation: error-show 0.3s linear 0s;
+.animation .popup.show {
+  animation: popup-show 0.3s linear 0s;
 }
 
-.error-popup > * {
+.popup > * {
   margin: 10px;
 }
 
-@keyframes error-show {
+@keyframes popup-show {
   from {
     right: -400px;
   }
@@ -727,7 +727,7 @@ footer {
   }
 }
 
-@keyframes error-hide {
+@keyframes popup-hide {
   from {
     right: 0;
   }
