@@ -635,16 +635,16 @@ vv.control = (function() {
                 if (e.data == "library") {
                     update_library();
                 }
-                if (e.data == "status") {
+                else if (e.data == "status") {
                     update_status();
                 }
-                if (e.data == "current") {
+                else if (e.data == "current") {
                     update_song();
                 }
-                if (e.data == "outputs") {
+                else if (e.data == "outputs") {
                     update_outputs();
                 }
-                if (e.data == "stats") {
+                else if (e.data == "stats") {
                     update_stats();
                 }
             }
