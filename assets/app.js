@@ -471,8 +471,15 @@ vv.control = (function() {
         xhr.timeout = 1000;
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4) {
-                if (xhr.status == 200 && callback) {
-                    callback(JSON.parse(xhr.responseText), xhr.getResponseHeader("Last-Modified"));
+                if (xhr.status == 200 || xhr.status == 304) {
+                    if (xhr.status == 200 && callback) {
+                        callback(JSON.parse(xhr.responseText), xhr.getResponseHeader("Last-Modified"));
+                    }
+                    return;
+                }
+                vv.view.popup.show("GET "+path, xhr.statusText);
+                if (vv.storage.preferences.system.use_websocket) {
+                    setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
                 }
             }
         };
@@ -485,9 +492,10 @@ vv.control = (function() {
         xhr.open("GET", path, true);
         xhr.setRequestHeader('Pragma', 'no-cache');
         xhr.setRequestHeader('Cache-Control', 'no-cache');
-        if (ifmodified != "") {
-            xhr.setRequestHeader("If-Modified-Since", ifmodified);
+        if (ifmodified == "") {
+            ifmodified = 'Thu, 01 Jun 1970 00:00:00 GMT';
         }
+        xhr.setRequestHeader("If-Modified-Since", ifmodified);
         xhr.send();
     }
 
@@ -649,6 +657,9 @@ vv.control = (function() {
                     update_stats();
                 }
                 notify_last_update = (new Date()).getTime();
+                if (vv.view.popup.exists("WebSocket")) {
+                    vv.view.popup.hide("WebSocket");
+                }
             }
         };
         ws.onclose = function() { setTimeout(listennotify, 1000) };
@@ -668,7 +679,7 @@ vv.control = (function() {
             } else if ((new Date()).getTime() - 10000 > notify_last_update) {
                 update_all();
                 vv.view.popup.show("WebSocket", "Reconnecting");
-                setTimeout(listennotify, 1000);
+                setTimeout(listennotify);
             }
 
             raiseEvent("poll");
@@ -1246,6 +1257,11 @@ vv.view.system = (function() {
                 update_time();
             }
         });
+        vv.control.addEventListener("stats", function() {
+            if (document.getElementById("system-stats").classList.contains("on")) {
+                update();
+            }
+        });
         var show = mkshow("system-stats", "system-tab-stats");
         var show_update = function() {
             update();
@@ -1425,6 +1441,10 @@ vv.view.footer = (function(){
     }
 }());
 vv.view.popup = (function(){
+    var exists = function(title) {
+        var e = document.getElementById("popup");
+        return e.getElementsByClassName("popup-title")[0].textContent == title;
+    }
     var show = function(title, description) {
         var e = document.getElementById("popup");
         e.getElementsByClassName("popup-title")[0].textContent = title;
@@ -1438,8 +1458,17 @@ vv.view.popup = (function(){
                 e.classList.add("hide");
             }}, 5000);
     }
+    var hide = function(title) {
+        if (exists(title)) {
+            var e = document.getElementById("popup");
+            e.classList.remove("show");
+            e.classList.add("hide");
+        }
+    }
     return {
+        "exists": exists,
         "show": show,
+        "hide": hide,
     };
 }());
 vv.view.elapsed = (function() {
