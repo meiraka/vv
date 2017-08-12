@@ -208,6 +208,7 @@ func (p *Player) Subscribe(c chan string) {
 	defer p.mutex.Unlock()
 	if p.stats != nil {
 		p.stats["subscribers"] = strconv.Itoa(len(p.subscribers))
+		p.statsModifiled = time.Now()
 	}
 }
 
@@ -229,6 +230,7 @@ func (p *Player) Unsubscribe(c chan string) {
 	defer p.mutex.Unlock()
 	if p.stats != nil {
 		p.stats["subscribers"] = strconv.Itoa(len(p.subscribers))
+		p.statsModifiled = time.Now()
 	}
 }
 
