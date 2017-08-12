@@ -109,7 +109,7 @@ header {
   box-sizing: border-box;
 }
 
-.fit.hide {
+#background-image.hide {
   display: none;
 }
 
@@ -117,6 +117,9 @@ header {
   z-index: 0;
   background-size: cover;
   filter: blur(0px);
+  margin: -5%;
+  height: 110%;
+  width: 110%;
 }
 
 #background-overlay {
