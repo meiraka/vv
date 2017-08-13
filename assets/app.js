@@ -477,11 +477,10 @@ vv.control = (function() {
                     }
                     return;
                 }
-                var description = xhr.statusText;
-                if (!description) {
-                    description = "[empty xhr.statusText status="+xhr.status+"]";
+                // error handling
+                if (xhr.status != 0) {
+                    vv.view.popup.show("GET "+path, xhr.statusText);
                 }
-                vv.view.popup.show("GET "+path, description);
                 if (vv.storage.preferences.system.use_websocket) {
                     setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
                 }
