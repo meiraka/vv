@@ -668,28 +668,34 @@ vv.control = (function() {
                 else if (e.data == "stats") {
                     update_stats();
                 }
-                notify_last_update = (new Date()).getTime();
+                var new_notify_last_update = (new Date()).getTime();
+                if (new_notify_last_update - notify_last_update > 10000) {
+                    // recover lost notification
+                    update_all();
+                }
+                notify_last_update = new_notify_last_update;
+
                 if (vv.view.popup.exists("WebSocket")) {
                     vv.view.popup.hide("WebSocket");
                 }
             }
         };
         ws.onclose = function() { setTimeout(listennotify, 1000) };
-    }
+    };
+
+    var update_all = function() {
+        update_version();
+        update_song();
+        update_status();
+        update_library();
+        update_stats();
+    };
 
     var init = function() {
-        var update_all = function() {
-            update_version();
-            update_song();
-            update_status();
-            update_library();
-            update_stats();
-        }
         var polling = function() {
             if (!vv.storage.preferences.system.use_websocket) {
                 update_all();
             } else if ((new Date()).getTime() - 10000 > notify_last_update) {
-                update_all();
                 vv.view.popup.show("WebSocket", "Reconnecting");
                 setTimeout(listennotify);
             }
