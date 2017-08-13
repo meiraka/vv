@@ -671,16 +671,21 @@ vv.control = (function() {
                 var new_notify_last_update = (new Date()).getTime();
                 if (new_notify_last_update - notify_last_update > 10000) {
                     // recover lost notification
+                    vv.view.popup.show("WebSocket", "Socket lost some notifications. Reconnecting");
                     update_all();
+                    ws.onclose = function() {};
+                    ws.close();
+                    setTimeout(listennotify)
                 }
                 notify_last_update = new_notify_last_update;
 
-                if (vv.view.popup.exists("WebSocket")) {
-                    vv.view.popup.hide("WebSocket");
-                }
             }
         };
-        ws.onclose = function() { setTimeout(listennotify, 1000) };
+        ws.onclose = function() {
+            vv.view.popup.show("WebSocket", "Socket is closed. Reconnecting");
+            notify_last_update = (new Date()).getTime();
+            setTimeout(listennotify, 1000)
+        };
     };
 
     var update_all = function() {
@@ -696,7 +701,7 @@ vv.control = (function() {
             if (!vv.storage.preferences.system.use_websocket) {
                 update_all();
             } else if ((new Date()).getTime() - 10000 > notify_last_update) {
-                vv.view.popup.show("WebSocket", "Reconnecting");
+                vv.view.popup.show("WebSocket", "Socket does not respond properly. Reconnecting");
                 setTimeout(listennotify);
             }
 
