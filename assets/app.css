@@ -682,7 +682,7 @@ footer {
 
 #popup-box {
   position: fixed;
-  top: 40px;
+  top: 70px;
   right: 0;
   z-index: 101;
 }
@@ -696,6 +696,8 @@ footer {
   transition: padding 0.2s linear 0s, height 0.2s linear 0s;
   overflow: hidden;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .dark .popup {
@@ -709,11 +711,14 @@ footer {
 
 .popup.show {
   padding: 5px;
-  height: 72px;
+  height: 90px;
 }
 
-.popup > * {
-  margin: 10px;
+.popup-title {
+  margin: 5px;
+}
+.popup-description {
+  margin: 5px;
 }
 
 button {
