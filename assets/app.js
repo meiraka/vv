@@ -648,9 +648,13 @@ vv.control = (function() {
     var listennotify = function() {
         var uri = "ws://" + location.host + "/api/music/notify";
         if (ws != null) {
+            ws.onclose = function() {};
             ws.close();
         }
         var ws = new WebSocket(uri);
+        ws.onopen = function() {
+            update_all();
+        }
         ws.onmessage = function(e) {
             if (e && e.data) {
                 if (e.data == "library") {
@@ -672,9 +676,6 @@ vv.control = (function() {
                 if (new_notify_last_update - notify_last_update > 10000) {
                     // recover lost notification
                     vv.view.popup.show("WebSocket", "Socket lost some notifications. Reconnecting");
-                    update_all();
-                    ws.onclose = function() {};
-                    ws.close();
                     setTimeout(listennotify)
                 }
                 notify_last_update = new_notify_last_update;
@@ -715,7 +716,6 @@ vv.control = (function() {
         };
         show[vv.storage.last_state]();
         raiseEvent("start");
-        update_all();
         if (vv.storage.preferences.system.use_websocket) {
             listennotify();
         }
