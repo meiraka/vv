@@ -189,6 +189,8 @@ vv.storage = (function(){
             localStorage.tree = JSON.stringify(data.tree);
             localStorage.preferences = JSON.stringify(data.preferences);
             localStorage.last_state = data.last_state;
+            localStorage.current = JSON.stringify(data.current);
+            localStorage.current_last_modified = data.current_last_modified;
         } catch (e) {
             // private browsing
         }
@@ -209,6 +211,12 @@ vv.storage = (function(){
             }
             if (localStorage.last_state) {
                 data.last_state = localStorage.last_state;
+            }
+            if (localStorage.current) {
+                data.current = JSON.parse(localStorage.current);
+            }
+            if (localStorage.current_last_modified) {
+                data.current_last_modified = localStorage.current_last_modified;
             }
         } catch (e) {
             // private browsing
@@ -557,13 +565,16 @@ vv.control = (function() {
                 var song = ret.data? ret.data : {};
                 vv.storage.current = song;
                 vv.storage.current_last_modified = modified;
-                if (vv.model.list.rootname() != "root" && vv.storage.preferences.playback.view_follow && song.file) {
-                    vv.model.list.abs(song);
-                }
+                vv.storage.save();
                 raiseEvent("current")
             }
         });
     };
+    addEventListener("current", function() {
+        if (vv.model.list.rootname() != "root" && vv.storage.preferences.playback.view_follow && vv.storage.current.file) {
+            vv.model.list.abs(vv.storage.current);
+        }
+    });
 
     var update_status = function() {
         get_request("api/music/control", vv.storage.control_last_modified, function(ret, modified) {
@@ -716,6 +727,9 @@ vv.control = (function() {
         };
         show[vv.storage.last_state]();
         raiseEvent("start");
+        if (vv.storage.current && vv.storage.current_last_modified) {
+            raiseEvent("current");
+        }
         if (vv.storage.preferences.system.use_websocket) {
             listennotify();
         }
