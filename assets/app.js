@@ -168,7 +168,7 @@ vv.storage = (function(){
     var outputs_last_modified = "";
     var stats = {};
     var preferences = {
-        "volume": {"show": true, "max": 100}, "playback": {"view_follow": true},
+        "volume": {"show": true, "max": "100"}, "playback": {"view_follow": true},
         "appearance": {"dark": false, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true, "auto_hide_scrollbar": true},
         "system": {"use_websocket": true},
     };
@@ -176,7 +176,7 @@ vv.storage = (function(){
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
         preferences.appearance.dark = true;
         preferences.appearance.animation = false;
-        preferences.appearance.background_image_blur = 0;
+        preferences.appearance.background_image_blur = "0";
         preferences.appearance.circled_image = false;
         preferences.volume.show = false;
     }
@@ -429,7 +429,7 @@ vv.model.list = (function() {
             return {"key": key, "song": v[0], "style": style, "isdir": true};
         } else if (vv.storage.tree.length == 2) {
             return {"key": "top", "song": {"top": root}, "style": "plain", "isdir": true};
-        } 
+        }
         return {"key": "root", "song": {"root": "Library"}, "style": "plain", "isdir": true};
     };
     return {
@@ -1093,7 +1093,6 @@ vv.view.system = (function() {
     }
     var preferences = (function() {
         vv.control.addEventListener('start', function() {
-            // TODO: fix loop unrolling
             var update_theme = function() {
                 if (vv.storage.preferences.appearance.dark) {
                     document.body.classList.add("dark");
@@ -1101,21 +1100,8 @@ vv.view.system = (function() {
                     document.body.classList.remove("dark");
                 }
             };
+            vv.control.addEventListener("preferences", update_theme);
             update_theme();
-            var dark = document.getElementById("appearance-dark");
-            dark.checked = vv.storage.preferences.appearance.dark;
-            dark.addEventListener("change", function() {
-                vv.storage.preferences.appearance.dark = this.checked;
-                vv.storage.save();
-                update_theme();
-                vv.control.raiseEvent("preferences");
-            });
-            dark.addEventListener("change", function() {
-                vv.storage.preferences.appearance.dark = this.checked;
-                vv.storage.save();
-                update_theme();
-                vv.control.raiseEvent("preferences");
-            });
             var update_animation = function() {
                 if (vv.storage.preferences.appearance.animation) {
                     document.body.classList.add("animation");
@@ -1123,43 +1109,35 @@ vv.view.system = (function() {
                     document.body.classList.remove("animation");
                 }
             };
+            vv.control.addEventListener("preferences", update_animation);
             update_animation();
-            var animation = document.getElementById("appearance-animation");
-            animation.checked = vv.storage.preferences.appearance.animation;
-            animation.addEventListener("change", function() {
-                vv.storage.preferences.appearance.animation = this.checked;
-                vv.storage.save();
-                update_animation();
-                vv.control.raiseEvent("preferences");
-            });
-            var background_image = document.getElementById("appearance-background-image");
-            background_image.checked = vv.storage.preferences.appearance.background_image;
-            background_image.addEventListener("change", function() {
-                vv.storage.preferences.appearance.background_image = this.checked;
-                vv.storage.save();
-                vv.control.raiseEvent("preferences");
-            });
-            var background_image_blur = document.getElementById("appearance-background-image-blur");
-            background_image_blur.value = String(vv.storage.preferences.appearance.background_image_blur);
-            background_image_blur.addEventListener("change", function() {
-                vv.storage.preferences.appearance.background_image_blur = parseInt(this.value);
-                vv.storage.save();
-                vv.control.raiseEvent("preferences");
-            });
-            var circled_image = document.getElementById("appearance-circled-image");
-            circled_image.checked = vv.storage.preferences.appearance.circled_image;
-            circled_image.addEventListener("change", function() {
-                vv.storage.preferences.appearance.circled_image = this.checked;
-                vv.storage.save();
-                vv.control.raiseEvent("preferences");
-            });
-            var auto_hide_scrollbar = document.getElementById("appearance-auto-hide-scrollbar");
-            auto_hide_scrollbar.checked = vv.storage.preferences.appearance.auto_hide_scrollbar;
-            auto_hide_scrollbar.addEventListener("change", function() {
-                vv.storage.preferences.appearance.auto_hide_scrollbar = this.checked;
-                vv.storage.save();
-                vv.control.raiseEvent("preferences");
-            });
+            var initconfig = function(id) {
+                var obj = document.getElementById(id);
+                var s = id.indexOf("-");
+                var mainkey = id.slice(0, s);
+                var subkey = id.slice(s+1).replace(/-/g, "_");
+                var getter = null;
+                if (obj.type == "checkbox") {
+                    obj.checked = vv.storage.preferences[mainkey][subkey];
+                    getter = function() {return obj.checked;};
+                } else if (obj.tagName.toLowerCase() == "select") {
+                    obj.value = String(vv.storage.preferences[mainkey][subkey]);
+                    getter = function() {return obj.value;};
+                }
+                obj.addEventListener("change", function() {
+                    vv.storage.preferences[mainkey][subkey] = getter();
+                    vv.storage.save();
+                    vv.control.raiseEvent("preferences");
+                });
+            }
+
+
+            initconfig("appearance-dark");
+            initconfig("appearance-animation");
+            initconfig("appearance-background-image");
+            initconfig("appearance-background-image-blur");
+            initconfig("appearance-circled-image");
+            initconfig("appearance-auto-hide-scrollbar");
             var use_websocket = document.getElementById("system-use-websocket");
             use_websocket.checked = vv.storage.preferences.system.use_websocket;
             use_websocket.addEventListener("change", function() {
@@ -1167,27 +1145,9 @@ vv.view.system = (function() {
                 vv.storage.save();
                 location.reload();
             });
-            var playback_view_follow = document.getElementById("playback_view_follow");
-            playback_view_follow.checked = vv.storage.preferences.playback.view_follow;
-            playback_view_follow.addEventListener("change", function() {
-                vv.storage.preferences.playback.view_follow = this.checked;
-                vv.storage.save();
-                vv.control.raiseEvent("preferences");
-            });
-            var show_volume = document.getElementById("show_volume");
-            show_volume.checked = vv.storage.preferences.volume.show;
-            show_volume.addEventListener("change", function() {
-                vv.storage.preferences.volume.show = this.checked;
-                vv.storage.save();
-                vv.control.raiseEvent("preferences");
-            });
-            var max_volume = document.getElementById("max_volume");
-            max_volume.value = String(vv.storage.preferences.volume.max);
-            max_volume.addEventListener("change", function() {
-                vv.storage.preferences.volume.max = parseInt(this.value);
-                vv.storage.save();
-                vv.control.raiseEvent("preferences");
-            });
+            initconfig("playback-view-follow");
+            initconfig("volume-show");
+            initconfig("volume-max");
             var rescan = document.getElementById("library-rescan");
             vv.control.click(rescan, function() {
                 vv.control.rescan_library();
