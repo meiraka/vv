@@ -656,6 +656,7 @@ vv.control = (function() {
     }
 
     var notify_last_update = (new Date()).getTime();
+    var notify_err_cnt = 0;
     var listennotify = function() {
         var uri = "ws://" + location.host + "/api/music/notify";
         if (ws != null) {
@@ -686,16 +687,18 @@ vv.control = (function() {
                 var new_notify_last_update = (new Date()).getTime();
                 if (new_notify_last_update - notify_last_update > 10000) {
                     // recover lost notification
-                    vv.view.popup.show("WebSocket", "Socket lost some notifications. Reconnecting");
-                    setTimeout(listennotify)
+                    setTimeout(listennotify);
                 }
                 notify_last_update = new_notify_last_update;
-
+                notify_err_cnt = 0;
             }
         };
         ws.onclose = function() {
-            vv.view.popup.show("WebSocket", "Socket is closed. Reconnecting");
+            if (notify_err_cnt > 0) {
+                vv.view.popup.show("WebSocket", "Socket is closed. Reconnecting");
+            }
             notify_last_update = (new Date()).getTime();
+            notify_err_cnt++;
             setTimeout(listennotify, 1000)
         };
     };
