@@ -10,6 +10,7 @@ body {
   padding: 0;
   font-family: Arial,sans-serif;
   color: #303030;
+  transition: color 0.2s 0s ease;
 }
 
 body.dark {
@@ -21,6 +22,10 @@ input::-moz-focus-inner,
 input[type=range]::-moz-focus-outer,
 button::-moz-focus-inner {
   border: 0;
+}
+
+svg path {
+  transition: stroke 0.2s 0s ease, fill 0.2s 0s ease;
 }
 
 svg .fill {
@@ -46,6 +51,7 @@ svg .stroke {
 .note li {
   margin-top: 1px;
   border-bottom: dashed 1px #404040;
+  transition: border-bottom 0.2s 0s ease;
 }
 
 .dark .note li {
@@ -59,11 +65,12 @@ footer {
 }
 
 .background-overlay {
-  background: rgba(255, 255, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.4);
+  transition: background-color 0.2s 0s ease;
 }
 
 .dark .background-overlay {
-  background: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 header {
@@ -540,6 +547,7 @@ footer {
   height: 4px;
   border-radius: 4px;
   outline: none;
+  transition: background-color 0.2s 0s ease;
 }
 
 .dark .config-range {
@@ -550,6 +558,7 @@ footer {
   -moz-appearance: none;
   appearance: none;
   background-color: #404040;
+  transition: background-color 0.2s 0s ease;
 }
 
 .dark .config-range::-moz-range-track {
@@ -564,6 +573,7 @@ footer {
   height: 30px;
   border-radius: 30px;
   background-color: #ffffff;
+  transition: border 0.2s 0s ease, background-color 0.2s 0s ease;
 }
 
 .dark .config-range::-webkit-slider-thumb {
