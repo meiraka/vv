@@ -525,6 +525,67 @@ footer {
   padding: 8px 0;
 }
 
+#system .note li .value-expand {
+  flex: 1 1 auto;
+}
+
+.config-range {
+  padding: 0;
+  margin: 20px 0;
+  box-sizing: border-box;
+  width: 100%;
+  background-color: #404040;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 4px;
+  outline: none;
+}
+
+.dark .config-range {
+  background-color: #e0e0e0;
+}
+
+.config-range::-moz-range-track {
+  -moz-appearance: none;
+  appearance: none;
+  background-color: #404040;
+}
+
+.dark .config-range::-moz-range-track {
+  background-color: #e0e0e0;
+}
+
+.config-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  border: solid 3px #404040;
+  width: 30px;
+  height: 30px;
+  border-radius: 30px;
+  background-color: #ffffff;
+}
+
+.dark .config-range::-webkit-slider-thumb {
+  border: solid 3px #e0e0e0;
+  background-color: #202020;
+}
+
+.config-range::-moz-range-thumb {
+  -moz-appearance: none;
+  appearance: none;
+  border: solid 3px #404040;
+  width: 30px;
+  height: 30px;
+  border-radius: 30px;
+  background-color: #ffffff;
+}
+
+.dark .config-range::-moz-range-thumb {
+  border: solid 3px #e0e0e0;
+  background-color: #202020;
+}
+
 .switch {
   margin: 5px;
   width: 100px;
@@ -717,6 +778,7 @@ footer {
 .popup-title {
   margin: 5px;
 }
+
 .popup-description {
   margin: 5px;
 }

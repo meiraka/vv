@@ -169,12 +169,12 @@ vv.storage = (function(){
     var stats = {};
     var preferences = {
         "volume": {"show": true, "max": "100"}, "playback": {"view_follow": true},
-        "appearance": {"dark": false, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true, "auto_hide_scrollbar": true},
+        "appearance": {"color_threshold": 128, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true, "auto_hide_scrollbar": true},
         "system": {"use_websocket": true},
     };
     // Presto Opera
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
-        preferences.appearance.dark = true;
+        preferences.appearance.color_threshold = 256;
         preferences.appearance.animation = false;
         preferences.appearance.background_image_blur = "0";
         preferences.appearance.circled_image = false;
@@ -770,6 +770,23 @@ vv.control = (function() {
 }());
 
 vv.view.background = (function() {
+    var color = 128;
+    var calc_color = function(path) {
+        var canvas = document.createElement("canvas").getContext('2d');
+        var img = new Image();
+        img.onload = function() {
+            canvas.drawImage(img, 0, 0, 5, 5);
+            var d = canvas.getImageData(0, 0, 5, 5).data;
+            var i = 0;
+            var newcolor = 0;
+            for (i = 0; i < d.length; i++) {
+                newcolor+=d[i];
+            }
+            color = newcolor / d.length;
+            update_theme();
+        }
+        img.src = path;
+    }
     var update = function() {
         var e = document.getElementById("background-image");
         if (vv.storage.preferences.appearance.background_image) {
@@ -779,15 +796,27 @@ vv.view.background = (function() {
             if (vv.storage.current.cover) {
                 cover = "/music_directory/" + vv.storage.current.cover;
             }
-            e.style.backgroundImage = 'url("'+cover+'")';
+            var newimage = 'url("'+cover+'")';
+            if (e.style.backgroundImage != newimage) {
+                calc_color(cover);
+                e.style.backgroundImage = newimage;
+            }
             e.style.filter = "blur(" + vv.storage.preferences.appearance.background_image_blur + "px)";
         } else {
             e.classList.add("hide");
             document.getElementById("background-image").classList.add("hide");
         }
     };
+    var update_theme = function() {
+        if (color < vv.storage.preferences.appearance.color_threshold) {
+            document.body.classList.add("dark");
+        } else {
+            document.body.classList.remove("dark");
+        }
+    };
     vv.control.addEventListener("current", update);
     vv.control.addEventListener("preferences", update);
+    vv.control.addEventListener("preferences", update_theme);
     vv.control.addEventListener("start", update);
 }());
 
@@ -1093,15 +1122,6 @@ vv.view.system = (function() {
     }
     var preferences = (function() {
         vv.control.addEventListener('start', function() {
-            var update_theme = function() {
-                if (vv.storage.preferences.appearance.dark) {
-                    document.body.classList.add("dark");
-                } else {
-                    document.body.classList.remove("dark");
-                }
-            };
-            vv.control.addEventListener("preferences", update_theme);
-            update_theme();
             var update_animation = function() {
                 if (vv.storage.preferences.appearance.animation) {
                     document.body.classList.add("animation");
@@ -1123,6 +1143,9 @@ vv.view.system = (function() {
                 } else if (obj.tagName.toLowerCase() == "select") {
                     obj.value = String(vv.storage.preferences[mainkey][subkey]);
                     getter = function() {return obj.value;};
+                } else if (obj.type == "range") {
+                    obj.value = String(vv.storage.preferences[mainkey][subkey]);
+                    getter = function() {return parseInt(obj.value);};
                 }
                 obj.addEventListener("change", function() {
                     vv.storage.preferences[mainkey][subkey] = getter();
@@ -1132,7 +1155,7 @@ vv.view.system = (function() {
             }
 
 
-            initconfig("appearance-dark");
+            initconfig("appearance-color-threshold");
             initconfig("appearance-animation");
             initconfig("appearance-background-image");
             initconfig("appearance-background-image-blur");
