@@ -593,6 +593,7 @@ footer {
   height: 30px;
   border-radius: 30px;
   background-color: #ffffff;
+  transition: border 0.2s 0s ease, background-color 0.2s 0s ease;
 }
 
 .dark .config-range::-moz-range-thumb {
