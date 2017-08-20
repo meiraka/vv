@@ -218,6 +218,14 @@ vv.storage = (function(){
             if (localStorage.current_last_modified) {
                 data.current_last_modified = localStorage.current_last_modified;
             }
+            // Presto Opera
+            if (navigator.userAgent.indexOf("Presto/2") > 1) {
+                data.preferences.appearance.animation = false;
+            }
+            // Mobile
+            if (navigator.userAgent.indexOf("Mobile") > 1) {
+                data.preferences.appearance.auto_hide_scrollbar = false;
+            }
         } catch (e) {
             // private browsing
         }
@@ -1154,6 +1162,14 @@ vv.view.system = (function() {
                 });
             }
 
+            // Presto Opera
+            if (navigator.userAgent.indexOf("Presto/2") > 1) {
+                document.getElementById("config-appearance-animation").classList.add("hide");
+            }
+            // Mobile
+            if (navigator.userAgent.indexOf("Mobile") > 1) {
+                document.getElementById("config-appearance-auto-hide-scrollbar").classList.add("hide");
+            }
 
             initconfig("appearance-color-threshold");
             initconfig("appearance-animation");

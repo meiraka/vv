@@ -523,6 +523,10 @@ footer {
   display: flex;
 }
 
+#system .note li.hide {
+  display: none;
+}
+
 #system .note li .description {
   font-size: 18px;
   overflow: hidden;
