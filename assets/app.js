@@ -725,7 +725,7 @@ vv.view.background = (function() {
             e.classList.remove("hide");
             document.getElementById("background-image").classList.remove("hide");
             var cover = "/assets/nocover.svg";
-            if (vv.storage.current.cover) {
+            if (vv.storage.current && vv.storage.current.cover) {
                 cover = "/music_directory/" + vv.storage.current.cover;
             }
             var newimage = 'url("'+cover+'")';
