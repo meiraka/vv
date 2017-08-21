@@ -1187,10 +1187,16 @@ vv.view.system = (function() {
         }
         var strtimedelta = function(i) {
             var ud = parseInt(i / (24*60*60));
+            var uds = "";
+            if (ud == 1) {
+                uds = "1 day, ";
+            } else if (ud != 0) {
+                uds = ud + " days, ";
+            }
             var uh = parseInt((i - ud*24*60*60) / (60*60));
             var um = parseInt((i - ud*24*60*60 - uh*60*60) / 60);
             var us = parseInt(i - ud*24*60*60 - uh*60*60 - um*60);
-            return ud + " days, " + zfill2(uh) + ":" + zfill2(um) + ":" + zfill2(us);
+            return uds + zfill2(uh) + ":" + zfill2(um) + ":" + zfill2(us);
         }
 
         var update = function() {
@@ -1203,13 +1209,13 @@ vv.view.system = (function() {
             var db_update_yyyymmdd = db_update.getFullYear()*1000+db_update.getMonth()*100+db_update.getDay;
             var db_update_str = "";
             var now = new Date();
-            var now_yyyymmdd = now.getFullYear()*1000+now.getMonth()*100+now.getDay;
+            var now_yyyymmdd = now.getFullYear()*1000+now.getMonth()*100+now.getDate;
             if (db_update_yyyymmdd == now_yyyymmdd) {
                 db_update_str += "today, ";
             } else if (db_update_yyyymmdd + 1 == now_yyyymmdd) {
                 db_update_str += "yesterday, ";
             } else {
-                db_update_str += db_update.getFullYear() + '.' + db_update.getMonth() + '.' + db_update.getDay() + ' ';
+                db_update_str += db_update.getFullYear() + '.' + db_update.getMonth() + '.' + db_update.getDate() + ' ';
             }
             db_update_str += db_update.getHours() + ":" + db_update.getMinutes() + ":" + db_update.getSeconds();
             document.getElementById("stat-db-update").textContent = db_update_str;
