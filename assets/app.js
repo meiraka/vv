@@ -757,13 +757,19 @@ vv.view.main = (function(){
         var c = document.getElementById("control-volume");
         c.max = vv.storage.preferences["volume"]["max"];
         if (vv.storage.preferences["volume"]["show"]) {
-            c.style.visibility = "visible";
+            c.classList.remove("hide");
         } else {
-            c.style.visibility = "hidden";
+            c.classList.add("hide");
         }
     };
     vv.control.addEventListener("control", function() {
-        document.getElementById("control-volume").value=vv.storage.control["volume"]
+        var c = document.getElementById("control-volume");
+        c.value=vv.storage.control.volume;
+        if (vv.storage.control.volume < 0) {
+            c.classList.add("disabled");
+        } else {
+            c.classList.remove("disabled");
+        }
     });
     vv.control.addEventListener("preferences", load_volume_preferences);
     var show = function() {
@@ -1094,6 +1100,16 @@ vv.view.system = (function() {
             if (navigator.userAgent.indexOf("Mobile") > 1) {
                 document.getElementById("config-appearance-auto-hide-scrollbar").classList.add("hide");
             }
+
+            vv.control.addEventListener("control", function() {
+                if (vv.storage.control.volume < 0) {
+                    document.getElementById("volume-header").classList.add("hide");
+                    document.getElementById("volume-all").classList.add("hide");
+                } else {
+                    document.getElementById("volume-header").classList.remove("hide");
+                    document.getElementById("volume-all").classList.remove("hide");
+                }
+            });
 
             initconfig("appearance-color-threshold");
             initconfig("appearance-animation");

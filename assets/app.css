@@ -48,6 +48,11 @@ svg .stroke {
   fill: none;
 }
 
+.note-header.hide,
+.note.hide {
+  display: none;
+}
+
 .note li {
   margin-top: 1px;
   border-bottom: dashed 1px #404040;
@@ -987,6 +992,11 @@ button {
   background: #404040;
   border-radius: 50px;
   flex: 1 1 auto;
+}
+
+#control-volume.hide,
+#control-volume.disabled {
+  visibility: hidden;
 }
 
 .dark #control-volume {

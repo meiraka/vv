@@ -75,14 +75,14 @@
     <article id="system-preferences" class="tab-page">
       <h1>Preferences</h1>
       <article>
-        <h3>System</h3>
+        <h3 class="note-header">System</h3>
         <ul class=note>
           <li>
             <button id=system-reload class="value button-simple" type="button">Reload Application</button>
         </ul>
       </article>
       <article>
-        <h3>Appearance</h3>
+        <h3 class="note-header">Appearance</h3>
         <ul class=note>
           <li>
             <div class="description">Color threshold</div>
@@ -113,14 +113,14 @@
         </ul>
       </article>
       <article>
-        <h3>Library</h3>
+        <h3 class="note-header">Library</h3>
         <ul class=note>
           <li>
             <button id=library-rescan class="value button-simple" type="button">Rescan</button>
         </ul>
       </article>
       <article>
-        <h3>Playback</h3>
+        <h3 class="note-header">Playback</h3>
         <ul class=note>
           <li>
             <div class="description">Listview follows playback</div>
@@ -128,8 +128,8 @@
         </ul>
       </article>
       <article>
-        <h3>Volume</h3>
-        <ul class=note>
+        <h3 class="note-header" id="volume-header">Volume</h3>
+        <ul class="note" id="volume-all">
           <li>
             <div class="description">Show volume nob</div>
             <div class="value switch"><input type="checkbox" id="volume-show"><label for="volume-show"></label></div>
@@ -146,7 +146,7 @@
         </ul>
       </article>
       <article>
-        <h3>Devices</h3>
+        <h3 class="note-header">Devices</h3>
         <ul class="devices note"></ul>
       </article>
     </article>
