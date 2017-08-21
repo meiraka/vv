@@ -155,7 +155,6 @@ vv.storage = (function(){
     var preferences = {
         "volume": {"show": true, "max": "100"}, "playback": {"view_follow": true},
         "appearance": {"color_threshold": 128, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true, "auto_hide_scrollbar": true},
-        "system": {"use_websocket": true},
     };
     // Presto Opera
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
@@ -475,16 +474,12 @@ vv.control = (function() {
                 if (xhr.status != 0) {
                     vv.view.popup.show("GET "+path, xhr.statusText);
                 }
-                if (vv.storage.preferences.system.use_websocket) {
-                    setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
-                }
+                setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
             }
         };
         xhr.ontimeout = function() {
             vv.view.popup("GET " + path, "Timeout");
-            if (vv.storage.preferences.system.use_websocket) {
-                setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
-            }
+            setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
         }
         xhr.open("GET", path, true);
         xhr.setRequestHeader('Pragma', 'no-cache');
@@ -645,9 +640,7 @@ vv.control = (function() {
 
     var init = function() {
         var polling = function() {
-            if (!vv.storage.preferences.system.use_websocket) {
-                update_all();
-            } else if ((new Date()).getTime() - 10000 > notify_last_update) {
+            if ((new Date()).getTime() - 10000 > notify_last_update) {
                 vv.view.popup.show("WebSocket", "Socket does not respond properly. Reconnecting");
                 setTimeout(listennotify);
             }
@@ -665,9 +658,7 @@ vv.control = (function() {
         if (vv.storage.current && vv.storage.last_modified.current) {
             raiseEvent("current");
         }
-        if (vv.storage.preferences.system.use_websocket) {
-            listennotify();
-        }
+        listennotify();
         polling();
     };
 
@@ -1110,13 +1101,6 @@ vv.view.system = (function() {
             initconfig("appearance-background-image-blur");
             initconfig("appearance-circled-image");
             initconfig("appearance-auto-hide-scrollbar");
-            var use_websocket = document.getElementById("system-use-websocket");
-            use_websocket.checked = vv.storage.preferences.system.use_websocket;
-            use_websocket.addEventListener("change", function() {
-                vv.storage.preferences.system.use_websocket = this.checked;
-                vv.storage.save();
-                location.reload();
-            });
             initconfig("playback-view-follow");
             initconfig("volume-show");
             initconfig("volume-max");
