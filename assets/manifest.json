@@ -1,0 +1,15 @@
+{
+    "short_name": "Music",
+    "name": "Web App client for Music Player Daemon",
+    "icons": [
+        {
+            "src": "/assets/app.svg",
+            "type": "image/svg+xml"
+        }
+    ],
+    "start_url": "/",
+    "theme_color": "#ffffff",
+    "background_color": "#ffffff",
+    "display": "standalone"
+}
+
