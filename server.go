@@ -16,6 +16,7 @@ import (
 )
 
 var version string
+var startTime time.Time
 
 const musicDirectory = "/music_directory/"
 
@@ -217,13 +218,16 @@ func (a *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiHandler) version(w http.ResponseWriter, r *http.Request) {
-	l := time.Now()
-	vvPostfix := ""
-	if a.devMode {
-		vvPostfix = vvPostfix + " dev mode"
+	if modifiedSince(r, startTime) {
+		vvPostfix := ""
+		if a.devMode {
+			vvPostfix = vvPostfix + " dev mode"
+		}
+		d := map[string]string{"vv": version + vvPostfix}
+		writeJSONInterface(w, d, startTime, nil)
+	} else {
+		notModified(w, startTime)
 	}
-	d := map[string]string{"vv": version + vvPostfix}
-	writeJSONInterface(w, d, l, nil)
 }
 
 func (a *apiHandler) notify(w http.ResponseWriter, r *http.Request) {
@@ -336,6 +340,7 @@ func makeHandle(p Music, c Config, bindata bool) http.Handler {
 
 // App serves http request.
 func App(p Music, c Config) {
+	startTime = time.Now()
 	handler := makeHandle(p, c, false)
 	http.ListenAndServe(fmt.Sprintf(":%s", c.Server.Port), handler)
 }

@@ -56,30 +56,42 @@ func TestMusicDirectory(t *testing.T) {
 func TestVersion(t *testing.T) {
 	m := new(MockMusic)
 	var testsets = []struct {
-		bindata   bool
-		vvVersion string
+		lastModified    time.Time
+		ifModifiedSince time.Time
+		bindata         bool
+		ret             int
+		vvVersion       string
 	}{
-		{true, version},
-		{false, version + " dev mode"},
+		{bindata: true, ret: 200, vvVersion: version},
+		{bindata: false, ret: 200, vvVersion: version + " dev mode"},
+		{lastModified: time.Unix(100, 0), ifModifiedSince: time.Unix(100, 0), ret: 304},
 	}
 	for _, tt := range testsets {
+		startTime = tt.lastModified
 		handler := makeHandle(m, Config{}, tt.bindata)
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
-		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(ts.URL + "/api/version") })
-		if res.StatusCode != 200 {
+		req, _ := http.NewRequest("GET", ts.URL+"/api/version", nil)
+		if !tt.ifModifiedSince.IsZero() {
+			req.Header.Set("If-Modified-Since", tt.ifModifiedSince.Format(http.TimeFormat))
+		}
+		client := new(http.Client)
+		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
+		if res.StatusCode != tt.ret {
 			t.Errorf("unexpected status %d", res.StatusCode)
 		}
-		defer res.Body.Close()
-		body, _ := ioutil.ReadAll(res.Body)
-		st := struct {
-			Data  map[string]string `json:"data"`
-			Error string            `json:"error"`
-		}{map[string]string{}, ""}
-		json.Unmarshal(body, &st)
-		actual := st.Data["vv"]
-		if actual != tt.vvVersion {
-			t.Errorf("unexpected vv version, actual: %s expect: %s", actual, tt.vvVersion)
+		if len(tt.vvVersion) > 0 {
+			defer res.Body.Close()
+			body, _ := ioutil.ReadAll(res.Body)
+			st := struct {
+				Data  map[string]string `json:"data"`
+				Error string            `json:"error"`
+			}{map[string]string{}, ""}
+			json.Unmarshal(body, &st)
+			actual := st.Data["vv"]
+			if actual != tt.vvVersion {
+				t.Errorf("unexpected vv version, actual: %s expect: %s", actual, tt.vvVersion)
+			}
 		}
 	}
 }
