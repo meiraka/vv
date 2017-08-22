@@ -2,7 +2,7 @@
 vv
 ==
 
-mpd client
+Web App client for Music Player Daemon
 
 .. image:: appendix/screenshot.jpg
    :alt: screenshot
