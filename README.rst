@@ -4,6 +4,9 @@ vv
 
 mpd client
 
+.. image:: appendix/screenshot.jpg
+   :alt: screenshot
+
 
 Configuration
 =============
