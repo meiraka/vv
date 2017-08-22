@@ -64,7 +64,6 @@ func notModified(w http.ResponseWriter, l time.Time) {
 
 type apiHandler struct {
 	player   Music
-	config   Config
 	upgrader websocket.Upgrader
 	devMode  bool
 }
@@ -297,7 +296,7 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 }
 
 func makeHandle(p Music, c Config, bindata bool) http.Handler {
-	api := apiHandler{player: p, config: c, devMode: false}
+	api := apiHandler{player: p, devMode: false}
 	h := http.NewServeMux()
 	h.HandleFunc("/api/version", api.version)
 	h.HandleFunc("/api/music/library", api.library)
