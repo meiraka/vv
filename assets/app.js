@@ -5,14 +5,10 @@ var vv = vv || {
     storage: {},
     model: {list: {}},
     view: {
-        header: {},
-        background: {},
         main: {},
         list: {},
         system: {},
-        footer: {},
         popup: {},
-        elapsed: {},
         modal: {help: {}}},
     control : {},
 };
@@ -518,9 +514,6 @@ vv.control = (function() {
         });
     }
 
-    var update_version = function() {
-        fetch("/api/version", "version");
-    }
 
     var rescan_library = function() {
         post_request("api/music/library", {"action": "rescan"});
@@ -528,9 +521,6 @@ vv.control = (function() {
         raiseEvent("control");
     }
 
-    var update_outputs = function() {
-        fetch("api/music/outputs", "outputs");
-    };
 
     var prev = function() {
         post_request("api/music/control", {"state": "prev"})
@@ -605,7 +595,7 @@ vv.control = (function() {
                     fetch("/api/music/songs/current", "current");
                 }
                 else if (e.data == "outputs") {
-                    update_outputs();
+                    fetch("api/music/outputs", "outputs");
                 }
                 else if (e.data == "stats") {
                     fetch("/api/music/stats", "stats");
@@ -630,8 +620,8 @@ vv.control = (function() {
     };
 
     var update_all = function() {
-        update_version();
-        update_outputs();
+        fetch("/api/version", "version");
+        fetch("api/music/outputs", "outputs");
         fetch("/api/music/songs/current", "current");
         fetch("api/music/control", "control");
         fetch("api/music/library", "library");
@@ -687,8 +677,6 @@ vv.control = (function() {
         raiseEvent: raiseEvent,
         click: click,
         rescan_library: rescan_library,
-        update_outputs: update_outputs,
-        update_version: update_version,
         prev: prev,
         play_pause: play_pause,
         next: next,
@@ -701,7 +689,8 @@ vv.control = (function() {
     };
 }());
 
-vv.view.background = (function() {
+// background
+(function() {
     var color = 128;
     var calc_color = function(path) {
         var canvas = document.createElement("canvas").getContext('2d');
@@ -1159,25 +1148,18 @@ vv.view.system = (function() {
             }
         }
         vv.control.addEventListener("outputs", update_devices);
-        var update_control = function() {
+        vv.control.addEventListener("control", function() {
             var e = document.getElementById("library-rescan");
-            if (vv.storage.control.update_library) {
+            if (vv.storage.control.update_library && !e.disabled) {
                 e.disabled = true;
                 e.textContent = "Rescanning";
-            } else {
+            } else if (!vv.storage.control.update_library && e.disabled) {
                 e.disabled = false;
                 e.textContent = "Rescan";
             }
-        }
-        vv.control.addEventListener("control", update_control);
-        var show = mkshow("system-preferences", "system-tab-preferences");
-        var show_update = function() {
-            vv.control.update_outputs();
-            update_control();
-            show();
-        };
+        });
         return {
-            'show': show_update,
+            'show': mkshow("system-preferences", "system-tab-preferences"),
             'hide': mkhide("system-preferences", "system-tab-preferences"),
         }
     })();
@@ -1252,20 +1234,13 @@ vv.view.system = (function() {
         }
     })();
     var info = (function() {
-        var update = function() {
+        vv.control.addEventListener("version", function() {
             if (vv.storage.version.vv) {
                 document.getElementById("version").textContent = vv.storage.version.vv;
             }
-        }
-        vv.control.addEventListener("version", update);
-        var show = mkshow("system-info", "system-tab-info");
-        var show_update = function() {
-            vv.control.update_version();
-            update();
-            show();
-        }
+        });
         return {
-            'show': show_update,
+            'show': mkshow("system-info", "system-tab-info"),
             'hide': mkhide("system-info", "system-tab-info"),
         }
     })();
@@ -1308,8 +1283,27 @@ vv.view.system = (function() {
         hidden: hidden,
     };
 }());
-vv.view.header = (function(){
-    var init = function() {
+
+// header
+(function(){
+    var update = function() {
+        var e = document.getElementById("menu-back-content");
+        var b = document.getElementById("menu-back");
+        var m = document.getElementById("menu-main");
+        if (vv.model.list.rootname() != "root") {
+            b.classList.remove("root");
+            m.classList.remove("root");
+            var songs = vv.model.list.list()["songs"];
+            if (songs[0]) {
+                var p = vv.model.list.grandparent();
+                e.textContent = vv.song.get(p.song, p.key);
+            }
+        } else {
+            b.classList.add("root");
+            m.classList.add("root");
+        }
+    }
+    vv.control.addEventListener("start", function() {
         vv.control.click(document.getElementById("menu-back"), function(e) {
             if (!vv.view.list.hidden()) {
                 vv.model.list.up();
@@ -1334,35 +1328,12 @@ vv.view.header = (function(){
         update();
         vv.model.list.addEventListener("changed", update);
         vv.model.list.addEventListener("update", update);
-    };
-    var update = function() {
-        var e = document.getElementById("menu-back-content");
-        var b = document.getElementById("menu-back");
-        var m = document.getElementById("menu-main");
-        if (vv.model.list.rootname() != "root") {
-            b.classList.remove("root");
-            m.classList.remove("root");
-            var songs = vv.model.list.list()["songs"];
-            if (songs[0]) {
-                var p = vv.model.list.grandparent();
-                e.textContent = vv.song.get(p.song, p.key);
-            }
-        } else {
-            b.classList.add("root");
-            m.classList.add("root");
-        }
-    }
-    var height = function() {
-        return document.getElementsByTagName("header")[0].offsetHeight;
-    };
-    vv.control.addEventListener("start", init);
-    return {
-        update: update,
-        height: height,
-    };
+    });
 }());
-vv.view.footer = (function(){
-    var init = function() {
+
+// footer
+(function(){
+    vv.control.addEventListener("start", function() {
         vv.control.click(document.getElementById("control-prev"), function(e) {
             vv.control.prev();
             e.stopPropagation();
@@ -1383,9 +1354,8 @@ vv.view.footer = (function(){
             vv.control.toggle_random();
             e.stopPropagation();
         });
-    };
-
-    var update_control = function() {
+    });
+    vv.control.addEventListener("control", function() {
         if (vv.storage.control["state"] == "play") {
             document.getElementById("control-toggleplay").classList.add("pause");
             document.getElementById("control-toggleplay").classList.remove("play");
@@ -1407,17 +1377,9 @@ vv.view.footer = (function(){
             document.getElementById("control-random").classList.add("off");
             document.getElementById("control-random").classList.remove("on");
         }
-    }
-
-    vv.control.addEventListener("start", init);
-    vv.control.addEventListener("control", update_control);
-    var height = function() {
-        return document.getElementsByTagName("footer")[0].offsetHeight;
-    };
-    return {
-        height: height,
-    }
+    });
 }());
+
 vv.view.popup = (function(){
     var data = {};
     var exists = function(title) {
@@ -1458,7 +1420,9 @@ vv.view.popup = (function(){
         "hide": hide,
     };
 }());
-vv.view.elapsed = (function() {
+
+// elapsed circle/time updater
+(function() {
     var update = function() {
         var data = vv.storage.control;
         if ('state' in data) {
@@ -1484,8 +1448,8 @@ vv.view.elapsed = (function() {
     }
     vv.control.addEventListener("control", update);
     vv.control.addEventListener("poll", update);
-    return {update: update};
 }());
+
 vv.view.modal.hide = function() {
     document.getElementById("modal-background").classList.remove("show");
     document.getElementById("modal-outer").classList.remove("show");
