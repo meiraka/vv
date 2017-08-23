@@ -1077,6 +1077,10 @@ vv.view.system = (function() {
                 } else if (obj.type == "range") {
                     obj.value = String(vv.storage.preferences[mainkey][subkey]);
                     getter = function() {return parseInt(obj.value);};
+                    obj.addEventListener("input", function() {
+                        vv.storage.preferences[mainkey][subkey] = obj.value;
+                        vv.control.raiseEvent("preferences");
+                    });
                 }
                 obj.addEventListener("change", function() {
                     vv.storage.preferences[mainkey][subkey] = getter();
