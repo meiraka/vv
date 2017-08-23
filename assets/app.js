@@ -697,14 +697,18 @@ vv.control = (function() {
         var img = new Image();
         img.onload = function() {
             canvas.drawImage(img, 0, 0, 5, 5);
-            var d = canvas.getImageData(0, 0, 5, 5).data;
-            var i = 0;
-            var newcolor = 0;
-            for (i = 0; i < d.length; i++) {
-                newcolor+=d[i];
+            try {
+                var d = canvas.getImageData(0, 0, 5, 5).data;
+                var i = 0;
+                var newcolor = 0;
+                for (i = 0; i < d.length; i++) {
+                    newcolor+=d[i];
+                }
+                color = newcolor / d.length;
+                update_theme();
+            } catch (e) {
+                // failed to getImageData
             }
-            color = newcolor / d.length;
-            update_theme();
         }
         img.src = path;
     }
