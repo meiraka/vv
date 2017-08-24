@@ -1,16 +1,32 @@
 VERSION=$(shell git describe)
+BUILDDIR = build
 TARGETS = linux-amd64 linux-arm darwin-amd64
-BINARIES = $(patsubst %, vv-%, $(TARGETS))
+APP = vv
+BINARIES = $(patsubst %, $(BUILDDIR)/%/$(APP), $(TARGETS))
+ARCHIVES = $(patsubst %, $(BUILDDIR)/$(APP)-%.tar.gz, $(TARGETS))
+CHECKSUM = sha256
 
-.PHONY: build all $(BINARIES)
+.PHONY: build $(BINARIES) $(ARCHIVES)
 
 build:
 	go build -ldflags "-X main.version=$(VERSION)"
 
 all: $(BINARIES)
+archives: $(ARCHIVES) $(BUILDDIR)/$(CHECKSUM)
 
 $(BINARIES):
-	GOOS=`echo "$@" | cut -d - -f 2` GOARCH=`echo "$@" | cut -d - -f 3` go build -ldflags "-X main.version=$(VERSION)" -o $@
+	mkdir -p build/$(word 2,$(subst /, ,$@))
+	GOOS=$(subst -, GOARCH=,$(word 2,$(subst /, ,$@))) go build -ldflags "-X main.version=$(VERSION)" -o $@
+
+$(ARCHIVES): $(BINARIES)
+	tar -czf $@ -C $(subst $(APP)-,,$(word 1,$(subst ., ,$@))) $(APP)
+
+$(BUILDDIR)/$(CHECKSUM): $(BINARIES)
+	rm -f $(BUILDDIR)/$(CHECKSUM)
+	@LIST="$(BINARIES)";\
+		for x in $$LIST; do\
+		openssl $(CHECKSUM) $$x >> $(BUILDDIR)/$(CHECKSUM);\
+		done
 
 clean:
-	rm -f $(BINARIES)
+	rm -rf $(BUILDDIR)

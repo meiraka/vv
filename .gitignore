@@ -3,6 +3,7 @@
 *.a
 *.so
 vv
+build/
 
 # Folders
 _obj
