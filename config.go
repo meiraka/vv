@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"github.com/spf13/viper"
+	"os"
+	"strings"
 )
 
 // ReadConfig returns filled Config struct.
@@ -27,6 +30,28 @@ func ReadConfig() (Config, error) {
 			viper.GetString("mpd.music_directory"),
 		},
 	}, nil
+}
+
+func getMusicDirectory(confpath string) (string, error) {
+	f, err := os.Open(confpath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for i := 1; sc.Scan(); i++ {
+		if err := sc.Err(); err != nil {
+			return "", err
+		}
+		l := sc.Text()
+		if strings.HasPrefix(l, "music_directory") {
+			q := strings.TrimSpace(strings.TrimPrefix(l, "music_directory"))
+			if strings.HasPrefix(q, "\"") && strings.HasSuffix(q, "\"") {
+				return strings.Trim(q, "\""), nil
+			}
+		}
+	}
+	return "", nil
 }
 
 // Config represents app properties.
