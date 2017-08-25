@@ -46,8 +46,7 @@ type Player struct {
 	playlistModified time.Time
 	outputs          []mpd.Attrs
 	outputsModified  time.Time
-	subscribers      []chan string
-	subscribersMutex sync.Mutex
+	notification     pubsub
 }
 
 /*Close mpd connection.*/
@@ -55,6 +54,7 @@ func (p *Player) Close() error {
 	p.pingStop <- true
 	p.clearConn()
 	p.daemonStop <- true
+	p.notification.ensureStop()
 	return nil
 }
 
@@ -200,65 +200,30 @@ func (p *Player) sortPlaylist(keys []string, uri string) (err error) {
 
 // Subscribe server events.
 func (p *Player) Subscribe(c chan string) {
-	p.initSubscribersIfNot()
-	p.subscribersMutex.Lock()
-	defer p.subscribersMutex.Unlock()
-	p.subscribers = append(p.subscribers, c)
+	p.notification.subscribe(c)
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	if p.stats != nil {
-		p.stats["subscribers"] = strconv.Itoa(len(p.subscribers))
+		p.stats["subscribers"] = strconv.Itoa(p.notification.count())
 		p.statsModifiled = time.Now()
-		p.nolockedNotify("stats")
+		p.notify("stats")
 	}
 }
 
 // Unsubscribe server events.
 func (p *Player) Unsubscribe(c chan string) {
-	p.subscribersMutex.Lock()
-	defer p.subscribersMutex.Unlock()
-	if p.subscribers == nil {
-		return
-	}
-	newSubscribers := []chan string{}
-	for _, s := range p.subscribers {
-		if s != c {
-			newSubscribers = append(newSubscribers, s)
-		}
-	}
-	p.subscribers = newSubscribers
+	p.notification.unsubscribe(c)
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	if p.stats != nil {
-		p.stats["subscribers"] = strconv.Itoa(len(p.subscribers))
+		p.stats["subscribers"] = strconv.Itoa(p.notification.count())
 		p.statsModifiled = time.Now()
-		p.nolockedNotify("stats")
+		p.notify("stats")
 	}
 }
 
 func (p *Player) notify(n string) error {
-	p.subscribersMutex.Lock()
-	defer p.subscribersMutex.Unlock()
-	return p.nolockedNotify(n)
-}
-
-func (p *Player) nolockedNotify(n string) error {
-	if p.subscribers == nil {
-		return nil
-	}
-
-	errcnt := 0
-	for _, s := range p.subscribers {
-		select {
-		case s <- n:
-		default:
-			errcnt++
-		}
-	}
-	if errcnt != 0 {
-		return fmt.Errorf("failed to send %s notify, %d", n, errcnt)
-	}
-	return nil
+	return p.notification.notify(n)
 }
 
 type playerMessage struct {
@@ -302,14 +267,6 @@ func (p *Player) initIfNot() error {
 		go p.ping()
 	}
 	return nil
-}
-
-func (p *Player) initSubscribersIfNot() {
-	p.subscribersMutex.Lock()
-	defer p.subscribersMutex.Unlock()
-	if p.subscribers == nil {
-		p.subscribers = []chan string{}
-	}
 }
 
 func (p *Player) daemon() {
@@ -484,10 +441,7 @@ func (p *Player) updateStats() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	if stats != nil {
-		p.initSubscribersIfNot()
-		p.subscribersMutex.Lock()
-		stats["subscribers"] = strconv.Itoa(len(p.subscribers))
-		p.subscribersMutex.Unlock()
+		stats["subscribers"] = strconv.Itoa(p.notification.count())
 	}
 	p.stats = stats
 	p.statsModifiled = time.Now()
@@ -533,4 +487,97 @@ func (p *Player) updateOutputs() error {
 	p.outputs = outputs
 	p.outputsModified = time.Now()
 	return p.notify("outputs")
+}
+
+type pubsub struct {
+	m               sync.Mutex
+	subscribeChan   chan chan string
+	unsubscribeChan chan chan string
+	countChan       chan chan int
+	notifyChan      chan pubsubNotify
+	stopChan        chan struct{}
+}
+
+type pubsubNotify struct {
+	message string
+	errChan chan error
+}
+
+func (p *pubsub) ensureStart() {
+	p.m.Lock()
+	defer p.m.Unlock()
+	if p.subscribeChan == nil {
+		p.subscribeChan = make(chan chan string)
+		p.unsubscribeChan = make(chan chan string)
+		p.countChan = make(chan chan int)
+		p.notifyChan = make(chan pubsubNotify)
+		p.stopChan = make(chan struct{})
+		go p.run()
+	}
+}
+
+func (p *pubsub) ensureStop() {
+	p.ensureStart()
+	p.stopChan <- struct{}{}
+}
+
+func (p *pubsub) run() {
+	subscribers := []chan string{}
+loop:
+	for {
+		select {
+		case c := <-p.subscribeChan:
+			subscribers = append(subscribers, c)
+		case c := <-p.unsubscribeChan:
+			newSubscribers := []chan string{}
+			for _, o := range subscribers {
+				if o != c {
+					newSubscribers = append(newSubscribers, o)
+				}
+			}
+			subscribers = newSubscribers
+		case pn := <-p.notifyChan:
+			errcnt := 0
+			for _, c := range subscribers {
+				select {
+				case c <- pn.message:
+				default:
+					errcnt++
+				}
+			}
+			if errcnt > 0 {
+				pn.errChan <- fmt.Errorf("failed to send %s notify, %d", pn.message, errcnt)
+			} else {
+				pn.errChan <- nil
+			}
+		case c := <-p.countChan:
+			c <- len(subscribers)
+		case <-p.stopChan:
+			break loop
+		}
+	}
+}
+
+func (p *pubsub) subscribe(c chan string) {
+	p.ensureStart()
+	p.subscribeChan <- c
+}
+
+func (p *pubsub) unsubscribe(c chan string) {
+	p.ensureStart()
+	p.unsubscribeChan <- c
+}
+
+func (p *pubsub) notify(s string) error {
+	p.ensureStart()
+	message := pubsubNotify{s, make(chan error)}
+	p.notifyChan <- message
+	return <-message.errChan
+}
+
+func (p *pubsub) count() int {
+	p.ensureStart()
+	ci := make(chan int)
+	p.countChan <- ci
+	return <-ci
 }
