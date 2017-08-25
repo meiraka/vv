@@ -58,15 +58,18 @@ func TestVersion(t *testing.T) {
 	var testsets = []struct {
 		lastModified    time.Time
 		ifModifiedSince time.Time
+		version         string
 		bindata         bool
 		ret             int
 		vvVersion       string
 	}{
-		{bindata: true, ret: 200, vvVersion: version},
-		{bindata: false, ret: 200, vvVersion: version + " dev mode"},
+		{bindata: true, ret: 200, vvVersion: staticVersion},
+		{bindata: true, ret: 200, version: "v0.0.0", vvVersion: "v0.0.0"},
+		{bindata: false, ret: 200, vvVersion: staticVersion + " dev mode"},
 		{lastModified: time.Unix(100, 0), ifModifiedSince: time.Unix(100, 0), ret: 304},
 	}
 	for _, tt := range testsets {
+		version = tt.version
 		startTime = tt.lastModified
 		handler := makeHandle(m, Config{}, tt.bindata)
 		ts := httptest.NewServer(handler)

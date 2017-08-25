@@ -5,6 +5,10 @@ import (
 	"os"
 )
 
+const staticVersion = "v0.0.4+"
+
+var version string
+
 //go:generate go-bindata assets
 func main() {
 	config, err := ReadConfig()

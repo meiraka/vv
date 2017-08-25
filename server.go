@@ -15,7 +15,6 @@ import (
 	"time"
 )
 
-var version string
 var startTime time.Time
 
 const musicDirectory = "/music_directory/"
@@ -223,7 +222,11 @@ func (a *apiHandler) version(w http.ResponseWriter, r *http.Request) {
 		if a.devMode {
 			vvPostfix = vvPostfix + " dev mode"
 		}
-		d := map[string]string{"vv": version + vvPostfix}
+		vvVersion := version
+		if len(vvVersion) == 0 {
+			vvVersion = staticVersion
+		}
+		d := map[string]string{"vv": vvVersion + vvPostfix}
 		writeJSONInterface(w, d, startTime, nil)
 	} else {
 		notModified(w, startTime)
