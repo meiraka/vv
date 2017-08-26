@@ -546,6 +546,43 @@ footer {
   flex: 1 1 auto;
 }
 
+.information-list {
+  list-style-type: none;
+  padding: 0 20px;
+  margin: 0;
+}
+
+.information-box {
+  padding: 0 0 16px 0;
+}
+
+.license-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-name {
+  font-size: 18px;
+}
+
+.product-link,
+.license-link {
+  color: #404040;
+}
+
+.dark .product-link,
+.dark .license-link {
+  color: #c0c0c0;
+}
+
+.product-link {
+  font-size: 14px;
+}
+
+.license-link {
+  font-size: 12px;
+}
+
 .config-range {
   padding: 0;
   margin: 20px 0;
