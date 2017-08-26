@@ -430,7 +430,7 @@ func TestControl(t *testing.T) {
 	url := ts.URL + "/api/music/control"
 	defer ts.Close()
 	t.Run("no parameter", func(t *testing.T) {
-		s := convStatus(mpd.Attrs{}, 0)
+		s := convStatus(mpd.Attrs{})
 		m.StatusRet1 = s
 		m.StatusRet2 = time.Unix(0, 0)
 		res := checkRequestError(t, func() (*http.Response, error) { return http.Get(url) })
@@ -452,7 +452,7 @@ func TestControl(t *testing.T) {
 		}
 	})
 	t.Run("If-Modified-Since", func(t *testing.T) {
-		s := convStatus(mpd.Attrs{}, 60)
+		s := convStatus(mpd.Attrs{})
 		m.StatusRet1 = s
 		m.StatusRet2 = time.Unix(60, 0)
 		req, _ := http.NewRequest("GET", url, nil)

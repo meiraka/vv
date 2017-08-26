@@ -424,7 +424,7 @@ func TestPlayerCurrent(t *testing.T) {
 			mpd.Attrs{"file": "p"}, nil, 2,
 			songFindCover(songAddReadableData(mpd.Attrs{"file": "p"}), p.musicDirectory, p.coverCache),
 			mpd.Attrs{}, nil, 2,
-			convStatus(mpd.Attrs{}, time.Now().Unix()),
+			convStatus(mpd.Attrs{}),
 		},
 	}
 	for _, c := range candidates {

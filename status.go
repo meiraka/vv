@@ -15,11 +15,10 @@ type PlayerStatus struct {
 	State         string  `json:"state"`
 	SongPos       int     `json:"song_pos"`
 	SongElapsed   float32 `json:"song_elapsed"`
-	LastModified  int64   `json:"last_modified"`
 	UpdateLibrary bool    `json:"update_library"`
 }
 
-func convStatus(status mpd.Attrs, modified int64) PlayerStatus {
+func convStatus(status mpd.Attrs) PlayerStatus {
 	volume, err := strconv.Atoi(status["volume"])
 	if err != nil {
 		volume = -1
@@ -51,7 +50,6 @@ func convStatus(status mpd.Attrs, modified int64) PlayerStatus {
 		state,
 		songpos,
 		float32(elapsed),
-		modified,
 		updateLibrary,
 	}
 

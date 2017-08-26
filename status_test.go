@@ -16,7 +16,7 @@ func TestConvStatus(t *testing.T) {
 			mpd.Attrs{},
 			PlayerStatus{
 				-1, false, false, false, false,
-				"stopped", 0, 0.0, 0, false,
+				"stopped", 0, 0.0, false,
 			},
 		},
 		{
@@ -33,12 +33,12 @@ func TestConvStatus(t *testing.T) {
 			},
 			PlayerStatus{
 				100, true, false, true, false,
-				"playing", 1, 10.1, 0, true,
+				"playing", 1, 10.1, true,
 			},
 		},
 	}
 	for _, c := range candidates {
-		r := convStatus(c.status, 0)
+		r := convStatus(c.status)
 		if !reflect.DeepEqual(c.expect, r) {
 			jr, _ := json.Marshal(r)
 			je, _ := json.Marshal(c.expect)

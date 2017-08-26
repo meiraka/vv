@@ -431,7 +431,7 @@ func (p *Player) updateStatus() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.statusModified = time.Now().UTC()
-	p.status = convStatus(status, p.statusModified.Unix())
+	p.status = convStatus(status)
 	return p.notify("status")
 }
 
