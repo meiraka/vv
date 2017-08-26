@@ -499,17 +499,22 @@ footer {
   font-size: 20px;
 }
 
-#system h1,
-#system h3 {
+#system h1 {
   margin: 10px;
 }
 
 .sub-article {
-  padding: 0 20px;
+  padding: 0 20px 30px 20px;
+}
+
+.note-header {
+  padding: 6px 10px;
+  margin: 0;
 }
 
 .note {
   padding: 0;
+  margin: 0;
 }
 
 .note-line {
@@ -540,8 +545,8 @@ footer {
   flex: 1 1 auto;
 }
 
+.sub-article.hide,
 .note-header.hide,
-.note.hide,
 .note-line.hide {
   display: none;
 }
