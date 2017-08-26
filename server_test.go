@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"github.com/gorilla/websocket"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -94,6 +96,11 @@ func TestVersion(t *testing.T) {
 			actual := st.Data["vv"]
 			if actual != tt.vvVersion {
 				t.Errorf("unexpected vv version, actual: %s expect: %s", actual, tt.vvVersion)
+			}
+			actual = st.Data["go"]
+			expect := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+			if actual != expect {
+				t.Errorf("unexpected go version, actual: %s expect: %s", actual, expect)
 			}
 		}
 	}

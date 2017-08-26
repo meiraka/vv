@@ -1245,6 +1245,7 @@ vv.view.system = (function() {
         vv.control.addEventListener("version", function() {
             if (vv.storage.version.vv) {
                 document.getElementById("version").textContent = vv.storage.version.vv;
+                document.getElementById("go-version").textContent = vv.storage.version.go;
             }
         });
         return {

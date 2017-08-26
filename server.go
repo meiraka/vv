@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -226,7 +227,8 @@ func (a *apiHandler) version(w http.ResponseWriter, r *http.Request) {
 		if len(vvVersion) == 0 {
 			vvVersion = staticVersion
 		}
-		d := map[string]string{"vv": vvVersion + vvPostfix}
+		goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		d := map[string]string{"vv": vvVersion + vvPostfix, "go": goVersion}
 		writeJSONInterface(w, d, startTime, nil)
 	} else {
 		notModified(w, startTime)
