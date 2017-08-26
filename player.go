@@ -38,6 +38,7 @@ type Player struct {
 	current          mpd.Attrs
 	currentModified  time.Time
 	status           PlayerStatus
+	statusModified   time.Time
 	stats            mpd.Attrs
 	statsModifiled   time.Time
 	library          []mpd.Attrs
@@ -69,7 +70,7 @@ func (p *Player) Current() (mpd.Attrs, time.Time) {
 func (p *Player) Status() (PlayerStatus, time.Time) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	return p.status, time.Unix(p.status.LastModified, 0)
+	return p.status, p.statusModified
 }
 
 /*Stats returns mpd statistics.*/
@@ -205,7 +206,7 @@ func (p *Player) Subscribe(c chan string) {
 	defer p.mutex.Unlock()
 	if p.stats != nil {
 		p.stats["subscribers"] = strconv.Itoa(p.notification.count())
-		p.statsModifiled = time.Now()
+		p.statsModifiled = time.Now().UTC()
 		p.notify("stats")
 	}
 }
@@ -217,7 +218,7 @@ func (p *Player) Unsubscribe(c chan string) {
 	defer p.mutex.Unlock()
 	if p.stats != nil {
 		p.stats["subscribers"] = strconv.Itoa(p.notification.count())
-		p.statsModifiled = time.Now()
+		p.statsModifiled = time.Now().UTC()
 		p.notify("stats")
 	}
 }
@@ -416,7 +417,7 @@ func (p *Player) updateCurrentSong() error {
 		defer p.mutex.Unlock()
 		p.current = songAddReadableData(song)
 		p.current = songFindCover(p.current, p.musicDirectory, p.coverCache)
-		p.currentModified = time.Now()
+		p.currentModified = time.Now().UTC()
 		return p.notify("current")
 	}
 	return nil
@@ -429,7 +430,8 @@ func (p *Player) updateStatus() error {
 	}
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	p.status = convStatus(status, time.Now().Unix())
+	p.statusModified = time.Now().UTC()
+	p.status = convStatus(status, p.statusModified.Unix())
 	return p.notify("status")
 }
 
@@ -444,7 +446,7 @@ func (p *Player) updateStats() error {
 		stats["subscribers"] = strconv.Itoa(p.notification.count())
 	}
 	p.stats = stats
-	p.statsModifiled = time.Now()
+	p.statsModifiled = time.Now().UTC()
 	return p.notify("stats")
 }
 
@@ -460,7 +462,7 @@ func (p *Player) updateLibrary() error {
 	for i := range p.library {
 		p.library[i]["Pos"] = strconv.Itoa(i)
 	}
-	p.libraryModified = time.Now()
+	p.libraryModified = time.Now().UTC()
 	return p.notify("library")
 }
 
@@ -473,7 +475,7 @@ func (p *Player) updatePlaylist() error {
 	defer p.mutex.Unlock()
 	p.playlist = songsAddReadableData(playlist)
 	p.playlist = songsFindCover(p.playlist, p.musicDirectory, p.coverCache)
-	p.playlistModified = time.Now()
+	p.playlistModified = time.Now().UTC()
 	return p.notify("playlist")
 }
 
@@ -485,7 +487,7 @@ func (p *Player) updateOutputs() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.outputs = outputs
-	p.outputsModified = time.Now()
+	p.outputsModified = time.Now().UTC()
 	return p.notify("outputs")
 }
 

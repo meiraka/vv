@@ -507,7 +507,7 @@ vv.control = (function() {
         get_request(target, vv.obj.getOrElse(vv.storage.last_modified, store, ""), function(ret, modified) {
             if (!ret.error) {
                 vv.storage[store] = ret.data;
-                vv.storage.last_modified_ms[store] = (new Date()).getTime();
+                vv.storage.last_modified_ms[store] = Date.parse(modified);
                 vv.storage.last_modified[store] = modified;
                 raiseEvent(store)
             }

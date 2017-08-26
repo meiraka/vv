@@ -292,7 +292,7 @@ func (a *apiHandler) returnList(w http.ResponseWriter, r *http.Request, d []mpd.
 }
 
 func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Request) {
-	n := time.Now()
+	n := time.Now().UTC()
 	m := mime.TypeByExtension(path.Ext(f))
 	return func(w http.ResponseWriter, r *http.Request) {
 		// w.Header().Add("Content-Length", strconv.Itoa(len(data)))
@@ -345,7 +345,7 @@ func makeHandle(p Music, c Config, bindata bool) http.Handler {
 
 // App serves http request.
 func App(p Music, c Config) {
-	startTime = time.Now()
+	startTime = time.Now().UTC()
 	handler := makeHandle(p, c, false)
 	http.ListenAndServe(fmt.Sprintf(":%s", c.Server.Port), handler)
 }
