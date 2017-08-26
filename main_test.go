@@ -9,7 +9,7 @@ import (
 
 func TestReadConfig(t *testing.T) {
 	viper.AddConfigPath("./")
-	initConfig()
+	setupFlag()
 	const path = "./config.yaml"
 	input := []byte(
 		"mpd:\n" +

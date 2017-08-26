@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"os"
 	"strings"
@@ -12,14 +13,16 @@ const staticVersion = "v0.0.4+"
 
 var version string
 
-func initConfig() {
+func setupFlag() {
 	viper.SetConfigName("config")
 	viper.AddConfigPath("/etc/xdg/vv")
 	viper.AddConfigPath("$HOME/.config/vv")
-	viper.SetDefault("mpd.host", "localhost")
-	viper.SetDefault("mpd.port", "6600")
-	viper.SetDefault("server.port", "8080")
-	viper.SetDefault("mpd.music_directory", "")
+	pflag.String("mpd.host", "localhost", "mpd server hostname to connect")
+	pflag.String("mpd.port", "6600", "mpd server TCP port to connect")
+	pflag.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
+	pflag.String("server.port", "8080", "this app serving TCP port")
+	pflag.Parse()
+	viper.BindPFlags(pflag.CommandLine)
 }
 
 func getMusicDirectory(confpath string) (string, error) {
@@ -46,7 +49,7 @@ func getMusicDirectory(confpath string) (string, error) {
 
 //go:generate go-bindata assets
 func main() {
-	initConfig()
+	setupFlag()
 	err := viper.ReadInConfig()
 	if err != nil {
 		if _, notfound := err.(viper.ConfigFileNotFoundError); !notfound {
