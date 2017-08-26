@@ -821,9 +821,7 @@ vv.view.main = (function(){
         var c = document.getElementById("main-elapsed-circle-active");
         var elapsed = parseInt(vv.storage.control["song_elapsed"] * 1000);
         if (vv.storage.control["state"] == "play") {
-            var last_modified = parseInt(vv.storage.control.last_modified * 1000);
-            var date = new Date();
-            elapsed += date.getTime() - last_modified
+            elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control
         }
         var total = parseInt(vv.storage.current["Time"]);
         var d = (elapsed * 360 / 1000 / total - 90) * (Math.PI / 180);
@@ -1437,10 +1435,8 @@ vv.view.popup = (function(){
         if ('state' in data) {
             var elapsed = parseInt(data["song_elapsed"] * 1000);
             var current = elapsed;
-            var last_modified = parseInt(data.last_modified * 1000);
-            var date = new Date();
             if (data["state"] == "play") {
-                current += date.getTime() - last_modified
+                current += (new Date).getTime() - vv.storage.last_modified_ms.control
             }
             current = parseInt(current / 1000);
             var min = parseInt(current / 60)
