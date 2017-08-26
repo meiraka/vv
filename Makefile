@@ -1,6 +1,6 @@
 VERSION=$(shell git describe)
 BUILDDIR = build
-TARGETS = linux-amd64 linux-arm darwin-amd64
+TARGETS = linux-amd64 linux-armv6 linux-armv7 darwin-amd64
 APP = vv
 BINARIES = $(patsubst %, $(BUILDDIR)/%/$(APP), $(TARGETS))
 ARCHIVES = $(patsubst %, $(BUILDDIR)/$(APP)-%.tar.gz, $(TARGETS))
@@ -16,7 +16,7 @@ archives: $(ARCHIVES) $(BUILDDIR)/$(CHECKSUM)
 
 $(BINARIES):
 	mkdir -p build/$(word 2,$(subst /, ,$@))
-	GOOS=$(subst -, GOARCH=,$(word 2,$(subst /, ,$@))) go build -ldflags "-X main.version=$(VERSION)" -o $@
+	GOOS=$(subst -, GOARCH=,$(subst armv,arm GOARM=,$(word 2,$(subst /, ,$@)))) go build -ldflags "-X main.version=$(VERSION)" -o $@
 
 $(ARCHIVES): $(BINARIES)
 	tar -czf $@ -C $(subst $(APP)-,,$(word 1,$(subst ., ,$@))) $(APP)
