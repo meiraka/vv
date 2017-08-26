@@ -9,6 +9,7 @@ import (
 
 func TestReadConfig(t *testing.T) {
 	viper.AddConfigPath("./")
+	initConfig()
 	const path = "./config.yaml"
 	input := []byte(
 		"mpd:\n" +
@@ -19,15 +20,21 @@ func TestReadConfig(t *testing.T) {
 			"    port: \"8080\"\n",
 	)
 	ioutil.WriteFile(path, input, os.ModePerm)
-	expected := Config{
-		Mpd:    MpdConfig{"hoge.local", "6600", "hoge"},
-		Server: ServerConfig{Port: "8080"}}
-	actual, err := ReadConfig()
-	if err != nil {
-		t.Errorf("got unexpected err: %v", err)
+	testsets := map[string]string{
+		"mpd.host":            "hoge.local",
+		"mpd.port":            "6600",
+		"mpd.music_directory": "hoge",
+		"server.port":         "8080",
 	}
-	if actual != expected {
-		t.Errorf("got %v\nwant %v", actual, expected)
+	err := viper.ReadInConfig()
+	if err != nil {
+		t.Errorf("unexpected err: %s", err.Error())
+	}
+	for input, expect := range testsets {
+		actual := viper.GetString(input)
+		if actual != expect {
+			t.Errorf("unexpected value for %s, actual:%s, expect:%s", input, actual, expect)
+		}
 	}
 	os.Remove(path)
 }
