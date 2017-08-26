@@ -565,11 +565,18 @@ footer {
   font-size: 18px;
 }
 
+.product-version {
+  padding: 0 0 0 6px;
+  font-size: 12pt;
+}
+
+.product-version,
 .product-link,
 .license-link {
   color: #404040;
 }
 
+.dark .product-version,
 .dark .product-link,
 .dark .license-link {
   color: #c0c0c0;
