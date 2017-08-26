@@ -20,7 +20,7 @@ var assets = []string{"/", "/assets/app.css", "/assets/app.js"}
 
 func TestAssets(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
 	for i := range assets {
@@ -33,7 +33,7 @@ func TestAssets(t *testing.T) {
 
 func TestAssetsBinary(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, true)
+	handler := makeHandle(m, "", true)
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
 	for i := range assets {
@@ -46,7 +46,7 @@ func TestAssetsBinary(t *testing.T) {
 
 func TestMusicDirectory(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{Mpd: MpdConfig{MusicDirectory: "./"}}, false)
+	handler := makeHandle(m, "./", false)
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
 	res := checkRequestError(t, func() (*http.Response, error) { return http.Get(ts.URL + "/music_directory/server_test.go") })
@@ -73,7 +73,7 @@ func TestVersion(t *testing.T) {
 	for _, tt := range testsets {
 		version = tt.version
 		startTime = tt.lastModified
-		handler := makeHandle(m, Config{}, tt.bindata)
+		handler := makeHandle(m, "", tt.bindata)
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
 		req, _ := http.NewRequest("GET", ts.URL+"/api/version", nil)
@@ -108,7 +108,7 @@ func TestVersion(t *testing.T) {
 
 func TestLibrary(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	url := ts.URL + "/api/music/library"
 	defer ts.Close()
@@ -165,7 +165,7 @@ func TestLibrary(t *testing.T) {
 }
 func TestLibraryOne(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	url := ts.URL + "/api/music/library"
 	defer ts.Close()
@@ -207,7 +207,7 @@ func TestLibraryOne(t *testing.T) {
 }
 func TestPlaylist(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	url := ts.URL + "/api/music/songs"
 	defer ts.Close()
@@ -265,7 +265,7 @@ func TestPlaylist(t *testing.T) {
 
 func TestPlaylistOne(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	url := ts.URL + "/api/music/songs"
 	defer ts.Close()
@@ -307,7 +307,7 @@ func TestPlaylistOne(t *testing.T) {
 }
 func TestOutput(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	url := ts.URL + "/api/music/outputs"
 	defer ts.Close()
@@ -366,7 +366,7 @@ func TestOutput(t *testing.T) {
 }
 func TestCurrent(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	url := ts.URL + "/api/music/songs/current"
 	defer ts.Close()
@@ -405,7 +405,7 @@ func TestCurrent(t *testing.T) {
 }
 func TestStats(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	url := ts.URL + "/api/music/stats"
 	defer ts.Close()
@@ -425,7 +425,7 @@ func TestStats(t *testing.T) {
 }
 func TestControl(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	url := ts.URL + "/api/music/control"
 	defer ts.Close()
@@ -569,7 +569,7 @@ func TestControl(t *testing.T) {
 
 func TestNotify(t *testing.T) {
 	m := new(MockMusic)
-	handler := makeHandle(m, Config{}, false)
+	handler := makeHandle(m, "", false)
 	ts := httptest.NewServer(handler)
 	url := strings.Replace(ts.URL, "http://", "ws://", 1) + "/api/music/notify"
 	defer ts.Close()

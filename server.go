@@ -18,7 +18,7 @@ import (
 
 var startTime time.Time
 
-const musicDirectory = "/music_directory/"
+const musicDirectoryPrefix = "/music_directory/"
 
 func writeJSONInterface(w http.ResponseWriter, d interface{}, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
@@ -304,8 +304,8 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 	}
 }
 
-func makeHandle(p Music, c Config, bindata bool) http.Handler {
-	api := apiHandler{player: p, devMode: false}
+func makeHandle(music Music, musicDirectory string, bindata bool) http.Handler {
+	api := apiHandler{player: music, devMode: false}
 	h := http.NewServeMux()
 	h.HandleFunc("/api/version", api.version)
 	h.HandleFunc("/api/music/library", api.library)
@@ -318,8 +318,8 @@ func makeHandle(p Music, c Config, bindata bool) http.Handler {
 	h.HandleFunc("/api/music/outputs/", api.outputs)
 	h.HandleFunc("/api/music/stats", api.stats)
 	h.HandleFunc("/api/music/notify", api.notify)
-	fs := http.StripPrefix(musicDirectory, http.FileServer(http.Dir(c.Mpd.MusicDirectory)))
-	h.HandleFunc(musicDirectory, func(w http.ResponseWriter, r *http.Request) {
+	fs := http.StripPrefix(musicDirectoryPrefix, http.FileServer(http.Dir(musicDirectory)))
+	h.HandleFunc(musicDirectoryPrefix, func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
 	})
 	for _, f := range AssetNames() {
@@ -343,11 +343,11 @@ func makeHandle(p Music, c Config, bindata bool) http.Handler {
 	return h
 }
 
-// App serves http request.
-func App(p Music, c Config) {
+// Serve serves http request.
+func Serve(music Music, musicDirectory string, port string) {
 	startTime = time.Now().UTC()
-	handler := makeHandle(p, c, false)
-	http.ListenAndServe(fmt.Sprintf(":%s", c.Server.Port), handler)
+	handler := makeHandle(music, musicDirectory, false)
+	http.ListenAndServe(fmt.Sprintf(":%s", port), handler)
 }
 
 // Music Represents music player.

@@ -29,5 +29,5 @@ func main() {
 		fmt.Printf("faied to connect/initialize mpd: %s\n", err)
 		os.Exit(1)
 	}
-	App(player, config)
+	Serve(player, config.Mpd.MusicDirectory, config.Server.Port)
 }
