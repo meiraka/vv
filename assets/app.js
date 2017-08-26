@@ -64,6 +64,7 @@ vv.song = (function(){
         e.classList.remove("album");
         e.classList.remove("playing");
         e.classList.add(style);
+        e.classList.add("note-line");
         e.setAttribute("key", vv.song.get(song, key));
         e.setAttribute("uri", song["file"]);
         if (style == "song") {
@@ -1121,7 +1122,7 @@ vv.view.system = (function() {
             });
         });
         var update_devices = function() {
-            var ul = document.getElementById("system").getElementsByClassName("devices")[0];
+            var ul = document.getElementById("devices");
             while (ul.lastChild) {
                 ul.removeChild(ul.lastChild);
             }
@@ -1129,11 +1130,14 @@ vv.view.system = (function() {
             for (i in vv.storage.outputs) {
                 var o = vv.storage.outputs[i];
                 var li = document.createElement("li");
+                li.classList.add("note-line");
+                li.classList.add("key-value");
                 var desc = document.createElement("div");
-                desc.setAttribute("class", "description");
+                desc.classList.add("note-description");
                 desc.textContent = o["outputname"];
                 var sw = document.createElement("div");
-                sw.setAttribute("class", "value switch");
+                sw.classList.add("note-value");
+                sw.classList.add("switch");
                 var ch = document.createElement("input");
                 ch.setAttribute("type", "checkbox");
                 ch.setAttribute("id", "device_"+o["outputname"]);

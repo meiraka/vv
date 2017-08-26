@@ -49,21 +49,6 @@ svg .stroke {
   fill: none;
 }
 
-.note-header.hide,
-.note.hide {
-  display: none;
-}
-
-.note li {
-  margin-top: 1px;
-  border-bottom: dashed 1px #404040;
-  transition: border-bottom 0.2s 0s ease;
-}
-
-.dark .note li {
-  border-bottom: dashed 1px #e0e0e0;
-}
-
 header,
 footer {
   position: fixed;
@@ -519,21 +504,30 @@ footer {
   margin: 10px;
 }
 
-#system .note {
-  list-style-type: none;
+.sub-article {
   padding: 0 20px;
 }
 
-#system .note li {
+.note {
+  padding: 0;
+}
+
+.note-line {
+  margin-top: 1px;
+  border-bottom: dashed 1px #404040;
+  transition: border-bottom 0.2s 0s ease;
+}
+
+.dark .note-line {
+  border-bottom: dashed 1px #e0e0e0;
+}
+
+.note-line.key-value {
   align-items: center;
   display: flex;
 }
 
-#system .note li.hide {
-  display: none;
-}
-
-#system .note li .description {
+.note-description {
   font-size: 18px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -542,8 +536,14 @@ footer {
   padding: 8px 0;
 }
 
-#system .note li .value-expand {
+.note-value-expand {
   flex: 1 1 auto;
+}
+
+.note-header.hide,
+.note.hide,
+.note-line.hide {
+  display: none;
 }
 
 .information-list {
@@ -570,6 +570,14 @@ footer {
   font-size: 12pt;
 }
 
+.product-link {
+  font-size: 14px;
+}
+
+.license-link {
+  font-size: 12px;
+}
+
 .product-version,
 .product-link,
 .license-link {
@@ -580,14 +588,6 @@ footer {
 .dark .product-link,
 .dark .license-link {
   color: #c0c0c0;
-}
-
-.product-link {
-  font-size: 14px;
-}
-
-.license-link {
-  font-size: 12px;
 }
 
 .config-range {
