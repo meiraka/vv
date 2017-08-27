@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const staticVersion = "v0.0.4+"
+const staticVersion = "v0.1.0+"
 
 var version string
 
