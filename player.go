@@ -202,25 +202,33 @@ func (p *Player) sortPlaylist(keys []string, uri string) (err error) {
 // Subscribe server events.
 func (p *Player) Subscribe(c chan string) {
 	p.notification.subscribe(c)
+	p.updateSubscribers()
+}
+
+func (p *Player) updateSubscribers() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	if p.stats != nil {
-		p.stats["subscribers"] = strconv.Itoa(p.notification.count())
-		p.statsModifiled = time.Now().UTC()
-		p.notify("stats")
+	if p.stats == nil {
+		return
 	}
+	p.stats["subscribers"] = strconv.Itoa(p.notification.count())
+	newTime := time.Now().UTC()
+	uptime, err := strconv.Atoi(p.stats["uptime"])
+	if err != nil {
+		p.statsModifiled = newTime
+		p.notify("stats")
+		return
+	}
+	p.stats["uptime"] = strconv.Itoa(uptime + int(newTime.Sub(p.statsModifiled)/time.Second))
+	p.statsModifiled = newTime
+	p.notify("stats")
+
 }
 
 // Unsubscribe server events.
 func (p *Player) Unsubscribe(c chan string) {
 	p.notification.unsubscribe(c)
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	if p.stats != nil {
-		p.stats["subscribers"] = strconv.Itoa(p.notification.count())
-		p.statsModifiled = time.Now().UTC()
-		p.notify("stats")
-	}
+	p.updateSubscribers()
 }
 
 func (p *Player) notify(n string) error {
