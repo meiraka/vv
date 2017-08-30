@@ -290,9 +290,6 @@ func TestPlayerPlaylist(t *testing.T) {
 	if m.PlaylistInfoArg1 != -1 || m.PlaylistInfoArg2 != -1 {
 		t.Errorf("unexpected Client.PlaylistInfo Arguments: %d %d", m.PlaylistInfoArg1, m.PlaylistInfoArg2)
 	}
-	if !reflect.DeepEqual(expect, p.playlist) {
-		t.Errorf("unexpected stored playlist")
-	}
 	// Player.Playlist returns mpd.Client.PlaylistInfo result
 	playlist, _ := p.Playlist()
 	if !reflect.DeepEqual(expect, playlist) {
@@ -379,9 +376,6 @@ func TestPlayerLibrary(t *testing.T) {
 	if m.ListAllInfoArg1 != "/" {
 		t.Errorf("unexpected Client.ListAllInfo Arguments: %s", m.ListAllInfoArg1)
 	}
-	if !reflect.DeepEqual(expect, p.library) {
-		t.Errorf("unexpected stored library")
-	}
 	// Player.Library returns mpd.Client.ListAllInfo result
 	library, _ := p.Library()
 	if !reflect.DeepEqual(expect, library) {
@@ -415,9 +409,9 @@ func TestPlayerCurrent(t *testing.T) {
 		// dont update if mpd.CurrentSong returns error
 		{
 			mpd.Attrs{}, errret, 1,
-			p.current,
+			nil,
 			mpd.Attrs{}, errret, 1,
-			p.status,
+			convStatus(mpd.Attrs{}),
 		},
 		// update current/status/comments
 		{
@@ -484,9 +478,6 @@ func TestPlayerOutputs(t *testing.T) {
 	// mpd.Client.ListOutputs was Called
 	if m.ListOutputsCalled != 1 {
 		t.Errorf("Client.ListOutputs does not Called")
-	}
-	if !reflect.DeepEqual(m.ListOutputsRet1, p.outputs) {
-		t.Errorf("unexpected stored outputs")
 	}
 	// Player.Library returns mpd.Client.ListOutputs result
 	outputs, _ := p.Outputs()

@@ -22,29 +22,24 @@ func Dial(network, addr, passwd, musicDirectory string) (*Player, error) {
 
 /*Player represents mpd control interface.*/
 type Player struct {
-	network          string
-	addr             string
-	passwd           string
-	musicDirectory   string
-	watcherResponse  chan error
-	daemonStop       chan bool
-	daemonRequest    chan *playerMessage
-	coverCache       map[string]string
-	init             sync.Mutex
-	mutex            sync.Mutex
-	current          mpd.Attrs
-	currentModified  time.Time
-	status           PlayerStatus
-	statusModified   time.Time
-	stats            mpd.Attrs
-	statsModifiled   time.Time
-	library          []mpd.Attrs
-	libraryModified  time.Time
-	playlist         []mpd.Attrs
-	playlistModified time.Time
-	outputs          []mpd.Attrs
-	outputsModified  time.Time
-	notification     pubsub
+	network         string
+	addr            string
+	passwd          string
+	musicDirectory  string
+	watcherResponse chan error
+	daemonStop      chan bool
+	daemonRequest   chan *playerMessage
+	coverCache      map[string]string
+	init            sync.Mutex
+	mutex           sync.Mutex
+	status          statusStorage
+	current         mapStorage
+	stats           mapStorage
+	library         sliceMapStorage
+	librarySort     sliceMapStorage
+	playlist        sliceMapStorage
+	outputs         sliceMapStorage
+	notification    pubsub
 }
 
 /*Close mpd connection.*/
@@ -56,37 +51,27 @@ func (p *Player) Close() error {
 
 /*Current returns mpd current song data.*/
 func (p *Player) Current() (mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.current, p.currentModified
+	return p.current.get()
 }
 
 /*Status returns mpd current song data.*/
 func (p *Player) Status() (PlayerStatus, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.status, p.statusModified
+	return p.status.get()
 }
 
 /*Stats returns mpd statistics.*/
 func (p *Player) Stats() (mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.stats, p.statsModifiled
+	return p.stats.get()
 }
 
 /*Library returns mpd library song data list.*/
 func (p *Player) Library() ([]mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.library, p.libraryModified
+	return p.library.get()
 }
 
 /*Playlist returns mpd playlist song data list.*/
 func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.playlist, p.playlistModified
+	return p.playlist.get()
 }
 
 /*RescanLibrary scans music directory and update library database.*/
@@ -134,9 +119,7 @@ func (p *Player) Random(on bool) error {
 
 /*Outputs return output device list.*/
 func (p *Player) Outputs() ([]mpd.Attrs, time.Time) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.outputs, p.outputsModified
+	return p.outputs.get()
 }
 
 /*Output enable output if true.*/
@@ -152,46 +135,45 @@ func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
 	return p.request(func(mpc mpdClient) error { return p.mpcSortPlaylist(mpc, keys, uri) })
 }
 
-func (p *Player) mpcSortPlaylist(mpc mpdClient, keys []string, uri string) (err error) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	err = nil
-	l := make([]mpd.Attrs, len(p.library))
-	copy(l, p.library)
-	sort.Slice(l, func(i, j int) bool {
-		return songSortKey(l[i], keys) < songSortKey(l[j], keys)
-	})
-	update := false
-	if len(l) != len(p.playlist) {
-		update = true
-	} else {
-		for i := range l {
-			n := l[i]["file"]
-			o := p.playlist[i]["file"]
-			if n != o {
+func (p *Player) mpcSortPlaylist(mpc mpdClient, keys []string, uri string) error {
+	return p.librarySort.lock(func(library []mpd.Attrs, _ time.Time) error {
+		update := false
+		p.playlist.lock(func(playlist []mpd.Attrs, _ time.Time) error {
+			if len(library) != len(playlist) {
 				update = true
-				break
+				return nil
+			}
+			sort.Slice(library, func(i, j int) bool {
+				return songSortKey(library[i], keys) < songSortKey(library[j], keys)
+			})
+			for i := range library {
+				n := library[i]["file"]
+				o := playlist[i]["file"]
+				if n != o {
+					update = true
+					break
+				}
+			}
+			return nil
+		})
+		if update {
+			cl := mpc.BeginCommandList()
+			cl.Clear()
+			for i := range library {
+				cl.Add(library[i]["file"])
+			}
+			err := cl.End()
+			if err != nil {
+				return err
 			}
 		}
-	}
-	if update {
-		cl := mpc.BeginCommandList()
-		cl.Clear()
-		for i := range l {
-			cl.Add(l[i]["file"])
+		for i := range library {
+			if library[i]["file"] == uri {
+				return mpc.Play(i)
+			}
 		}
-		err = cl.End()
-	}
-	if err != nil {
-		return
-	}
-	for i := range l {
-		if l[i]["file"] == uri {
-			err = mpc.Play(i)
-			return
-		}
-	}
-	return
+		return nil
+	})
 }
 
 // Subscribe server events.
@@ -201,21 +183,24 @@ func (p *Player) Subscribe(c chan string) {
 }
 
 func (p *Player) updateSubscribers() {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	if p.stats == nil {
+	stats, modified := p.stats.get()
+	if stats == nil {
 		return
 	}
-	p.stats["subscribers"] = strconv.Itoa(p.notification.count())
+	newStats := mpd.Attrs{}
+	for k, v := range stats {
+		newStats[k] = v
+	}
+	newStats["subscribers"] = strconv.Itoa(p.notification.count())
 	newTime := time.Now().UTC()
-	uptime, err := strconv.Atoi(p.stats["uptime"])
+	uptime, err := strconv.Atoi(newStats["uptime"])
 	if err != nil {
-		p.statsModifiled = newTime
+		p.stats.set(newStats, newTime)
 		p.notify("stats")
 		return
 	}
-	p.stats["uptime"] = strconv.Itoa(uptime + int(newTime.Sub(p.statsModifiled)/time.Second))
-	p.statsModifiled = newTime
+	newStats["uptime"] = strconv.Itoa(uptime + int(newTime.Sub(modified)/time.Second))
+	p.stats.set(newStats, newTime)
 	p.notify("stats")
 
 }
@@ -379,12 +364,13 @@ func (p *Player) mpdUpdateCurrentSong(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
-	if p.current["file"] != song["file"] {
+	current, _ := p.current.get()
+	if current["file"] != song["file"] {
+		song = songAddReadableData(song)
 		p.mutex.Lock()
-		defer p.mutex.Unlock()
-		p.current = songAddReadableData(song)
-		p.current = songFindCover(p.current, p.musicDirectory, p.coverCache)
-		p.currentModified = time.Now().UTC()
+		song = songFindCover(song, p.musicDirectory, p.coverCache)
+		p.mutex.Unlock()
+		p.current.set(song, time.Now().UTC())
 		return p.notify("current")
 	}
 	return nil
@@ -395,10 +381,7 @@ func (p *Player) mpdUpdateStatus(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.statusModified = time.Now().UTC()
-	p.status = convStatus(status)
+	p.status.set(convStatus(status), time.Now().UTC())
 	return p.notify("status")
 }
 
@@ -407,13 +390,10 @@ func (p *Player) mpdUpdateStats(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
 	if stats != nil {
 		stats["subscribers"] = strconv.Itoa(p.notification.count())
 	}
-	p.stats = stats
-	p.statsModifiled = time.Now().UTC()
+	p.stats.set(stats, time.Now().UTC())
 	return p.notify("stats")
 }
 
@@ -422,14 +402,17 @@ func (p *Player) mpdUpdateLibrary(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
+	library = songsAddReadableData(library)
 	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.library = songsAddReadableData(library)
-	p.library = songsFindCover(p.library, p.musicDirectory, p.coverCache)
-	for i := range p.library {
-		p.library[i]["Pos"] = strconv.Itoa(i)
+	library = songsFindCover(library, p.musicDirectory, p.coverCache)
+	p.mutex.Unlock()
+	for i := range library {
+		library[i]["Pos"] = strconv.Itoa(i)
 	}
-	p.libraryModified = time.Now().UTC()
+	l := make([]mpd.Attrs, len(library))
+	copy(l, library)
+	p.library.set(library, time.Now().UTC())
+	p.librarySort.set(l, time.Now().UTC())
 	return p.notify("library")
 }
 
@@ -438,11 +421,11 @@ func (p *Player) mpdUpdatePlaylist(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
+	playlist = songsAddReadableData(playlist)
 	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.playlist = songsAddReadableData(playlist)
-	p.playlist = songsFindCover(p.playlist, p.musicDirectory, p.coverCache)
-	p.playlistModified = time.Now().UTC()
+	playlist = songsFindCover(playlist, p.musicDirectory, p.coverCache)
+	p.mutex.Unlock()
+	p.playlist.set(playlist, time.Now().UTC())
 	return p.notify("playlist")
 }
 
@@ -451,11 +434,71 @@ func (p *Player) mpdUpdateOutputs(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.outputs = outputs
-	p.outputsModified = time.Now().UTC()
+	p.outputs.set(outputs, time.Now().UTC())
 	return p.notify("outputs")
+}
+
+type sliceMapStorage struct {
+	m        sync.Mutex
+	storage  []mpd.Attrs
+	modified time.Time
+}
+
+func (s *sliceMapStorage) set(l []mpd.Attrs, t time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.storage = l
+	s.modified = t
+}
+
+func (s *sliceMapStorage) get() ([]mpd.Attrs, time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	return s.storage, s.modified
+}
+
+func (s *sliceMapStorage) lock(f func([]mpd.Attrs, time.Time) error) error {
+	s.m.Lock()
+	defer s.m.Unlock()
+	return f(s.storage, s.modified)
+}
+
+type mapStorage struct {
+	m        sync.Mutex
+	storage  mpd.Attrs
+	modified time.Time
+}
+
+func (s *mapStorage) set(l mpd.Attrs, t time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.storage = l
+	s.modified = t
+}
+
+func (s *mapStorage) get() (mpd.Attrs, time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	return s.storage, s.modified
+}
+
+type statusStorage struct {
+	m        sync.Mutex
+	storage  PlayerStatus
+	modified time.Time
+}
+
+func (s *statusStorage) set(l PlayerStatus, t time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.storage = l
+	s.modified = t
+}
+
+func (s *statusStorage) get() (PlayerStatus, time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	return s.storage, s.modified
 }
 
 type pubsub struct {
