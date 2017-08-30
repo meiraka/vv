@@ -184,9 +184,6 @@ func (p *Player) Subscribe(c chan string) {
 
 func (p *Player) updateSubscribers() {
 	stats, modified := p.stats.get()
-	if stats == nil {
-		return
-	}
 	newStats := mpd.Attrs{}
 	for k, v := range stats {
 		newStats[k] = v
@@ -390,9 +387,7 @@ func (p *Player) mpdUpdateStats(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
-	if stats != nil {
-		stats["subscribers"] = strconv.Itoa(p.notification.count())
-	}
+	stats["subscribers"] = strconv.Itoa(p.notification.count())
 	p.stats.set(stats, time.Now().UTC())
 	return p.notify("stats")
 }
@@ -454,12 +449,18 @@ func (s *sliceMapStorage) set(l []mpd.Attrs, t time.Time) {
 func (s *sliceMapStorage) get() ([]mpd.Attrs, time.Time) {
 	s.m.Lock()
 	defer s.m.Unlock()
+	if s.storage == nil {
+		s.storage = []mpd.Attrs{}
+	}
 	return s.storage, s.modified
 }
 
 func (s *sliceMapStorage) lock(f func([]mpd.Attrs, time.Time) error) error {
 	s.m.Lock()
 	defer s.m.Unlock()
+	if s.storage == nil {
+		s.storage = []mpd.Attrs{}
+	}
 	return f(s.storage, s.modified)
 }
 
@@ -479,6 +480,9 @@ func (s *mapStorage) set(l mpd.Attrs, t time.Time) {
 func (s *mapStorage) get() (mpd.Attrs, time.Time) {
 	s.m.Lock()
 	defer s.m.Unlock()
+	if s.storage == nil {
+		s.storage = mpd.Attrs{}
+	}
 	return s.storage, s.modified
 }
 

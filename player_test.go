@@ -14,6 +14,7 @@ func initMock(dialError, newWatcherError error) (*mockMpc, *mpd.Watcher) {
 	m.ListAllInfoRet1 = []mpd.Attrs{}
 	m.PlaylistInfoRet1 = []mpd.Attrs{}
 	m.StatusRet1 = mpd.Attrs{}
+	m.StatsRet1 = mpd.Attrs{}
 	m.ReadCommentsRet1 = mpd.Attrs{}
 	m.CurrentSongRet1 = mpd.Attrs{}
 	m.ListOutputsRet1 = []mpd.Attrs{}
@@ -278,6 +279,9 @@ func TestPlayerPlaylist(t *testing.T) {
 	e := make(chan string, 1)
 	p.Subscribe(e)
 	defer p.Unsubscribe(e)
+	if event := <-e; event != "stats" {
+		t.Errorf("unexpected event. expect: stats, actual: %s", event)
+	}
 	m.PlaylistInfoCalled = 0
 	m.PlaylistInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.PlaylistInfoRet2 = nil
@@ -307,6 +311,9 @@ func TestPlayerStats(t *testing.T) {
 	e := make(chan string, 1)
 	p.Subscribe(e)
 	defer p.Unsubscribe(e)
+	if event := <-e; event != "stats" {
+		t.Errorf("unexpected event. expect: stats, actual: %s", event)
+	}
 	var testsets = []struct {
 		desc   string
 		ret1   mpd.Attrs
@@ -317,7 +324,7 @@ func TestPlayerStats(t *testing.T) {
 		{
 			desc: "no cache, error",
 			ret1: nil, ret2: errors.New("hoge"),
-			expect: nil,
+			expect: mpd.Attrs{"subscribers": "1"},
 			notify: false,
 		},
 		{
@@ -343,10 +350,10 @@ func TestPlayerStats(t *testing.T) {
 		}
 		actual, _ := p.Stats()
 		if m.StatsCalled != 1 {
-			t.Errorf("mpd.Client.Stats does not called")
+			t.Errorf("[%s] mpd.Client.Stats does not called", tt.desc)
 		}
 		if !reflect.DeepEqual(tt.expect, actual) {
-			t.Errorf("unexpected get stats")
+			t.Errorf("[%s] unexpected get stats", tt.desc)
 		}
 		if tt.notify {
 			if event := <-e; event != "stats" {
@@ -364,6 +371,9 @@ func TestPlayerLibrary(t *testing.T) {
 	e := make(chan string, 1)
 	p.Subscribe(e)
 	defer p.Unsubscribe(e)
+	if event := <-e; event != "stats" {
+		t.Errorf("unexpected event. expect: stats, actual: %s", event)
+	}
 	m.ListAllInfoCalled = 0
 	m.ListAllInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.ListAllInfoRet2 = nil
@@ -393,6 +403,9 @@ func TestPlayerCurrent(t *testing.T) {
 	e := make(chan string, 1)
 	p.Subscribe(e)
 	defer p.Unsubscribe(e)
+	if event := <-e; event != "stats" {
+		t.Errorf("unexpected event. expect: stats, actual: %s", event)
+	}
 	m.CurrentSongCalled = 0
 	m.StatusCalled = 0
 	errret := new(mockError)
@@ -409,7 +422,7 @@ func TestPlayerCurrent(t *testing.T) {
 		// dont update if mpd.CurrentSong returns error
 		{
 			mpd.Attrs{}, errret, 1,
-			nil,
+			mpd.Attrs{},
 			mpd.Attrs{}, errret, 1,
 			convStatus(mpd.Attrs{}),
 		},
@@ -471,6 +484,9 @@ func TestPlayerOutputs(t *testing.T) {
 	e := make(chan string, 1)
 	p.Subscribe(e)
 	defer p.Unsubscribe(e)
+	if event := <-e; event != "stats" {
+		t.Errorf("unexpected event. expect: stats, actual: %s", event)
+	}
 	m.ListOutputsCalled = 0
 	m.ListOutputsRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.ListOutputsRet2 = nil
