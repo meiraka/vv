@@ -16,9 +16,23 @@ import (
 	"time"
 )
 
-var startTime time.Time
-
 const musicDirectoryPrefix = "/music_directory/"
+
+/*Server http server for vv.*/
+type Server struct {
+	Port           string
+	Music          MusicIF
+	MusicDirectory string
+	StartTime      time.Time
+	upgrader       websocket.Upgrader
+	debug          bool
+}
+
+// Serve serves http request.
+func (s *Server) Serve() {
+	handler := s.makeHandle()
+	http.ListenAndServe(fmt.Sprintf(":%s", s.Port), handler)
+}
 
 func writeJSONInterface(w http.ResponseWriter, d interface{}, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
@@ -63,85 +77,79 @@ func notModified(w http.ResponseWriter, l time.Time) {
 	return
 }
 
-type apiHandler struct {
-	player   Music
-	upgrader websocket.Upgrader
-	devMode  bool
-}
-
-func (a *apiHandler) playlist(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiMusicPlaylist(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		d, l := a.player.Playlist()
-		a.returnList(w, r, d, l)
+		d, l := s.Music.Playlist()
+		returnList(w, r, d, l)
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
-		var s struct {
+		var data struct {
 			Action string   `json:"action"`
 			Keys   []string `json:"keys"`
 			URI    string   `json:"uri"`
 		}
-		err := decoder.Decode(&s)
+		err := decoder.Decode(&data)
 		if err == nil {
-			a.player.SortPlaylist(s.Keys, s.URI)
+			s.Music.SortPlaylist(data.Keys, data.URI)
 		}
 		writeJSON(w, err)
 	}
 }
 
-func (a *apiHandler) playlistOne(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiMusicPlaylistOne(w http.ResponseWriter, r *http.Request) {
 	p := strings.Replace(r.URL.Path, "/api/music/songs/", "", -1)
 	if p == "" {
-		a.playlist(w, r)
+		s.apiMusicPlaylist(w, r)
 		return
 	}
-	d, l := a.player.Playlist()
-	a.returnListInSong(w, r, p, d, l)
+	d, l := s.Music.Playlist()
+	returnListInSong(w, r, p, d, l)
 }
 
-func (a *apiHandler) library(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiMusicLibrary(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		d, l := a.player.Library()
-		a.returnList(w, r, d, l)
+		d, l := s.Music.Library()
+		returnList(w, r, d, l)
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
-		var s struct {
+		var data struct {
 			Action string `json:"action"`
 		}
-		err := decoder.Decode(&s)
+		err := decoder.Decode(&data)
 		if err == nil {
-			if s.Action == "rescan" {
-				a.player.RescanLibrary()
+			if data.Action == "rescan" {
+				s.Music.RescanLibrary()
 			} else {
-				err = errors.New("unknown action: " + s.Action)
+				err = errors.New("unknown action: " + data.Action)
 			}
 		}
 		writeJSON(w, err)
 	}
 }
 
-func (a *apiHandler) libraryOne(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiMusicLibraryOne(w http.ResponseWriter, r *http.Request) {
 	p := strings.Replace(r.URL.Path, "/api/music/library/", "", -1)
 	if p == "" {
-		a.library(w, r)
+		s.apiMusicLibrary(w, r)
 		return
 	}
-	d, l := a.player.Library()
-	a.returnListInSong(w, r, p, d, l)
+	d, l := s.Music.Library()
+	returnListInSong(w, r, p, d, l)
 }
 
-func (a *apiHandler) current(w http.ResponseWriter, r *http.Request) {
-	d, l := a.player.Current()
-	a.returnSong(w, r, d, l)
+func (s *Server) apiMusicCurrent(w http.ResponseWriter, r *http.Request) {
+	d, l := s.Music.Current()
+	returnSong(w, r, d, l)
 }
 
-func (a *apiHandler) stats(w http.ResponseWriter, r *http.Request) {
-	d, l := a.player.Stats()
+func (s *Server) apiMusicStats(w http.ResponseWriter, r *http.Request) {
+	d, l := s.Music.Stats()
 	writeJSONInterface(w, d, l, nil)
 }
 
-func (a *apiHandler) control(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiMusicControl(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		j, err := parseSimpleJSON(r.Body)
@@ -150,22 +158,22 @@ func (a *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		funcs := []func() error{
-			func() error { return j.execIfInt("volume", a.player.Volume) },
-			func() error { return j.execIfBool("repeat", a.player.Repeat) },
-			func() error { return j.execIfBool("random", a.player.Random) },
+			func() error { return j.execIfInt("volume", s.Music.Volume) },
+			func() error { return j.execIfBool("repeat", s.Music.Repeat) },
+			func() error { return j.execIfBool("random", s.Music.Random) },
 			func() error {
-				return j.execIfString("state", func(s string) error {
-					switch s {
+				return j.execIfString("state", func(state string) error {
+					switch state {
 					case "play":
-						return a.player.Play()
+						return s.Music.Play()
 					case "pause":
-						return a.player.Pause()
+						return s.Music.Pause()
 					case "next":
-						return a.player.Next()
+						return s.Music.Next()
 					case "prev":
-						return a.player.Prev()
+						return s.Music.Prev()
 					}
-					return errors.New("unknown state value: " + s)
+					return errors.New("unknown state value: " + state)
 				})
 			},
 		}
@@ -179,7 +187,7 @@ func (a *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, err)
 		return
 	case "GET":
-		d, l := a.player.Status()
+		d, l := s.Music.Status()
 		if modifiedSince(r, l) {
 			writeJSONInterface(w, d, l, nil)
 		} else {
@@ -188,8 +196,8 @@ func (a *apiHandler) control(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
-	d, l := a.player.Outputs()
+func (s *Server) apiMusicOutputs(w http.ResponseWriter, r *http.Request) {
+	d, l := s.Music.Outputs()
 	if r.Method == "POST" {
 		id, err := strconv.Atoi(
 			strings.Replace(r.URL.Path, "/api/music/outputs/", "", -1),
@@ -199,15 +207,15 @@ func (a *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		decoder := json.NewDecoder(r.Body)
-		var s = struct {
+		var data = struct {
 			OutputEnabled bool `json:"outputenabled"`
 		}{}
-		err = decoder.Decode(&s)
+		err = decoder.Decode(&data)
 		if err != nil {
 			writeJSON(w, err)
 			return
 		}
-		writeJSON(w, a.player.Output(id, s.OutputEnabled))
+		writeJSON(w, s.Music.Output(id, data.OutputEnabled))
 		return
 	}
 	if modifiedSince(r, l) {
@@ -217,10 +225,10 @@ func (a *apiHandler) outputs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *apiHandler) version(w http.ResponseWriter, r *http.Request) {
-	if modifiedSince(r, startTime) {
+func (s *Server) apiVersion(w http.ResponseWriter, r *http.Request) {
+	if modifiedSince(r, s.StartTime) {
 		vvPostfix := ""
-		if a.devMode {
+		if s.debug {
 			vvPostfix = vvPostfix + " dev mode"
 		}
 		vvVersion := version
@@ -229,21 +237,21 @@ func (a *apiHandler) version(w http.ResponseWriter, r *http.Request) {
 		}
 		goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		d := map[string]string{"vv": vvVersion + vvPostfix, "go": goVersion}
-		writeJSONInterface(w, d, startTime, nil)
+		writeJSONInterface(w, d, s.StartTime, nil)
 	} else {
-		notModified(w, startTime)
+		notModified(w, s.StartTime)
 	}
 }
 
-func (a *apiHandler) notify(w http.ResponseWriter, r *http.Request) {
-	c, err := a.upgrader.Upgrade(w, r, nil)
+func (s *Server) apiMusicNotify(w http.ResponseWriter, r *http.Request) {
+	c, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
 	defer c.Close()
 	n := make(chan string, 10)
-	a.player.Subscribe(n)
-	defer a.player.Unsubscribe(n)
+	s.Music.Subscribe(n)
+	defer s.Music.Unsubscribe(n)
 	for {
 		select {
 		case e := <-n:
@@ -261,15 +269,15 @@ func (a *apiHandler) notify(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (a *apiHandler) returnSong(w http.ResponseWriter, r *http.Request, s mpd.Attrs, l time.Time) {
+func returnSong(w http.ResponseWriter, r *http.Request, song mpd.Attrs, l time.Time) {
 	if modifiedSince(r, l) {
-		writeJSONInterface(w, s, l, nil)
+		writeJSONInterface(w, song, l, nil)
 	} else {
 		notModified(w, l)
 	}
 }
 
-func (a *apiHandler) returnListInSong(w http.ResponseWriter, r *http.Request, path string, d []mpd.Attrs, l time.Time) {
+func returnListInSong(w http.ResponseWriter, r *http.Request, path string, d []mpd.Attrs, l time.Time) {
 	id, err := strconv.Atoi(path)
 	if err != nil {
 		http.NotFound(w, r)
@@ -279,11 +287,10 @@ func (a *apiHandler) returnListInSong(w http.ResponseWriter, r *http.Request, pa
 		http.NotFound(w, r)
 		return
 	}
-	s := d[id]
-	a.returnSong(w, r, s, l)
+	returnSong(w, r, d[id], l)
 }
 
-func (a *apiHandler) returnList(w http.ResponseWriter, r *http.Request, d []mpd.Attrs, l time.Time) {
+func returnList(w http.ResponseWriter, r *http.Request, d []mpd.Attrs, l time.Time) {
 	if modifiedSince(r, l) {
 		writeJSONInterface(w, d, l, nil)
 	} else {
@@ -304,21 +311,20 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 	}
 }
 
-func makeHandle(music Music, musicDirectory string, bindata bool) http.Handler {
-	api := apiHandler{player: music, devMode: false}
+func (s *Server) makeHandle() http.Handler {
 	h := http.NewServeMux()
-	h.HandleFunc("/api/version", api.version)
-	h.HandleFunc("/api/music/library", api.library)
-	h.HandleFunc("/api/music/library/", api.libraryOne)
-	h.HandleFunc("/api/music/songs", api.playlist)
-	h.HandleFunc("/api/music/songs/", api.playlistOne)
-	h.HandleFunc("/api/music/songs/current", api.current)
-	h.HandleFunc("/api/music/control", api.control)
-	h.HandleFunc("/api/music/outputs", api.outputs)
-	h.HandleFunc("/api/music/outputs/", api.outputs)
-	h.HandleFunc("/api/music/stats", api.stats)
-	h.HandleFunc("/api/music/notify", api.notify)
-	fs := http.StripPrefix(musicDirectoryPrefix, http.FileServer(http.Dir(musicDirectory)))
+	h.HandleFunc("/api/version", s.apiVersion)
+	h.HandleFunc("/api/music/library", s.apiMusicLibrary)
+	h.HandleFunc("/api/music/library/", s.apiMusicLibraryOne)
+	h.HandleFunc("/api/music/songs", s.apiMusicPlaylist)
+	h.HandleFunc("/api/music/songs/", s.apiMusicPlaylistOne)
+	h.HandleFunc("/api/music/songs/current", s.apiMusicCurrent)
+	h.HandleFunc("/api/music/control", s.apiMusicControl)
+	h.HandleFunc("/api/music/outputs", s.apiMusicOutputs)
+	h.HandleFunc("/api/music/outputs/", s.apiMusicOutputs)
+	h.HandleFunc("/api/music/stats", s.apiMusicStats)
+	h.HandleFunc("/api/music/notify", s.apiMusicNotify)
+	fs := http.StripPrefix(musicDirectoryPrefix, http.FileServer(http.Dir(s.MusicDirectory)))
 	h.HandleFunc(musicDirectoryPrefix, func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
 	})
@@ -328,11 +334,10 @@ func makeHandle(music Music, musicDirectory string, bindata bool) http.Handler {
 			p = "/"
 		}
 		_, err := os.Stat(f)
-		if os.IsNotExist(err) || bindata {
+		if os.IsNotExist(err) || !s.debug {
 			data, _ := Asset(f)
 			h.HandleFunc(p, makeHandleAssets(f, data))
 		} else {
-			api.devMode = true
 			func(path, rpath string) {
 				h.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 					http.ServeFile(w, r, rpath)
@@ -344,14 +349,13 @@ func makeHandle(music Music, musicDirectory string, bindata bool) http.Handler {
 }
 
 // Serve serves http request.
-func Serve(music Music, musicDirectory string, port string) {
-	startTime = time.Now().UTC()
-	handler := makeHandle(music, musicDirectory, false)
-	http.ListenAndServe(fmt.Sprintf(":%s", port), handler)
+func Serve(music MusicIF, musicDirectory string, port string) {
+	s := Server{Music: music, MusicDirectory: musicDirectory, Port: port, StartTime: time.Now().UTC(), debug: true}
+	s.Serve()
 }
 
-// Music Represents music player.
-type Music interface {
+// MusicIF Represents music player.
+type MusicIF interface {
 	Play() error
 	Pause() error
 	Next() error
