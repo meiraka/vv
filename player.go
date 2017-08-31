@@ -54,32 +54,27 @@ func (p *Player) Current() (mpd.Attrs, time.Time) {
 	return p.current.get()
 }
 
-/*Status returns mpd current song data.*/
-func (p *Player) Status() (PlayerStatus, time.Time) {
-	return p.status.get()
-}
-
-/*Stats returns mpd statistics.*/
-func (p *Player) Stats() (mpd.Attrs, time.Time) {
-	return p.stats.get()
-}
-
 /*Library returns mpd library song data list.*/
 func (p *Player) Library() ([]mpd.Attrs, time.Time) {
 	return p.library.get()
 }
 
-/*Playlist returns mpd playlist song data list.*/
-func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
-	return p.playlist.get()
+/*Next song.*/
+func (p *Player) Next() error {
+	return p.request(func(mpc mpdClient) error { return mpc.Next() })
 }
 
-/*RescanLibrary scans music directory and update library database.*/
-func (p *Player) RescanLibrary() error {
-	return p.request(func(mpc mpdClient) error {
-		_, err := mpc.Update("")
-		return err
-	})
+/*Output enable output if true.*/
+func (p *Player) Output(id int, on bool) error {
+	if on {
+		return p.request(func(mpc mpdClient) error { return mpc.EnableOutput(id) })
+	}
+	return p.request(func(mpc mpdClient) error { return mpc.DisableOutput(id) })
+}
+
+/*Outputs return output device list.*/
+func (p *Player) Outputs() ([]mpd.Attrs, time.Time) {
+	return p.outputs.get()
 }
 
 /*Pause song.*/
@@ -92,24 +87,14 @@ func (p *Player) Play() error {
 	return p.request(func(mpc mpdClient) error { return mpc.Play(-1) })
 }
 
+/*Playlist returns mpd playlist song data list.*/
+func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
+	return p.playlist.get()
+}
+
 /*Prev song.*/
 func (p *Player) Prev() error {
 	return p.request(func(mpc mpdClient) error { return mpc.Previous() })
-}
-
-/*Next song.*/
-func (p *Player) Next() error {
-	return p.request(func(mpc mpdClient) error { return mpc.Next() })
-}
-
-/*Volume set player volume.*/
-func (p *Player) Volume(v int) error {
-	return p.request(func(mpc mpdClient) error { return mpc.SetVolume(v) })
-}
-
-/*Repeat enable if true*/
-func (p *Player) Repeat(on bool) error {
-	return p.request(func(mpc mpdClient) error { return mpc.Repeat(on) })
 }
 
 /*Random enable if true*/
@@ -117,17 +102,17 @@ func (p *Player) Random(on bool) error {
 	return p.request(func(mpc mpdClient) error { return mpc.Random(on) })
 }
 
-/*Outputs return output device list.*/
-func (p *Player) Outputs() ([]mpd.Attrs, time.Time) {
-	return p.outputs.get()
+/*Repeat enable if true*/
+func (p *Player) Repeat(on bool) error {
+	return p.request(func(mpc mpdClient) error { return mpc.Repeat(on) })
 }
 
-/*Output enable output if true.*/
-func (p *Player) Output(id int, on bool) error {
-	if on {
-		return p.request(func(mpc mpdClient) error { return mpc.EnableOutput(id) })
-	}
-	return p.request(func(mpc mpdClient) error { return mpc.DisableOutput(id) })
+/*RescanLibrary scans music directory and update library database.*/
+func (p *Player) RescanLibrary() error {
+	return p.request(func(mpc mpdClient) error {
+		_, err := mpc.Update("")
+		return err
+	})
 }
 
 /*SortPlaylist sorts playlist by song tag name.*/
@@ -176,10 +161,31 @@ func (p *Player) mpcSortPlaylist(mpc mpdClient, keys []string, uri string) error
 	})
 }
 
+/*Status returns mpd current song data.*/
+func (p *Player) Status() (PlayerStatus, time.Time) {
+	return p.status.get()
+}
+
+/*Stats returns mpd statistics.*/
+func (p *Player) Stats() (mpd.Attrs, time.Time) {
+	return p.stats.get()
+}
+
 // Subscribe server events.
 func (p *Player) Subscribe(c chan string) {
 	p.notification.subscribe(c)
 	p.updateSubscribers()
+}
+
+// Unsubscribe server events.
+func (p *Player) Unsubscribe(c chan string) {
+	p.notification.unsubscribe(c)
+	p.updateSubscribers()
+}
+
+/*Volume set player volume.*/
+func (p *Player) Volume(v int) error {
+	return p.request(func(mpc mpdClient) error { return mpc.SetVolume(v) })
 }
 
 func (p *Player) updateSubscribers() {
@@ -200,12 +206,6 @@ func (p *Player) updateSubscribers() {
 	p.stats.set(newStats, newTime)
 	p.notify("stats")
 
-}
-
-// Unsubscribe server events.
-func (p *Player) Unsubscribe(c chan string) {
-	p.notification.unsubscribe(c)
-	p.updateSubscribers()
 }
 
 func (p *Player) notify(n string) error {
