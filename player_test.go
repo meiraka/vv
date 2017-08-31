@@ -286,7 +286,7 @@ func TestPlayerPlaylist(t *testing.T) {
 	m.PlaylistInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.PlaylistInfoRet2 = nil
 	expect := songsAddReadableData((m.PlaylistInfoRet1))
-	p.mpdUpdatePlaylist(m)
+	p.updatePlaylist(m)
 	// mpd.Client.PlaylistInfo was Called
 	if m.PlaylistInfoCalled != 1 {
 		t.Errorf("Client.PlaylistInfo does not Called")
@@ -344,7 +344,7 @@ func TestPlayerStats(t *testing.T) {
 		m.StatsRet1 = tt.ret1
 		m.StatsRet2 = tt.ret2
 		m.StatsCalled = 0
-		err := p.mpdUpdateStats(m)
+		err := p.updateStats(m)
 		if err != tt.ret2 {
 			t.Errorf("[%s] unexpected error: %s", tt.desc, err.Error())
 		}
@@ -378,7 +378,7 @@ func TestPlayerLibrary(t *testing.T) {
 	m.ListAllInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.ListAllInfoRet2 = nil
 	expect := songsAddReadableData((m.ListAllInfoRet1))
-	p.mpdUpdateLibrary(m)
+	p.updateLibrary(m)
 	// mpd.Client.ListAllInfo was Called
 	if m.ListAllInfoCalled != 1 {
 		t.Errorf("Client.ListAllInfo does not Called")
@@ -439,13 +439,13 @@ func TestPlayerCurrent(t *testing.T) {
 		m.CurrentSongRet2 = c.CurrentSongRet2
 		m.StatusRet1 = c.StatusRet1
 		m.StatusRet2 = c.StatusRet2
-		p.mpdUpdateCurrentSong(m)
+		p.updateCurrentSong(m)
 		if c.CurrentSongRet2 == nil {
 			if event := <-e; event != "current" {
 				t.Errorf("unexpected event. expect: current, actual: %s", event)
 			}
 		}
-		p.mpdUpdateStatus(m)
+		p.updateStatus(m)
 		if c.StatusRet2 == nil {
 			if event := <-e; event != "status" {
 				t.Errorf("unexpected event. expect: status, actual: %s", event)
@@ -490,7 +490,7 @@ func TestPlayerOutputs(t *testing.T) {
 	m.ListOutputsCalled = 0
 	m.ListOutputsRet1 = []mpd.Attrs{{"foo": "bar"}}
 	m.ListOutputsRet2 = nil
-	p.mpdUpdateOutputs(m)
+	p.updateOutputs(m)
 	// mpd.Client.ListOutputs was Called
 	if m.ListOutputsCalled != 1 {
 		t.Errorf("Client.ListOutputs does not Called")

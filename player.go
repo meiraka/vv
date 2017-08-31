@@ -117,10 +117,10 @@ func (p *Player) RescanLibrary() error {
 
 /*SortPlaylist sorts playlist by song tag name.*/
 func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
-	return p.request(func(mpc mpdClient) error { return p.mpcSortPlaylist(mpc, keys, uri) })
+	return p.request(func(mpc mpdClient) error { return p.sortPlaylist(mpc, keys, uri) })
 }
 
-func (p *Player) mpcSortPlaylist(mpc mpdClient, keys []string, uri string) error {
+func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string) error {
 	return p.librarySort.lock(func(library []mpd.Attrs, _ time.Time) error {
 		update := false
 		p.playlist.lock(func(playlist []mpd.Attrs, _ time.Time) error {
@@ -278,7 +278,7 @@ func (p *Player) connect() (mpdClient, *mpd.Watcher) {
 		mpc.Close()
 		return nil, new(mpd.Watcher)
 	}
-	fs := []func(mpdClient) error{p.mpdUpdateLibrary, p.mpdUpdatePlaylist, p.mpdUpdateCurrentSong, p.mpdUpdateStatus, p.mpdUpdateStats, p.mpdUpdateOutputs}
+	fs := []func(mpdClient) error{p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus, p.updateStats, p.updateOutputs}
 	for i := range fs {
 		err := fs[i](mpc)
 		if err != nil {
@@ -316,21 +316,21 @@ loop:
 		case subsystem := <-watcher.Event:
 			switch subsystem {
 			case "database":
-				sendErr(p.watcherResponse, p.mpdUpdateLibrary(mpc))
-				sendErr(p.watcherResponse, p.mpdUpdateStats(mpc))
+				sendErr(p.watcherResponse, p.updateLibrary(mpc))
+				sendErr(p.watcherResponse, p.updateStats(mpc))
 			case "playlist":
-				sendErr(p.watcherResponse, p.mpdUpdatePlaylist(mpc))
+				sendErr(p.watcherResponse, p.updatePlaylist(mpc))
 			case "player":
-				sendErr(p.watcherResponse, p.mpdUpdateCurrentSong(mpc))
-				sendErr(p.watcherResponse, p.mpdUpdateStatus(mpc))
-				sendErr(p.watcherResponse, p.mpdUpdateStats(mpc))
+				sendErr(p.watcherResponse, p.updateCurrentSong(mpc))
+				sendErr(p.watcherResponse, p.updateStatus(mpc))
+				sendErr(p.watcherResponse, p.updateStats(mpc))
 			case "mixer", "options":
-				sendErr(p.watcherResponse, p.mpdUpdateCurrentSong(mpc))
-				sendErr(p.watcherResponse, p.mpdUpdateStatus(mpc))
+				sendErr(p.watcherResponse, p.updateCurrentSong(mpc))
+				sendErr(p.watcherResponse, p.updateStatus(mpc))
 			case "update":
-				sendErr(p.watcherResponse, p.mpdUpdateStatus(mpc))
+				sendErr(p.watcherResponse, p.updateStatus(mpc))
 			case "output":
-				sendErr(p.watcherResponse, p.mpdUpdateOutputs(mpc))
+				sendErr(p.watcherResponse, p.updateOutputs(mpc))
 			}
 		case <-t.C:
 			if mpc == nil || mpc.Ping() != nil {
@@ -356,7 +356,7 @@ func (p *Player) requestAsync(f func(mpdClient) error, ec chan error) {
 	p.daemonRequest <- r
 }
 
-func (p *Player) mpdUpdateCurrentSong(mpc mpdClient) error {
+func (p *Player) updateCurrentSong(mpc mpdClient) error {
 	song, err := mpc.CurrentSong()
 	if err != nil {
 		return err
@@ -373,7 +373,7 @@ func (p *Player) mpdUpdateCurrentSong(mpc mpdClient) error {
 	return nil
 }
 
-func (p *Player) mpdUpdateStatus(mpc mpdClient) error {
+func (p *Player) updateStatus(mpc mpdClient) error {
 	status, err := mpc.Status()
 	if err != nil {
 		return err
@@ -382,7 +382,7 @@ func (p *Player) mpdUpdateStatus(mpc mpdClient) error {
 	return p.notify("status")
 }
 
-func (p *Player) mpdUpdateStats(mpc mpdClient) error {
+func (p *Player) updateStats(mpc mpdClient) error {
 	stats, err := mpc.Stats()
 	if err != nil {
 		return err
@@ -392,7 +392,7 @@ func (p *Player) mpdUpdateStats(mpc mpdClient) error {
 	return p.notify("stats")
 }
 
-func (p *Player) mpdUpdateLibrary(mpc mpdClient) error {
+func (p *Player) updateLibrary(mpc mpdClient) error {
 	library, err := mpc.ListAllInfo("/")
 	if err != nil {
 		return err
@@ -411,7 +411,7 @@ func (p *Player) mpdUpdateLibrary(mpc mpdClient) error {
 	return p.notify("library")
 }
 
-func (p *Player) mpdUpdatePlaylist(mpc mpdClient) error {
+func (p *Player) updatePlaylist(mpc mpdClient) error {
 	playlist, err := mpc.PlaylistInfo(-1, -1)
 	if err != nil {
 		return err
@@ -424,7 +424,7 @@ func (p *Player) mpdUpdatePlaylist(mpc mpdClient) error {
 	return p.notify("playlist")
 }
 
-func (p *Player) mpdUpdateOutputs(mpc mpdClient) error {
+func (p *Player) updateOutputs(mpc mpdClient) error {
 	outputs, err := mpc.ListOutputs()
 	if err != nil {
 		return err
