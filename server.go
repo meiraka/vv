@@ -116,11 +116,7 @@ func (s *Server) apiMusicControl(w http.ResponseWriter, r *http.Request) {
 		return
 	case "GET":
 		d, l := s.Music.Status()
-		if modifiedSince(r, l) {
-			writeInterface(w, d, l, nil)
-		} else {
-			writeNotModified(w, l)
-		}
+		writeInterfaceIfModified(w, r, d, l, nil)
 	}
 }
 
@@ -128,7 +124,7 @@ func (s *Server) apiMusicLibrary(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		d, l := s.Music.Library()
-		writeSongList(w, r, d, l)
+		writeInterfaceIfModified(w, r, d, l, nil)
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
 		var data struct {
@@ -204,18 +200,14 @@ func (s *Server) apiMusicOutputs(w http.ResponseWriter, r *http.Request) {
 		writeError(w, s.Music.Output(id, data.OutputEnabled))
 		return
 	}
-	if modifiedSince(r, l) {
-		writeInterface(w, d, l, nil)
-	} else {
-		writeNotModified(w, l)
-	}
+	writeInterfaceIfModified(w, r, d, l, nil)
 }
 
 func (s *Server) apiMusicSongs(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		d, l := s.Music.Playlist()
-		writeSongList(w, r, d, l)
+		writeInterfaceIfModified(w, r, d, l, nil)
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
 		var data struct {
@@ -243,12 +235,12 @@ func (s *Server) apiMusicSongsOne(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) apiMusicSongsCurrent(w http.ResponseWriter, r *http.Request) {
 	d, l := s.Music.Current()
-	writeSong(w, r, d, l)
+	writeInterfaceIfModified(w, r, d, l, nil)
 }
 
 func (s *Server) apiMusicStats(w http.ResponseWriter, r *http.Request) {
 	d, l := s.Music.Stats()
-	writeInterface(w, d, l, nil)
+	writeInterfaceIfModified(w, r, d, l, nil)
 }
 
 func (s *Server) apiVersion(w http.ResponseWriter, r *http.Request) {
@@ -302,6 +294,14 @@ func writeError(w http.ResponseWriter, err error) {
 	return
 }
 
+func writeInterfaceIfModified(w http.ResponseWriter, r *http.Request, d interface{}, l time.Time, err error) {
+	if !modifiedSince(r, l) {
+		writeNotModified(w, l)
+	} else {
+		writeInterface(w, d, l, err)
+	}
+}
+
 func writeInterface(w http.ResponseWriter, d interface{}, l time.Time, err error) {
 	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
@@ -325,14 +325,6 @@ func writeNotModified(w http.ResponseWriter, l time.Time) {
 	return
 }
 
-func writeSong(w http.ResponseWriter, r *http.Request, song mpd.Attrs, l time.Time) {
-	if modifiedSince(r, l) {
-		writeInterface(w, song, l, nil)
-	} else {
-		writeNotModified(w, l)
-	}
-}
-
 func writeSongInList(w http.ResponseWriter, r *http.Request, path string, d []mpd.Attrs, l time.Time) {
 	id, err := strconv.Atoi(path)
 	if err != nil {
@@ -343,15 +335,7 @@ func writeSongInList(w http.ResponseWriter, r *http.Request, path string, d []mp
 		http.NotFound(w, r)
 		return
 	}
-	writeSong(w, r, d[id], l)
-}
-
-func writeSongList(w http.ResponseWriter, r *http.Request, d []mpd.Attrs, l time.Time) {
-	if modifiedSince(r, l) {
-		writeInterface(w, d, l, nil)
-	} else {
-		writeNotModified(w, l)
-	}
+	writeInterfaceIfModified(w, r, d[id], l, nil)
 }
 
 // MusicIF Represents music player.
