@@ -112,24 +112,14 @@ func TestApiMusicControl(t *testing.T) {
 		}
 	})
 	t.Run("state", func(t *testing.T) {
-		candidates := []struct {
-			input string
-		}{
-			{
-				"{\"state\": \"play\"}",
-			},
-			{
-				"{\"state\": \"pause\"}",
-			},
-			{
-				"{\"state\": \"next\"}",
-			},
-			{
-				"{\"state\": \"prev\"}",
-			},
+		candidates := []string{
+			"{\"state\": \"play\"}",
+			"{\"state\": \"pause\"}",
+			"{\"state\": \"next\"}",
+			"{\"state\": \"prev\"}",
 		}
 		for _, c := range candidates {
-			j := strings.NewReader(c.input)
+			j := strings.NewReader(c)
 			res, err := http.Post(url, "application/json", j)
 			if err != nil {
 				t.Errorf("unexpected request error: %s", err.Error())
@@ -166,49 +156,57 @@ func TestApiMusicLibrary(t *testing.T) {
 	s := Server{Music: m}
 	handler := s.makeHandle()
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/music/library"
 	defer ts.Close()
 	t.Run("get", func(t *testing.T) {
 		lastModified := time.Unix(100, 0)
-		var testsets = []struct {
+		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.LibraryRet2 = lastModified
+		testsets := []struct {
 			desc            string
 			ret             int
 			ifModifiedSince time.Time
+			path            string
+			expectSong      mpd.Attrs
+			expectSongList  []mpd.Attrs
 		}{
-			{desc: "200 ok", ret: 200},
-			{desc: "304 not modified if Last-Modified == If-Modified-Since", ifModifiedSince: lastModified, ret: 304},
+			{desc: "200 ok", ret: 200, path: "", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
+			{desc: "200 ok", ret: 200, path: "/", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
+			{desc: "200 ok", ret: 200, path: "/0", expectSong: mpd.Attrs{"foo": "bar"}},
+			{desc: "304 not modified", ret: 304, path: "", ifModifiedSince: lastModified},
+			{desc: "304 not modified", ret: 304, path: "/", ifModifiedSince: lastModified},
+			{desc: "304 not modified", ret: 304, path: "/0", ifModifiedSince: lastModified},
+			{desc: "404 not found(out of range)", ret: 404, path: "/1"},
+			{desc: "404 not found(not int)", ret: 404, path: "/foobar"},
 		}
 		for _, tt := range testsets {
-			m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
-			m.LibraryRet2 = lastModified
-			req, _ := http.NewRequest("GET", ts.URL+"/api/music/library", nil)
+			req, _ := http.NewRequest("GET", ts.URL+"/api/music/library"+tt.path, nil)
 			req.Header.Set("If-Modified-Since", tt.ifModifiedSince.Format(http.TimeFormat))
 			client := new(http.Client)
 			res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
 			if res.StatusCode != tt.ret {
 				t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
 			}
-			if tt.ret != 200 {
-				continue
+			if tt.expectSong != nil {
+				defer res.Body.Close()
+				body, actual := decodeJSONSong(res.Body)
+				if !reflect.DeepEqual(tt.expectSong, actual.Data) || actual.Error != "" {
+					t.Errorf("[%s] unexpected body: %s", tt.desc, body)
+				}
 			}
-			defer res.Body.Close()
-			body, _ := ioutil.ReadAll(res.Body)
-			st := struct {
-				Data  []mpd.Attrs `json:"data"`
-				Error string      `json:"error"`
-			}{[]mpd.Attrs{}, ""}
-			json.Unmarshal(body, &st)
-			if !reflect.DeepEqual(m.LibraryRet1, st.Data) || st.Error != "" {
-				t.Errorf("[%s] unexpected body: %s", tt.desc, body)
+			if tt.expectSongList != nil {
+				defer res.Body.Close()
+				body, actual := decodeJSONSongList(res.Body)
+				if !reflect.DeepEqual(tt.expectSongList, actual.Data) || actual.Error != "" {
+					t.Errorf("[%s] unexpected body: %s", tt.desc, body)
+				}
 			}
 		}
 	})
-	t.Run("rescan", func(t *testing.T) {
-		m.SortPlaylistErr = nil
+	t.Run("post", func(t *testing.T) {
 		j := strings.NewReader(
 			"{\"action\": \"rescan\"}",
 		)
-		res, err := http.Post(url, "application/json", j)
+		res, err := http.Post(ts.URL+"/api/music/library", "application/json", j)
 		if err != nil {
 			t.Errorf("unexpected error %s", err.Error())
 		}
@@ -221,38 +219,6 @@ func TestApiMusicLibrary(t *testing.T) {
 			t.Errorf("unexpected response")
 		}
 	})
-}
-
-func TestApiMusicLibraryOne(t *testing.T) {
-	m := new(MockMusic)
-	s := Server{Music: m}
-	handler := s.makeHandle()
-	ts := httptest.NewServer(handler)
-	defer ts.Close()
-	lastModified := time.Unix(100, 0)
-	testsets := []struct {
-		desc            string
-		ret             int
-		ifModifiedSince time.Time
-		name            string
-	}{
-		{desc: "200 ok", ret: 200, name: ""},
-		{desc: "200 ok", ret: 200, name: "0"},
-		{desc: "304 not modified", ret: 304, name: "0", ifModifiedSince: lastModified},
-		{desc: "404 not found(out of range)", ret: 404, name: "1"},
-		{desc: "404 not found(not int)", ret: 404, name: "foobar"},
-	}
-	m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
-	m.LibraryRet2 = lastModified
-	for _, tt := range testsets {
-		req, _ := http.NewRequest("GET", ts.URL+"/api/music/library/"+tt.name, nil)
-		req.Header.Set("If-Modified-Since", tt.ifModifiedSince.Format(http.TimeFormat))
-		client := new(http.Client)
-		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
-		if res.StatusCode != tt.ret {
-			t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
-		}
-	}
 }
 
 func TestNotify(t *testing.T) {
@@ -335,51 +301,67 @@ func TestApiMusicOutputs(t *testing.T) {
 	})
 }
 
-func TestApiMusicSongs(t *testing.T) {
+func TestApiMusicSongsOne(t *testing.T) {
 	m := new(MockMusic)
 	s := Server{Music: m}
 	handler := s.makeHandle()
 	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/music/songs"
 	defer ts.Close()
 	t.Run("get", func(t *testing.T) {
+		lastModified := time.Unix(100, 0)
 		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
-		m.PlaylistRet2 = time.Unix(100, 0)
+		m.PlaylistRet2 = lastModified
+		m.CurrentRet1 = mpd.Attrs{"hoge": "fuga"}
+		m.CurrentRet2 = lastModified
 		testsets := []struct {
 			desc            string
 			ret             int
 			ifModifiedSince time.Time
+			path            string
+			expectSong      mpd.Attrs
+			expectSongList  []mpd.Attrs
 		}{
-			{desc: "200 ok", ret: 200},
-			{desc: "304 not modified", ret: 304, ifModifiedSince: m.PlaylistRet2},
+			{desc: "200 ok", ret: 200, path: "", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
+			{desc: "200 ok", ret: 200, path: "/", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
+			{desc: "200 ok", ret: 200, path: "/0", expectSong: mpd.Attrs{"foo": "bar"}},
+			{desc: "200 ok", ret: 200, path: "/current", expectSong: mpd.Attrs{"hoge": "fuga"}},
+			{desc: "304 not modified", ret: 304, path: "", ifModifiedSince: lastModified},
+			{desc: "304 not modified", ret: 304, path: "/", ifModifiedSince: lastModified},
+			{desc: "304 not modified", ret: 304, path: "/0", ifModifiedSince: lastModified},
+			{desc: "304 not modified", ret: 304, path: "/current", ifModifiedSince: lastModified},
+			{desc: "404 not found(out of range)", ret: 404, path: "/1"},
+			{desc: "404 not found(not int)", ret: 404, path: "/foobar"},
 		}
 		for _, tt := range testsets {
-			req, _ := http.NewRequest("GET", url, nil)
+			req, _ := http.NewRequest("GET", ts.URL+"/api/music/songs"+tt.path, nil)
 			req.Header.Set("If-Modified-Since", tt.ifModifiedSince.Format(http.TimeFormat))
 			client := new(http.Client)
 			res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
 			if res.StatusCode != tt.ret {
 				t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
 			}
-			if tt.ret != 200 {
-				continue
+			if tt.expectSong != nil {
+				defer res.Body.Close()
+				body, actual := decodeJSONSong(res.Body)
+				if !reflect.DeepEqual(tt.expectSong, actual.Data) || actual.Error != "" {
+					t.Errorf("[%s] unexpected body: %s", tt.desc, body)
+				}
 			}
-			defer res.Body.Close()
-			body, st := decodeJSONSongList(res.Body)
-			if !reflect.DeepEqual(m.PlaylistRet1, st.Data) {
-				t.Errorf("unexpected body: %s", body)
-			}
-			if st.Error != "" {
-				t.Errorf("unexpected body: %s", body)
+			if tt.expectSongList != nil {
+				defer res.Body.Close()
+				body, actual := decodeJSONSongList(res.Body)
+				if !reflect.DeepEqual(tt.expectSongList, actual.Data) || actual.Error != "" {
+					t.Errorf("[%s] unexpected body: %s", tt.desc, body)
+				}
 			}
 		}
 	})
-	t.Run("sort", func(t *testing.T) {
+	t.Run("post", func(t *testing.T) {
 		m.SortPlaylistErr = nil
 		j := strings.NewReader(
 			"{\"action\": \"sort\", \"keys\": [\"file\"], \"uri\": \"path\"}",
 		)
-		res, err := http.Post(url, "application/json", j)
+		res, err := http.Post(ts.URL+"/api/music/songs", "application/json", j)
 		if err != nil {
 			t.Errorf("unexpected error %s", err.Error())
 		}
@@ -392,50 +374,7 @@ func TestApiMusicSongs(t *testing.T) {
 			t.Errorf("unexpected response")
 		}
 	})
-}
 
-func TestApiMusicSongsOne(t *testing.T) {
-	m := new(MockMusic)
-	s := Server{Music: m}
-	handler := s.makeHandle()
-	ts := httptest.NewServer(handler)
-	defer ts.Close()
-	lastModified := time.Unix(100, 0)
-	m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
-	m.PlaylistRet2 = lastModified
-	m.CurrentRet1 = mpd.Attrs{"hoge": "fuga"}
-	m.CurrentRet2 = lastModified
-	testsets := []struct {
-		desc            string
-		ret             int
-		ifModifiedSince time.Time
-		name            string
-		expectSong      mpd.Attrs
-	}{
-		{desc: "200 ok", ret: 200, name: ""},
-		{desc: "200 ok", ret: 200, name: "0", expectSong: mpd.Attrs{"foo": "bar"}},
-		{desc: "200 ok", ret: 200, name: "current", expectSong: mpd.Attrs{"hoge": "fuga"}},
-		{desc: "304 not modified", ret: 304, name: "0", ifModifiedSince: lastModified},
-		{desc: "304 not modified", ret: 304, name: "current", ifModifiedSince: lastModified},
-		{desc: "404 not found(out of range)", ret: 404, name: "1"},
-		{desc: "404 not found(not int)", ret: 404, name: "foobar"},
-	}
-	for _, tt := range testsets {
-		req, _ := http.NewRequest("GET", ts.URL+"/api/music/songs/"+tt.name, nil)
-		req.Header.Set("If-Modified-Since", tt.ifModifiedSince.Format(http.TimeFormat))
-		client := new(http.Client)
-		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
-		if res.StatusCode != tt.ret {
-			t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
-		}
-		if tt.expectSong != nil {
-			defer res.Body.Close()
-			body, actual := decodeJSONSong(res.Body)
-			if !reflect.DeepEqual(tt.expectSong, actual.Data) || actual.Error != "" {
-				t.Errorf("[%s] unexpected body: %s", tt.desc, body)
-			}
-		}
-	}
 }
 
 func TestApiMusicStats(t *testing.T) {
