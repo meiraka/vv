@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -261,16 +263,39 @@ func (s *Server) apiVersion(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func makeGZip(data []byte) ([]byte, error) {
+	var gz bytes.Buffer
+	zw := gzip.NewWriter(&gz)
+	_, err := zw.Write(data)
+	if err != nil {
+		return nil, err
+	}
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return gz.Bytes(), nil
+}
+
 func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Request) {
 	n := time.Now().UTC()
 	m := mime.TypeByExtension(path.Ext(f))
+	var gzdata []byte
+	if !strings.Contains(m, "image") {
+		gzdata, _ = makeGZip(data)
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Length", strconv.Itoa(len(data)))
 		w.Header().Add("Last-Modified", n.Format(http.TimeFormat))
 		if m != "" {
 			w.Header().Add("Content-Type", m)
 		}
-		w.Write(data)
+		if gzdata != nil && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			w.Header().Add("Content-Length", strconv.Itoa(len(gzdata)))
+			w.Header().Add("Content-Encoding", "gzip")
+			w.Write(gzdata)
+		} else {
+			w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+			w.Write(data)
+		}
 	}
 }
 

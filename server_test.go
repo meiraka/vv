@@ -467,10 +467,12 @@ func TestApiVersion(t *testing.T) {
 func TestAssets(t *testing.T) {
 	assets := []string{"/", "/assets/app.css", "/assets/app.js"}
 	testsets := []struct {
-		desc  string
-		debug bool
+		desc   string
+		debug  bool
+		header map[string]string
 	}{
 		{desc: "use bindata", debug: false},
+		{desc: "use bindata, nogzip", debug: false, header: map[string]string{"Accept-Encoding": "identity"}},
 		{desc: "use local file", debug: true},
 	}
 	for _, tt := range testsets {
@@ -480,7 +482,7 @@ func TestAssets(t *testing.T) {
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
 		for i := range assets {
-			res := checkRequestError(t, func() (*http.Response, error) { return http.Get(ts.URL + assets[i]) })
+			res := testHTTPGet(t, ts.URL+assets[i], tt.header)
 			if res.StatusCode != 200 {
 				t.Errorf("[%s] unexpected status for \"%s\", %d", tt.desc, assets[i], res.StatusCode)
 			}
@@ -656,4 +658,23 @@ func decodeJSONSongList(b io.Reader) (body []byte, st jsonSongList) {
 	st = jsonSongList{[]mpd.Attrs{}, ""}
 	json.Unmarshal(body, &st)
 	return
+}
+
+func testHTTPGet(t *testing.T, url string, header map[string]string) (res *http.Response) {
+	t.Helper()
+	var err error
+	if header == nil {
+		res, err = http.Get(url)
+	} else {
+		req, _ := http.NewRequest("GET", url, nil)
+		for k, v := range header {
+			req.Header.Set(k, v)
+		}
+		client := new(http.Client)
+		res, err = client.Do(req)
+	}
+	if err != nil {
+		t.Fatalf("failed to request %s", url)
+	}
+	return res
 }
