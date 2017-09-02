@@ -499,8 +499,9 @@ footer {
   font-size: 20px;
 }
 
-#system h1 {
+.system-header {
   margin: 10px;
+  font-size: 19px;
 }
 
 .sub-article {
@@ -1228,6 +1229,14 @@ button {
 
 .animation .modal-outer.show {
   animation: show-opacity 0.3s linear 0s;
+}
+
+.modal-header {
+  font-size: 32px;
+}
+
+.modal-header-sub {
+  font-size: 19px;
 }
 
 .modal-window {
