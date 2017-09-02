@@ -265,7 +265,7 @@ func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Req
 	n := time.Now().UTC()
 	m := mime.TypeByExtension(path.Ext(f))
 	return func(w http.ResponseWriter, r *http.Request) {
-		// w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+		w.Header().Add("Content-Length", strconv.Itoa(len(data)))
 		w.Header().Add("Last-Modified", n.Format(http.TimeFormat))
 		if m != "" {
 			w.Header().Add("Content-Type", m)
@@ -314,6 +314,7 @@ func writeInterface(w http.ResponseWriter, d interface{}, l time.Time, err error
 	if jsonerr != nil {
 		return
 	}
+	w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 	fmt.Fprintf(w, string(b))
 	return
 }
