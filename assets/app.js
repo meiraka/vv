@@ -458,7 +458,7 @@ vv.control = (function() {
 
     var get_request = function(path, ifmodified, callback) {
         var xhr = new XMLHttpRequest();
-        xhr.timeout = 1000;
+        xhr.timeout = 5000;
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4) {
                 if (xhr.status == 200 || xhr.status == 304) {
@@ -470,14 +470,19 @@ vv.control = (function() {
                 // error handling
                 if (xhr.status != 0) {
                     vv.view.popup.show("GET "+path, xhr.statusText);
+                    setTimeout(function() {get_request(path, ifmodified, callback);}, 5000);
                 }
-                setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
             }
         };
-        xhr.ontimeout = function() {
-            vv.view.popup("GET " + path, "Timeout");
-            setTimeout(function() {get_request(path, ifmodified, callback);}, 1000);
-        }
+        var errorcatch = function(label) {
+            return function() {
+                vv.view.popup.show("GET " + path, label);
+                setTimeout(function() {get_request(path, ifmodified, callback);}, 5000);
+            };
+        };
+        xhr.ontimeout = errorcatch("Timeout");
+        xhr.onerror = errorcatch("Error");
+        xhr.onabort = errorcatch("Abort");
         xhr.open("GET", path, true);
         xhr.setRequestHeader('Pragma', 'no-cache');
         xhr.setRequestHeader('Cache-Control', 'no-cache');
@@ -498,7 +503,9 @@ vv.control = (function() {
                 }
             }
         };
-        xhr.ontimeout = function() { vv.view.popup("POST " + path, "Timeout"); };
+        xhr.ontimeout = function() { vv.view.popup.show("POST " + path, "Timeout"); };
+        xhr.onerror = function() { vv.view.popup.show("POST " + path, "Error"); };
+        xhr.onabort = function() { vv.view.popup.show("POST " + path, "Abort"); };
         xhr.open("POST", path, true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(obj));
