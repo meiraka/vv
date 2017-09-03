@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -34,6 +35,7 @@ type Server struct {
 	StartTime      time.Time
 	upgrader       websocket.Upgrader
 	debug          bool
+	libraryCache   *gzCache
 }
 
 // Serve serves http request.
@@ -43,6 +45,7 @@ func (s *Server) Serve() {
 }
 
 func (s *Server) makeHandle() http.Handler {
+	s.libraryCache = new(gzCache)
 	h := http.NewServeMux()
 	h.HandleFunc("/api/music/control", s.apiMusicControl)
 	h.HandleFunc("/api/music/library", s.apiMusicLibrary)
@@ -126,7 +129,7 @@ func (s *Server) apiMusicLibrary(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		d, l := s.Music.Library()
-		writeInterfaceIfModified(w, r, d, l, nil)
+		writeInterfaceIfCached(w, r, d, l, s.libraryCache, nil)
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
 		var data struct {
@@ -263,6 +266,25 @@ func (s *Server) apiVersion(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type gzCache struct {
+	data     []byte
+	modified time.Time
+	m        sync.RWMutex
+}
+
+func (c *gzCache) get() ([]byte, time.Time) {
+	c.m.RLock()
+	defer c.m.RUnlock()
+	return c.data, c.modified
+}
+
+func (c *gzCache) set(data []byte, modified time.Time) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.data = data
+	c.modified = modified
+}
+
 func makeGZip(data []byte) ([]byte, error) {
 	var gz bytes.Buffer
 	zw := gzip.NewWriter(&gz)
@@ -342,6 +364,45 @@ func writeInterface(w http.ResponseWriter, d interface{}, l time.Time, err error
 	w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 	fmt.Fprintf(w, string(b))
 	return
+}
+
+func writeInterfaceIfCached(w http.ResponseWriter, r *http.Request, d interface{}, l time.Time, g *gzCache, err error) {
+	if !modifiedSince(r, l) {
+		writeNotModified(w, l)
+		return
+	}
+	if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") || g == nil {
+		writeInterface(w, d, l, err)
+		return
+	}
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+	gzdata, gzmodified := g.get()
+	if gzdata != nil && gzmodified.Equal(l) {
+		w.Header().Add("Content-Encoding", "gzip")
+		w.Header().Add("Content-Length", strconv.Itoa(len(gzdata)))
+		w.Write(gzdata)
+		return
+	}
+	errstr := ""
+	if err != nil {
+		errstr = err.Error()
+	}
+	v := jsonMap{"error": errstr, "data": d}
+	b, jsonerr := json.Marshal(v)
+	if jsonerr != nil {
+		return
+	}
+	newgzdata, _ := makeGZip(b)
+	if newgzdata == nil {
+		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
+		fmt.Fprintf(w, string(b))
+		return
+	}
+	w.Header().Add("Content-Encoding", "gzip")
+	w.Header().Add("Content-Length", strconv.Itoa(len(newgzdata)))
+	w.Write(newgzdata)
+	g.set(newgzdata, l)
 }
 
 func writeNotModified(w http.ResponseWriter, l time.Time) {

@@ -162,27 +162,25 @@ func TestApiMusicLibrary(t *testing.T) {
 		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
 		m.LibraryRet2 = lastModified
 		testsets := []struct {
-			desc            string
-			ret             int
-			ifModifiedSince time.Time
-			path            string
-			expectSong      mpd.Attrs
-			expectSongList  []mpd.Attrs
+			desc           string
+			ret            int
+			header         map[string]string
+			path           string
+			expectSong     mpd.Attrs
+			expectSongList []mpd.Attrs
 		}{
 			{desc: "200 ok", ret: 200, path: "", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
 			{desc: "200 ok", ret: 200, path: "/", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
 			{desc: "200 ok", ret: 200, path: "/0", expectSong: mpd.Attrs{"foo": "bar"}},
-			{desc: "304 not modified", ret: 304, path: "", ifModifiedSince: lastModified},
-			{desc: "304 not modified", ret: 304, path: "/", ifModifiedSince: lastModified},
-			{desc: "304 not modified", ret: 304, path: "/0", ifModifiedSince: lastModified},
+			{desc: "200 ok not gzip", ret: 200, path: "", header: map[string]string{"Accept-Encoding": "identity"}},
+			{desc: "304 not modified", ret: 304, path: "", header: map[string]string{"If-Modified-Since": lastModified.Format(http.TimeFormat)}},
+			{desc: "304 not modified", ret: 304, path: "/", header: map[string]string{"If-Modified-Since": lastModified.Format(http.TimeFormat)}},
+			{desc: "304 not modified", ret: 304, path: "/0", header: map[string]string{"If-Modified-Since": lastModified.Format(http.TimeFormat)}},
 			{desc: "404 not found(out of range)", ret: 404, path: "/1"},
 			{desc: "404 not found(not int)", ret: 404, path: "/foobar"},
 		}
 		for _, tt := range testsets {
-			req, _ := http.NewRequest("GET", ts.URL+"/api/music/library"+tt.path, nil)
-			req.Header.Set("If-Modified-Since", tt.ifModifiedSince.Format(http.TimeFormat))
-			client := new(http.Client)
-			res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
+			res := testHTTPGet(t, ts.URL+"/api/music/library"+tt.path, tt.header)
 			if res.StatusCode != tt.ret {
 				t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
 			}
