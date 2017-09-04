@@ -456,9 +456,12 @@ vv.control = (function() {
         }
     };
 
-    var get_request = function(path, ifmodified, callback) {
+    var get_request = function(path, ifmodified, callback, timeout) {
         var xhr = new XMLHttpRequest();
-        xhr.timeout = 5000;
+        if (!timeout) {
+            timeout = 5000;
+        }
+        xhr.timeout = timeout;
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4) {
                 if (xhr.status == 200 || xhr.status == 304) {
@@ -470,14 +473,18 @@ vv.control = (function() {
                 // error handling
                 if (xhr.status != 0) {
                     vv.view.popup.show("GET "+path, xhr.statusText);
-                    setTimeout(function() {get_request(path, ifmodified, callback);}, 5000);
+                    if (timeout < 50000) {
+                        setTimeout(function() {get_request(path, ifmodified, callback, timeout*2);}, timeout*2);
+                    }
                 }
             }
         };
         var errorcatch = function(label) {
             return function() {
                 vv.view.popup.show("GET " + path, label);
-                setTimeout(function() {get_request(path, ifmodified, callback);}, 5000);
+                if (timeout < 50000) {
+                    setTimeout(function() {get_request(path, ifmodified, callback, timeout*2);}, timeout*2);
+                }
             };
         };
         xhr.ontimeout = errorcatch("Timeout");
