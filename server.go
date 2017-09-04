@@ -21,12 +21,6 @@ import (
 
 const musicDirectoryPrefix = "/music_directory/"
 
-// Serve serves http request.
-func Serve(music MusicIF, musicDirectory string, port string) {
-	s := Server{Music: music, MusicDirectory: musicDirectory, Port: port, StartTime: time.Now().UTC(), debug: true}
-	s.Serve()
-}
-
 /*Server http server for vv.*/
 type Server struct {
 	Port           string

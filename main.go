@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"strings"
+	"time"
 )
 
 const staticVersion = "v0.1.0+"
@@ -21,6 +22,7 @@ func setupFlag() {
 	pflag.String("mpd.port", "6600", "mpd server TCP port to connect")
 	pflag.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
 	pflag.String("server.port", "8080", "this app serving TCP port")
+	pflag.BoolP("debug", "d", false, "use local assets if exists")
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
 }
@@ -71,5 +73,12 @@ func main() {
 		fmt.Printf("faied to connect/initialize mpd: %s\n", err)
 		os.Exit(1)
 	}
-	Serve(player, musicDirectory, viper.GetString("server.port"))
+	s := Server{
+		Music:          player,
+		MusicDirectory: musicDirectory,
+		Port:           viper.GetString("server.port"),
+		StartTime:      time.Now().UTC(),
+		debug:          viper.GetBool("debug"),
+	}
+	s.Serve()
 }
