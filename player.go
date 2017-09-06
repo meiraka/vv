@@ -116,13 +116,32 @@ func (p *Player) RescanLibrary() error {
 }
 
 /*SortPlaylist sorts playlist by song tag name.*/
-func (p *Player) SortPlaylist(keys []string, uri string) (err error) {
-	return p.request(func(mpc mpdClient) error { return p.sortPlaylist(mpc, keys, uri) })
+func (p *Player) SortPlaylist(keys []string, uri string, filters [][]string) (err error) {
+	return p.request(func(mpc mpdClient) error { return p.sortPlaylist(mpc, keys, uri, filters) })
 }
 
-func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string) error {
-	return p.librarySort.lock(func(library []mpd.Attrs, _ time.Time) error {
+func filter(songs []mpd.Attrs, filters [][]string, max int) []mpd.Attrs {
+	l := make([]mpd.Attrs, len(songs))
+	copy(l, songs)
+	for _, filter := range filters {
+		if len(l) <= max {
+			break
+		}
+		lc := []mpd.Attrs{}
+		for _, song := range l {
+			if song[filter[0]] == filter[1] {
+				lc = append(lc, song)
+			}
+		}
+		l = lc
+	}
+	return l
+}
+
+func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string, filters [][]string) error {
+	return p.librarySort.lock(func(masterLibrary []mpd.Attrs, _ time.Time) error {
 		update := false
+		library := filter(masterLibrary, filters, 9999)
 		p.playlist.lock(func(playlist []mpd.Attrs, _ time.Time) error {
 			if len(library) != len(playlist) {
 				update = true

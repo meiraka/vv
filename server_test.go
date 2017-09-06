@@ -357,7 +357,7 @@ func TestApiMusicSongsOne(t *testing.T) {
 	t.Run("post", func(t *testing.T) {
 		m.SortPlaylistErr = nil
 		j := strings.NewReader(
-			"{\"action\": \"sort\", \"keys\": [\"file\"], \"uri\": \"path\"}",
+			"{\"action\": \"sort\", \"keys\": [\"file\"], \"uri\": \"path\", \"filters\": [[\"key\", \"value\"]]}",
 		)
 		res, err := http.Post(ts.URL+"/api/music/songs", "application/json", j)
 		if err != nil {
@@ -535,6 +535,7 @@ type MockMusic struct {
 	StatsRet2         time.Time
 	SortPlaylistArg1  []string
 	SortPlaylistArg2  string
+	SortPlaylistArg3  [][]string
 	SortPlaylistErr   error
 	Subscribers       []chan string
 }
@@ -597,9 +598,10 @@ func (p *MockMusic) Status() (PlayerStatus, time.Time) {
 func (p *MockMusic) Stats() (mpd.Attrs, time.Time) {
 	return p.StatsRet1, p.StatsRet2
 }
-func (p *MockMusic) SortPlaylist(s []string, u string) error {
+func (p *MockMusic) SortPlaylist(s []string, u string, t [][]string) error {
 	p.SortPlaylistArg1 = s
 	p.SortPlaylistArg2 = u
+	p.SortPlaylistArg3 = t
 	return p.SortPlaylistErr
 }
 func (p *MockMusic) Subscribe(s chan string) {

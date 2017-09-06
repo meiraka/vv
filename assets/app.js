@@ -294,6 +294,18 @@ vv.model.list = (function() {
         }
         return r;
     };
+    var filters = function() {
+        var ret = [];
+        var t = rootname();
+        if (t != "root") {
+            var i;
+            for (i = 0; i < TREE[t]["tree"].length; i++) {
+                var key = TREE[t]["tree"][i][0];
+                ret.push([key, vv.storage.current[key]]);
+            }
+        }
+        return ret;
+    };
     var focused = function() {
         return focus;
     };
@@ -426,6 +438,7 @@ vv.model.list = (function() {
         rootname: rootname,
         sortkeys: sortkeys,
         parent: parent,
+        filters: filters,
         grandparent: grandparent,
         up: up,
         down: down,
@@ -573,6 +586,7 @@ vv.control = (function() {
         xhr.send(JSON.stringify(
             {"action": "sort",
              "keys": vv.model.list.sortkeys(),
+             "filters": vv.model.list.filters(),
              "uri": uri
             }
         ));

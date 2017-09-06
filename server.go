@@ -210,13 +210,14 @@ func (s *Server) apiMusicSongs(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
 		var data struct {
-			Action string   `json:"action"`
-			Keys   []string `json:"keys"`
-			URI    string   `json:"uri"`
+			Action  string     `json:"action"`
+			Keys    []string   `json:"keys"`
+			URI     string     `json:"uri"`
+			Filters [][]string `json:"filters"`
 		}
 		err := decoder.Decode(&data)
-		if err == nil {
-			s.Music.SortPlaylist(data.Keys, data.URI)
+		if err == nil && data.Keys != nil && data.Filters != nil {
+			s.Music.SortPlaylist(data.Keys, data.URI, data.Filters)
 		}
 		writeError(w, err)
 	}
@@ -436,7 +437,7 @@ type MusicIF interface {
 	Stats() (mpd.Attrs, time.Time)
 	Output(int, bool) error
 	Outputs() ([]mpd.Attrs, time.Time)
-	SortPlaylist([]string, string) error
+	SortPlaylist([]string, string, [][]string) error
 	Subscribe(chan string)
 	Unsubscribe(chan string)
 }

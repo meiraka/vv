@@ -505,6 +505,32 @@ func TestPlayerOutputs(t *testing.T) {
 	}
 }
 
+func TestFilter(t *testing.T) {
+	songs := []mpd.Attrs{
+		mpd.Attrs{"Artist": "A", "Album": "B"},
+		mpd.Attrs{"Artist": "A", "Album": "C"},
+		mpd.Attrs{"Artist": "B", "Album": "B"},
+	}
+	filters := [][]string{
+		[]string{"Artist", "A"},
+		[]string{"Album", "B"},
+	}
+	testsets := []struct {
+		max    int
+		expect []mpd.Attrs
+	}{
+		{max: 3, expect: songs},
+		{max: 2, expect: []mpd.Attrs{songs[0], songs[1]}},
+		{max: 1, expect: []mpd.Attrs{songs[0]}},
+	}
+	for _, tt := range testsets {
+		actual := filter(songs, filters, tt.max)
+		if !reflect.DeepEqual(actual, tt.expect) {
+			t.Errorf("unexpected ret. actual: %s expect: %s", actual, tt.expect)
+		}
+	}
+}
+
 type mockMpc struct {
 	DialCalled             int
 	NewWatcherCalled       int
