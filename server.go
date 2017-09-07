@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/fhs/gompd/mpd"
 	"github.com/gorilla/websocket"
@@ -20,6 +19,18 @@ import (
 )
 
 const musicDirectoryPrefix = "/music_directory/"
+
+type httpClientError struct {
+	message string
+	err     error
+}
+
+func (e *httpClientError) Error() string {
+	if e.err != nil {
+		return fmt.Sprintf("%s: %s", e.message, e.err.Error())
+	}
+	return e.message
+}
 
 /*Server http server for vv.*/
 type Server struct {
@@ -81,7 +92,7 @@ func (s *Server) apiMusicControl(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		j, err := parseSimpleJSON(r.Body)
 		if err != nil {
-			writeError(w, err)
+			writeError(w, &httpClientError{message: "failed to get request parameters", err: err})
 			return
 		}
 		funcs := []func() error{
@@ -100,7 +111,7 @@ func (s *Server) apiMusicControl(w http.ResponseWriter, r *http.Request) {
 					case "prev":
 						return s.Music.Prev()
 					}
-					return errors.New("unknown state value: " + state)
+					return &httpClientError{message: "unknown state value: " + state}
 				})
 			},
 		}
@@ -130,14 +141,17 @@ func (s *Server) apiMusicLibrary(w http.ResponseWriter, r *http.Request) {
 			Action string `json:"action"`
 		}
 		err := decoder.Decode(&data)
-		if err == nil {
-			if data.Action == "rescan" {
-				s.Music.RescanLibrary()
-			} else {
-				err = errors.New("unknown action: " + data.Action)
-			}
+		if err != nil {
+			writeError(w, &httpClientError{message: "failed to get request parameters", err: err})
+			return
+		}
+		if data.Action == "rescan" {
+			s.Music.RescanLibrary()
+		} else {
+			err = &httpClientError{message: "unknown action: " + data.Action}
 		}
 		writeError(w, err)
+		return
 	}
 }
 
@@ -184,7 +198,7 @@ func (s *Server) apiMusicOutputs(w http.ResponseWriter, r *http.Request) {
 			strings.Replace(r.URL.Path, "/api/music/outputs/", "", -1),
 		)
 		if err != nil {
-			writeError(w, err)
+			http.NotFound(w, r)
 			return
 		}
 		decoder := json.NewDecoder(r.Body)
@@ -193,7 +207,7 @@ func (s *Server) apiMusicOutputs(w http.ResponseWriter, r *http.Request) {
 		}{}
 		err = decoder.Decode(&data)
 		if err != nil {
-			writeError(w, err)
+			writeError(w, &httpClientError{message: "failed to get request parameters", err: err})
 			return
 		}
 		writeError(w, s.Music.Output(id, data.OutputEnabled))
@@ -216,10 +230,13 @@ func (s *Server) apiMusicSongs(w http.ResponseWriter, r *http.Request) {
 			Filters [][]string `json:"filters"`
 		}
 		err := decoder.Decode(&data)
-		if err == nil && data.Keys != nil && data.Filters != nil {
-			s.Music.SortPlaylist(data.Keys, data.URI, data.Filters)
+		if err != nil || data.Keys == nil || data.Filters == nil {
+			writeError(w, &httpClientError{message: "failed to get request parameters", err: err})
+			return
 		}
+		s.Music.SortPlaylist(data.Keys, data.URI, data.Filters)
 		writeError(w, err)
+		return
 	}
 }
 
@@ -322,7 +339,7 @@ func modifiedSince(r *http.Request, l time.Time) bool {
 }
 
 func writeError(w http.ResponseWriter, err error) {
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 	errstr := ""
 	if err != nil {
 		errstr = err.Error()
@@ -330,7 +347,16 @@ func writeError(w http.ResponseWriter, err error) {
 	v := jsonMap{"error": errstr}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "{\"error\": \"failed to create json\"}")
 		return
+	}
+	if err != nil {
+		if _, ok := err.(*httpClientError); ok {
+			w.WriteHeader(400)
+		} else {
+			w.WriteHeader(500)
+		}
 	}
 	fmt.Fprintf(w, string(b))
 	return
@@ -354,6 +380,8 @@ func writeInterface(w http.ResponseWriter, d interface{}, l time.Time, err error
 	v := jsonMap{"error": errstr, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "{\"error\": \"failed to create json\"}")
 		return
 	}
 	w.Header().Add("Content-Length", strconv.Itoa(len(b)))
@@ -386,6 +414,8 @@ func writeInterfaceIfCached(w http.ResponseWriter, r *http.Request, d interface{
 	v := jsonMap{"error": errstr, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "{\"error\": \"failed to create json\"}")
 		return
 	}
 	newgzdata, _ := makeGZip(b)

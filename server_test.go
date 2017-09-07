@@ -144,8 +144,8 @@ func TestApiMusicControl(t *testing.T) {
 		}
 		defer res.Body.Close()
 		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Error != "unknown state value: unknown" {
-			t.Errorf("unexpected response")
+		if res.StatusCode != 400 || err != nil || b.Error != "unknown state value: unknown" {
+			t.Errorf("unexpected response %d", res.StatusCode)
 		}
 
 	})
@@ -356,20 +356,23 @@ func TestApiMusicSongsOne(t *testing.T) {
 	})
 	t.Run("post", func(t *testing.T) {
 		m.SortPlaylistErr = nil
-		j := strings.NewReader(
-			"{\"action\": \"sort\", \"keys\": [\"file\"], \"uri\": \"path\", \"filters\": [[\"key\", \"value\"]]}",
-		)
-		res, err := http.Post(ts.URL+"/api/music/songs", "application/json", j)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
+		testsets := []struct {
+			desc  string
+			input string
+			ret   int
+		}{
+			{desc: "200 ok", ret: 200, input: "{\"action\": \"sort\", \"keys\": [\"file\"], \"uri\": \"path\", \"filters\": [[\"key\", \"value\"]]}"},
+			{desc: "400 json decode failed", ret: 400, input: "{\"value\"]]}"},
 		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
-		}
-		defer res.Body.Close()
-		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Error != "" {
-			t.Errorf("unexpected response")
+		for _, tt := range testsets {
+			j := strings.NewReader(tt.input)
+			res, err := http.Post(ts.URL+"/api/music/songs", "application/json", j)
+			if err != nil {
+				t.Errorf("[%s] unexpected error %s", tt.desc, err.Error())
+			}
+			if res.StatusCode != tt.ret {
+				t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
+			}
 		}
 	})
 
