@@ -230,8 +230,12 @@ func (s *Server) apiMusicSongs(w http.ResponseWriter, r *http.Request) {
 			Filters [][]string `json:"filters"`
 		}
 		err := decoder.Decode(&data)
-		if err != nil || data.Keys == nil || data.Filters == nil {
+		if err != nil {
 			writeError(w, &httpClientError{message: "failed to get request parameters", err: err})
+			return
+		}
+		if data.Keys == nil || data.Filters == nil {
+			writeError(w, &httpClientError{message: "failed to get request parameters. missing fields: keys or/and filters"})
 			return
 		}
 		s.Music.SortPlaylist(data.Keys, data.URI, data.Filters)

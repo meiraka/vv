@@ -17,15 +17,15 @@ import (
 )
 
 func TestApiMusicControl(t *testing.T) {
-	m := new(MockMusic)
-	s := Server{Music: m}
-	handler := s.makeHandle()
-	ts := httptest.NewServer(handler)
-	url := ts.URL + "/api/music/control"
-	defer ts.Close()
 	t.Run("get", func(t *testing.T) {
-		s := convStatus(mpd.Attrs{})
-		m.StatusRet1 = s
+		m := new(MockMusic)
+		s := Server{Music: m}
+		handler := s.makeHandle()
+		ts := httptest.NewServer(handler)
+		url := ts.URL + "/api/music/control"
+		defer ts.Close()
+		expect := convStatus(mpd.Attrs{})
+		m.StatusRet1 = expect
 		m.StatusRet2 = time.Unix(0, 0)
 		testsets := []struct {
 			desc            string
@@ -47,107 +47,84 @@ func TestApiMusicControl(t *testing.T) {
 			}
 			defer res.Body.Close()
 			body, _ := ioutil.ReadAll(res.Body)
-			st := struct {
+			actual := struct {
 				Data  PlayerStatus `json:"data"`
 				Error string       `json:"error"`
 			}{PlayerStatus{}, ""}
-			json.Unmarshal(body, &st)
-			if !reflect.DeepEqual(s, st.Data) || st.Error != "" {
+			json.Unmarshal(body, &actual)
+			if !reflect.DeepEqual(expect, actual.Data) || actual.Error != "" {
 				t.Errorf("unexpected body: %s", body)
 			}
 		}
 	})
-	t.Run("volume", func(t *testing.T) {
-		j := strings.NewReader(
-			"{\"volume\": 1}",
-		)
-		res, err := http.Post(url, "application/json", j)
-		if err != nil {
-			t.Errorf("unexpected request error: %s", err.Error())
-			return
+	t.Run("post", func(t *testing.T) {
+		testsets := []struct {
+			desc        string
+			ret         int
+			input       string
+			volumearg1  int
+			repeatarg1  bool
+			randomarg1  bool
+			playcalled  int
+			pausecalled int
+			nextcalled  int
+			prevcalled  int
+			errstr      string
+		}{
+			{desc: "parse error 400 bad request", ret: 400, input: "hoge", errstr: "failed to get request parameters: invalid character 'h' looking for beginning of value"},
+			{desc: "volume 200 ok", ret: 200, input: "{\"volume\": 1}", volumearg1: 1},
+			{desc: "repeat 200 ok", ret: 200, input: "{\"repeat\": true}", repeatarg1: true},
+			{desc: "random 200 ok", ret: 200, input: "{\"random\": true}", randomarg1: true},
+			{desc: "play 200 ok", ret: 200, input: "{\"state\": \"play\"}", playcalled: 1},
+			{desc: "pause 200 ok", ret: 200, input: "{\"state\": \"pause\"}", pausecalled: 1},
+			{desc: "next 200 ok", ret: 200, input: "{\"state\": \"next\"}", nextcalled: 1},
+			{desc: "prev 200 ok", ret: 200, input: "{\"state\": \"prev\"}", prevcalled: 1},
+			{desc: "unknown state 400 bad request", ret: 400, input: "{\"state\": \"unknown\"}", errstr: "unknown state value: unknown"},
 		}
-		if m.VolumeArg1 != 1 {
-			t.Errorf("unexpected arguments: %d", m.VolumeArg1)
-		}
-		defer res.Body.Close()
-		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Error != "" {
-			t.Errorf("unexpected response")
-		}
-	})
-	t.Run("repeat", func(t *testing.T) {
-		j := strings.NewReader(
-			"{\"repeat\": true}",
-		)
-		res, err := http.Post(url, "application/json", j)
-		if err != nil {
-			t.Errorf("unexpected request error: %s", err.Error())
-			return
-		}
-		if m.RepeatArg1 != true {
-			t.Errorf("unexpected arguments: %t", m.RepeatArg1)
-		}
-		defer res.Body.Close()
-		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Error != "" {
-			t.Errorf("unexpected response")
-		}
-	})
-	t.Run("random", func(t *testing.T) {
-		j := strings.NewReader(
-			"{\"random\": true}",
-		)
-		res, err := http.Post(url, "application/json", j)
-		if err != nil {
-			t.Errorf("unexpected request error: %s", err.Error())
-			return
-		}
-		if m.RandomArg1 != true {
-			t.Errorf("unexpected arguments: %t", m.RandomArg1)
-		}
-		defer res.Body.Close()
-		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Error != "" {
-			t.Errorf("unexpected response")
-		}
-	})
-	t.Run("state", func(t *testing.T) {
-		candidates := []string{
-			"{\"state\": \"play\"}",
-			"{\"state\": \"pause\"}",
-			"{\"state\": \"next\"}",
-			"{\"state\": \"prev\"}",
-		}
-		for _, c := range candidates {
-			j := strings.NewReader(c)
+		for _, tt := range testsets {
+			m := new(MockMusic)
+			s := Server{Music: m}
+			handler := s.makeHandle()
+			ts := httptest.NewServer(handler)
+			url := ts.URL + "/api/music/control"
+			defer ts.Close()
+			j := strings.NewReader(tt.input)
 			res, err := http.Post(url, "application/json", j)
 			if err != nil {
-				t.Errorf("unexpected request error: %s", err.Error())
-				return
+				t.Errorf("[%s] unexpected request error: %s", tt.desc, err.Error())
 			}
-			defer res.Body.Close()
-			b, err := decodeJSONError(res.Body)
-			if res.StatusCode != 200 || err != nil || b.Error != "" {
-				t.Errorf("unexpected response")
+			if m.VolumeArg1 != tt.volumearg1 {
+				t.Errorf("[%s] unexpected Music.Volume arguments. actual:%d expect:%d", tt.desc, m.VolumeArg1, tt.volumearg1)
+			}
+			if m.RepeatArg1 != tt.repeatarg1 {
+				t.Errorf("[%s] unexpected Music.Repeat arguments. actual:%t expect:%t", tt.desc, m.RepeatArg1, tt.repeatarg1)
+			}
+			if m.RandomArg1 != tt.randomarg1 {
+				t.Errorf("[%s] unexpected Music.Random arguments. actual:%t expect:%t", tt.desc, m.RandomArg1, tt.randomarg1)
+			}
+			if m.PlayCalled != tt.playcalled {
+				t.Errorf("[%s] unexpected Music.Play callcount. actual:%d expect:%d", tt.desc, m.PlayCalled, tt.playcalled)
+			}
+			if m.PauseCalled != tt.pausecalled {
+				t.Errorf("[%s] unexpected Music.Pause callcount. actual:%d expect:%d", tt.desc, m.PauseCalled, tt.pausecalled)
+			}
+			if m.NextCalled != tt.nextcalled {
+				t.Errorf("[%s] unexpected Music.Next callcount. actual:%d expect:%d", tt.desc, m.NextCalled, tt.nextcalled)
+			}
+			if m.PrevCalled != tt.prevcalled {
+				t.Errorf("[%s] unexpected Music.Prev callcount. actual:%d expect:%d", tt.desc, m.PrevCalled, tt.prevcalled)
+			}
+			if res.StatusCode != 404 {
+				defer res.Body.Close()
+				b, err := decodeJSONError(res.Body)
+				if err != nil {
+					t.Errorf("[%s] failed to decode json: %s", tt.desc, err.Error())
+				}
+				if b.Error != tt.errstr {
+					t.Errorf("[%s] unexpected error. actual:%s expect:%s", tt.desc, b.Error, tt.errstr)
+				}
 			}
 		}
-		if m.PlayCalled != 1 || m.PauseCalled != 1 || m.NextCalled != 1 || m.PrevCalled != 1 {
-			t.Errorf("unexpected function call")
-		}
-	})
-	t.Run("state unknown", func(t *testing.T) {
-		j := strings.NewReader("{\"state\": \"unknown\"}")
-		res, err := http.Post(url, "application/json", j)
-		if err != nil {
-			t.Errorf("unexpected request error: %s", err.Error())
-			return
-		}
-		defer res.Body.Close()
-		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 400 || err != nil || b.Error != "unknown state value: unknown" {
-			t.Errorf("unexpected response %d", res.StatusCode)
-		}
-
 	})
 }
 
@@ -201,20 +178,35 @@ func TestApiMusicLibrary(t *testing.T) {
 		}
 	})
 	t.Run("post", func(t *testing.T) {
-		j := strings.NewReader(
-			"{\"action\": \"rescan\"}",
-		)
-		res, err := http.Post(ts.URL+"/api/music/library", "application/json", j)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
+		testsets := []struct {
+			desc   string
+			input  string
+			ret    int
+			errstr string
+		}{
+			{desc: "200 ok", ret: 200, input: "{\"action\": \"rescan\"}"},
+			{desc: "unknown action 400 bad request", ret: 400, input: "{\"action\": \"unknown\"}", errstr: "unknown action: unknown"},
+			{desc: "parse error 400 bad request", ret: 400, input: "action=rescaon", errstr: "failed to get request parameters: invalid character 'a' looking for beginning of value"},
 		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
-		}
-		defer res.Body.Close()
-		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Error != "" {
-			t.Errorf("unexpected response")
+		for _, tt := range testsets {
+			j := strings.NewReader(tt.input)
+			res, err := http.Post(ts.URL+"/api/music/library", "application/json", j)
+			if err != nil {
+				t.Errorf("[%s] unexpected error %s", tt.desc, err.Error())
+			}
+			if res.StatusCode != tt.ret {
+				t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
+			}
+			if res.StatusCode != 404 {
+				defer res.Body.Close()
+				b, err := decodeJSONError(res.Body)
+				if err != nil {
+					t.Errorf("[%s] failed to decode json: %s", tt.desc, err.Error())
+				}
+				if b.Error != tt.errstr {
+					t.Errorf("[%s] unexpected error. actual:%s expect:%s", tt.desc, b.Error, tt.errstr)
+				}
+			}
 		}
 	})
 }
@@ -277,24 +269,42 @@ func TestApiMusicOutputs(t *testing.T) {
 			}
 		}
 	})
-	t.Run("enable", func(t *testing.T) {
-		j := strings.NewReader(
-			"{\"outputenabled\": true}",
-		)
-		res, err := http.Post(url+"/1", "application/json", j)
-		if err != nil {
-			t.Errorf("unexpected error %s", err.Error())
+	t.Run("post", func(t *testing.T) {
+		testsets := []struct {
+			desc   string
+			addr   string
+			input  string
+			ret    int
+			arg1   int
+			arg2   bool
+			errstr string
+		}{
+			{desc: "404 not found", ret: 404, addr: "", input: "{\"outputenabled\": true}"},
+			{desc: "400 bad request", ret: 400, addr: "/1", input: "[\"outputenabled\", true]", errstr: "failed to get request parameters: json: cannot unmarshal array into Go value of type struct { OutputEnabled bool \"json:\\\"outputenabled\\\"\" }"},
+			{desc: "200 ok", ret: 200, addr: "/1", input: "{\"outputenabled\": true}", arg1: 1, arg2: true},
 		}
-		if res.StatusCode != 200 {
-			t.Errorf("unexpected status %d", res.StatusCode)
-		}
-		if m.OutputArg1 != 1 || m.OutputArg2 != true {
-			t.Errorf("unexpected arguments: %d, %t", m.OutputArg1, m.OutputArg2)
-		}
-		defer res.Body.Close()
-		b, err := decodeJSONError(res.Body)
-		if res.StatusCode != 200 || err != nil || b.Error != "" {
-			t.Errorf("unexpected response")
+		for _, tt := range testsets {
+			j := strings.NewReader(tt.input)
+			res, err := http.Post(url+tt.addr, "application/json", j)
+			if err != nil {
+				t.Errorf("[%s] unexpected error %s", tt.desc, err.Error())
+			}
+			if res.StatusCode != tt.ret {
+				t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
+			}
+			if m.OutputArg1 != tt.arg1 || m.OutputArg2 != tt.arg2 {
+				t.Errorf("unexpected arguments. actual:%d expect:%d, actual:%t expect:%t", m.OutputArg1, tt.arg1, m.OutputArg2, tt.arg2)
+			}
+			if res.StatusCode != 404 {
+				defer res.Body.Close()
+				b, err := decodeJSONError(res.Body)
+				if err != nil {
+					t.Errorf("[%s] failed to decode json: %s", tt.desc, err.Error())
+				}
+				if b.Error != tt.errstr {
+					t.Errorf("[%s] unexpected error. actual:%s expect:%s", tt.desc, b.Error, tt.errstr)
+				}
+			}
 		}
 	})
 }
@@ -357,12 +367,14 @@ func TestApiMusicSongsOne(t *testing.T) {
 	t.Run("post", func(t *testing.T) {
 		m.SortPlaylistErr = nil
 		testsets := []struct {
-			desc  string
-			input string
-			ret   int
+			desc   string
+			input  string
+			ret    int
+			errstr string
 		}{
 			{desc: "200 ok", ret: 200, input: "{\"action\": \"sort\", \"keys\": [\"file\"], \"uri\": \"path\", \"filters\": [[\"key\", \"value\"]]}"},
-			{desc: "400 json decode failed", ret: 400, input: "{\"value\"]]}"},
+			{desc: "400 missing field", ret: 400, input: "{\"action\": \"sort\", \"uri\": \"path\", \"filters\": [[\"key\", \"value\"]]}", errstr: "failed to get request parameters. missing fields: keys or/and filters"},
+			{desc: "400 json decode failed", ret: 400, input: "{\"value\"]]}", errstr: "failed to get request parameters: invalid character ']' after object key"},
 		}
 		for _, tt := range testsets {
 			j := strings.NewReader(tt.input)
@@ -372,6 +384,16 @@ func TestApiMusicSongsOne(t *testing.T) {
 			}
 			if res.StatusCode != tt.ret {
 				t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
+			}
+			if res.StatusCode != 404 {
+				defer res.Body.Close()
+				b, err := decodeJSONError(res.Body)
+				if err != nil {
+					t.Errorf("[%s] failed to decode json: %s", tt.desc, err.Error())
+				}
+				if b.Error != tt.errstr {
+					t.Errorf("[%s] unexpected error. actual:%s expect:%s", tt.desc, b.Error, tt.errstr)
+				}
 			}
 		}
 	})
