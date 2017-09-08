@@ -521,6 +521,12 @@ vv.control = (function() {
                 if (xhr.status == 200 && callback) {
                     callback(JSON.parse(xhr.responseText));
                 }
+                if (xhr.status == 404) {
+                    vv.view.popup.show("POST " + path, "Not Found");
+                }
+                else if (xhr.status != 200) {
+                    vv.view.popup.show("POST " + path, JSON.parse(xhr.responseText).error);
+                }
             }
         };
         xhr.ontimeout = function() { vv.view.popup.show("POST " + path, "Timeout"); };
@@ -579,17 +585,11 @@ vv.control = (function() {
     }
 
     var play = function(uri) {
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function() {};
-        xhr.open("POST", "api/music/songs", true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(JSON.stringify(
-            {"action": "sort",
-             "keys": vv.model.list.sortkeys(),
-             "filters": vv.model.list.filters(),
-             "uri": uri
-            }
-        ));
+        post_request("api/music/songs", {
+            "action": "sort",
+            "keys": vv.model.list.sortkeys(),
+            "filters": vv.model.list.filters(),
+            "uri": uri});
     }
 
     var volume = function(num) {
