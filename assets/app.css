@@ -868,9 +868,14 @@ button {
   align-content: space-around;
   list-style-type: none;
   margin: 0;
+  padding: 15px 10px;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
+}
+
+.app .header-items {
+  padding: 20px 10px 10px 10px;
 }
 
 .header-item {
@@ -940,10 +945,6 @@ button {
 }
 
 @media (orientation: portrait) {
-  .header-items {
-    padding: 15px 10px 0;
-  }
-
   .view-main #menu-main {
     visibility: hidden;
   }
@@ -954,14 +955,6 @@ button {
 }
 
 @media (orientation: landscape) {
-  .header-items {
-    padding: 15px 10px;
-  }
-
-  .app .header-items {
-    padding: 20px 10px 10px 10px;
-  }
-
   .view-main #menu-back.root {
     visibility: hidden;
   }
