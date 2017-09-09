@@ -885,7 +885,7 @@ button {
 }
 
 .header-item:nth-of-type(n+2) {
-  margin: 0 0 0 6px;
+  margin: 0 0 0 10px;
 }
 
 .header-item.icon {
@@ -957,6 +957,7 @@ button {
   .header-items {
     padding: 15px 10px;
   }
+
   .app .header-items {
     padding: 20px 10px 10px 10px;
   }
@@ -1108,14 +1109,15 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 0 0 10px;
 }
 
-#control-repeat,
 #control-repeat svg,
-#control-random,
 #control-random svg {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
 }
 
 #control-repeat svg,
@@ -1128,8 +1130,8 @@ button {
 #control-repeat.active svg,
 #control-random:active svg,
 #control-random.active svg {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
 }
 
 #control-repeat.off svg,
@@ -1149,6 +1151,12 @@ button {
 
   #control-repeat {
     order: -1;
+  }
+}
+
+@media (orientation: landscape) {
+  #control-volume {
+    margin: 0 5px;
   }
 }
 
