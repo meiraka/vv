@@ -305,8 +305,7 @@ footer {
   align-items: baseline;
 }
 
-.plain .key,
-#menu-back-content {
+.plain .key {
   margin: 8px 4px;
   font-size: 20px;
   overflow: hidden;
@@ -878,7 +877,7 @@ button {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   display: flex;
   align-items: center;
-  width: 40px;
+  width: 32px;
 }
 
 .header-item:first-of-type {
@@ -886,7 +885,7 @@ button {
 }
 
 .header-item:nth-of-type(n+2) {
-  margin: 0 0 0 12px;
+  margin: 0 0 0 6px;
 }
 
 .header-item.icon {
@@ -896,7 +895,8 @@ button {
 .header-item.iconlabel {
   flex: 1 1 auto;
   flex-flow: row nowrap;
-  width: 40px;
+  align-items: center;
+  width: 32px;
 }
 
 .header-item:hover,
@@ -905,9 +905,9 @@ button {
 }
 
 .header-icon {
-  width: 40px;
-  height: 40px;
-  stroke-width: 20;
+  width: 32px;
+  height: 32px;
+  stroke-width: 16;
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
 }
 
@@ -917,13 +917,18 @@ button {
 
 .header-item:active .header-icon,
 .header-item.active .header-icon {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
 }
 
 .header-label {
   flex: 1 1 auto;
   width: 40px;
+  margin: 0 4px;
+  font-size: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .view-list #menu-back.root {
@@ -936,7 +941,7 @@ button {
 
 @media (orientation: portrait) {
   .header-items {
-    padding: 15px 5% 0;
+    padding: 15px 10px 0;
   }
 
   .view-main #menu-main {
@@ -951,6 +956,9 @@ button {
 @media (orientation: landscape) {
   .header-items {
     padding: 15px 10px;
+  }
+  .app .header-items {
+    padding: 20px 10px 10px 10px;
   }
 
   .view-main #menu-back.root {
