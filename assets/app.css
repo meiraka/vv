@@ -98,6 +98,29 @@ header {
   overflow-y: auto;
 }
 
+.auto-hide-scrollbar .scrollable::-webkit-scrollbar {
+  width: 12px;
+}
+
+.auto-hide-scrollbar .scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(48, 48, 48, 0.2);
+  border-radius: 10px;
+  padding: 2px;
+  margin: 2px;
+}
+
+.auto-hide-scrollbar .scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(48, 48, 48, 0.6);
+}
+
+.dark.auto-hide-scrollbar .scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(208, 208, 208, 0.2);
+}
+
+.dark.auto-hide-scrollbar .scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(208, 208, 208, 0.6);
+}
+
 .fit {
   position: fixed;
   top: 0;
