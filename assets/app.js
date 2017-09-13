@@ -767,7 +767,9 @@ vv.control = (function() {
     var update_theme = function() {
         if (color < vv.storage.preferences.appearance.color_threshold) {
             document.body.classList.add("dark");
+            document.body.classList.remove("light");
         } else {
+            document.body.classList.add("light");
             document.body.classList.remove("dark");
         }
     };
