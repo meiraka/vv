@@ -1541,30 +1541,30 @@ vv.view.popup = (function(){
 }());
 
 vv.view.modal.hide = function() {
-    document.getElementById("modal-background").classList.remove("show");
-    document.getElementById("modal-outer").classList.remove("show");
+    document.getElementById("modal-background").classList.add("hide");
+    document.getElementById("modal-outer").classList.add("hide");
     var ws = document.getElementsByClassName("modal-window");
     var i;
     for (i in ws) {
         if (ws[i].classList) {
-            ws[i].classList.remove("show");
+            ws[i].classList.add("hide");
         }
     }
 }
 vv.view.modal.help = (function() {
     var show = function() {
         var b = document.getElementById("modal-background");
-        if (b.classList.contains("show")) {
+        if (!b.classList.contains("hide")) {
             return;
         }
-        b.classList.add("show");
-        document.getElementById("modal-outer").classList.add("show");
-        document.getElementById("modal-help").classList.add("show");
+        b.classList.remove("hide");
+        document.getElementById("modal-outer").classList.remove("hide");
+        document.getElementById("modal-help").classList.remove("hide");
     }
     var hide = function() {
-        document.getElementById("modal-background").classList.remove("show");
-        document.getElementById("modal-outer").classList.remove("show");
-        document.getElementById("modal-help").classList.remove("show");
+        document.getElementById("modal-background").classList.add("hide");
+        document.getElementById("modal-outer").classList.add("hide");
+        document.getElementById("modal-help").classList.add("hide");
     }
     vv.control.addEventListener("start", function() {
         vv.control.click(document.getElementById("modal-help-close"), hide);
@@ -1589,7 +1589,7 @@ vv.view.modal.help = (function() {
 (function() {
     vv.control.addEventListener("start", function() {
         document.addEventListener("keydown", function(e) {
-            if (document.getElementById("modal-background").classList.contains("show")) {
+            if (!document.getElementById("modal-background").classList.contains("hide")) {
                 if (e.key == "Escape" || e.key == "Esc") {
                     vv.view.modal.hide();
                 }
