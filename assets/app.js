@@ -58,7 +58,6 @@ vv.song = (function(){
         return sortkey;
     }
     var element = function(e, song, key, style) {
-        var inner = "";
         e.classList.remove("plain");
         e.classList.remove("song");
         e.classList.remove("album");
@@ -72,36 +71,78 @@ vv.song = (function(){
             if (now_playing) {
                 e.classList.add("playing");
             }
-            inner = "<span class=track>"+vv.song.get(song, "TrackNumber")+"</span>";
+            var track = document.createElement("span");
+            track.classList.add("track");
+            track.textContent = vv.song.get(song, "TrackNumber");
+            e.appendChild(track);
             if (now_playing) {
-                inner += '<svg width="22" height="22" viewBox="0 0 100 100"><path class="fill" d="M 25,20 80,50 25,80 z"/></svg>';
+                var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+                svg.setAttribute("width", "22");
+                svg.setAttribute("height", "22");
+                svg.setAttribute("viewBox", "0 0 100 100");
+                var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.classList.add("fill");
+                path.setAttribute("d", "M 25,20 80,50 25,80 z");
+                svg.appendChild(path);
+                e.appendChild(svg);
             }
-            inner += "<span class=title>"+vv.song.get(song, "Title")+"</span>";
+            var title = document.createElement("span");
+            title.classList.add("title");
+            title.textContent = vv.song.get(song, "Title");
+            e.appendChild(title);
+            var artist = document.createElement("span");
+            artist.classList.add("artist");
+            artist.textContent = vv.song.get(song, "Artist");
             if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
-                inner += "<span class=artist>"+vv.song.get(song, "Artist")+"</span>";
-            } else {
-                inner += '<span class="artist low-prio">'+vv.song.get(song, "Artist")+"</span>";
+                artist.classList.add("low-prio");
             }
+            e.appendChild(artist);
             if (now_playing) {
-                inner += "<span class=elapsed></span>"+
-                         "<span class=length_separator>/</span>";
+                var elapsed = document.createElement("span");
+                elapsed.classList.add("elapsed");
+                e.appendChild(elapsed);
+                var length_separator = document.createElement("span");
+                length_separator.classList.add("length_separator");
+                e.appendChild(length_separator);
             }
-            inner += "<span class=length>"+vv.song.get(song, "Length")+"</span>";
+            var length = document.createElement("span");
+            length.classList.add("length");
+            length.textContent = vv.song.get(song, "Length");
+            e.appendChild(length);
         } else if (style == "album") {
-            var cover = "/assets/nocover.svg";
+            var cover_path = "/assets/nocover.svg";
             if (song.cover) {
-                cover = "/music_directory/" + song.cover;
+                cover_path = "/music_directory/" + song.cover;
             }
-            inner += '<div class=img-sq><img class=cover src="'+cover+'"></div>';
-            inner += "<div class=detail>"
-            inner += "<span class=date>"+vv.song.get(song, "Date")+"</span>";
-            inner += "<span class=album>"+vv.song.get(song, "Album")+"</span>";
-            inner += "<span class=albumartist>"+vv.song.get(song, "AlbumArtist")+"</span>";
-            inner += "</div>"
+            var img_sq = document.createElement("div");
+            img_sq.classList.add("img-sq");
+            var cover = document.createElement("img");
+            cover.classList.add("cover");
+            cover.src = cover_path;
+            img_sq.appendChild(cover);
+            e.appendChild(img_sq);
+
+            var detail = document.createElement("div");
+            detail.classList.add("detail");
+            var date = document.createElement("span");
+            date.classList.add("date");
+            date.textContent = vv.song.get(song, "Date");
+            detail.appendChild(date);
+            var album = document.createElement("span");
+            album.classList.add("album");
+            album.textContent = vv.song.get(song, "Album");
+            detail.appendChild(album);
+            var albumartist = document.createElement("span");
+            albumartist.classList.add("albumartist");
+            albumartist.textContent = vv.song.get(song, "AlbumArtist");
+            detail.appendChild(albumartist);
+            e.appendChild(detail);
         } else {
-            inner = "<span class=key>"+vv.song.get(song, key)+"</span>";
+            var plain = document.createElement("span");
+            plain.classList.add("key");
+            plain.textContent = vv.song.get(song, key);
+            e.appendChild(plain);
         }
-        e.innerHTML = inner;
         return e;
     };
 
@@ -1437,7 +1478,14 @@ vv.view.popup = (function(){
         } else {
             obj = document.createElement("section");
             obj.classList.add("popup");
-            obj.innerHTML = '<h3 class="popup-title">'+title+'</h3><span class="popup-description">'+description+'</span>';
+            var popup_title = document.createElement("h3");
+            popup_title.classList.add("popup-title");
+            popup_title.textContent = title;
+            obj.appendChild(popup_title);
+            var popup_description = document.createElement("span");
+            popup_description.classList.add("popup-description");
+            popup_description.textContent = description;
+            obj.appendChild(popup_description);
             data[title] = obj;
             document.getElementById("popup-box").appendChild(obj);
         }
