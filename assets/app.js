@@ -72,11 +72,12 @@ vv.song = (function(){
                 e.classList.add("playing");
             }
             var track = document.createElement("span");
-            track.classList.add("track");
+            track.classList.add("song-track");
             track.textContent = vv.song.get(song, "TrackNumber");
             e.appendChild(track);
             if (now_playing) {
                 var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+                svg.classList.add("song-playingicon");
                 svg.setAttribute("width", "22");
                 svg.setAttribute("height", "22");
                 svg.setAttribute("viewBox", "0 0 100 100");
@@ -87,11 +88,11 @@ vv.song = (function(){
                 e.appendChild(svg);
             }
             var title = document.createElement("span");
-            title.classList.add("title");
+            title.classList.add("song-title");
             title.textContent = vv.song.get(song, "Title");
             e.appendChild(title);
             var artist = document.createElement("span");
-            artist.classList.add("artist");
+            artist.classList.add("song-artist");
             artist.textContent = vv.song.get(song, "Artist");
             if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
                 artist.classList.add("low-prio");
@@ -99,14 +100,16 @@ vv.song = (function(){
             e.appendChild(artist);
             if (now_playing) {
                 var elapsed = document.createElement("span");
+                elapsed.classList.add("song-elapsed");
                 elapsed.classList.add("elapsed");
                 e.appendChild(elapsed);
                 var length_separator = document.createElement("span");
-                length_separator.classList.add("length_separator");
+                length_separator.classList.add("song-lengthseparator");
+                length_separator.textContent = "/";
                 e.appendChild(length_separator);
             }
             var length = document.createElement("span");
-            length.classList.add("length");
+            length.classList.add("song-length");
             length.textContent = vv.song.get(song, "Length");
             e.appendChild(length);
         } else if (style == "album") {
@@ -114,32 +117,32 @@ vv.song = (function(){
             if (song.cover) {
                 cover_path = "/music_directory/" + song.cover;
             }
-            var img_sq = document.createElement("div");
-            img_sq.classList.add("img-sq");
+            var imgbox = document.createElement("div");
+            imgbox.classList.add("album-imgbox");
             var cover = document.createElement("img");
-            cover.classList.add("cover");
+            cover.classList.add("album-imgbox-cover");
             cover.src = cover_path;
-            img_sq.appendChild(cover);
-            e.appendChild(img_sq);
+            imgbox.appendChild(cover);
+            e.appendChild(imgbox);
 
             var detail = document.createElement("div");
-            detail.classList.add("detail");
+            detail.classList.add("album-detail");
             var date = document.createElement("span");
-            date.classList.add("date");
+            date.classList.add("album-detail-date");
             date.textContent = vv.song.get(song, "Date");
             detail.appendChild(date);
             var album = document.createElement("span");
-            album.classList.add("album");
+            album.classList.add("album-detail-album");
             album.textContent = vv.song.get(song, "Album");
             detail.appendChild(album);
             var albumartist = document.createElement("span");
-            albumartist.classList.add("albumartist");
+            albumartist.classList.add("album-detail-albumartist");
             albumartist.textContent = vv.song.get(song, "AlbumArtist");
             detail.appendChild(albumartist);
             e.appendChild(detail);
         } else {
             var plain = document.createElement("span");
-            plain.classList.add("key");
+            plain.classList.add("plain-key");
             plain.textContent = vv.song.get(song, key);
             e.appendChild(plain);
         }

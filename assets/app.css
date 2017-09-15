@@ -482,11 +482,47 @@ svg path {
   background-color: rgba(0, 0, 0, 0.2);
 }
 
+.album {
+  align-items: center;
+}
+
+.album-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.album-imgbox {
+  display: flex;
+  justify-content: flex-end;
+  width: 70px;
+  height: 70px;
+  padding: 5px;
+}
+
+.album-imgbox-cover {
+  width: auto;
+  height: 70px;
+  max-height: 100%;
+  border-radius: 2px;
+}
+
+.album-detail-album {
+  font-size: 22px;
+}
+
+.album-detail-date {
+  font-size: 10px;
+}
+
+.album-detail-albumartist {
+  font-size: 14px;
+}
+
 .plain {
   align-items: baseline;
 }
 
-.plain .key {
+.plain-key {
   margin: 8px 4px;
   font-size: 20px;
   overflow: hidden;
@@ -499,17 +535,13 @@ svg path {
   padding: 8px 4px;
 }
 
-.song span {
-  margin: 0 8px 0 0;
-}
-
-.song svg {
+.song-playingicon {
   margin: 0;
   width: 22px;
   height: 22px;
 }
 
-.song .title {
+.song-title {
   font-size: 20px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -517,20 +549,28 @@ svg path {
   line-height: 23px;
 }
 
-.song .artist {
+.song-artist {
   flex: 1 1 auto;
   opacity: 0.7;
 }
 
-.song .track,
-.song .artist,
-.song .elapsed,
-.song .length_separator,
-.song .length {
+.song-track,
+.song-artist,
+.song-elapsed,
+.song-lengthseparator,
+.song-length {
   font-size: 12px;
 }
 
-.song .length {
+.song-track,
+.song-title,
+.song-artist,
+.song-elapsed,
+.song-lengthseparator {
+  margin: 0 8px 0 0;
+}
+
+.song-length {
   margin: 0;
 }
 
@@ -539,21 +579,21 @@ svg path {
     flex-flow: row wrap;
   }
 
-  .song .track,
-  .song .length_separator,
-  .song .length {
+  .song-track,
+  .song-lengthseparator,
+  .song-length {
     display: none;
   }
 
-  .song .elapsed {
+  .song-elapsed {
     margin: 0;
   }
 
-  .song .title {
+  .song-title {
     flex: 1 1 auto;
   }
 
-  .song .artist {
+  .song-artist {
     flex: 0 1 auto;
     order: 10;
     width: 100%;
@@ -561,43 +601,6 @@ svg path {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-}
-
-.album {
-  display: flex;
-  align-items: center;
-}
-
-.album .detail {
-  display: flex;
-  flex-direction: column;
-}
-
-.album .img-sq {
-  display: flex;
-  justify-content: flex-end;
-  width: 70px;
-  height: 70px;
-  padding: 5px;
-}
-
-.album .cover {
-  width: auto;
-  height: 70px;
-  max-height: 100%;
-  border-radius: 2px;
-}
-
-.album .album {
-  font-size: 22px;
-}
-
-.album .date {
-  font-size: 10px;
-}
-
-.album .albumartist {
-  font-size: 14px;
 }
 
 #main span {
