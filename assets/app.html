@@ -78,119 +78,106 @@
     </nav>
     <div class="scrollable system-articles">
       <article id="system-preferences" class="system-article">
-        <h1 class="system-header">Preferences</h1>
-        <article>
-          <h3 class="note-header">System</h3>
-          <article class="sub-article">
-            <ul class="note">
-              <li class="note-line key-value">
-                <button id=system-reload class="note-value button-simple" type="button">Reload Application</button>
-            </ul>
-          </article>
+        <h1 class="system-article-sub-header">System</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings">
+            <li class="note-line system-setting">
+              <button id=system-reload class="system-setting-value button-simple" type="button">Reload Application</button>
+          </ul>
         </article>
-        <article>
-          <h3 class="note-header">Appearance</h3>
-          <article class="sub-article">
-            <ul class="note">
-              <li class="note-line key-value">
-                <div class="note-description">Color threshold</div>
-                <div class="note-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range"></div>
-              <li class="note-line key-value" id="config-appearance-animation">
-                <div class="note-description">Animation</div>
-                <div class="note-value switch"><input type="checkbox" id="appearance-animation"><label for="appearance-animation"></label></div>
-              <li class="note-line key-value">
-                <div class="note-description">Background image</div>
-                <div class="note-value switch"><input type="checkbox" id="appearance-background-image"><label for="appearance-background-image"></label></div>
-              <li class="note-line key-value">
-                <div class="note-description">Background image blur</div>
-                <select class="tool-select value" id="appearance-background-image-blur">
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="4">4</option>
-                  <option value="8">8</option>
-                  <option value="16">16</option>
-                  <option value="32">32</option>
-                </select>
-              <li class="note-line key-value">
-                <div class="note-description">Circled image</div>
-                <div class="note-value switch"><input type="checkbox" id="appearance-circled-image"><label for="appearance-circled-image"></label></div>
-              <li class="note-line key-value" id="config-appearance-auto-hide-scrollbar">
-                <div class="note-description">Auto hide scrollbar</div>
-                <div class="note-value switch"><input type="checkbox" id="appearance-auto-hide-scrollbar"><label for="appearance-auto-hide-scrollbar"></label></div>
-            </ul>
-          </article>
+        <h1 class="system-article-sub-header">Appearance</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings">
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">Color threshold</div>
+              <div class="system-setting-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range"></div>
+            <li class="note-line system-setting" id="config-appearance-animation">
+              <div class="system-setting-desc">Animation</div>
+              <div class="system-setting-value switch"><input type="checkbox" id="appearance-animation"><label for="appearance-animation"></label></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">Background image</div>
+              <div class="system-setting-value switch"><input type="checkbox" id="appearance-background-image"><label for="appearance-background-image"></label></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">Background image blur</div>
+              <select class="tool-select value" id="appearance-background-image-blur">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="8">8</option>
+                <option value="16">16</option>
+                <option value="32">32</option>
+              </select>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">Circled image</div>
+              <div class="system-setting-value switch"><input type="checkbox" id="appearance-circled-image"><label for="appearance-circled-image"></label></div>
+            <li class="note-line system-setting" id="config-appearance-auto-hide-scrollbar">
+              <div class="system-setting-desc">Auto hide scrollbar</div>
+              <div class="system-setting-value switch"><input type="checkbox" id="appearance-auto-hide-scrollbar"><label for="appearance-auto-hide-scrollbar"></label></div>
+          </ul>
         </article>
-        <article>
-          <h3 class="note-header">Library</h3>
-          <article class="sub-article">
-            <ul class="note">
-              <li class="note-line key-value">
-                <button id=library-rescan class="note-value button-simple" type="button">Rescan</button>
-            </ul>
-          </article>
+        <h1 class="system-article-sub-header">Library</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings">
+            <li class="note-line system-setting">
+              <button id=library-rescan class="system-setting-value button-simple" type="button">Rescan</button>
+          </ul>
         </article>
-        <article>
-          <h3 class="note-header">Playback</h3>
-          <article class="sub-article">
-            <ul class="note">
-              <li class="note-line key-value">
-                <div class="note-description">Listview follows playback</div>
-                <div class="note-value switch"><input type="checkbox" id="playback-view-follow"><label for="playback-view-follow"></label></div>
-            </ul>
-          </article>
+        <h1 class="system-article-sub-header">Playback</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings">
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">Listview follows playback</div>
+              <div class="system-setting-value switch"><input type="checkbox" id="playback-view-follow"><label for="playback-view-follow"></label></div>
+          </ul>
         </article>
-        <article>
-          <h3 class="note-header" id="volume-header">Volume</h3>
-          <article class="sub-article" id="volume-all">
-            <ul class="note">
-              <li class="note-line key-value">
-                <div class="note-description">Show volume nob</div>
-                <div class="note-value switch"><input type="checkbox" id="volume-show"><label for="volume-show"></label></div>
-              <li class="note-line key-value">
-                <div class="note-description">Max volume</div>
-                <select class="tool-select value" id="volume-max">
-                  <option value="50">50</option>
-                  <option value="60">60</option>
-                  <option value="70">70</option>
-                  <option value="80">80</option>
-                  <option value="90">90</option>
-                  <option value="100">100</option>
-                </select>
-            </ul>
-          </article>
+        <h1 class="system-article-sub-header" id="volume-header">Volume</h1>
+        <article class="system-article-sub" id="volume-all">
+          <ul class="system-settings">
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">Show volume nob</div>
+              <div class="system-setting-value switch"><input type="checkbox" id="volume-show"><label for="volume-show"></label></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">Max volume</div>
+              <select class="tool-select value" id="volume-max">
+                <option value="50">50</option>
+                <option value="60">60</option>
+                <option value="70">70</option>
+                <option value="80">80</option>
+                <option value="90">90</option>
+                <option value="100">100</option>
+              </select>
+          </ul>
         </article>
-        <article>
-          <h3 class="note-header">Devices</h3>
-          <article class="sub-article">
-            <ul class="note" id="devices"></ul>
-          </article>
+        <h1 class="system-article-sub-header">Devices</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings" id="devices"></ul>
         </article>
       </article>
       <article id="system-stats" class="system-article">
-        <h1 class="system-header">mpd</h1>
-        <article class="sub-article">
-          <ul class="note">
-            <li class="note-line key-value">
-              <div class="note-description">tracks:</div><div class="note-value" id=stat-tracks></div>
-            <li class="note-line key-value">
-              <div class="note-description">artists:</div><div class="note-value" id=stat-artists></div>
-            <li class="note-line key-value">
-              <div class="note-description">albums:</div><div class="note-value" id=stat-albums></div>
-            <li class="note-line key-value">
-              <div class="note-description">total length:</div><div class="note-value" id=stat-db-playtime></div>
-            <li class="note-line key-value">
-              <div class="note-description">total playtime:</div><div class="note-value" id=stat-playtime></div>
-            <li class="note-line key-value">
-              <div class="note-description">uptime:</div><div class="note-value" id=stat-uptime></div>
-            <li class="note-line key-value">
-              <div class="note-description">last library update:</div><div class="note-value" id=stat-db-update></div>
-            <li class="note-line key-value">
-              <div class="note-description">websockets:</div><div class="note-value" id=stat-websockets></div>
+        <h1 class="system-article-sub-header">mpd</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings">
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">tracks:</div><div class="system-setting-value" id=stat-tracks></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">artists:</div><div class="system-setting-value" id=stat-artists></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">albums:</div><div class="system-setting-value" id=stat-albums></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">total length:</div><div class="system-setting-value" id=stat-db-playtime></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">total playtime:</div><div class="system-setting-value" id=stat-playtime></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">uptime:</div><div class="system-setting-value" id=stat-uptime></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">last library update:</div><div class="system-setting-value" id=stat-db-update></div>
+            <li class="note-line system-setting">
+              <div class="system-setting-desc">websockets:</div><div class="system-setting-value" id=stat-websockets></div>
         </article>
       </article>
       <article id="system-info" class="system-article">
-        <h1 class="system-header">This Application</h1>
+        <h1 class="system-article-sub-header">This Application</h1>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -202,7 +189,7 @@
               <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">MIT license</a>
             </div>
         </ul>
-        <h1 class="system-header">Compiler</h1>
+        <h1 class="system-article-sub-header">Compiler</h1>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -214,12 +201,12 @@
               <a class="license-link" href="https://golang.org/LICENSE">BSD 3-clause license</a>
             </div>
         </ul>
-        <h1 class="system-header">Renderer</h1>
+        <h1 class="system-article-sub-header">Renderer</h1>
         <ul class="information-list">
           <li>
             <div class="information-box" id=user-agent></div>
         </ul>
-        <h1 class="system-header">Credits</h1>
+        <h1 class="system-article-sub-header">Credits</h1>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>

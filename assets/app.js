@@ -1208,12 +1208,12 @@ vv.view.system = (function() {
                 var o = vv.storage.outputs[i];
                 var li = document.createElement("li");
                 li.classList.add("note-line");
-                li.classList.add("key-value");
+                li.classList.add("system-setting");
                 var desc = document.createElement("div");
-                desc.classList.add("note-description");
+                desc.classList.add("system-setting-desc");
                 desc.textContent = o["outputname"];
                 var sw = document.createElement("div");
-                sw.classList.add("note-value");
+                sw.classList.add("system-setting-value");
                 sw.classList.add("switch");
                 var ch = document.createElement("input");
                 ch.setAttribute("type", "checkbox");

@@ -292,6 +292,19 @@ svg path {
   background-color: rgba(208, 208, 208, 0.6);
 }
 
+.note-line {
+  margin-top: 1px;
+  transition: border-bottom 0.2s 0s ease;
+}
+
+.light .note-line {
+  border-bottom: dashed 1px #404040;
+}
+
+.dark .note-line {
+  border-bottom: dashed 1px #e0e0e0;
+}
+
 .header-items {
   display: flex;
   align-items: center;
@@ -801,50 +814,34 @@ svg path {
 
 .system-article {
   display: none;
+  padding: 10px 0 0 0;
 }
 
 .system-article.on {
   display: block;
 }
 
-.system-header {
-  margin: 10px;
-  font-size: 19px;
-}
-
-.sub-article {
+.system-article-sub {
   padding: 0 20px 30px 20px;
 }
 
-.note-header {
+.system-article-sub-header {
+  font-size: 19px;
   padding: 6px 10px;
   margin: 0;
 }
 
-.note {
+.system-settings {
   padding: 0;
   margin: 0;
 }
 
-.note-line {
-  margin-top: 1px;
-  transition: border-bottom 0.2s 0s ease;
-}
-
-.light .note-line {
-  border-bottom: dashed 1px #404040;
-}
-
-.dark .note-line {
-  border-bottom: dashed 1px #e0e0e0;
-}
-
-.note-line.key-value {
+.system-setting {
   align-items: center;
   display: flex;
 }
 
-.note-description {
+.system-setting-desc {
   font-size: 18px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -853,13 +850,13 @@ svg path {
   padding: 8px 0;
 }
 
-.note-value-expand {
+.system-setting-value-expand {
   flex: 1 1 auto;
 }
 
-.sub-article.hide,
-.note-header.hide,
-.note-line.hide {
+.system-article-sub.hide,
+.system-article-sub-header.hide,
+.system-setting.hide {
   display: none;
 }
 
