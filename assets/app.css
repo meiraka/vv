@@ -114,18 +114,18 @@ footer {
     width: 100%;
   }
 
-  .view-system #system,
-  .view-list #list,
-  .view-main #main {
+  .view-system .system,
+  .view-list .list,
+  .view-main .main {
     display: block;
   }
 
-  .view-main #list,
-  .view-main #system,
-  .view-list #main,
-  .view-list #system,
-  .view-system #list,
-  .view-system #main {
+  .view-main .list,
+  .view-main .system,
+  .view-list .main,
+  .view-list .system,
+  .view-system .list,
+  .view-system .main {
     display: none;
   }
 
@@ -146,32 +146,32 @@ footer {
     width: 25%;
   }
 
-  .view-system #system,
-  .view-list #list,
-  .view-list #main,
-  .view-main #main,
-  .view-main #list {
+  .view-system .system,
+  .view-list .list,
+  .view-list .main,
+  .view-main .main,
+  .view-main .list {
     display: block;
   }
 
-  .view-main #system,
-  .view-list #system,
-  .view-system #list,
-  .view-system #main {
+  .view-main .system,
+  .view-list .system,
+  .view-system .list,
+  .view-system .main {
     display: none;
   }
 
-  #list {
+  .list {
     left: 0;
     width: 50%;
   }
 
-  #main {
+  .main {
     left: 50%;
     width: 50%;
   }
 
-  #system {
+  .system {
     left: 0;
     width: 100%;
   }
@@ -397,28 +397,28 @@ svg path {
 }
 
 @media (orientation: portrait) {
-  .animation.view-system #system,
-  .animation.view-list #list.even,
-  .animation.view-main #main {
+  .animation.view-system .system,
+  .animation.view-list .list.even,
+  .animation.view-main .main {
     animation: show_opacity 100ms linear 0s;
   }
 
-  .animation.view-list #list.odd {
+  .animation.view-list .list.odd {
     animation: show_opacity2 100ms linear 0s;
   }
 }
 
 @media (orientation: landscape) {
-  .animation.view-system #system,
-  .animation.view-list #list.even,
-  .animation.view-list #main,
-  .animation.view-main #main,
-  .animation.view-main #list.even {
+  .animation.view-system .system,
+  .animation.view-list .list.even,
+  .animation.view-list .main,
+  .animation.view-main .main,
+  .animation.view-main .list.even {
     animation: show_opacity 100ms linear 0s;
   }
 
-  .animation.view-list #list.odd,
-  .animation.view-main #list.odd {
+  .animation.view-list .list.odd,
+  .animation.view-main .list.odd {
     animation: show_opacity2 100ms linear 0s;
   }
 }
@@ -457,7 +457,7 @@ svg path {
   }
 }
 
-#list-items {
+.list-items {
   padding: 0 12px;
   margin: 0;
   box-sizing: border-box;
@@ -603,13 +603,7 @@ svg path {
   }
 }
 
-#main span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-#main-box {
+.main-box {
   width: 100%;
   height: 100%;
   display: flex;
@@ -618,7 +612,21 @@ svg path {
   justify-content: center;
 }
 
-#main-cover {
+.main-box-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main-box-title {
+  font-size: 20px;
+}
+
+.main-box-artist {
+  font-size: 20px;
+}
+
+.main-cover {
   position: relative;
   width: 70%;
   height: 70%;
@@ -627,20 +635,20 @@ svg path {
 }
 
 @media (orientation: portrait) {
-  #main-cover {
+  .main-cover {
     width: 70vw;
     height: 70vw;
   }
 }
 
 @media (orientation: landscape) {
-  #main-cover {
+  .main-cover {
     width: 35vw;
     height: 35vw;
   }
 }
 
-#main-cover-img {
+.main-cover-img {
   position: absolute;
   left: 5%;
   top: 5%;
@@ -652,12 +660,12 @@ svg path {
   border-radius: 1%;
 }
 
-#main-cover-img.circled {
+.main-cover-img.circled {
   background-size: cover;
   border-radius: 100%;
 }
 
-#main-elapsed-circle {
+.main-cover-circle {
   position: absolute;
   left: 0;
   top: 0;
@@ -666,20 +674,12 @@ svg path {
   stroke-width: 4;
 }
 
-#main-elapsed-circle .inactive {
-  stroke-opacity: 0.5;
-}
-
-#main-elapsed-circle.hide {
+.main-cover-circle.hide {
   visibility: hidden;
 }
 
-#main-title {
-  font-size: 20px;
-}
-
-#main-artist {
-  font-size: 20px;
+.main-cover-circle-inactive {
+  stroke-opacity: 0.5;
 }
 
 @media (orientation: landscape) {
