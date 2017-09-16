@@ -194,19 +194,11 @@ footer {
   z-index: 1000;
 }
 
-.modal-background.hide {
-  display: none;
-}
-
 .modal-outer {
   display: flex;
   z-index: 1001;
   align-items: center;
   justify-content: center;
-}
-
-.modal-outer.hide {
-  display: none;
 }
 
 /* module, state, theme */
@@ -1452,6 +1444,12 @@ svg path {
   }
 }
 
+.modal-background,
+.modal-outer {
+  transition: opacity 0.2s 0s linear;
+  overflow: hidden;
+}
+
 .modal-background {
   opacity: 0.6;
 }
@@ -1464,20 +1462,14 @@ svg path {
   background-color: #000000;
 }
 
-.animation .modal-background {
-  animation: show-opacity-6 0.3s linear 0s;
-}
-
-.animation .modal-background.hide {
-  animation: hide-opacity-0.6 0.3s linear 0s;
-}
-
-.animation .modal-outer {
-  animation: show-opacity 0.3s linear 0s;
+.modal-background.hide,
+.modal-outer.hide {
+  width: 0;
+  height: 0;
+  opacity: 0;
 }
 
 .modal-window {
-  background-color: #ffffff;
   border-radius: 12px;
   padding: 12px;
   position: relative;
@@ -1499,27 +1491,7 @@ svg path {
   background-color: #000000;
 }
 
-@keyframes show-opacity-6 {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 0.6;
-  }
-}
-
-@keyframes show-opacity {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-.modal-close {
+.modal-window-close {
   position: absolute;
   top: -15px;
   left: 15px;
@@ -1531,27 +1503,24 @@ svg path {
   justify-content: center;
 }
 
-.close-icon {
+.modal-window-close-icon {
   width: 30px;
   height: 30px;
+  stroke-width: 24;
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
 }
 
-.modal-close.active .close-icon,
-.modal-close:active .close-icon {
+.modal-window-close.active .modal-window-close-icon,
+.modal-window-close:active .modal-window-close-icon {
   width: 24px;
   height: 24px;
 }
 
-.close-button {
-  stroke-width: 24;
-}
-
-.modal-header {
+.modal-window-header {
   font-size: 32px;
 }
 
-.modal-header-sub {
+.modal-window-header-sub {
   font-size: 19px;
 }
 
@@ -1561,11 +1530,6 @@ svg path {
 
 .modal-window-tableitem {
   margin: 6px;
-}
-
-.modal-about-img {
-  width: 200px;
-  height: 200px;
 }
 
 .keychar {
