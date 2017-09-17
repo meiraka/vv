@@ -219,6 +219,25 @@ body.dark {
   background-color: #000000;
 }
 
+kbd {
+  font-family: monospace, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 32px;
+  height: 32px;
+  font-size: 16px;
+  color: #404040;
+  border-radius: 3px;
+  margin: 3px;
+  box-sizing: border-box;
+}
+
+kbd kbd {
+  padding: 6px;
+  background-color: #e0e0e0;
+}
+
 svg path {
   transition: stroke 0.2s 0s ease, fill 0.2s 0s ease;
 }
@@ -1576,16 +1595,11 @@ svg path {
   padding: 6px;
 }
 
-.modal-window-tableitem {
-  margin: 6px;
+.modal-window-tablekey {
+  display: flex;
+  align-items: center;
 }
 
-.keychar {
-  font-family: monospace;
-  font-size: 16px;
-  background-color: #e0e0e0;
-  color: #404040;
-  border-radius: 3px;
-  padding: 1px 6px;
-  margin: 3px;
+.modal-window-tableitem {
+  margin: 6px;
 }
