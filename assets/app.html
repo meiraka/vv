@@ -17,21 +17,21 @@
 </head>
 <body class="light">
 <header>
-  <nav id="menu-list" class="header-items">
-    <button type="button" id=menu-back class="header-item header-iconlabel">
+  <nav class="header-items">
+    <button type="button" id="header-back" class="header-item header-iconlabel">
       <div class="header-item-iconlabel">
         <svg class="header-item-icon" width="32" height="32" viewBox="0 0 200 200">
           <path class="stroke" d="M 40,100 100,40 160,40 160,160 100,160 z"/>
         </svg>
-        <span id="menu-back-content" class="header-item-label"></span>
+        <span id="header-back-label" class="header-item-label"></span>
       </div>
     </button>
-    <button type="button" id=menu-main class="header-item">
+    <button type="button" id="header-main" class="header-item">
       <svg class=header-item-icon width="32" height="32" viewBox="0 0 200 200">
         <path class="stroke" d="M 100,40 160,100 160,160 40,160 40,100 z"/>
       </svg>
     </button>
-    <button type="button" id=menu-system class="header-item">
+    <button type="button" id="header-system" class="header-item">
       <svg class=header-item-icon width="32" height="32" viewBox="0 0 200 200">
         <path class="stroke"
          d="M 100,30 100,60 z
@@ -58,12 +58,12 @@
 </section>
 <section id="main" class="full main">
   <div id="main-box" class="main-box">
-    <cite id="main-title" class="main-box-text main-box-title">no title</cite>
-    <span id="main-artist" class="main-box-text main-box-artist">no artist</span>
+    <cite id="main-box-title" class="main-box-text main-box-title">no title</cite>
+    <span id="main-box-artist" class="main-box-text main-box-artist">no artist</span>
     <div id="main-cover" class="main-cover">
       <div id="main-cover-img" class="main-cover-img"></div>
-      <svg id="main-elapsed-circle" class="main-cover-circle" width="200" height="200" viewBox="0 0 200 200">
-          <path id="main-elapsed-circle-active" class="stroke" d=""></path>
+      <svg id="main-cover-circle" class="main-cover-circle" width="200" height="200" viewBox="0 0 200 200">
+          <path id="main-cover-circle-active" class="stroke" d=""></path>
           <path class="main-cover-circle-inactive stroke" d="M 100,10 L 100,10 A 90,90 0 0,1 100,190 L 100,190 A 90,90 0 0,1 100,10"></path>
       </svg>
     </div>
@@ -72,9 +72,9 @@
 <section id="system" class="full system">
   <div class="system-box">
     <nav id="system-nav" class="system-nav">
-      <button class="system-nav-item" id="system-tab-preferences" type="button">Preferences</button>
-      <button class="system-nav-item" id="system-tab-stats" type="button">Stats</button>
-      <button class="system-nav-item" id="system-tab-info" type="button">Information</button>
+      <button class="system-nav-item" id="system-nav-preferences" type="button">Preferences</button>
+      <button class="system-nav-item" id="system-nav-stats" type="button">Stats</button>
+      <button class="system-nav-item" id="system-nav-info" type="button">Information</button>
     </nav>
     <div class="scrollable system-articles">
       <article id="system-preferences" class="system-article">

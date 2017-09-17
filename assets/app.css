@@ -374,11 +374,11 @@ svg path {
   white-space: nowrap;
 }
 
-.view-list #menu-back.root {
+.view-list #header-back.root {
   visibility: hidden;
 }
 
-.view-system #menu-back-content {
+.view-system #header-back-label {
   display: none;
 }
 
@@ -387,13 +387,13 @@ svg path {
     visibility: hidden;
   }
 
-  .view-main #menu-back-content {
+  .view-main #header-back-label {
     display: none;
   }
 }
 
 @media (orientation: landscape) {
-  .view-main #menu-back.root {
+  .view-main #header-back.root {
     visibility: hidden;
   }
 }

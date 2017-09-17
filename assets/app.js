@@ -859,8 +859,8 @@ vv.view.main = (function(){
         }
     }
     var update = function() {
-        document.getElementById("main-title").textContent = vv.storage.current["Title"];
-        document.getElementById("main-artist").textContent = vv.storage.current["Artist"];
+        document.getElementById("main-box-title").textContent = vv.storage.current["Title"];
+        document.getElementById("main-box-artist").textContent = vv.storage.current["Artist"];
         if (vv.storage.current.cover) {
             document.getElementById("main-cover-img").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
         } else {
@@ -869,7 +869,7 @@ vv.view.main = (function(){
     };
     var update_style = function() {
         var e = document.getElementById("main-cover-img");
-        var c = document.getElementById("main-elapsed-circle");
+        var c = document.getElementById("main-cover-circle");
         if (vv.storage.preferences.appearance.circled_image && !e.classList.contains("circled")) {
             e.classList.add("circled");
         }
@@ -893,10 +893,10 @@ vv.view.main = (function(){
     }
     vv.control.addEventListener("preferences", update_style);
     var update_elapsed = function() {
-        if (hidden() || document.getElementById("main-elapsed-circle").classList.contains("hide")) {
+        if (hidden() || document.getElementById("main-cover-circle").classList.contains("hide")) {
             return;
         }
-        var c = document.getElementById("main-elapsed-circle-active");
+        var c = document.getElementById("main-cover-circle-active");
         var elapsed = parseInt(vv.storage.control["song_elapsed"] * 1000);
         if (vv.storage.control["state"] == "play") {
             elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control
@@ -1246,8 +1246,8 @@ vv.view.system = (function() {
             }
         });
         return {
-            'show': mkshow("system-preferences", "system-tab-preferences"),
-            'hide': mkhide("system-preferences", "system-tab-preferences"),
+            'show': mkshow("system-preferences", "system-nav-preferences"),
+            'hide': mkhide("system-preferences", "system-nav-preferences"),
         }
     })();
     var stats = (function() {
@@ -1309,7 +1309,7 @@ vv.view.system = (function() {
                 update();
             }
         });
-        var show = mkshow("system-stats", "system-tab-stats");
+        var show = mkshow("system-stats", "system-nav-stats");
         var show_update = function() {
             update();
             update_time();
@@ -1317,7 +1317,7 @@ vv.view.system = (function() {
         }
         return {
             'show': show_update,
-            'hide': mkhide("system-stats", "system-tab-stats"),
+            'hide': mkhide("system-stats", "system-nav-stats"),
         }
     })();
     var info = (function() {
@@ -1328,23 +1328,23 @@ vv.view.system = (function() {
             }
         });
         return {
-            'show': mkshow("system-info", "system-tab-info"),
-            'hide': mkhide("system-info", "system-tab-info"),
+            'show': mkshow("system-info", "system-nav-info"),
+            'hide': mkhide("system-info", "system-nav-info"),
         }
     })();
     var init = function() {
         preferences.show();
-        vv.control.click(document.getElementById("system-tab-preferences"), function() {
+        vv.control.click(document.getElementById("system-nav-preferences"), function() {
             stats.hide();
             info.hide();
             preferences.show();
         });
-        vv.control.click(document.getElementById("system-tab-stats"), function() {
+        vv.control.click(document.getElementById("system-nav-stats"), function() {
             preferences.hide();
             info.hide();
             stats.show();
         });
-        vv.control.click(document.getElementById("system-tab-info"), function() {
+        vv.control.click(document.getElementById("system-nav-info"), function() {
             preferences.hide();
             stats.hide();
             info.show();
@@ -1375,9 +1375,9 @@ vv.view.system = (function() {
 // header
 (function(){
     var update = function() {
-        var e = document.getElementById("menu-back-content");
-        var b = document.getElementById("menu-back");
-        var m = document.getElementById("menu-main");
+        var e = document.getElementById("header-back-label");
+        var b = document.getElementById("header-back");
+        var m = document.getElementById("header-main");
         if (vv.model.list.rootname() != "root") {
             b.classList.remove("root");
             m.classList.remove("root");
@@ -1392,7 +1392,7 @@ vv.view.system = (function() {
         }
     }
     vv.control.addEventListener("start", function() {
-        vv.control.click(document.getElementById("menu-back"), function(e) {
+        vv.control.click(document.getElementById("header-back"), function(e) {
             if (!vv.view.list.hidden()) {
                 vv.model.list.up();
             } else {
@@ -1401,7 +1401,7 @@ vv.view.system = (function() {
             vv.view.list.show();
             e.stopPropagation();
         });
-        vv.control.click(document.getElementById("menu-main"), function(e) {
+        vv.control.click(document.getElementById("header-main"), function(e) {
             e.stopPropagation();
             if (vv.model.list.rootname() != "root") {
                 vv.model.list.abs(vv.storage.current);
@@ -1409,7 +1409,7 @@ vv.view.system = (function() {
             vv.view.main.show();
             e.stopPropagation();
         });
-        vv.control.click(document.getElementById("menu-system"), function(e) {
+        vv.control.click(document.getElementById("header-system"), function(e) {
             vv.view.system.show();
             e.stopPropagation();
         });
