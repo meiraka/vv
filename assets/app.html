@@ -49,9 +49,9 @@
     </button>
   </nav>
 </header>
-<div id="background" class=fit>
-  <div id="background-image"></div>
-  <div id="background-overlay" class="fit background-overlay"></div>
+<div id="background" class="background">
+  <div id="background-image" class="background-image"></div>
+  <div id="background-overlay" class="background background-overlay"></div>
 </div>
 <section id="list" class="full list">
   <ol id="list-items" class="list-items scrollable"></ol>
@@ -245,7 +245,7 @@
       </article>
     </div>
 </section>
-<section id="popup-box">
+<section id="popup-box" class="popup-box">
 </section>
 <div id=modal-background class="modal-background hide">
 </div>
@@ -295,35 +295,35 @@
 
 </div>
 <footer>
-  <nav id="control">
-    <nav id="control-playback">
-      <button class=control-button id=control-prev class=prev type="button" value="prev">
-        <svg width="200" height="200" viewBox="0 0 200 200">
+  <nav id="control" class="control">
+    <nav id="control-playback" class="control-playback">
+      <button class="control-button control-playback-sub" id="control-prev" class=prev type="button" value="prev">
+        <svg class="control-playback-sub-icon" width="200" height="200" viewBox="0 0 200 200">
           <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
         </svg>
       </button>
-      <button class=control-button id=control-toggleplay class=play type="button" value="play/pause">
-        <svg width="200" height="200" viewBox="0 0 200 200">
+      <button class="control-button control-playback-toggleplay" id="control-toggleplay" class=play type="button" value="play/pause">
+        <svg class="control-playback-toggleplay-icon" width="200" height="200" viewBox="0 0 200 200">
           <path class="fill play" d="M 70,60 140,100 70,140 z"/>
           <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
-          <path class="stroke play_circle" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
+          <path class="stroke" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
         </svg>
       </button>
-      <button class=control-button id=control-next class=next type="button" value="next">
-        <svg width="200" height="200" viewBox="0 0 200 200">
+      <button class="control-button control-playback-sub" id="control-next" class=next type="button" value="next">
+        <svg class="control-playback-sub-icon" width="200" height="200" viewBox="0 0 200 200">
           <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
         </svg>
       </button>
     </nav>
-    <input id="control-volume" class="disabled" type="range" min=0 max=100 step=1>
-    <button class=control-button id=control-repeat class="repeat on">
-      <svg width="200" height="200" viewBox="0 0 200 200">
+    <input id="control-volume" class="disabled control-volume" type="range" min=0 max=100 step=1>
+    <button class="control-button control-sub control-repeat" id=control-repeat>
+      <svg class="control-sub-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class=fill d="M 87.5,30 112.5,45 87.5,60 z M 112.5,145 87.5,160 112.5,175 z"/>
         <rect class=stroke x="40" y="45" width="120" height="110" rx="30" ry="30"/>
       </svg>
     </button>
-    <button class=control-button id=control-random class="random on">
-      <svg width="200" height="200" viewBox="0 0 200 200">
+    <button class="control-button control-sub" id=control-random>
+      <svg class="control-sub-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class=fill d="M 150,30 170,45 150,60 z M 150,140 170,155 150,170 z"/>
         <path class=stroke d="M 30,45 A 60,55 0 1,1 30,155 M 150,155 A 60,55 0 1,1 150,45 "/>
       </svg>

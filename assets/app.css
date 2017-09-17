@@ -26,6 +26,7 @@ button {
   margin: 0;
   border: 0;
   background-color: transparent;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
 li,
@@ -76,7 +77,7 @@ header {
   height: 100%;
 }
 
-.fit {
+.background {
   position: fixed;
   top: 0;
   left: 0;
@@ -85,14 +86,14 @@ header {
   box-sizing: border-box;
 }
 
-#background-image {
+.background-image {
   z-index: 0;
   margin: -5%;
   height: 110%;
   width: 110%;
 }
 
-#background-overlay {
+.background-overlay {
   z-index: 1;
 }
 
@@ -397,12 +398,11 @@ svg path {
   }
 }
 
-#background-image {
+.background-image {
   background-size: cover;
-  filter: blur(0px);
 }
 
-#background-image.hide {
+.background-image.hide {
   display: none;
 }
 
@@ -1155,7 +1155,7 @@ svg path {
   text-shadow: 0 0 0 #404040;
 }
 
-#popup-box {
+.popup-box {
   position: fixed;
   top: 70px;
   right: 0;
@@ -1200,7 +1200,7 @@ svg path {
   margin: 5px;
 }
 
-#control {
+.control {
   padding: 0 10px;
   border: 0;
   height: 90px;
@@ -1211,73 +1211,67 @@ svg path {
   justify-content: space-between;
 }
 
-#control-playback {
+.control-playback {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-#control-toggleplay,
-#control-toggleplay svg {
+.control-playback-toggleplay,
+.control-playback-toggleplay-icon {
   height: 90px;
   width: 90px;
 }
 
-#control-toggleplay svg {
+.control-playback-toggleplay-icon {
   stroke-width: 8;
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
 }
 
-#control-toggleplay:active svg,
-#control-toggleplay.active svg {
+.control-playback-toggleplay:active .control-playback-toggleplay-icon,
+.control-playback-toggleplay.active .control-playback-toggleplay-icon {
   height: 81px;
   width: 81px;
 }
 
-#control-toggleplay .fill {
+.control-playback-toggleplay .fill {
   stroke-width: 12;
 }
 
-#control-toggleplay .play,
-#control-toggleplay .pause {
+.control-playback-toggleplay .play,
+.control-playback-toggleplay .pause {
   opacity: 0;
 }
 
-#control-toggleplay.play .play,
-#control-toggleplay.pause .pause {
+.control-playback-toggleplay.play .play,
+.control-playback-toggleplay.pause .pause {
   opacity: 1;
 }
 
-#control-prev,
-#control-next {
+.control-playback-sub,
+.control-playback-sub-icon {
+  height: 60px;
+  width: 60px;
+}
+
+.control-playback-sub {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-#control-prev,
-#control-prev svg,
-#control-next,
-#control-next svg {
-  height: 60px;
-  width: 60px;
-}
-
-#control-prev svg,
-#control-next svg {
+.control-playback-sub-icon {
   stroke-width: 12;
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
 }
 
-#control-prev:active svg,
-#control-prev.active svg,
-#control-next:active svg,
-#control-next.active svg {
+.control-playback-sub:active .control-playback-sub-icon,
+.control-playback-sub.active .control-playback-sub-icon {
   height: 54px;
   width: 54px;
 }
 
-#control-volume {
+.control-volume {
   height: 8px;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -1286,20 +1280,20 @@ svg path {
   flex: 1 1 auto;
 }
 
-#control-volume.hide,
-#control-volume.disabled {
+.control-volume.hide,
+.control-volume.disabled {
   visibility: hidden;
 }
 
-.light #control-volume {
+.light .control-volume {
   background-color: #404040;
 }
 
-.dark #control-volume {
+.dark .control-volume {
   background-color: #e0e0e0;
 }
 
-#control-volume::-moz-range-track {
+.control-volume::-moz-range-track {
   height: 8px;
   width: 90%;
   -moz-appearance: none;
@@ -1307,15 +1301,15 @@ svg path {
   border-radius: 50px;
 }
 
-.light #control-volume::-moz-range-track {
+.light .control-volume::-moz-range-track {
   background-color: #404040;
 }
 
-.dark #control-volume::-moz-range-track {
+.dark .control-volume::-moz-range-track {
   background-color: #e0e0e0;
 }
 
-#control-volume::-webkit-slider-thumb {
+.control-volume::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 24px;
@@ -1323,15 +1317,15 @@ svg path {
   border-radius: 50%;
 }
 
-.light #control-volume::-webkit-slider-thumb {
+.light .control-volume::-webkit-slider-thumb {
   background-color: #404040;
 }
 
-.dark #control-volume::-webkit-slider-thumb {
+.dark .control-volume::-webkit-slider-thumb {
   background-color: #e0e0e0;
 }
 
-#control-volume::-moz-range-thumb {
+.control-volume::-moz-range-thumb {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -1341,72 +1335,61 @@ svg path {
   border-width: 0;
 }
 
-.light #control-volume::-moz-range-thumb {
+.light .control-volume::-moz-range-thumb {
   background-color: #404040;
 }
 
-.dark #control-volume::-moz-range-thumb {
+.dark .control-volume::-moz-range-thumb {
   background-color: #e0e0e0;
 }
 
-#control-random,
-#control-repeat {
+.control-sub {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
   margin: 0 0 0 10px;
 }
 
-#control-repeat svg,
-#control-random svg {
+.control-sub,
+.control-sub-icon {
   width: 32px;
   height: 32px;
 }
 
-#control-repeat svg,
-#control-random svg {
+.control-sub-icon {
   stroke-width: 8;
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
 }
 
-#control-repeat:active svg,
-#control-repeat.active svg,
-#control-random:active svg,
-#control-random.active svg {
+.control-sub:active .control-sub-icon,
+.control-sub.active .control-sub-icon {
   width: 28px;
   height: 28px;
 }
 
-#control-repeat.off svg,
-#control-random.off svg {
+.control-sub.off .control-sub-icon {
   opacity: 0.5;
 }
 
 @media (orientation: portrait) {
-  #control {
+  .control {
     padding: 10px 5%;
   }
 
-  #control-volume {
+  .control-volume {
     width: 100%;
     order: -2;
   }
 
-  #control-repeat {
+  .control-repeat {
     order: -1;
   }
 }
 
 @media (orientation: landscape) {
-  #control-volume {
+  .control-volume {
     margin: 0 5px;
   }
-}
-
-.control-button {
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
 .animation .control-button:hover svg {
