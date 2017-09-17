@@ -195,7 +195,7 @@ vv.songs = (function(){
 vv.storage = (function(){
     var preferences = {
         "volume": {"show": true, "max": "100"}, "playback": {"view_follow": true},
-        "appearance": {"color_threshold": 128, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true, "auto_hide_scrollbar": true},
+        "appearance": {"color_threshold": 128, "animation": true, "background_image": true, "background_image_blur": 32, "circled_image": true, "gridview_album": true, "auto_hide_scrollbar": true},
     };
     // Presto Opera
     if (navigator.userAgent.indexOf("Presto/2") > 1) {
@@ -967,6 +967,10 @@ vv.view.list = (function(){
         var li;
         var i;
         var focus_li = null;
+        ul.classList.remove("songlist");
+        ul.classList.remove("albumlist");
+        ul.classList.remove("plainlist");
+        ul.classList.add(style + "list");
         for (i in songs) {
             if (i == 0 && vv.model.list.rootname() != "root") {
                 li = document.createElement("li");
@@ -1001,6 +1005,7 @@ vv.view.list = (function(){
             }, false);
             newul.appendChild(li);
         }
+        preferences_update();
         var e = document.getElementById("list").children[0];
         e.appendChild(newul);
         if (focus_li) {
@@ -1012,6 +1017,16 @@ vv.view.list = (function(){
             ul.scrollTop = pos;
         } else {
             ul.scrollTop = 0;
+        }
+    };
+    var preferences_update = function() {
+        var ul = document.getElementById("list-items");
+        if (vv.storage.preferences.appearance.gridview_album) {
+            ul.classList.add("grid");
+            ul.classList.remove("nogrid");
+        } else {
+            ul.classList.add("nogrid");
+            ul.classList.remove("grid");
         }
     };
     var up = function() {
@@ -1104,6 +1119,7 @@ vv.view.list = (function(){
     }
 
     vv.control.addEventListener("current", update);
+    vv.control.addEventListener("preferences", preferences_update);
     vv.model.list.addEventListener("update", update);
     vv.model.list.addEventListener("changed", update);
     return {
@@ -1189,6 +1205,7 @@ vv.view.system = (function() {
             initconfig("appearance-background-image");
             initconfig("appearance-background-image-blur");
             initconfig("appearance-circled-image");
+            initconfig("appearance-gridview-album");
             initconfig("appearance-auto-hide-scrollbar");
             initconfig("playback-view-follow");
             initconfig("volume-show");

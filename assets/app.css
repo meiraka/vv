@@ -473,6 +473,17 @@ svg path {
   box-sizing: border-box;
 }
 
+.albumlist.grid.list-items {
+  padding: 0 12px;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
 .plain,
 .song,
 .album {
@@ -528,8 +539,61 @@ svg path {
   font-size: 14px;
 }
 
+.albumlist.grid > .album {
+  flex-flow: column nowrap;
+  align-items: center;
+  width: 160px;
+  height: 200px;
+  border: 0;
+}
+
+.albumlist.grid .album-imgbox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 150px;
+  height: 150px;
+  min-height: 160px;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 5px;
+}
+
+.albumlist.grid .album-imgbox-cover {
+  width: auto;
+  height: 150px;
+  border-radius: 2px;
+}
+
+.albumlist.grid .album-detail {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.albumlist.grid .album-detail-album {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.albumlist.grid .album-detail-date,
+.albumlist.grid .album-detail-albumartist {
+  display: none;
+}
+
 .plain {
   align-items: baseline;
+}
+
+.albumlist.grid > .plain {
+  display: none;
 }
 
 .plain-key {
