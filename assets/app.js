@@ -1032,11 +1032,22 @@ vv.view.list = (function(){
     var up = function() {
         select_focused_or("up");
     }
+    var left = function() {
+        select_focused_or("left");
+    }
+    var right = function() {
+        select_focused_or("right");
+    }
     var down = function() {
         select_focused_or("down");
     }
     var select_focused_or = function(target) {
+        var style = vv.model.list.list().style;
         var l = document.getElementById("list-items");
+        var itemcount = parseInt(l.clientWidth / 160);
+        if (!vv.storage.preferences.appearance.gridview_album) {
+            itemcount = 1;
+        }
         var t = l.scrollTop;
         var h = l.clientHeight;
         var s = l.getElementsByClassName("selected");
@@ -1068,7 +1079,7 @@ vv.view.list = (function(){
             for (i = 0; i < selectable.length; i++) {
                 c = selectable[i];
                 if (c == s[0]) {
-                    if (i > 0 && target == "up") {
+                    if ((i > 0 && target == "up" && style != "album") || (i > 0 && target == "left")) {
                         n = selectable[i-1];
                         c.classList.remove("selected");
                         n.classList.add("selected");
@@ -1078,8 +1089,32 @@ vv.view.list = (function(){
                         }
                         return;
                     }
-                    if (i != (selectable.length - 1) && target == "down") {
+                    if (i > itemcount - 1 && target == "up" && style == "album") {
+                        n = selectable[i-itemcount];
+                        c.classList.remove("selected");
+                        n.classList.add("selected");
+                        p = n.offsetTop;
+                        if (p < t) {
+                            l.scrollTop = p;
+                        }
+                        return;
+                    }
+                    if ((i != (selectable.length - 1) && target == "down" && style != "album") || (i != (selectable.length - 1) && target == "right")) {
                         n = selectable[i+1];
+                        c.classList.remove("selected");
+                        n.classList.add("selected");
+                        p = n.offsetTop + n.offsetHeight;
+                        if (t + h < p) {
+                            l.scrollTop = p - h ;
+                        }
+                        return;
+                    }
+                    if ((i < (selectable.length - 1) && target == "down" && style == "album") || (i != (selectable.length - 1) && target == "right")) {
+                        if (i+itemcount >= selectable.length) {
+                            n = selectable[selectable.length-1];
+                        } else {
+                            n = selectable[i+itemcount];
+                        }
                         c.classList.remove("selected");
                         n.classList.add("selected");
                         p = n.offsetTop + n.offsetHeight;
@@ -1124,6 +1159,8 @@ vv.view.list = (function(){
     vv.model.list.addEventListener("changed", update);
     return {
         up: up,
+        left: left,
+        right: right,
         down: down,
         activate: activate,
         show: show,
@@ -1638,25 +1675,39 @@ vv.view.modal.help = (function() {
                     e.stopPropagation();
                     e.preventDefault();
                 }
-            } else if (mod == 0 && e.keyCode == 37) {
+            } else if ((mod == 0 && e.keyCode == 8) || (mod == 1 && e.keyCode == 37)) {
                 if (!vv.view.list.hidden()) {
                     vv.model.list.up();
                 } else {
                     vv.model.list.abs(vv.storage.current);
                 }
                 vv.view.list.show();
+                e.stopPropagation();
+                e.preventDefault();
+            } else if (mod == 0 && e.keyCode == 37) {
+                if (!vv.view.list.hidden()) {
+                    vv.view.list.left();
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
             } else if (mod == 0 && e.keyCode == 38) {
                 if (!vv.view.list.hidden()) {
                     vv.view.list.up();
                     e.stopPropagation();
                     e.preventDefault();
                 }
-            } else if (mod == 0 && e.keyCode == 39) {
+            } else if (mod == 1 && e.keyCode == 39) {
                 if (vv.model.list.rootname() != "root") {
                     vv.model.list.abs(vv.storage.current);
                 }
                 vv.view.main.show();
                 e.stopPropagation();
+            } else if (mod == 0 && e.keyCode == 39) {
+                if (!vv.view.list.hidden()) {
+                    vv.view.list.right();
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
             } else if (mod == 0 && e.keyCode == 40) {
                 if (!vv.view.list.hidden()) {
                     vv.view.list.down();
