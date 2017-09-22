@@ -548,8 +548,6 @@ vv.control = (function() {
         xhr.onerror = errorcatch("Error");
         xhr.onabort = errorcatch("Abort");
         xhr.open("GET", path, true);
-        xhr.setRequestHeader('Pragma', 'no-cache');
-        xhr.setRequestHeader('Cache-Control', 'no-cache');
         if (ifmodified == "") {
             ifmodified = 'Thu, 01 Jun 1970 00:00:00 GMT';
         }
