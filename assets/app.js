@@ -594,42 +594,42 @@ vv.control = (function() {
 
 
     var rescan_library = function() {
-        post_request("api/music/library", {"action": "rescan"});
+        post_request("/api/music/library", {"action": "rescan"});
         vv.storage.control.update_library = true;
         raiseEvent("control");
     }
 
 
     var prev = function() {
-        post_request("api/music/control", {"state": "prev"})
+        post_request("/api/music/control", {"state": "prev"})
     }
 
     var play_pause = function() {
         var state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
         var action = state == "play" ? "pause" : "play";
-        post_request("api/music/control", {"state": action})
+        post_request("/api/music/control", {"state": action})
         vv.storage.control.state = action;
         raiseEvent("control");
     }
 
     var next = function() {
-        post_request("api/music/control", {"state": "next"})
+        post_request("/api/music/control", {"state": "next"})
     }
 
     var toggle_repeat = function() {
-        post_request("api/music/control", {"repeat": !vv.storage.control["repeat"]})
+        post_request("/api/music/control", {"repeat": !vv.storage.control["repeat"]})
         vv.storage.control.repeat = !vv.storage.control.repeat;
         raiseEvent("control");
     }
 
     var toggle_random = function() {
-        post_request("api/music/control", {"random": !vv.storage.control["random"]})
+        post_request("/api/music/control", {"random": !vv.storage.control["random"]})
         vv.storage.control.random = !vv.storage.control.random;
         raiseEvent("control");
     }
 
     var play = function(uri) {
-        post_request("api/music/songs", {
+        post_request("/api/music/songs", {
             "action": "sort",
             "keys": vv.model.list.sortkeys(),
             "filters": vv.model.list.filters(),
@@ -641,7 +641,7 @@ vv.control = (function() {
     }
 
     var output = function(id, on) {
-        post_request("api/music/outputs/" + id, {"outputenabled": on})
+        post_request("/api/music/outputs/" + id, {"outputenabled": on})
     }
 
     var notify_last_update = (new Date()).getTime();
@@ -659,16 +659,16 @@ vv.control = (function() {
         ws.onmessage = function(e) {
             if (e && e.data) {
                 if (e.data == "library") {
-                    fetch("api/music/library", "library");
+                    fetch("/api/music/library", "library");
                 }
                 else if (e.data == "status") {
-                    fetch("api/music/control", "control");
+                    fetch("/api/music/control", "control");
                 }
                 else if (e.data == "current") {
                     fetch("/api/music/songs/current", "current");
                 }
                 else if (e.data == "outputs") {
-                    fetch("api/music/outputs", "outputs");
+                    fetch("/api/music/outputs", "outputs");
                 }
                 else if (e.data == "stats") {
                     fetch("/api/music/stats", "stats");
@@ -694,10 +694,10 @@ vv.control = (function() {
 
     var update_all = function() {
         fetch("/api/version", "version");
-        fetch("api/music/outputs", "outputs");
+        fetch("/api/music/outputs", "outputs");
         fetch("/api/music/songs/current", "current");
-        fetch("api/music/control", "control");
-        fetch("api/music/library", "library");
+        fetch("/api/music/control", "control");
+        fetch("/api/music/library", "library");
         fetch("/api/music/stats", "stats");
     };
 
