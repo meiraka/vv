@@ -55,11 +55,6 @@ header {
   height: calc(44px + constant(safe-area-inset-top));
 }
 
-.app header {
-  height: 64px;
-  height: calc(44px + constant(safe-area-inset-top));
-}
-
 .tab {
   position: fixed;
   left: 0;
@@ -116,11 +111,6 @@ footer {
     padding: calc(44px + constant(safe-area-inset-top)) constant(safe-area-inset-right) calc(90px + constant(safe-area-inset-bottom)) constant(safe-area-inset-left);
   }
 
-  .app .full {
-    padding: 64px 0 90px;
-    padding: calc(44px + constant(safe-area-inset-top)) constant(safe-area-inset-right) calc(90px + constant(safe-area-inset-bottom)) constant(safe-area-inset-left);
-  }
-
   .tab {
     top: 70px;
     height: 50px;
@@ -151,11 +141,6 @@ footer {
 @media (orientation: landscape) {
   .full {
     padding: 44px 0 90px;
-  }
-
-  .app .full {
-    padding-top: 64px;
-    padding-top: calc(44px + constant(safe-area-inset-top));
   }
 
   .tab {
@@ -346,16 +331,11 @@ svg path {
   align-items: center;
   justify-content: space-between;
   align-content: space-around;
-  margin: 0;
+  margin: constant(safe-area-inset-top) 0 0;
   padding: 0 10px;
   width: 100%;
   height: 44px;
   box-sizing: border-box;
-}
-
-.app .header-items {
-  margin: 20px 0 0;
-  margin: constant(safe-area-inset-top) 0 0;
 }
 
 .header-item {

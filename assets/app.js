@@ -700,9 +700,6 @@ vv.control = (function() {
     };
 
     var init = function() {
-        if (navigator.standalone == true) {
-            document.body.classList.add("app");
-        }
         var polling = function() {
             if ((new Date()).getTime() - 10000 > notify_last_update) {
                 vv.view.popup.show("WebSocket", "Socket does not respond properly. Reconnecting");
