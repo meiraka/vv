@@ -22,10 +22,11 @@ Options
 
 .. code-block:: shell
 
-  --mpd.host string              mpd server hostname to connect (default "localhost")
-  --mpd.music_directory string   set music_directory in mpd.conf value to search album cover image
-  --mpd.port string              mpd server TCP port to connect (default "6600")
-  --server.port string           this app serving TCP port (default "8080")
+  -d, --debug                        use local assets if exists
+      --mpd.host string              mpd server hostname to connect (default "localhost")
+      --mpd.music_directory string   set music_directory in mpd.conf value to search album cover image
+      --mpd.port string              mpd server TCP port to connect (default "6600")
+      --server.port string           this app serving TCP port (default "8080")
 
 Configuration
 =============
