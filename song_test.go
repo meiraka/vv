@@ -33,17 +33,21 @@ func TestSong(t *testing.T) {
 }
 
 func TestSongTag(t *testing.T) {
-	song := Song{"Artist": []string{"foobar"}}
 	testsets := []struct {
-		input  []string
+		song   Song
+		input  string
 		expect []string
 	}{
-		{input: []string{"ArtistSort"}, expect: nil},
-		{input: []string{"ArtistSort", "Artist"}, expect: []string{"foobar"}},
-		{input: []string{"Artist"}, expect: []string{"foobar"}},
+		{song: Song{"Album": []string{"foobar"}}, input: "Artist", expect: nil},
+		{song: Song{"Album": []string{"foobar"}}, input: "ArtistSort", expect: nil},
+		{song: Song{"Album": []string{"foobar"}}, input: "AlbumArtist", expect: nil},
+		{song: Song{"Album": []string{"foobar"}}, input: "AlbumArtistSort", expect: nil},
+		{song: Song{"Artist": []string{"foobar"}}, input: "AlbumArtistSort", expect: []string{"foobar"}},
+		{song: Song{"Album": []string{"foobar"}}, input: "AlbumSort", expect: []string{"foobar"}},
+		{song: Song{"Album": []string{"foobar"}}, input: "Album", expect: []string{"foobar"}},
 	}
 	for _, tt := range testsets {
-		actual := song.Tag(tt.input)
+		actual := tt.song.Tag(tt.input)
 		if !reflect.DeepEqual(tt.expect, actual) {
 			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
 		}

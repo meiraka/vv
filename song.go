@@ -73,18 +73,10 @@ type Song map[string][]string
 // SortKey makes string for sort key by song tag list.
 func (s Song) SortKey(keys []string) string {
 	sp := make([]string, 0, len(keys))
-	for i := range keys {
-		key := keys[i]
-		if _, ok := s[key]; ok {
-			sp = append(sp, strings.Join(s[key], ","))
-		} else if key == "AlbumSort" {
-			sp = append(sp, strings.Join(s.Tag([]string{"Album"}), ","))
-		} else if key == "ArtistSort" {
-			sp = append(sp, strings.Join(s.Tag([]string{"Artist"}), ","))
-		} else if key == "AlbumArtist" {
-			sp = append(sp, strings.Join(s.Tag([]string{"Artist"}), ","))
-		} else if key == "AlbumArtistSort" {
-			sp = append(sp, strings.Join(s.Tag([]string{"AlbumArtist", "Artist"}), ","))
+	for _, key := range keys {
+		v := s.Tag(key)
+		if v != nil {
+			sp = append(sp, strings.Join(v, ","))
 		} else {
 			sp = append(sp, " ")
 		}
@@ -114,20 +106,13 @@ func songAddAll(sp, add []string) []string {
 // SortKeys makes string list for sort key by song tag list.
 func (s Song) SortKeys(keys []string) []string {
 	sp := []string{""}
-	for i := range keys {
-		key := keys[i]
-		if _, ok := s[key]; ok {
-			sp = songAddAll(sp, s[key])
-		} else if key == "AlbumSort" {
-			sp = songAddAll(sp, s.Tag([]string{"Album"}))
-		} else if key == "ArtistSort" {
-			sp = songAddAll(sp, s.Tag([]string{"Artist"}))
-		} else if key == "AlbumArtist" {
-			sp = songAddAll(sp, s.Tag([]string{"Artist"}))
-		} else if key == "AlbumArtistSort" {
-			sp = songAddAll(sp, s.Tag([]string{"AlbumArtist", "Artist"}))
+	nilv := []string{" "}
+	for _, key := range keys {
+		v := s.Tag(key)
+		if v != nil {
+			sp = songAddAll(sp, v)
 		} else {
-			sp = songAddAll(sp, []string{" "})
+			sp = songAddAll(sp, nilv)
 		}
 	}
 	return sp
@@ -142,9 +127,26 @@ func (s Song) String() string {
 	return strings.Join(kv, ", ")
 }
 
-// Tag searches tags in song.
+// Tag returns tag values in song.
 // returns nil if not found.
-func (s Song) Tag(keys []string) []string {
+func (s Song) Tag(key string) []string {
+	if v, found := s[key]; found {
+		return v
+	} else if key == "AlbumArtist" {
+		return s.Tag("Artist")
+	} else if key == "AlbumSort" {
+		return s.Tag("Album")
+	} else if key == "ArtistSort" {
+		return s.Tag("Artist")
+	} else if key == "AlbumArtistSort" {
+		return s.TagSearch([]string{"AlbumArtist", "Artist"})
+	}
+	return nil
+}
+
+// TagSearch searches tags in song.
+// returns nil if not found.
+func (s Song) TagSearch(keys []string) []string {
 	for i := range keys {
 		key := keys[i]
 		if _, ok := s[key]; ok {
