@@ -35,6 +35,7 @@ type Player struct {
 	current         songStorage
 	stats           mapStorage
 	library         songsStorage
+	librarySort     songsStorage
 	playlist        songsStorage
 	outputs         sliceMapStorage
 	notification    pubsub
@@ -119,7 +120,7 @@ func (p *Player) SortPlaylist(keys []string, uri string, filters [][]string) (er
 }
 
 func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string, filters [][]string) error {
-	return p.library.lock(func(masterLibrary []Song, _ time.Time) error {
+	return p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
 		update := false
 		library := SortSongsUniq(masterLibrary, keys)
 		library = WeakFilterSongs(library, filters, 9999)
@@ -402,7 +403,10 @@ func (p *Player) updateLibrary(mpc mpdClient) error {
 	for i := range library {
 		library[i]["Pos"] = []string{strconv.Itoa(i)}
 	}
+	librarySort := make([]Song, len(library))
+	copy(librarySort, library)
 	p.library.set(library, time.Now().UTC())
+	p.librarySort.set(librarySort, time.Now().UTC())
 	return p.notify("library")
 }
 
