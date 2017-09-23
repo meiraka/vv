@@ -72,7 +72,7 @@ type Song map[string][]string
 
 // SortKey makes string for sort key by song tag list.
 func (s Song) SortKey(keys []string) string {
-	sp := []string{}
+	sp := make([]string, 0, len(keys))
 	for i := range keys {
 		key := keys[i]
 		if _, ok := s[key]; ok {
@@ -196,7 +196,7 @@ func WeakFilterSongs(s []Song, filters [][]string, max int) []Song {
 		if len(n) <= max {
 			break
 		}
-		nc := []Song{}
+		nc := make([]Song, 0, len(n))
 		for _, song := range n {
 			if _, found := song[filter[0]]; !found {
 				continue
