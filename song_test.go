@@ -135,7 +135,7 @@ func TestSongSortSongsUniq(t *testing.T) {
 func TestSongWeakFilterSongs(t *testing.T) {
 	a := Song{"Artist": []string{"foo"}, "Track": []string{"1"}, "Album": {"baz"}}
 	b := Song{"Artist": []string{"bar"}, "Track": []string{"2"}, "Album": {"baz"}}
-	c := Song{"Artist": []string{"hoge", "fuga"}, "Album": {"piyo"}}
+	c := Song{"Artist": []string{"hoge", "fuga"}, "Album": {"piyo"}, "Title": {"hogehoge"}}
 	songs := []Song{a, a, a, b, b, b, c, c, c}
 	testsets := []struct {
 		input  [][]string
@@ -147,6 +147,7 @@ func TestSongWeakFilterSongs(t *testing.T) {
 		{input: [][]string{[]string{"Album", "baz"}, []string{"Artist", "foo"}}, max: 1, expect: []Song{a}},
 		{input: [][]string{[]string{"Album", "baz"}, []string{"Artist", "foo"}}, max: 9999, expect: []Song{a, a, a, b, b, b, c, c, c}},
 		{input: [][]string{[]string{"Artist", "fuga"}}, max: 3, expect: []Song{c, c, c}},
+		{input: [][]string{[]string{"Title", "hogehoge"}}, max: 3, expect: []Song{c, c, c}},
 	}
 	for _, tt := range testsets {
 		actual := WeakFilterSongs(songs, tt.input, tt.max)
