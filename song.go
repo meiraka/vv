@@ -115,15 +115,6 @@ func (s Song) SortKeys(keys []string) []string {
 	return sp
 }
 
-func (s Song) String() string {
-	kv := []string{}
-	for k, v := range s {
-		kv = append(kv, k+": "+strings.Join(v, " "))
-	}
-	sort.Strings(kv)
-	return strings.Join(kv, ", ")
-}
-
 // Tag returns tag values in song.
 // returns nil if not found.
 func (s Song) Tag(key string) []string {
