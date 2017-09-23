@@ -86,6 +86,9 @@ func (s Song) SortKey(keys []string) string {
 
 func songAddAll(sp, add []string) []string {
 	if add == nil || len(add) == 0 {
+		for i := range sp {
+			sp[i] = sp[i] + " "
+		}
 		return sp
 	}
 	if len(add) == 1 {
@@ -106,14 +109,8 @@ func songAddAll(sp, add []string) []string {
 // SortKeys makes string list for sort key by song tag list.
 func (s Song) SortKeys(keys []string) []string {
 	sp := []string{""}
-	nilv := []string{" "}
 	for _, key := range keys {
-		v := s.Tag(key)
-		if v != nil {
-			sp = songAddAll(sp, v)
-		} else {
-			sp = songAddAll(sp, nilv)
-		}
+		sp = songAddAll(sp, s.Tag(key))
 	}
 	return sp
 }
