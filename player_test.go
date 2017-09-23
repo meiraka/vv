@@ -283,7 +283,7 @@ func TestPlayerPlaylist(t *testing.T) {
 		t.Errorf("unexpected event. expect: stats, actual: %s", event)
 	}
 	m.PlaylistInfoCalled = 0
-	m.PlaylistInfoRet1 = []mpd.Tags{{"foo": []string{"bar"}}}
+	m.PlaylistInfoRet1 = []mpd.Tags{{"foo": {"bar"}}}
 	m.PlaylistInfoRet2 = nil
 	expect := MakeSongs(m.PlaylistInfoRet1, p.musicDirectory, "cover.*", p.coverCache)
 	p.updatePlaylist(m)
@@ -375,7 +375,7 @@ func TestPlayerLibrary(t *testing.T) {
 		t.Errorf("unexpected event. expect: stats, actual: %s", event)
 	}
 	m.ListAllInfoCalled = 0
-	m.ListAllInfoRet1 = []mpd.Tags{{"foo": []string{"bar"}}}
+	m.ListAllInfoRet1 = []mpd.Tags{{"foo": {"bar"}}}
 	m.ListAllInfoRet2 = nil
 	expect := MakeSongs(m.ListAllInfoRet1, p.musicDirectory, "cover.*", p.coverCache)
 	p.updateLibrary(m)
@@ -428,8 +428,8 @@ func TestPlayerCurrent(t *testing.T) {
 		},
 		// update current/status/comments
 		{
-			mpd.Tags{"file": []string{"p"}}, nil, 2,
-			MakeSong(mpd.Tags{"file": []string{"p"}}, p.musicDirectory, "cover.*", p.coverCache),
+			mpd.Tags{"file": {"p"}}, nil, 2,
+			MakeSong(mpd.Tags{"file": {"p"}}, p.musicDirectory, "cover.*", p.coverCache),
 			mpd.Attrs{}, nil, 2,
 			convStatus(mpd.Attrs{}),
 		},

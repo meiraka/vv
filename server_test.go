@@ -136,7 +136,7 @@ func TestApiMusicLibrary(t *testing.T) {
 	defer ts.Close()
 	t.Run("get", func(t *testing.T) {
 		lastModified := time.Unix(100, 0)
-		m.LibraryRet1 = []Song{Song{"foo": []string{"bar"}}}
+		m.LibraryRet1 = []Song{Song{"foo": {"bar"}}}
 		m.LibraryRet2 = lastModified
 		testsets := []struct {
 			desc           string
@@ -146,9 +146,9 @@ func TestApiMusicLibrary(t *testing.T) {
 			expectSong     Song
 			expectSongList []Song
 		}{
-			{desc: "200 ok", ret: 200, path: "", expectSongList: []Song{Song{"foo": []string{"bar"}}}},
-			{desc: "200 ok", ret: 200, path: "/", expectSongList: []Song{Song{"foo": []string{"bar"}}}},
-			{desc: "200 ok", ret: 200, path: "/0", expectSong: Song{"foo": []string{"bar"}}},
+			{desc: "200 ok", ret: 200, path: "", expectSongList: []Song{Song{"foo": {"bar"}}}},
+			{desc: "200 ok", ret: 200, path: "/", expectSongList: []Song{Song{"foo": {"bar"}}}},
+			{desc: "200 ok", ret: 200, path: "/0", expectSong: Song{"foo": {"bar"}}},
 			{desc: "200 ok not gzip", ret: 200, path: "", header: map[string]string{"Accept-Encoding": "identity"}},
 			{desc: "304 not modified", ret: 304, path: "", header: map[string]string{"If-Modified-Since": lastModified.Format(http.TimeFormat)}},
 			{desc: "304 not modified", ret: 304, path: "/", header: map[string]string{"If-Modified-Since": lastModified.Format(http.TimeFormat)}},
@@ -317,9 +317,9 @@ func TestApiMusicSongsOne(t *testing.T) {
 	defer ts.Close()
 	t.Run("get", func(t *testing.T) {
 		lastModified := time.Unix(100, 0)
-		m.PlaylistRet1 = []Song{Song{"foo": []string{"bar"}}}
+		m.PlaylistRet1 = []Song{Song{"foo": {"bar"}}}
 		m.PlaylistRet2 = lastModified
-		m.CurrentRet1 = Song{"hoge": []string{"fuga"}}
+		m.CurrentRet1 = Song{"hoge": {"fuga"}}
 		m.CurrentRet2 = lastModified
 		testsets := []struct {
 			desc            string
@@ -329,10 +329,10 @@ func TestApiMusicSongsOne(t *testing.T) {
 			expectSong      Song
 			expectSongList  []Song
 		}{
-			{desc: "200 ok", ret: 200, path: "", expectSongList: []Song{Song{"foo": []string{"bar"}}}},
-			{desc: "200 ok", ret: 200, path: "/", expectSongList: []Song{Song{"foo": []string{"bar"}}}},
-			{desc: "200 ok", ret: 200, path: "/0", expectSong: Song{"foo": []string{"bar"}}},
-			{desc: "200 ok", ret: 200, path: "/current", expectSong: Song{"hoge": []string{"fuga"}}},
+			{desc: "200 ok", ret: 200, path: "", expectSongList: []Song{Song{"foo": {"bar"}}}},
+			{desc: "200 ok", ret: 200, path: "/", expectSongList: []Song{Song{"foo": {"bar"}}}},
+			{desc: "200 ok", ret: 200, path: "/0", expectSong: Song{"foo": {"bar"}}},
+			{desc: "200 ok", ret: 200, path: "/current", expectSong: Song{"hoge": {"fuga"}}},
 			{desc: "304 not modified", ret: 304, path: "", ifModifiedSince: lastModified},
 			{desc: "304 not modified", ret: 304, path: "/", ifModifiedSince: lastModified},
 			{desc: "304 not modified", ret: 304, path: "/0", ifModifiedSince: lastModified},

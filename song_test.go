@@ -12,14 +12,14 @@ func TestSong(t *testing.T) {
 	glob := "main.*"
 
 	input := []mpd.Tags{
-		mpd.Tags{"file": []string{"hoge"}},
-		mpd.Tags{"file": []string{"appendix/hoge"}},
-		mpd.Tags{"file": []string{"appendix/hoge"}, "Track": []string{"1"}, "Disc": []string{"2"}, "Time": []string{"121"}},
+		mpd.Tags{"file": {"hoge"}},
+		mpd.Tags{"file": {"appendix/hoge"}},
+		mpd.Tags{"file": {"appendix/hoge"}, "Track": {"1"}, "Disc": {"2"}, "Time": {"121"}},
 	}
 	expect := []Song{
-		Song{"file": []string{"hoge"}, "cover": []string{"main.go"}, "TrackNumber": []string{"0000"}, "DiscNumber": []string{"0001"}, "Length": []string{"00:00"}},
-		Song{"file": []string{"appendix/hoge"}, "TrackNumber": []string{"0000"}, "DiscNumber": []string{"0001"}, "Length": []string{"00:00"}},
-		Song{"file": []string{"appendix/hoge"}, "Track": []string{"1"}, "Disc": []string{"2"}, "Time": []string{"121"}, "TrackNumber": []string{"0001"}, "DiscNumber": []string{"0002"}, "Length": []string{"02:01"}},
+		Song{"file": {"hoge"}, "cover": {"main.go"}, "TrackNumber": {"0000"}, "DiscNumber": {"0001"}, "Length": {"00:00"}},
+		Song{"file": {"appendix/hoge"}, "TrackNumber": {"0000"}, "DiscNumber": {"0001"}, "Length": {"00:00"}},
+		Song{"file": {"appendix/hoge"}, "Track": {"1"}, "Disc": {"2"}, "Time": {"121"}, "TrackNumber": {"0001"}, "DiscNumber": {"0002"}, "Length": {"02:01"}},
 	}
 	actual := MakeSongs(input, dir, glob, cache)
 	if len(expect) != len(actual) {
@@ -38,13 +38,13 @@ func TestSongTag(t *testing.T) {
 		input  string
 		expect []string
 	}{
-		{song: Song{"Album": []string{"foobar"}}, input: "Artist", expect: nil},
-		{song: Song{"Album": []string{"foobar"}}, input: "ArtistSort", expect: nil},
-		{song: Song{"Album": []string{"foobar"}}, input: "AlbumArtist", expect: nil},
-		{song: Song{"Album": []string{"foobar"}}, input: "AlbumArtistSort", expect: nil},
-		{song: Song{"Artist": []string{"foobar"}}, input: "AlbumArtistSort", expect: []string{"foobar"}},
-		{song: Song{"Album": []string{"foobar"}}, input: "AlbumSort", expect: []string{"foobar"}},
-		{song: Song{"Album": []string{"foobar"}}, input: "Album", expect: []string{"foobar"}},
+		{song: Song{"Album": {"foobar"}}, input: "Artist", expect: nil},
+		{song: Song{"Album": {"foobar"}}, input: "ArtistSort", expect: nil},
+		{song: Song{"Album": {"foobar"}}, input: "AlbumArtist", expect: nil},
+		{song: Song{"Album": {"foobar"}}, input: "AlbumArtistSort", expect: nil},
+		{song: Song{"Artist": {"foobar"}}, input: "AlbumArtistSort", expect: []string{"foobar"}},
+		{song: Song{"Album": {"foobar"}}, input: "AlbumSort", expect: []string{"foobar"}},
+		{song: Song{"Album": {"foobar"}}, input: "Album", expect: []string{"foobar"}},
 	}
 	for _, tt := range testsets {
 		actual := tt.song.Tag(tt.input)
@@ -55,7 +55,7 @@ func TestSongTag(t *testing.T) {
 }
 
 func TestSongSortKey(t *testing.T) {
-	song := Song{"Artist": []string{"foo", "bar"}, "Album": []string{"baz"}, "Genre": []string{"Jazz", "Rock"}}
+	song := Song{"Artist": {"foo", "bar"}, "Album": {"baz"}, "Genre": {"Jazz", "Rock"}}
 	testsets := []struct {
 		input  []string
 		expect string
@@ -74,7 +74,7 @@ func TestSongSortKey(t *testing.T) {
 }
 
 func TestSongSortKeys(t *testing.T) {
-	song := Song{"Artist": []string{"foo", "bar"}, "Album": []string{"baz"}, "Genre": []string{"Jazz", "Rock"}}
+	song := Song{"Artist": {"foo", "bar"}, "Album": {"baz"}, "Genre": {"Jazz", "Rock"}}
 	testsets := []struct {
 		input  []string
 		expect []string
@@ -93,9 +93,9 @@ func TestSongSortKeys(t *testing.T) {
 }
 
 func TestSongSortSongs(t *testing.T) {
-	a := Song{"Artist": []string{"foo"}, "Track": []string{"1"}, "Album": {"baz"}}
-	b := Song{"Artist": []string{"bar"}, "Track": []string{"2"}, "Album": {"baz"}}
-	c := Song{"Artist": []string{"hoge", "fuga"}, "Album": {"piyo"}}
+	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
+	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}
+	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}}
 	songs := []Song{a, b, c}
 	testsets := []struct {
 		input  []string
@@ -113,9 +113,9 @@ func TestSongSortSongs(t *testing.T) {
 }
 
 func TestSongSortSongsUniq(t *testing.T) {
-	a := Song{"Artist": []string{"foo"}, "Track": []string{"1"}, "Album": {"baz"}}
-	b := Song{"Artist": []string{"bar"}, "Track": []string{"2"}, "Album": {"baz"}}
-	c := Song{"Artist": []string{"hoge", "fuga"}, "Album": {"piyo"}}
+	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
+	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}
+	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}}
 	songs := []Song{a, b, c}
 	testsets := []struct {
 		input  []string
@@ -133,21 +133,21 @@ func TestSongSortSongsUniq(t *testing.T) {
 }
 
 func TestSongWeakFilterSongs(t *testing.T) {
-	a := Song{"Artist": []string{"foo"}, "Track": []string{"1"}, "Album": {"baz"}}
-	b := Song{"Artist": []string{"bar"}, "Track": []string{"2"}, "Album": {"baz"}}
-	c := Song{"Artist": []string{"hoge", "fuga"}, "Album": {"piyo"}, "Title": {"hogehoge"}}
+	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
+	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}
+	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}, "Title": {"hogehoge"}}
 	songs := []Song{a, a, a, b, b, b, c, c, c}
 	testsets := []struct {
 		input  [][]string
 		max    int
 		expect []Song
 	}{
-		{input: [][]string{[]string{"Album", "baz"}, []string{"Artist", "foo"}}, max: 6, expect: []Song{a, a, a, b, b, b}},
-		{input: [][]string{[]string{"Album", "baz"}, []string{"Artist", "foo"}}, max: 3, expect: []Song{a, a, a}},
-		{input: [][]string{[]string{"Album", "baz"}, []string{"Artist", "foo"}}, max: 1, expect: []Song{a}},
-		{input: [][]string{[]string{"Album", "baz"}, []string{"Artist", "foo"}}, max: 9999, expect: []Song{a, a, a, b, b, b, c, c, c}},
-		{input: [][]string{[]string{"Artist", "fuga"}}, max: 3, expect: []Song{c, c, c}},
-		{input: [][]string{[]string{"Title", "hogehoge"}}, max: 3, expect: []Song{c, c, c}},
+		{input: [][]string{{"Album", "baz"}, {"Artist", "foo"}}, max: 6, expect: []Song{a, a, a, b, b, b}},
+		{input: [][]string{{"Album", "baz"}, {"Artist", "foo"}}, max: 3, expect: []Song{a, a, a}},
+		{input: [][]string{{"Album", "baz"}, {"Artist", "foo"}}, max: 1, expect: []Song{a}},
+		{input: [][]string{{"Album", "baz"}, {"Artist", "foo"}}, max: 9999, expect: []Song{a, a, a, b, b, b, c, c, c}},
+		{input: [][]string{{"Artist", "fuga"}}, max: 3, expect: []Song{c, c, c}},
+		{input: [][]string{{"Title", "hogehoge"}}, max: 3, expect: []Song{c, c, c}},
 	}
 	for _, tt := range testsets {
 		actual := WeakFilterSongs(songs, tt.input, tt.max)
