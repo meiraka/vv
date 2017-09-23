@@ -1,137 +1,130 @@
 package main
 
 import (
-	"github.com/fhs/gompd/mpd"
-	"strings"
+	"github.com/meiraka/gompd/mpd"
+	"reflect"
 	"testing"
 )
 
-func TestSongString(t *testing.T) {
-	e := "foo: bar, hoge: fuga"
-	r := songString(mpd.Attrs{"hoge": "fuga", "foo": "bar"})
-	if r != e {
-		t.Errorf(
-			"unexpected return\nexpected: %s\nactual:   %s",
-			e, r,
-		)
+func TestSong(t *testing.T) {
+	cache := map[string]string{}
+	dir := "./"
+	glob := "main.*"
+
+	input := []mpd.Tags{
+		mpd.Tags{"file": []string{"hoge"}},
+		mpd.Tags{"file": []string{"appendix/hoge"}},
+		mpd.Tags{"file": []string{"appendix/hoge"}, "Track": []string{"1"}, "Disc": []string{"2"}, "Time": []string{"121"}},
+	}
+	expect := []Song{
+		Song{"file": []string{"hoge"}, "cover": []string{"main.go"}, "TrackNumber": []string{"0000"}, "DiscNumber": []string{"0001"}, "Length": []string{"00:00"}},
+		Song{"file": []string{"appendix/hoge"}, "TrackNumber": []string{"0000"}, "DiscNumber": []string{"0001"}, "Length": []string{"00:00"}},
+		Song{"file": []string{"appendix/hoge"}, "Track": []string{"1"}, "Disc": []string{"2"}, "Time": []string{"121"}, "TrackNumber": []string{"0001"}, "DiscNumber": []string{"0002"}, "Length": []string{"02:01"}},
+	}
+	actual := MakeSongs(input, dir, glob, cache)
+	if len(expect) != len(actual) {
+		t.Fatalf("unexpected MakeSongs return length. expect: %d, actual: %d", len(expect), len(actual))
+	}
+	for i := range expect {
+		if !reflect.DeepEqual(expect[i], actual[i]) {
+			t.Errorf("unexpected MakeSongs return index %d. expect: %s, actual: %s", i, expect[i], actual[i])
+		}
 	}
 }
 
-func TestFindCover(t *testing.T) {
-	t.Run("found", func(t *testing.T) {
-		cache := make(map[string]string)
-		ret := findCover("./", "hoge", "song_test.*", cache)
-		if ret != "song_test.go" {
-			t.Errorf("unexpected result: %s", ret)
-		}
-	})
-	t.Run("not found", func(t *testing.T) {
-		cache := make(map[string]string)
-		ret := findCover("./", "hoge", "cover_not_found.*", cache)
-		if ret != "" {
-			t.Errorf("unexpected result: %s", ret)
-		}
-	})
-}
-
-func TestSongAddReadableData(t *testing.T) {
-	candidates := []struct {
-		input  mpd.Attrs
-		expect mpd.Attrs
+func TestSongTag(t *testing.T) {
+	song := Song{"Artist": []string{"foobar"}}
+	testsets := []struct {
+		input  []string
+		expect []string
 	}{
-		{
-			mpd.Attrs{
-				"Title": "foo",
-				"file":  "path",
-			},
-			mpd.Attrs{
-				"Title":       "foo",
-				"file":        "path",
-				"DiscNumber":  "0001",
-				"TrackNumber": "0000",
-				"Length":      "00:00",
-			},
-		},
-		{
-			mpd.Attrs{
-				"Title": "foo",
-				"file":  "path",
-				"Disc":  "2",
-				"Track": "1",
-				"Time":  "121",
-			},
-			mpd.Attrs{
-				"Title":       "foo",
-				"file":        "path",
-				"Disc":        "2",
-				"DiscNumber":  "0002",
-				"Track":       "1",
-				"TrackNumber": "0001",
-				"Time":        "121",
-				"Length":      "02:01",
-			},
-		},
+		{input: []string{"ArtistSort"}, expect: nil},
+		{input: []string{"ArtistSort", "Artist"}, expect: []string{"foobar"}},
+		{input: []string{"Artist"}, expect: []string{"foobar"}},
 	}
-
-	for _, c := range candidates {
-		r := songAddReadableData(c.input)
-		if songString(c.expect) != songString(r) {
-			t.Errorf(
-				"unexpected return\nexpected: %s\nactual:   %s",
-				songString(c.expect),
-				songString(r),
-			)
+	for _, tt := range testsets {
+		actual := song.Tag(tt.input)
+		if !reflect.DeepEqual(tt.expect, actual) {
+			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
 		}
 	}
 }
 
 func TestSongSortKey(t *testing.T) {
-	candidates := []struct {
-		song    mpd.Attrs
-		sortkey []string
-		expect  string
+	song := Song{"Artist": []string{"foo", "bar"}, "Album": []string{"baz"}, "Genre": []string{"Jazz", "Rock"}}
+	testsets := []struct {
+		input  []string
+		expect string
 	}{
-		{
-			mpd.Attrs{"Title": "foo", "file": "path"},
-			[]string{"TrackNumber", "Title", "file"},
-			" foopath",
-		},
-		{
-			mpd.Attrs{"Title": "foo", "file": "path"},
-			[]string{"foo"},
-			" ",
-		},
-		{
-			mpd.Attrs{},
-			[]string{"AlbumSort"},
-			" ",
-		},
-		{
-			mpd.Attrs{"Artist": "foo"},
-			[]string{"ArtistSort"},
-			"foo",
-		},
-		{
-			mpd.Attrs{"Artist": "foo"},
-			[]string{"AlbumArtist"},
-			"foo",
-		},
-		{
-			mpd.Attrs{"Artist": "foo"},
-			[]string{"AlbumArtistSort"},
-			"foo",
-		},
+		{input: []string{"Album"}, expect: "baz"},
+		{input: []string{"Artist", "Album"}, expect: "foo,barbaz"},
+		{input: []string{"Artist", "Album", "Genre"}, expect: "foo,barbazJazz,Rock"},
 	}
-	for _, c := range candidates {
-		r := songSortKey(c.song, c.sortkey)
-		if r != c.expect {
-			t.Errorf(
-				"unexpected output for song: %s sortkey: %s\nexpected: \"%s\"\nactual:   \"%s\"",
-				songString(c.song),
-				strings.Join(c.sortkey, ","),
-				c.expect,
-				r,
-			)
+	for _, tt := range testsets {
+		actual := song.SortKey(tt.input)
+		if !reflect.DeepEqual(tt.expect, actual) {
+			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
+		}
+	}
+}
+
+func TestSongSortKeys(t *testing.T) {
+	song := Song{"Artist": []string{"foo", "bar"}, "Album": []string{"baz"}, "Genre": []string{"Jazz", "Rock"}}
+	testsets := []struct {
+		input  []string
+		expect []string
+	}{
+		{input: []string{"Album"}, expect: []string{"baz"}},
+		{input: []string{"Artist", "Album"}, expect: []string{"foobaz", "barbaz"}},
+		{input: []string{"Artist", "Album", "Genre"}, expect: []string{"foobazJazz", "foobazRock", "barbazJazz", "barbazRock"}},
+	}
+	for _, tt := range testsets {
+		actual := song.SortKeys(tt.input)
+		if !reflect.DeepEqual(tt.expect, actual) {
+			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
+		}
+	}
+}
+
+func TestSongSortSongs(t *testing.T) {
+	a := Song{"Artist": []string{"foo"}, "Track": []string{"1"}, "Album": {"baz"}}
+	b := Song{"Artist": []string{"bar"}, "Track": []string{"2"}, "Album": {"baz"}}
+	c := Song{"Artist": []string{"hoge", "fuga"}, "Album": {"piyo"}}
+	songs := []Song{a, b, c}
+	testsets := []struct {
+		input  []string
+		expect []Song
+	}{
+		{input: []string{"Album", "Track"}, expect: []Song{a, b, c}},
+		{input: []string{"Artist"}, expect: []Song{b, a, c, c}},
+	}
+	for _, tt := range testsets {
+		actual := SortSongs(songs, tt.input)
+		if !reflect.DeepEqual(tt.expect, actual) {
+			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
+		}
+	}
+}
+
+func TestSongWeakFilterSongs(t *testing.T) {
+	a := Song{"Artist": []string{"foo"}, "Track": []string{"1"}, "Album": {"baz"}}
+	b := Song{"Artist": []string{"bar"}, "Track": []string{"2"}, "Album": {"baz"}}
+	c := Song{"Artist": []string{"hoge", "fuga"}, "Album": {"piyo"}}
+	songs := []Song{a, a, a, b, b, b, c, c, c}
+	testsets := []struct {
+		input  [][]string
+		max    int
+		expect []Song
+	}{
+		{input: [][]string{[]string{"Album", "baz"}, []string{"Artist", "foo"}}, max: 6, expect: []Song{a, a, a, b, b, b}},
+		{input: [][]string{[]string{"Album", "baz"}, []string{"Artist", "foo"}}, max: 3, expect: []Song{a, a, a}},
+		{input: [][]string{[]string{"Album", "baz"}, []string{"Artist", "foo"}}, max: 1, expect: []Song{a}},
+		{input: [][]string{[]string{"Artist", "fuga"}}, max: 3, expect: []Song{c, c, c}},
+	}
+	for _, tt := range testsets {
+		actual := WeakFilterSongs(songs, tt.input, tt.max)
+		if !reflect.DeepEqual(tt.expect, actual) {
+			t.Errorf("unexpected return for %s, %d. expect %s, actual %s", tt.input, tt.max, tt.expect, actual)
 		}
 	}
 }

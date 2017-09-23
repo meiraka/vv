@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"github.com/fhs/gompd/mpd"
+	"github.com/meiraka/gompd/mpd"
 	"reflect"
 	"testing"
 	"time"
@@ -11,12 +11,12 @@ import (
 
 func initMock(dialError, newWatcherError error) (*mockMpc, *mpd.Watcher) {
 	m := new(mockMpc)
-	m.ListAllInfoRet1 = []mpd.Attrs{}
-	m.PlaylistInfoRet1 = []mpd.Attrs{}
+	m.ListAllInfoRet1 = []mpd.Tags{}
+	m.PlaylistInfoRet1 = []mpd.Tags{}
 	m.StatusRet1 = mpd.Attrs{}
 	m.StatsRet1 = mpd.Attrs{}
 	m.ReadCommentsRet1 = mpd.Attrs{}
-	m.CurrentSongRet1 = mpd.Attrs{}
+	m.CurrentSongRet1 = mpd.Tags{}
 	m.ListOutputsRet1 = []mpd.Attrs{}
 	playerMpdDial = func(n, a, s string) (mpdClient, error) {
 		m.DialCalled++
@@ -283,9 +283,9 @@ func TestPlayerPlaylist(t *testing.T) {
 		t.Errorf("unexpected event. expect: stats, actual: %s", event)
 	}
 	m.PlaylistInfoCalled = 0
-	m.PlaylistInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
+	m.PlaylistInfoRet1 = []mpd.Tags{{"foo": []string{"bar"}}}
 	m.PlaylistInfoRet2 = nil
-	expect := songsAddReadableData((m.PlaylistInfoRet1))
+	expect := MakeSongs(m.PlaylistInfoRet1, p.musicDirectory, "cover.*", p.coverCache)
 	p.updatePlaylist(m)
 	// mpd.Client.PlaylistInfo was Called
 	if m.PlaylistInfoCalled != 1 {
@@ -375,9 +375,9 @@ func TestPlayerLibrary(t *testing.T) {
 		t.Errorf("unexpected event. expect: stats, actual: %s", event)
 	}
 	m.ListAllInfoCalled = 0
-	m.ListAllInfoRet1 = []mpd.Attrs{{"foo": "bar"}}
+	m.ListAllInfoRet1 = []mpd.Tags{{"foo": []string{"bar"}}}
 	m.ListAllInfoRet2 = nil
-	expect := songsAddReadableData((m.ListAllInfoRet1))
+	expect := MakeSongs(m.ListAllInfoRet1, p.musicDirectory, "cover.*", p.coverCache)
 	p.updateLibrary(m)
 	// mpd.Client.ListAllInfo was Called
 	if m.ListAllInfoCalled != 1 {
@@ -410,10 +410,10 @@ func TestPlayerCurrent(t *testing.T) {
 	m.StatusCalled = 0
 	errret := new(mockError)
 	candidates := []struct {
-		CurrentSongRet1   mpd.Attrs
+		CurrentSongRet1   mpd.Tags
 		CurrentSongRet2   error
 		CurrentSongCalled int
-		currentRet        mpd.Attrs
+		currentRet        Song
 		StatusRet1        mpd.Attrs
 		StatusRet2        error
 		StatusCalled      int
@@ -421,15 +421,15 @@ func TestPlayerCurrent(t *testing.T) {
 	}{
 		// dont update if mpd.CurrentSong returns error
 		{
-			mpd.Attrs{}, errret, 1,
-			mpd.Attrs{},
+			mpd.Tags{}, errret, 1,
+			Song{},
 			mpd.Attrs{}, errret, 1,
 			convStatus(mpd.Attrs{}),
 		},
 		// update current/status/comments
 		{
-			mpd.Attrs{"file": "p"}, nil, 2,
-			songFindCover(songAddReadableData(mpd.Attrs{"file": "p"}), p.musicDirectory, p.coverCache),
+			mpd.Tags{"file": []string{"p"}}, nil, 2,
+			MakeSong(mpd.Tags{"file": []string{"p"}}, p.musicDirectory, "cover.*", p.coverCache),
 			mpd.Attrs{}, nil, 2,
 			convStatus(mpd.Attrs{}),
 		},
@@ -458,8 +458,8 @@ func TestPlayerCurrent(t *testing.T) {
 		if !reflect.DeepEqual(current, c.currentRet) {
 			t.Errorf(
 				"unexpected Player.Current()\nexpect: %s\nactual:   %s",
-				songString(c.currentRet),
-				songString(current),
+				c.currentRet,
+				current,
 			)
 		}
 		if m.StatusCalled != c.StatusCalled {
@@ -505,32 +505,6 @@ func TestPlayerOutputs(t *testing.T) {
 	}
 }
 
-func TestFilter(t *testing.T) {
-	songs := []mpd.Attrs{
-		mpd.Attrs{"Artist": "A", "Album": "B"},
-		mpd.Attrs{"Artist": "A", "Album": "C"},
-		mpd.Attrs{"Artist": "B", "Album": "B"},
-	}
-	filters := [][]string{
-		[]string{"Artist", "A"},
-		[]string{"Album", "B"},
-	}
-	testsets := []struct {
-		max    int
-		expect []mpd.Attrs
-	}{
-		{max: 3, expect: songs},
-		{max: 2, expect: []mpd.Attrs{songs[0], songs[1]}},
-		{max: 1, expect: []mpd.Attrs{songs[0]}},
-	}
-	for _, tt := range testsets {
-		actual := filter(songs, filters, tt.max)
-		if !reflect.DeepEqual(actual, tt.expect) {
-			t.Errorf("unexpected ret. actual: %s expect: %s", actual, tt.expect)
-		}
-	}
-}
-
 type mockMpc struct {
 	DialCalled             int
 	NewWatcherCalled       int
@@ -558,18 +532,18 @@ type mockMpc struct {
 	PlaylistInfoCalled     int
 	PlaylistInfoArg1       int
 	PlaylistInfoArg2       int
-	PlaylistInfoRet1       []mpd.Attrs
+	PlaylistInfoRet1       []mpd.Tags
 	PlaylistInfoRet2       error
 	ListAllInfoCalled      int
 	ListAllInfoArg1        string
-	ListAllInfoRet1        []mpd.Attrs
+	ListAllInfoRet1        []mpd.Tags
 	ListAllInfoRet2        error
 	ReadCommentsCalled     int
 	ReadCommentsArg1       string
 	ReadCommentsRet1       mpd.Attrs
 	ReadCommentsRet2       error
 	CurrentSongCalled      int
-	CurrentSongRet1        mpd.Attrs
+	CurrentSongRet1        mpd.Tags
 	CurrentSongRet2        error
 	StatusCalled           int
 	StatusRet1             mpd.Attrs
@@ -636,7 +610,7 @@ func (p *mockMpc) Ping() error {
 	p.PingCalled++
 	return p.PingRet1
 }
-func (p *mockMpc) CurrentSong() (mpd.Attrs, error) {
+func (p *mockMpc) CurrentSongTags() (mpd.Tags, error) {
 	p.CurrentSongCalled++
 	return p.CurrentSongRet1, p.CurrentSongRet2
 }
@@ -653,13 +627,13 @@ func (p *mockMpc) ReadComments(ReadCommentsArg1 string) (mpd.Attrs, error) {
 	p.ReadCommentsArg1 = ReadCommentsArg1
 	return p.ReadCommentsRet1, p.ReadCommentsRet2
 }
-func (p *mockMpc) PlaylistInfo(PlaylistInfoArg1, PlaylistInfoArg2 int) ([]mpd.Attrs, error) {
+func (p *mockMpc) PlaylistInfoTags(PlaylistInfoArg1, PlaylistInfoArg2 int) ([]mpd.Tags, error) {
 	p.PlaylistInfoCalled++
 	p.PlaylistInfoArg1 = PlaylistInfoArg1
 	p.PlaylistInfoArg2 = PlaylistInfoArg2
 	return p.PlaylistInfoRet1, p.PlaylistInfoRet2
 }
-func (p *mockMpc) ListAllInfo(ListAllInfoArg1 string) ([]mpd.Attrs, error) {
+func (p *mockMpc) ListAllInfoTags(ListAllInfoArg1 string) ([]mpd.Tags, error) {
 	p.ListAllInfoCalled++
 	p.ListAllInfoArg1 = ListAllInfoArg1
 	return p.ListAllInfoRet1, p.ListAllInfoRet2

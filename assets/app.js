@@ -30,6 +30,13 @@ vv.song = (function(){
         return other;
     }
     var getOrElse = function(song, key, other) {
+        var ret = getOrElseMulti(song, key, null);
+        if (!ret) {
+            return other;
+        }
+        return ret.join();
+    }
+    var getOrElseMulti = function(song, key, other) {
        if (key in song) {
            return song[key];
        } else if (key == "AlbumSort") {
@@ -65,9 +72,11 @@ vv.song = (function(){
         e.classList.add(style);
         e.classList.add("note-line");
         e.setAttribute("key", vv.song.get(song, key));
-        e.setAttribute("uri", song["file"]);
+        if (song["file"]) {
+            e.setAttribute("uri", song["file"][0]);
+        }
         if (style == "song") {
-            var now_playing = vv.storage.current && vv.storage.current.file && song.file == vv.storage.current.file;
+            var now_playing = vv.storage.current && vv.storage.current.file && song.file[0] == vv.storage.current.file[0];
             if (now_playing) {
                 e.classList.add("playing");
             }
@@ -151,6 +160,7 @@ vv.song = (function(){
 
     return {
         getOrElse: getOrElse,
+        getOrElseMulti: getOrElseMulti,
         get: get,
         str: str,
         element: element,
@@ -338,14 +348,24 @@ vv.model.list = (function() {
         }
         return r;
     };
-    var filters = function() {
+    var filters = function(uri) {
+        var song = vv.storage.current;
+        var songs = list().songs;
+        for (var i=0; i<songs.length; i++) {
+            if (songs[i].file[0] == uri) {
+                song = songs[i];
+                break;
+            }
+        }
         var ret = [];
         var t = rootname();
         if (t != "root") {
-            var i;
             for (i = 0; i < TREE[t]["tree"].length; i++) {
                 var key = TREE[t]["tree"][i][0];
-                ret.push([key, vv.storage.current[key]]);
+                var value = vv.song.getOrElseMulti(song, key, null);
+                if (value) {
+                    ret.push([key, value[0]]);
+                }
             }
         }
         return ret;
@@ -443,7 +463,7 @@ vv.model.list = (function() {
         var ret = [];
         var rootname = "";
         for (rootname in TREE) {
-            ret.push({"root": rootname});
+            ret.push({"root": [rootname]});
         }
         return {"key": "root", "songs": ret, "style": "plain", "isdir": true};
     };
@@ -458,7 +478,7 @@ vv.model.list = (function() {
             var style = TREE[root]["tree"][vv.storage.tree.length - 2][1];
             return {"key": key, "song": v[0], "style": style, "isdir": true};
         }
-        return {"key": "top", "song": {"top": root}, "style": "plain", "isdir": true};
+        return {"key": "top", "song": {"top": [root]}, "style": "plain", "isdir": true};
     };
     var grandparent = function() {
         var v = list().songs;
@@ -471,9 +491,9 @@ vv.model.list = (function() {
             var style = TREE[root]["tree"][vv.storage.tree.length - 3][1];
             return {"key": key, "song": v[0], "style": style, "isdir": true};
         } else if (vv.storage.tree.length == 2) {
-            return {"key": "top", "song": {"top": root}, "style": "plain", "isdir": true};
+            return {"key": "top", "song": {"top": [root]}, "style": "plain", "isdir": true};
         }
-        return {"key": "root", "song": {"root": "Library"}, "style": "plain", "isdir": true};
+        return {"key": "root", "song": {"root": ["Library"]}, "style": "plain", "isdir": true};
     };
     return {
         addEventListener: addEventListener,
@@ -630,7 +650,7 @@ vv.control = (function() {
         post_request("/api/music/songs", {
             "action": "sort",
             "keys": vv.model.list.sortkeys(),
-            "filters": vv.model.list.filters(),
+            "filters": vv.model.list.filters(uri),
             "uri": uri});
     }
 

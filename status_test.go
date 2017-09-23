@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/fhs/gompd/mpd"
+	"github.com/meiraka/gompd/mpd"
 	"reflect"
 	"testing"
 )
@@ -44,7 +44,7 @@ func TestConvStatus(t *testing.T) {
 			je, _ := json.Marshal(c.expect)
 			t.Errorf(
 				"unexpected. input: %s\nexpected: %s\nactual:   %s",
-				songString(c.status),
+				c.status,
 				je, jr,
 			)
 		}

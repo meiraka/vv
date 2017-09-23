@@ -3,8 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/fhs/gompd/mpd"
-	"sort"
+	"github.com/meiraka/gompd/mpd"
 	"strconv"
 	"sync"
 	"time"
@@ -33,11 +32,10 @@ type Player struct {
 	init            sync.Mutex
 	mutex           sync.Mutex
 	status          statusStorage
-	current         mapStorage
+	current         songStorage
 	stats           mapStorage
-	library         sliceMapStorage
-	librarySort     sliceMapStorage
-	playlist        sliceMapStorage
+	library         songsStorage
+	playlist        songsStorage
 	outputs         sliceMapStorage
 	notification    pubsub
 }
@@ -50,12 +48,12 @@ func (p *Player) Close() error {
 }
 
 /*Current returns mpd current song data.*/
-func (p *Player) Current() (mpd.Attrs, time.Time) {
+func (p *Player) Current() (Song, time.Time) {
 	return p.current.get()
 }
 
 /*Library returns mpd library song data list.*/
-func (p *Player) Library() ([]mpd.Attrs, time.Time) {
+func (p *Player) Library() ([]Song, time.Time) {
 	return p.library.get()
 }
 
@@ -88,7 +86,7 @@ func (p *Player) Play() error {
 }
 
 /*Playlist returns mpd playlist song data list.*/
-func (p *Player) Playlist() ([]mpd.Attrs, time.Time) {
+func (p *Player) Playlist() ([]Song, time.Time) {
 	return p.playlist.get()
 }
 
@@ -120,39 +118,19 @@ func (p *Player) SortPlaylist(keys []string, uri string, filters [][]string) (er
 	return p.request(func(mpc mpdClient) error { return p.sortPlaylist(mpc, keys, uri, filters) })
 }
 
-func filter(songs []mpd.Attrs, filters [][]string, max int) []mpd.Attrs {
-	l := make([]mpd.Attrs, len(songs))
-	copy(l, songs)
-	for _, filter := range filters {
-		if len(l) <= max {
-			break
-		}
-		lc := []mpd.Attrs{}
-		for _, song := range l {
-			if song[filter[0]] == filter[1] {
-				lc = append(lc, song)
-			}
-		}
-		l = lc
-	}
-	return l
-}
-
 func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string, filters [][]string) error {
-	return p.librarySort.lock(func(masterLibrary []mpd.Attrs, _ time.Time) error {
+	return p.library.lock(func(masterLibrary []Song, _ time.Time) error {
 		update := false
-		library := filter(masterLibrary, filters, 9999)
-		p.playlist.lock(func(playlist []mpd.Attrs, _ time.Time) error {
+		library := SortSongsUniq(masterLibrary, keys)
+		library = WeakFilterSongs(library, filters, 9999)
+		p.playlist.lock(func(playlist []Song, _ time.Time) error {
 			if len(library) != len(playlist) {
 				update = true
 				return nil
 			}
-			sort.Slice(library, func(i, j int) bool {
-				return songSortKey(library[i], keys) < songSortKey(library[j], keys)
-			})
 			for i := range library {
-				n := library[i]["file"]
-				o := playlist[i]["file"]
+				n := library[i]["file"][0]
+				o := playlist[i]["file"][0]
 				if n != o {
 					update = true
 					break
@@ -164,7 +142,7 @@ func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string, filters 
 			cl := mpc.BeginCommandList()
 			cl.Clear()
 			for i := range library {
-				cl.Add(library[i]["file"])
+				cl.Add(library[i]["file"][0])
 			}
 			err := cl.End()
 			if err != nil {
@@ -172,7 +150,7 @@ func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string, filters 
 			}
 		}
 		for i := range library {
-			if library[i]["file"] == uri {
+			if library[i]["file"][0] == uri {
 				return mpc.Play(i)
 			}
 		}
@@ -246,11 +224,11 @@ type mpdClient interface {
 	Close() error
 	Repeat(bool) error
 	Random(bool) error
-	CurrentSong() (mpd.Attrs, error)
+	CurrentSongTags() (mpd.Tags, error)
 	Status() (mpd.Attrs, error)
 	Stats() (mpd.Attrs, error)
-	ListAllInfo(string) ([]mpd.Attrs, error)
-	PlaylistInfo(int, int) ([]mpd.Attrs, error)
+	ListAllInfoTags(string) ([]mpd.Tags, error)
+	PlaylistInfoTags(int, int) ([]mpd.Tags, error)
 	BeginCommandList() *mpd.CommandList
 	ListOutputs() ([]mpd.Attrs, error)
 	DisableOutput(int) error
@@ -376,15 +354,17 @@ func (p *Player) requestAsync(f func(mpdClient) error, ec chan error) {
 }
 
 func (p *Player) updateCurrentSong(mpc mpdClient) error {
-	song, err := mpc.CurrentSong()
+	tags, err := mpc.CurrentSongTags()
 	if err != nil {
 		return err
 	}
+	if _, found := tags["file"]; !found {
+		return nil
+	}
 	current, _ := p.current.get()
-	if current["file"] != song["file"] {
-		song = songAddReadableData(song)
+	if len(current["file"]) == 0 || current["file"][0] != tags["file"][0] {
 		p.mutex.Lock()
-		song = songFindCover(song, p.musicDirectory, p.coverCache)
+		song := MakeSong(tags, p.musicDirectory, "cover.*", p.coverCache)
 		p.mutex.Unlock()
 		p.current.set(song, time.Now().UTC())
 		return p.notify("current")
@@ -412,32 +392,27 @@ func (p *Player) updateStats(mpc mpdClient) error {
 }
 
 func (p *Player) updateLibrary(mpc mpdClient) error {
-	library, err := mpc.ListAllInfo("/")
+	libraryTags, err := mpc.ListAllInfoTags("/")
 	if err != nil {
 		return err
 	}
-	library = songsAddReadableData(library)
 	p.mutex.Lock()
-	library = songsFindCover(library, p.musicDirectory, p.coverCache)
+	library := MakeSongs(libraryTags, p.musicDirectory, "cover.*", p.coverCache)
 	p.mutex.Unlock()
 	for i := range library {
-		library[i]["Pos"] = strconv.Itoa(i)
+		library[i]["Pos"] = []string{strconv.Itoa(i)}
 	}
-	l := make([]mpd.Attrs, len(library))
-	copy(l, library)
 	p.library.set(library, time.Now().UTC())
-	p.librarySort.set(l, time.Now().UTC())
 	return p.notify("library")
 }
 
 func (p *Player) updatePlaylist(mpc mpdClient) error {
-	playlist, err := mpc.PlaylistInfo(-1, -1)
+	playlistTags, err := mpc.PlaylistInfoTags(-1, -1)
 	if err != nil {
 		return err
 	}
-	playlist = songsAddReadableData(playlist)
 	p.mutex.Lock()
-	playlist = songsFindCover(playlist, p.musicDirectory, p.coverCache)
+	playlist := MakeSongs(playlistTags, p.musicDirectory, "cover.*", p.coverCache)
 	p.mutex.Unlock()
 	p.playlist.set(playlist, time.Now().UTC())
 	return p.notify("playlist")
@@ -450,6 +425,68 @@ func (p *Player) updateOutputs(mpc mpdClient) error {
 	}
 	p.outputs.set(outputs, time.Now().UTC())
 	return p.notify("outputs")
+}
+
+type songsStorage struct {
+	m        sync.Mutex
+	storage  []Song
+	modified time.Time
+}
+
+func (s *songsStorage) set(l []Song, t time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.storage = l
+	s.modified = t
+}
+
+func (s *songsStorage) get() ([]Song, time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	if s.storage == nil {
+		s.storage = []Song{}
+	}
+	return s.storage, s.modified
+}
+
+func (s *songsStorage) lock(f func([]Song, time.Time) error) error {
+	s.m.Lock()
+	defer s.m.Unlock()
+	if s.storage == nil {
+		s.storage = []Song{}
+	}
+	return f(s.storage, s.modified)
+}
+
+type songStorage struct {
+	m        sync.Mutex
+	storage  Song
+	modified time.Time
+}
+
+func (s *songStorage) set(l Song, t time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.storage = l
+	s.modified = t
+}
+
+func (s *songStorage) get() (Song, time.Time) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	if s.storage == nil {
+		s.storage = Song{}
+	}
+	return s.storage, s.modified
+}
+
+func (s *songStorage) lock(f func(Song, time.Time) error) error {
+	s.m.Lock()
+	defer s.m.Unlock()
+	if s.storage == nil {
+		s.storage = Song{}
+	}
+	return f(s.storage, s.modified)
 }
 
 type sliceMapStorage struct {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/fhs/gompd/mpd"
+	"github.com/meiraka/gompd/mpd"
 	"strconv"
 )
 

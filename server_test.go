@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fhs/gompd/mpd"
 	"github.com/gorilla/websocket"
+	"github.com/meiraka/gompd/mpd"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -136,19 +136,19 @@ func TestApiMusicLibrary(t *testing.T) {
 	defer ts.Close()
 	t.Run("get", func(t *testing.T) {
 		lastModified := time.Unix(100, 0)
-		m.LibraryRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.LibraryRet1 = []Song{Song{"foo": []string{"bar"}}}
 		m.LibraryRet2 = lastModified
 		testsets := []struct {
 			desc           string
 			ret            int
 			header         map[string]string
 			path           string
-			expectSong     mpd.Attrs
-			expectSongList []mpd.Attrs
+			expectSong     Song
+			expectSongList []Song
 		}{
-			{desc: "200 ok", ret: 200, path: "", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
-			{desc: "200 ok", ret: 200, path: "/", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
-			{desc: "200 ok", ret: 200, path: "/0", expectSong: mpd.Attrs{"foo": "bar"}},
+			{desc: "200 ok", ret: 200, path: "", expectSongList: []Song{Song{"foo": []string{"bar"}}}},
+			{desc: "200 ok", ret: 200, path: "/", expectSongList: []Song{Song{"foo": []string{"bar"}}}},
+			{desc: "200 ok", ret: 200, path: "/0", expectSong: Song{"foo": []string{"bar"}}},
 			{desc: "200 ok not gzip", ret: 200, path: "", header: map[string]string{"Accept-Encoding": "identity"}},
 			{desc: "304 not modified", ret: 304, path: "", header: map[string]string{"If-Modified-Since": lastModified.Format(http.TimeFormat)}},
 			{desc: "304 not modified", ret: 304, path: "/", header: map[string]string{"If-Modified-Since": lastModified.Format(http.TimeFormat)}},
@@ -263,7 +263,7 @@ func TestApiMusicOutputs(t *testing.T) {
 				continue
 			}
 			defer res.Body.Close()
-			body, st := decodeJSONSongList(res.Body)
+			body, st := decodeJSONAttrList(res.Body)
 			if !reflect.DeepEqual(m.OutputsRet1, st.Data) || st.Error != "" {
 				t.Errorf("[%s] unexpected body: %s", tt.desc, body)
 			}
@@ -317,22 +317,22 @@ func TestApiMusicSongsOne(t *testing.T) {
 	defer ts.Close()
 	t.Run("get", func(t *testing.T) {
 		lastModified := time.Unix(100, 0)
-		m.PlaylistRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.PlaylistRet1 = []Song{Song{"foo": []string{"bar"}}}
 		m.PlaylistRet2 = lastModified
-		m.CurrentRet1 = mpd.Attrs{"hoge": "fuga"}
+		m.CurrentRet1 = Song{"hoge": []string{"fuga"}}
 		m.CurrentRet2 = lastModified
 		testsets := []struct {
 			desc            string
 			ret             int
 			ifModifiedSince time.Time
 			path            string
-			expectSong      mpd.Attrs
-			expectSongList  []mpd.Attrs
+			expectSong      Song
+			expectSongList  []Song
 		}{
-			{desc: "200 ok", ret: 200, path: "", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
-			{desc: "200 ok", ret: 200, path: "/", expectSongList: []mpd.Attrs{mpd.Attrs{"foo": "bar"}}},
-			{desc: "200 ok", ret: 200, path: "/0", expectSong: mpd.Attrs{"foo": "bar"}},
-			{desc: "200 ok", ret: 200, path: "/current", expectSong: mpd.Attrs{"hoge": "fuga"}},
+			{desc: "200 ok", ret: 200, path: "", expectSongList: []Song{Song{"foo": []string{"bar"}}}},
+			{desc: "200 ok", ret: 200, path: "/", expectSongList: []Song{Song{"foo": []string{"bar"}}}},
+			{desc: "200 ok", ret: 200, path: "/0", expectSong: Song{"foo": []string{"bar"}}},
+			{desc: "200 ok", ret: 200, path: "/current", expectSong: Song{"hoge": []string{"fuga"}}},
 			{desc: "304 not modified", ret: 304, path: "", ifModifiedSince: lastModified},
 			{desc: "304 not modified", ret: 304, path: "/", ifModifiedSince: lastModified},
 			{desc: "304 not modified", ret: 304, path: "/0", ifModifiedSince: lastModified},
@@ -427,7 +427,7 @@ func TestApiMusicStats(t *testing.T) {
 		}
 		if tt.expect != nil {
 			defer res.Body.Close()
-			body, actual := decodeJSONSong(res.Body)
+			body, actual := decodeJSONAttr(res.Body)
 			if !reflect.DeepEqual(tt.expect, actual.Data) {
 				t.Errorf("unexpected body: %s", body)
 			}
@@ -540,9 +540,9 @@ type MockMusic struct {
 	RepeatErr         error
 	RandomArg1        bool
 	RandomErr         error
-	PlaylistRet1      []mpd.Attrs
+	PlaylistRet1      []Song
 	PlaylistRet2      time.Time
-	LibraryRet1       []mpd.Attrs
+	LibraryRet1       []Song
 	LibraryRet2       time.Time
 	RescanLibraryRet1 error
 	OutputsRet1       []mpd.Attrs
@@ -550,7 +550,7 @@ type MockMusic struct {
 	OutputArg1        int
 	OutputArg2        bool
 	OutputRet1        error
-	CurrentRet1       mpd.Attrs
+	CurrentRet1       Song
 	CurrentRet2       time.Time
 	CommentsRet1      mpd.Attrs
 	CommentsRet2      time.Time
@@ -598,10 +598,10 @@ func (p *MockMusic) Random(b bool) error {
 func (p *MockMusic) Comments() (mpd.Attrs, time.Time) {
 	return p.CommentsRet1, p.CommentsRet2
 }
-func (p *MockMusic) Current() (mpd.Attrs, time.Time) {
+func (p *MockMusic) Current() (Song, time.Time) {
 	return p.CurrentRet1, p.CurrentRet2
 }
-func (p *MockMusic) Library() ([]mpd.Attrs, time.Time) {
+func (p *MockMusic) Library() ([]Song, time.Time) {
 	return p.LibraryRet1, p.LibraryRet2
 }
 func (p *MockMusic) RescanLibrary() error {
@@ -614,7 +614,7 @@ func (p *MockMusic) Output(id int, on bool) error {
 	p.OutputArg1, p.OutputArg2 = id, on
 	return p.OutputRet1
 }
-func (p *MockMusic) Playlist() ([]mpd.Attrs, time.Time) {
+func (p *MockMusic) Playlist() ([]Song, time.Time) {
 	return p.PlaylistRet1, p.PlaylistRet2
 }
 func (p *MockMusic) Status() (PlayerStatus, time.Time) {
@@ -644,20 +644,32 @@ func checkRequestError(t *testing.T, f func() (*http.Response, error)) *http.Res
 	return r
 }
 
-type jsonError struct {
-	Error string `json:"error"`
-}
-
-type jsonSong struct {
+type jsonAttr struct {
 	Data  mpd.Attrs `json:"data"`
 	Error string    `json:"error"`
 }
 
-func decodeJSONSong(b io.Reader) (body []byte, st jsonSong) {
+func decodeJSONAttr(b io.Reader) (body []byte, st jsonAttr) {
 	body, _ = ioutil.ReadAll(b)
-	st = jsonSong{mpd.Attrs{}, ""}
+	st = jsonAttr{mpd.Attrs{}, ""}
 	json.Unmarshal(body, &st)
 	return
+}
+
+type jsonAttrList struct {
+	Data  []mpd.Attrs `json:"data"`
+	Error string      `json:"error"`
+}
+
+func decodeJSONAttrList(b io.Reader) (body []byte, st jsonAttrList) {
+	body, _ = ioutil.ReadAll(b)
+	st = jsonAttrList{[]mpd.Attrs{}, ""}
+	json.Unmarshal(body, &st)
+	return
+}
+
+type jsonError struct {
+	Error string `json:"error"`
 }
 
 func decodeJSONError(b io.Reader) (jsonError, error) {
@@ -673,14 +685,26 @@ func decodeJSONError(b io.Reader) (jsonError, error) {
 	return d, nil
 }
 
+type jsonSong struct {
+	Data  Song   `json:"data"`
+	Error string `json:"error"`
+}
+
+func decodeJSONSong(b io.Reader) (body []byte, st jsonSong) {
+	body, _ = ioutil.ReadAll(b)
+	st = jsonSong{Song{}, ""}
+	json.Unmarshal(body, &st)
+	return
+}
+
 type jsonSongList struct {
-	Data  []mpd.Attrs `json:"data"`
-	Error string      `json:"error"`
+	Data  []Song `json:"data"`
+	Error string `json:"error"`
 }
 
 func decodeJSONSongList(b io.Reader) (body []byte, st jsonSongList) {
 	body, _ = ioutil.ReadAll(b)
-	st = jsonSongList{[]mpd.Attrs{}, ""}
+	st = jsonSongList{[]Song{}, ""}
 	json.Unmarshal(body, &st)
 	return
 }

@@ -5,8 +5,8 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"github.com/fhs/gompd/mpd"
 	"github.com/gorilla/websocket"
+	"github.com/meiraka/gompd/mpd"
 	"mime"
 	"net/http"
 	"os"
@@ -441,7 +441,7 @@ func writeNotModified(w http.ResponseWriter, l time.Time) {
 	return
 }
 
-func writeSongInList(w http.ResponseWriter, r *http.Request, path string, d []mpd.Attrs, l time.Time) {
+func writeSongInList(w http.ResponseWriter, r *http.Request, path string, d []Song, l time.Time) {
 	id, err := strconv.Atoi(path)
 	if err != nil {
 		http.NotFound(w, r)
@@ -463,10 +463,10 @@ type MusicIF interface {
 	Volume(int) error
 	Repeat(bool) error
 	Random(bool) error
-	Playlist() ([]mpd.Attrs, time.Time)
-	Library() ([]mpd.Attrs, time.Time)
+	Playlist() ([]Song, time.Time)
+	Library() ([]Song, time.Time)
 	RescanLibrary() error
-	Current() (mpd.Attrs, time.Time)
+	Current() (Song, time.Time)
 	Status() (PlayerStatus, time.Time)
 	Stats() (mpd.Attrs, time.Time)
 	Output(int, bool) error
