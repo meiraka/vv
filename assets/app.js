@@ -243,8 +243,11 @@ vv.storage = (function(){
                 data.last_state = localStorage.last_state;
             }
             if (localStorage.current && localStorage.last_modified) {
-                data.current = JSON.parse(localStorage.current);
-                data.last_modified.current = JSON.parse(localStorage.last_modified).current;
+                var current = JSON.parse(localStorage.current);
+                if (Object.prototype.toString.call(current.file) == "[object Array]") {
+                    data.current = current;
+                    data.last_modified.current = JSON.parse(localStorage.last_modified).current;
+                }
             }
         } catch (e) {
             // private browsing
