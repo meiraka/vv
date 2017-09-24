@@ -10,8 +10,8 @@ import (
 )
 
 /*Dial Connects to mpd server.*/
-func Dial(network, addr, passwd, musicDirectory string) (*Player, error) {
-	p := new(Player)
+func Dial(network, addr, passwd, musicDirectory string) (*Music, error) {
+	p := new(Music)
 	p.network = network
 	p.addr = addr
 	p.passwd = passwd
@@ -19,15 +19,15 @@ func Dial(network, addr, passwd, musicDirectory string) (*Player, error) {
 	return p, p.initIfNot()
 }
 
-/*Player represents mpd control interface.*/
-type Player struct {
+/*Music represents mpd control interface.*/
+type Music struct {
 	network         string
 	addr            string
 	passwd          string
 	musicDirectory  string
 	watcherResponse chan error
 	daemonStop      chan bool
-	daemonRequest   chan *playerMessage
+	daemonRequest   chan *musicMessage
 	coverCache      map[string]string
 	init            sync.Mutex
 	mutex           sync.Mutex
@@ -42,29 +42,29 @@ type Player struct {
 }
 
 /*Close mpd connection.*/
-func (p *Player) Close() error {
+func (p *Music) Close() error {
 	p.daemonStop <- true
 	p.notification.ensureStop()
 	return nil
 }
 
 /*Current returns mpd current song data.*/
-func (p *Player) Current() (Song, time.Time) {
+func (p *Music) Current() (Song, time.Time) {
 	return p.current.get()
 }
 
 /*Library returns mpd library song data list.*/
-func (p *Player) Library() ([]Song, time.Time) {
+func (p *Music) Library() ([]Song, time.Time) {
 	return p.library.get()
 }
 
 /*Next song.*/
-func (p *Player) Next() error {
+func (p *Music) Next() error {
 	return p.request(func(mpc mpdClient) error { return mpc.Next() })
 }
 
 /*Output enable output if true.*/
-func (p *Player) Output(id int, on bool) error {
+func (p *Music) Output(id int, on bool) error {
 	if on {
 		return p.request(func(mpc mpdClient) error { return mpc.EnableOutput(id) })
 	}
@@ -72,42 +72,42 @@ func (p *Player) Output(id int, on bool) error {
 }
 
 /*Outputs return output device list.*/
-func (p *Player) Outputs() ([]mpd.Attrs, time.Time) {
+func (p *Music) Outputs() ([]mpd.Attrs, time.Time) {
 	return p.outputs.get()
 }
 
 /*Pause song.*/
-func (p *Player) Pause() error {
+func (p *Music) Pause() error {
 	return p.request(func(mpc mpdClient) error { return mpc.Pause(true) })
 }
 
 /*Play or resume song.*/
-func (p *Player) Play() error {
+func (p *Music) Play() error {
 	return p.request(func(mpc mpdClient) error { return mpc.Play(-1) })
 }
 
 /*Playlist returns mpd playlist song data list.*/
-func (p *Player) Playlist() ([]Song, time.Time) {
+func (p *Music) Playlist() ([]Song, time.Time) {
 	return p.playlist.get()
 }
 
 /*Prev song.*/
-func (p *Player) Prev() error {
+func (p *Music) Prev() error {
 	return p.request(func(mpc mpdClient) error { return mpc.Previous() })
 }
 
 /*Random enable if true*/
-func (p *Player) Random(on bool) error {
+func (p *Music) Random(on bool) error {
 	return p.request(func(mpc mpdClient) error { return mpc.Random(on) })
 }
 
 /*Repeat enable if true*/
-func (p *Player) Repeat(on bool) error {
+func (p *Music) Repeat(on bool) error {
 	return p.request(func(mpc mpdClient) error { return mpc.Repeat(on) })
 }
 
 /*RescanLibrary scans music directory and update library database.*/
-func (p *Player) RescanLibrary() error {
+func (p *Music) RescanLibrary() error {
 	return p.request(func(mpc mpdClient) error {
 		_, err := mpc.Update("")
 		return err
@@ -115,11 +115,11 @@ func (p *Player) RescanLibrary() error {
 }
 
 /*SortPlaylist sorts playlist by song tag name.*/
-func (p *Player) SortPlaylist(keys []string, uri string, filters [][]string) (err error) {
+func (p *Music) SortPlaylist(keys []string, uri string, filters [][]string) (err error) {
 	return p.request(func(mpc mpdClient) error { return p.sortPlaylist(mpc, keys, uri, filters) })
 }
 
-func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string, filters [][]string) error {
+func (p *Music) sortPlaylist(mpc mpdClient, keys []string, uri string, filters [][]string) error {
 	return p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
 		update := false
 		library := SortSongsUniq(masterLibrary, keys)
@@ -160,33 +160,33 @@ func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string, filters 
 }
 
 /*Status returns mpd current song data.*/
-func (p *Player) Status() (Status, time.Time) {
+func (p *Music) Status() (Status, time.Time) {
 	return p.status.get()
 }
 
 /*Stats returns mpd statistics.*/
-func (p *Player) Stats() (mpd.Attrs, time.Time) {
+func (p *Music) Stats() (mpd.Attrs, time.Time) {
 	return p.stats.get()
 }
 
 // Subscribe server events.
-func (p *Player) Subscribe(c chan string) {
+func (p *Music) Subscribe(c chan string) {
 	p.notification.subscribe(c)
 	p.updateSubscribers()
 }
 
 // Unsubscribe server events.
-func (p *Player) Unsubscribe(c chan string) {
+func (p *Music) Unsubscribe(c chan string) {
 	p.notification.unsubscribe(c)
 	p.updateSubscribers()
 }
 
-/*Volume set player volume.*/
-func (p *Player) Volume(v int) error {
+/*Volume set music volume.*/
+func (p *Music) Volume(v int) error {
 	return p.request(func(mpc mpdClient) error { return mpc.SetVolume(v) })
 }
 
-func (p *Player) updateSubscribers() {
+func (p *Music) updateSubscribers() {
 	stats, modified := p.stats.get()
 	newStats := mpd.Attrs{}
 	for k, v := range stats {
@@ -206,11 +206,11 @@ func (p *Player) updateSubscribers() {
 
 }
 
-func (p *Player) notify(n string) error {
+func (p *Music) notify(n string) error {
 	return p.notification.notify(n)
 }
 
-type playerMessage struct {
+type musicMessage struct {
 	request func(mpdClient) error
 	err     chan error
 }
@@ -237,12 +237,12 @@ type mpdClient interface {
 	Update(string) (int, error)
 }
 
-func (p *Player) initIfNot() error {
+func (p *Music) initIfNot() error {
 	p.init.Lock()
 	defer p.init.Unlock()
 	if p.daemonStop == nil {
 		p.daemonStop = make(chan bool)
-		p.daemonRequest = make(chan *playerMessage)
+		p.daemonRequest = make(chan *musicMessage)
 		p.coverCache = make(map[string]string)
 		mpc, watcher := p.connect()
 		go p.run(mpc, watcher)
@@ -250,28 +250,28 @@ func (p *Player) initIfNot() error {
 	return nil
 }
 
-func playerRealMpdDial(net, addr, passwd string) (mpdClient, error) {
+func musicRealMpdDial(net, addr, passwd string) (mpdClient, error) {
 	return mpd.DialAuthenticated(net, addr, passwd)
 }
 
-func playerRealMpdNewWatcher(net, addr, passwd string) (*mpd.Watcher, error) {
+func musicRealMpdNewWatcher(net, addr, passwd string) (*mpd.Watcher, error) {
 	return mpd.NewWatcher(net, addr, passwd)
 }
 
-func playerRealMpdWatcherClose(w mpd.Watcher) error {
+func musicRealMpdWatcherClose(w mpd.Watcher) error {
 	return w.Close()
 }
 
-var playerMpdDial = playerRealMpdDial
-var playerMpdNewWatcher = playerRealMpdNewWatcher
-var playerMpdWatcherClose = playerRealMpdWatcherClose
+var musicMpdDial = musicRealMpdDial
+var musicMpdNewWatcher = musicRealMpdNewWatcher
+var musicMpdWatcherClose = musicRealMpdWatcherClose
 
-func (p *Player) connect() (mpdClient, *mpd.Watcher) {
-	mpc, err := playerMpdDial(p.network, p.addr, p.passwd)
+func (p *Music) connect() (mpdClient, *mpd.Watcher) {
+	mpc, err := musicMpdDial(p.network, p.addr, p.passwd)
 	if err != nil {
 		return nil, new(mpd.Watcher)
 	}
-	watcher, err := playerMpdNewWatcher(p.network, p.addr, p.passwd)
+	watcher, err := musicMpdNewWatcher(p.network, p.addr, p.passwd)
 	if err != nil {
 		mpc.Close()
 		return nil, new(mpd.Watcher)
@@ -288,7 +288,7 @@ func (p *Player) connect() (mpdClient, *mpd.Watcher) {
 	return mpc, watcher
 }
 
-func (p *Player) run(mpc mpdClient, watcher *mpd.Watcher) {
+func (p *Music) run(mpc mpdClient, watcher *mpd.Watcher) {
 	t := time.NewTicker(1 * time.Second)
 	sendErr := func(ec chan error, err error) {
 		if ec != nil {
@@ -341,20 +341,20 @@ loop:
 	}
 }
 
-func (p *Player) request(f func(mpdClient) error) error {
+func (p *Music) request(f func(mpdClient) error) error {
 	ec := make(chan error)
 	p.requestAsync(f, ec)
 	return <-ec
 }
 
-func (p *Player) requestAsync(f func(mpdClient) error, ec chan error) {
-	r := new(playerMessage)
+func (p *Music) requestAsync(f func(mpdClient) error, ec chan error) {
+	r := new(musicMessage)
 	r.request = f
 	r.err = ec
 	p.daemonRequest <- r
 }
 
-func (p *Player) updateCurrentSong(mpc mpdClient) error {
+func (p *Music) updateCurrentSong(mpc mpdClient) error {
 	tags, err := mpc.CurrentSongTags()
 	if err != nil {
 		return err
@@ -373,7 +373,7 @@ func (p *Player) updateCurrentSong(mpc mpdClient) error {
 	return nil
 }
 
-func (p *Player) updateStatus(mpc mpdClient) error {
+func (p *Music) updateStatus(mpc mpdClient) error {
 	status, err := mpc.Status()
 	if err != nil {
 		return err
@@ -382,7 +382,7 @@ func (p *Player) updateStatus(mpc mpdClient) error {
 	return p.notify("status")
 }
 
-func (p *Player) updateStats(mpc mpdClient) error {
+func (p *Music) updateStats(mpc mpdClient) error {
 	stats, err := mpc.Stats()
 	if err != nil {
 		return err
@@ -392,7 +392,7 @@ func (p *Player) updateStats(mpc mpdClient) error {
 	return p.notify("stats")
 }
 
-func (p *Player) updateLibrary(mpc mpdClient) error {
+func (p *Music) updateLibrary(mpc mpdClient) error {
 	libraryTags, err := mpc.ListAllInfoTags("/")
 	if err != nil {
 		return err
@@ -410,7 +410,7 @@ func (p *Player) updateLibrary(mpc mpdClient) error {
 	return p.notify("library")
 }
 
-func (p *Player) updatePlaylist(mpc mpdClient) error {
+func (p *Music) updatePlaylist(mpc mpdClient) error {
 	playlistTags, err := mpc.PlaylistInfoTags(-1, -1)
 	if err != nil {
 		return err
@@ -422,7 +422,7 @@ func (p *Player) updatePlaylist(mpc mpdClient) error {
 	return p.notify("playlist")
 }
 
-func (p *Player) updateOutputs(mpc mpdClient) error {
+func (p *Music) updateOutputs(mpc mpdClient) error {
 	outputs, err := mpc.ListOutputs()
 	if err != nil {
 		return err

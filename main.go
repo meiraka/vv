@@ -67,14 +67,14 @@ func main() {
 		}
 	}
 	addr := viper.GetString("mpd.host") + ":" + viper.GetString("mpd.port")
-	player, err := Dial("tcp", addr, "", musicDirectory)
-	defer player.Close()
+	music, err := Dial("tcp", addr, "", musicDirectory)
+	defer music.Close()
 	if err != nil {
 		fmt.Printf("faied to connect/initialize mpd: %s\n", err)
 		os.Exit(1)
 	}
 	s := Server{
-		Music:          player,
+		Music:          music,
 		MusicDirectory: musicDirectory,
 		Port:           viper.GetString("server.port"),
 		StartTime:      time.Now().UTC(),
