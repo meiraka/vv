@@ -67,6 +67,43 @@ func MakeSongs(ps []mpd.Tags, dir, glob string, cache map[string]string) []Song 
 	return songs
 }
 
+// MakeStatus generates music control status from mpd.Attrs
+func MakeStatus(status mpd.Attrs) Status {
+	volume, err := strconv.Atoi(status["volume"])
+	if err != nil {
+		volume = -1
+	}
+	repeat := status["repeat"] == "1"
+	random := status["random"] == "1"
+	single := status["single"] == "1"
+	consume := status["consume"] == "1"
+	state := status["state"]
+	if state == "" {
+		state = "stopped"
+	}
+	songpos, err := strconv.Atoi(status["song"])
+	if err != nil {
+		songpos = 0
+	}
+	elapsed, err := strconv.ParseFloat(status["elapsed"], 64)
+	if err != nil {
+		elapsed = 0.0
+	}
+	_, found := status["updating_db"]
+	updateLibrary := found
+	return Status{
+		volume,
+		repeat,
+		random,
+		single,
+		consume,
+		state,
+		songpos,
+		float32(elapsed),
+		updateLibrary,
+	}
+}
+
 // Song represents song metadata
 type Song map[string][]string
 
@@ -142,6 +179,19 @@ func (s Song) TagSearch(keys []string) []string {
 		}
 	}
 	return nil
+}
+
+/*Status represents mpd status.*/
+type Status struct {
+	Volume        int     `json:"volume"`
+	Repeat        bool    `json:"repeat"`
+	Random        bool    `json:"random"`
+	Single        bool    `json:"single"`
+	Consume       bool    `json:"consume"`
+	State         string  `json:"state"`
+	SongPos       int     `json:"song_pos"`
+	SongElapsed   float32 `json:"song_elapsed"`
+	UpdateLibrary bool    `json:"update_library"`
 }
 
 type songSorter struct {

@@ -417,21 +417,21 @@ func TestPlayerCurrent(t *testing.T) {
 		StatusRet1        mpd.Attrs
 		StatusRet2        error
 		StatusCalled      int
-		StatusRet         PlayerStatus
+		StatusRet         Status
 	}{
 		// dont update if mpd.CurrentSong returns error
 		{
 			mpd.Tags{}, errret, 1,
 			Song{},
 			mpd.Attrs{}, errret, 1,
-			convStatus(mpd.Attrs{}),
+			MakeStatus(mpd.Attrs{}),
 		},
 		// update current/status/comments
 		{
 			mpd.Tags{"file": {"p"}}, nil, 2,
 			MakeSong(mpd.Tags{"file": {"p"}}, p.musicDirectory, "cover.*", p.coverCache),
 			mpd.Attrs{}, nil, 2,
-			convStatus(mpd.Attrs{}),
+			MakeStatus(mpd.Attrs{}),
 		},
 	}
 	for _, c := range candidates {

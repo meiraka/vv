@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/meiraka/gompd/mpd"
 	"reflect"
 	"testing"
@@ -88,6 +89,50 @@ func TestSongSortKeys(t *testing.T) {
 		actual := song.SortKeys(tt.input)
 		if !reflect.DeepEqual(tt.expect, actual) {
 			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
+		}
+	}
+}
+
+func TestStatus(t *testing.T) {
+	candidates := []struct {
+		status mpd.Attrs
+		expect Status
+	}{
+		{
+			mpd.Attrs{},
+			Status{
+				-1, false, false, false, false,
+				"stopped", 0, 0.0, false,
+			},
+		},
+		{
+			mpd.Attrs{
+				"volume":      "100",
+				"repeat":      "1",
+				"random":      "0",
+				"single":      "1",
+				"consume":     "0",
+				"state":       "playing",
+				"song":        "1",
+				"elapsed":     "10.1",
+				"updating_db": "1",
+			},
+			Status{
+				100, true, false, true, false,
+				"playing", 1, 10.1, true,
+			},
+		},
+	}
+	for _, c := range candidates {
+		r := MakeStatus(c.status)
+		if !reflect.DeepEqual(c.expect, r) {
+			jr, _ := json.Marshal(r)
+			je, _ := json.Marshal(c.expect)
+			t.Errorf(
+				"unexpected. input: %s\nexpected: %s\nactual:   %s",
+				c.status,
+				je, jr,
+			)
 		}
 	}
 }

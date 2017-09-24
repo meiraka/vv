@@ -467,7 +467,7 @@ type MusicIF interface {
 	Library() ([]Song, time.Time)
 	RescanLibrary() error
 	Current() (Song, time.Time)
-	Status() (PlayerStatus, time.Time)
+	Status() (Status, time.Time)
 	Stats() (mpd.Attrs, time.Time)
 	Output(int, bool) error
 	Outputs() ([]mpd.Attrs, time.Time)

@@ -160,7 +160,7 @@ func (p *Player) sortPlaylist(mpc mpdClient, keys []string, uri string, filters 
 }
 
 /*Status returns mpd current song data.*/
-func (p *Player) Status() (PlayerStatus, time.Time) {
+func (p *Player) Status() (Status, time.Time) {
 	return p.status.get()
 }
 
@@ -378,7 +378,7 @@ func (p *Player) updateStatus(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
-	p.status.set(convStatus(status), time.Now().UTC())
+	p.status.set(MakeStatus(status), time.Now().UTC())
 	return p.notify("status")
 }
 
@@ -548,18 +548,18 @@ func (s *mapStorage) get() (mpd.Attrs, time.Time) {
 
 type statusStorage struct {
 	m        sync.Mutex
-	storage  PlayerStatus
+	storage  Status
 	modified time.Time
 }
 
-func (s *statusStorage) set(l PlayerStatus, t time.Time) {
+func (s *statusStorage) set(l Status, t time.Time) {
 	s.m.Lock()
 	defer s.m.Unlock()
 	s.storage = l
 	s.modified = t
 }
 
-func (s *statusStorage) get() (PlayerStatus, time.Time) {
+func (s *statusStorage) get() (Status, time.Time) {
 	s.m.Lock()
 	defer s.m.Unlock()
 	return s.storage, s.modified

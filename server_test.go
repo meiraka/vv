@@ -24,7 +24,7 @@ func TestApiMusicControl(t *testing.T) {
 		ts := httptest.NewServer(handler)
 		url := ts.URL + "/api/music/control"
 		defer ts.Close()
-		expect := convStatus(mpd.Attrs{})
+		expect := MakeStatus(mpd.Attrs{})
 		m.StatusRet1 = expect
 		m.StatusRet2 = time.Unix(0, 0)
 		testsets := []struct {
@@ -48,9 +48,9 @@ func TestApiMusicControl(t *testing.T) {
 			defer res.Body.Close()
 			body, _ := ioutil.ReadAll(res.Body)
 			actual := struct {
-				Data  PlayerStatus `json:"data"`
-				Error string       `json:"error"`
-			}{PlayerStatus{}, ""}
+				Data  Status `json:"data"`
+				Error string `json:"error"`
+			}{Status{}, ""}
 			json.Unmarshal(body, &actual)
 			if !reflect.DeepEqual(expect, actual.Data) || actual.Error != "" {
 				t.Errorf("unexpected body: %s", body)
@@ -554,7 +554,7 @@ type MockMusic struct {
 	CurrentRet2       time.Time
 	CommentsRet1      mpd.Attrs
 	CommentsRet2      time.Time
-	StatusRet1        PlayerStatus
+	StatusRet1        Status
 	StatusRet2        time.Time
 	StatsRet1         mpd.Attrs
 	StatsRet2         time.Time
@@ -617,7 +617,7 @@ func (p *MockMusic) Output(id int, on bool) error {
 func (p *MockMusic) Playlist() ([]Song, time.Time) {
 	return p.PlaylistRet1, p.PlaylistRet2
 }
-func (p *MockMusic) Status() (PlayerStatus, time.Time) {
+func (p *MockMusic) Status() (Status, time.Time) {
 	return p.StatusRet1, p.StatusRet2
 }
 func (p *MockMusic) Stats() (mpd.Attrs, time.Time) {
