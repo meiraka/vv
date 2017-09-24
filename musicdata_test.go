@@ -137,7 +137,7 @@ func TestStatus(t *testing.T) {
 	}
 }
 
-func TestSongSortSongs(t *testing.T) {
+func TestSortSongs(t *testing.T) {
 	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
 	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}
 	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}}
@@ -157,7 +157,7 @@ func TestSongSortSongs(t *testing.T) {
 	}
 }
 
-func TestSongSortSongsUniq(t *testing.T) {
+func TestSortSongsUniq(t *testing.T) {
 	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
 	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}
 	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}}
@@ -177,7 +177,7 @@ func TestSongSortSongsUniq(t *testing.T) {
 	}
 }
 
-func TestSongWeakFilterSongs(t *testing.T) {
+func TestWeakFilterSongs(t *testing.T) {
 	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
 	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}
 	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}, "Title": {"hogehoge"}}
