@@ -1313,6 +1313,12 @@ svg path {
   width: 90px;
 }
 
+.control-playback-toggleplay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .control-playback-toggleplay-icon {
   stroke-width: 8;
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
