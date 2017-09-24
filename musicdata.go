@@ -60,9 +60,9 @@ func MakeSong(m mpd.Tags, dir, glob string, cache map[string]string) Song {
 
 // MakeSongs generate song metadata from []mpd.Tags
 func MakeSongs(ps []mpd.Tags, dir, glob string, cache map[string]string) []Song {
-	songs := make([]Song, 0, len(ps))
+	songs := make([]Song, len(ps))
 	for i := range ps {
-		songs = append(songs, MakeSong(ps[i], dir, glob, cache))
+		songs[i] = MakeSong(ps[i], dir, glob, cache)
 	}
 	return songs
 }
@@ -109,13 +109,13 @@ type Song map[string][]string
 
 // SortKey makes string for sort key by song tag list.
 func (s Song) SortKey(keys []string) string {
-	sp := make([]string, 0, len(keys))
-	for _, key := range keys {
+	sp := make([]string, len(keys))
+	for i, key := range keys {
 		v := s.Tag(key)
 		if v != nil {
-			sp = append(sp, strings.Join(v, ","))
+			sp[i] = strings.Join(v, ",")
 		} else {
-			sp = append(sp, " ")
+			sp[i] = " "
 		}
 	}
 	return strings.Join(sp, "")
@@ -134,10 +134,12 @@ func songAddAll(sp, add []string) []string {
 		}
 		return sp
 	}
-	newsp := make([]string, 0, len(sp)*len(add))
+	newsp := make([]string, len(sp)*len(add))
+	index := 0
 	for i := range sp {
 		for j := range add {
-			newsp = append(newsp, sp[i]+add[j])
+			newsp[index] = sp[i] + add[j]
+			index++
 		}
 	}
 	return newsp
@@ -251,10 +253,10 @@ func WeakFilterSongs(s []Song, filters [][]string, max int) []Song {
 		n = nc
 	}
 	if len(n) > max {
-		nc := make([]Song, 0, max)
+		nc := make([]Song, max)
 		for i := range n {
 			if i < max {
-				nc = append(nc, n[i])
+				nc[i] = n[i]
 			}
 		}
 		return nc
