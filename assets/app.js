@@ -391,7 +391,11 @@ vv.model.list = (function() {
             vv.storage.save();
         }
         update_list();
-        raiseEvent("changed");
+        if (list().songs.length == 1 && vv.storage.tree.length != 0) {
+            up();
+        } else {
+            raiseEvent("changed");
+        }
     };
     var down = function(value) {
         var r = rootname();
@@ -403,7 +407,12 @@ vv.model.list = (function() {
         vv.storage.save();
         focus = {};
         update_list();
-        raiseEvent("changed");
+        var songs = list().songs;
+        if (songs.length == 1 && TREE[r]["tree"].length != vv.storage.tree.length) {
+            down(vv.song.get(songs[0], list().key));
+        } else {
+            raiseEvent("changed");
+        }
     };
     var abs = function(song) {
         focus = song;
