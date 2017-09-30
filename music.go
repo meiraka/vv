@@ -37,6 +37,7 @@ type Music struct {
 	library         songsStorage
 	librarySort     songsStorage
 	playlist        songsStorage
+	playlistSort    songsStorage
 	outputs         sliceMapStorage
 	notification    pubsub
 }
@@ -124,7 +125,7 @@ func (p *Music) sortPlaylist(mpc mpdClient, keys []string, uri string, filters [
 		update := false
 		library := SortSongsUniq(masterLibrary, keys)
 		library = WeakFilterSongs(library, filters, 9999)
-		p.playlist.lock(func(playlist []Song, _ time.Time) error {
+		p.playlistSort.lock(func(playlist []Song, _ time.Time) error {
 			if len(library) != len(playlist) {
 				update = true
 				return nil
@@ -418,7 +419,10 @@ func (p *Music) updatePlaylist(mpc mpdClient) error {
 	p.mutex.Lock()
 	playlist := MakeSongs(playlistTags, p.musicDirectory, "cover.*", p.coverCache)
 	p.mutex.Unlock()
+	playlistSort := make([]Song, len(playlist))
+	copy(playlistSort, playlist)
 	p.playlist.set(playlist, time.Now().UTC())
+	p.playlistSort.set(playlistSort, time.Now().UTC())
 	return p.notify("playlist")
 }
 
