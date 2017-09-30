@@ -21,25 +21,30 @@ func Dial(network, addr, passwd, musicDirectory string) (*Music, error) {
 
 /*Music represents mpd control interface.*/
 type Music struct {
-	network         string
-	addr            string
-	passwd          string
-	musicDirectory  string
-	watcherResponse chan error
-	daemonStop      chan bool
-	daemonRequest   chan *musicMessage
-	coverCache      map[string]string
-	init            sync.Mutex
-	mutex           sync.Mutex
-	status          statusStorage
-	current         songStorage
-	stats           mapStorage
-	library         songsStorage
-	librarySort     songsStorage
-	playlist        songsStorage
-	playlistSort    songsStorage
-	outputs         sliceMapStorage
-	notification    pubsub
+	network            string
+	addr               string
+	passwd             string
+	musicDirectory     string
+	watcherResponse    chan error
+	daemonStop         chan bool
+	daemonRequest      chan *musicMessage
+	coverCache         map[string]string
+	init               sync.Mutex
+	mutex              sync.Mutex
+	status             statusStorage
+	current            songStorage
+	stats              mapStorage
+	library            songsStorage
+	librarySort        songsStorage
+	playlist           songsStorage
+	playlistSort       songsStorage
+	playlistSortLock   sync.Mutex
+	playlistSorted     bool
+	playlistSortkeys   []string
+	playlistFilters    [][]string
+	playlistSortUpdate time.Time
+	outputs            sliceMapStorage
+	notification       pubsub
 }
 
 /*Close mpd connection.*/
@@ -87,9 +92,21 @@ func (p *Music) Play() error {
 	return p.request(func(mpc mpdClient) error { return mpc.Play(-1) })
 }
 
+/*PlayPos play songs pos.*/
+func (p *Music) PlayPos(pos int) error {
+	return p.request(func(mpc mpdClient) error { return mpc.Play(pos) })
+}
+
 /*Playlist returns mpd playlist song data list.*/
 func (p *Music) Playlist() ([]Song, time.Time) {
 	return p.playlist.get()
+}
+
+/*PlaylistIsSorted returns mpd playlist sort keys and filters.*/
+func (p *Music) PlaylistIsSorted() (bool, []string, [][]string, time.Time) {
+	p.playlistSortLock.Lock()
+	defer p.playlistSortLock.Unlock()
+	return p.playlistSorted, p.playlistSortkeys, p.playlistFilters, p.playlistSortUpdate
 }
 
 /*Prev song.*/
@@ -116,14 +133,15 @@ func (p *Music) RescanLibrary() error {
 }
 
 /*SortPlaylist sorts playlist by song tag name.*/
-func (p *Music) SortPlaylist(keys []string, uri string, filters [][]string) (err error) {
-	return p.request(func(mpc mpdClient) error { return p.sortPlaylist(mpc, keys, uri, filters) })
+func (p *Music) SortPlaylist(keys []string, filters [][]string, pos int) (err error) {
+	return p.request(func(mpc mpdClient) error { return p.sortPlaylist(mpc, keys, filters, pos) })
 }
 
-func (p *Music) sortPlaylist(mpc mpdClient, keys []string, uri string, filters [][]string) error {
+func (p *Music) sortPlaylist(mpc mpdClient, keys []string, filters [][]string, pos int) error {
 	return p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
 		update := false
 		library := SortSongsUniq(masterLibrary, keys)
+		target := library[pos]["Pos"][0]
 		library = WeakFilterSongs(library, filters, 9999)
 		p.playlistSort.lock(func(playlist []Song, _ time.Time) error {
 			if len(library) != len(playlist) {
@@ -140,6 +158,12 @@ func (p *Music) sortPlaylist(mpc mpdClient, keys []string, uri string, filters [
 			}
 			return nil
 		})
+		p.playlistSortLock.Lock()
+		p.playlistSorted = true
+		p.playlistSortkeys = keys
+		p.playlistFilters = filters
+		p.playlistSortUpdate = time.Now().UTC()
+		p.playlistSortLock.Unlock()
 		if update {
 			cl := mpc.BeginCommandList()
 			cl.Clear()
@@ -150,9 +174,11 @@ func (p *Music) sortPlaylist(mpc mpdClient, keys []string, uri string, filters [
 			if err != nil {
 				return err
 			}
+		} else {
+			p.notify("playlist")
 		}
 		for i := range library {
-			if library[i]["file"][0] == uri {
+			if library[i]["Pos"][0] == target {
 				return mpc.Play(i)
 			}
 		}
@@ -419,10 +445,32 @@ func (p *Music) updatePlaylist(mpc mpdClient) error {
 	p.mutex.Lock()
 	playlist := MakeSongs(playlistTags, p.musicDirectory, "cover.*", p.coverCache)
 	p.mutex.Unlock()
+	l, _ := p.librarySort.get()
+	p.playlistSortLock.Lock()
+	if len(l) != 0 && p.playlistSortkeys != nil && p.playlistFilters != nil {
+		p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
+			library := SortSongsUniq(masterLibrary, p.playlistSortkeys)
+			library = WeakFilterSongs(library, p.playlistFilters, 9999)
+			p.playlistSorted = true
+			if len(library) != len(playlist) {
+				p.playlistSorted = false
+			} else {
+				for i := range library {
+					if library[i]["file"][0] != playlist[i]["file"][0] {
+						p.playlistSorted = false
+						break
+					}
+				}
+			}
+			return nil
+		})
+		p.playlistSortUpdate = time.Now().UTC()
+	}
 	playlistSort := make([]Song, len(playlist))
 	copy(playlistSort, playlist)
 	p.playlist.set(playlist, time.Now().UTC())
 	p.playlistSort.set(playlistSort, time.Now().UTC())
+	p.playlistSortLock.Unlock()
 	return p.notify("playlist")
 }
 

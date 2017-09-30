@@ -16,7 +16,22 @@ vv.obj = (function(){
     function getOrElse(m, k, v) {
         return k in m? m[k] : v;
     }
-    return {getOrElse: getOrElse};
+    var copy = function(t) {
+        var ret;
+        if (Object.prototype.toString.call(t) == "[object Array]") {
+            ret = [];
+        } else {
+            ret = {};
+        }
+        for (var i in t) {
+            ret[i] = t[i];
+        }
+        return ret;
+    };
+    return {
+        getOrElse: getOrElse,
+        copy: copy,
+    };
 })();
 vv.song = (function(){
     var tag = function(song, keys, other) {
@@ -56,7 +71,7 @@ vv.song = (function(){
     var get = function(song, key) {
         return getOrElse(song, key, '[no ' + key + ']');
     }
-    var str = function(song, keys) {
+    var sortkey = function(song, keys) {
         var sortkey = '';
         var i;
         for (i in keys) {
@@ -74,6 +89,7 @@ vv.song = (function(){
         e.setAttribute("key", vv.song.get(song, key));
         if (song["file"]) {
             e.setAttribute("uri", song["file"][0]);
+            e.setAttribute("pos", song["pos"]);
         }
         if (style == "song") {
             var now_playing = vv.storage.current && vv.storage.current.file && song.file[0] == vv.storage.current.file[0];
@@ -162,18 +178,24 @@ vv.song = (function(){
         getOrElse: getOrElse,
         getOrElseMulti: getOrElseMulti,
         get: get,
-        str: str,
+        sortkey: sortkey,
         element: element,
     };
 }());
 vv.songs = (function(){
     var sort = function(songs, keys) {
-        return songs.map(function(song) {
-            return [song, vv.song.str(song, keys)]
+        var sorted = songs.map(function(song) {
+            var n = vv.obj.copy(song);
+            n.sortkey = vv.song.sortkey(n, keys);
+            return n
         }).sort(function (a, b) {
-            if (a[1] < b[1]) { return -1; } else { return 1; }
-        }).map(function(s) { return s[0]; });
-    }
+            if (a.sortkey < b.sortkey) { return -1; } else { return 1; }
+        });
+        for (var i in sorted) {
+            sorted[i]["pos"] = [i];
+        }
+        return sorted;
+    };
     var uniq = function(songs, key) {
         return songs.filter(function (song, i , self) {
             if (i == 0) {
@@ -184,7 +206,7 @@ vv.songs = (function(){
                 return false;
             }
         });
-    }
+    };
     var filter = function(songs, filters) {
         return songs.filter(function(song) {
             var f;
@@ -524,7 +546,7 @@ vv.model.list = (function() {
 }());
 vv.control = (function() {
     var listener = {"control": [], "preferences": [], "library": [], "playlist": [],
-                    "current": [], "outputs": [], "stats": [], "version": [], "start": [], "poll": []}
+                    "current": [], "outputs": [], "stats": [], "version": [], "start": [], "poll": [], "sorted": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
     };
@@ -658,12 +680,11 @@ vv.control = (function() {
         raiseEvent("control");
     }
 
-    var play = function(uri) {
-        post_request("/api/music/songs", {
-            "action": "sort",
+    var play = function(uri, pos) {
+        post_request("/api/music/songs/sort", {
             "keys": vv.model.list.sortkeys(),
             "filters": vv.model.list.filters(uri),
-            "uri": uri});
+            "play": parseInt(pos)});
     }
 
     var volume = function(num) {
@@ -703,6 +724,9 @@ vv.control = (function() {
                 else if (e.data == "stats") {
                     fetch("/api/music/stats", "stats");
                 }
+                else if (e.data == "playlist") {
+                    fetch("/api/music/songs/sort", "sorted");
+                }
                 var new_notify_last_update = (new Date()).getTime();
                 if (new_notify_last_update - notify_last_update > 10000) {
                     // recover lost notification
@@ -723,6 +747,7 @@ vv.control = (function() {
     };
 
     var update_all = function() {
+        fetch("/api/music/songs/sort", "sorted");
         fetch("/api/version", "version");
         fetch("/api/music/outputs", "outputs");
         fetch("/api/music/songs/current", "current");
@@ -1024,10 +1049,11 @@ vv.view.list = (function(){
                 }
                 var value = e.currentTarget.getAttribute("key");
                 var uri = e.currentTarget.getAttribute("uri");
+                var pos = e.currentTarget.getAttribute("pos");
                 if (isdir) {
                     vv.model.list.down(value);
                 } else {
-                    vv.control.play(uri);
+                    vv.control.play(uri, pos);
                 }
             }, false);
             newul.appendChild(li);

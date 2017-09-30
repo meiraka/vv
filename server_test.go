@@ -319,6 +319,7 @@ func TestApiMusicSongsOne(t *testing.T) {
 		lastModified := time.Unix(100, 0)
 		m.PlaylistRet1 = []Song{Song{"foo": {"bar"}}}
 		m.PlaylistRet2 = lastModified
+		m.PlaylistIsSortedRet4 = lastModified
 		m.CurrentRet1 = Song{"hoge": {"fuga"}}
 		m.CurrentRet2 = lastModified
 		testsets := []struct {
@@ -333,6 +334,7 @@ func TestApiMusicSongsOne(t *testing.T) {
 			{desc: "200 ok", ret: 200, path: "/", expectSongList: []Song{Song{"foo": {"bar"}}}},
 			{desc: "200 ok", ret: 200, path: "/0", expectSong: Song{"foo": {"bar"}}},
 			{desc: "200 ok", ret: 200, path: "/current", expectSong: Song{"hoge": {"fuga"}}},
+			{desc: "200 ok", ret: 200, path: "/sort"},
 			{desc: "304 not modified", ret: 304, path: "", ifModifiedSince: lastModified},
 			{desc: "304 not modified", ret: 304, path: "/", ifModifiedSince: lastModified},
 			{desc: "304 not modified", ret: 304, path: "/0", ifModifiedSince: lastModified},
@@ -372,13 +374,13 @@ func TestApiMusicSongsOne(t *testing.T) {
 			ret    int
 			errstr string
 		}{
-			{desc: "200 ok", ret: 200, input: "{\"action\": \"sort\", \"keys\": [\"file\"], \"uri\": \"path\", \"filters\": [[\"key\", \"value\"]]}"},
-			{desc: "400 missing field", ret: 400, input: "{\"action\": \"sort\", \"uri\": \"path\", \"filters\": [[\"key\", \"value\"]]}", errstr: "failed to get request parameters. missing fields: keys or/and filters"},
+			{desc: "200 ok", ret: 200, input: "{\"action\": \"sort\", \"keys\": [\"file\"], \"pos\": 0, \"filters\": [[\"key\", \"value\"]]}"},
+			{desc: "400 missing field", ret: 400, input: "{\"action\": \"sort\", \"pos\": 0, \"filters\": [[\"key\", \"value\"]]}", errstr: "failed to get request parameters. missing fields: keys or/and filters"},
 			{desc: "400 json decode failed", ret: 400, input: "{\"value\"]]}", errstr: "failed to get request parameters: invalid character ']' after object key"},
 		}
 		for _, tt := range testsets {
 			j := strings.NewReader(tt.input)
-			res, err := http.Post(ts.URL+"/api/music/songs", "application/json", j)
+			res, err := http.Post(ts.URL+"/api/music/songs/sort", "application/json", j)
 			if err != nil {
 				t.Errorf("[%s] unexpected error %s", tt.desc, err.Error())
 			}
@@ -526,43 +528,47 @@ func TestMusicDirectory(t *testing.T) {
 }
 
 type MockMusic struct {
-	PlayErr           error
-	PlayCalled        int
-	PauseErr          error
-	PauseCalled       int
-	NextErr           error
-	NextCalled        int
-	PrevErr           error
-	PrevCalled        int
-	VolumeArg1        int
-	VolumeErr         error
-	RepeatArg1        bool
-	RepeatErr         error
-	RandomArg1        bool
-	RandomErr         error
-	PlaylistRet1      []Song
-	PlaylistRet2      time.Time
-	LibraryRet1       []Song
-	LibraryRet2       time.Time
-	RescanLibraryRet1 error
-	OutputsRet1       []mpd.Attrs
-	OutputsRet2       time.Time
-	OutputArg1        int
-	OutputArg2        bool
-	OutputRet1        error
-	CurrentRet1       Song
-	CurrentRet2       time.Time
-	CommentsRet1      mpd.Attrs
-	CommentsRet2      time.Time
-	StatusRet1        Status
-	StatusRet2        time.Time
-	StatsRet1         mpd.Attrs
-	StatsRet2         time.Time
-	SortPlaylistArg1  []string
-	SortPlaylistArg2  string
-	SortPlaylistArg3  [][]string
-	SortPlaylistErr   error
-	Subscribers       []chan string
+	PlayErr              error
+	PlayCalled           int
+	PauseErr             error
+	PauseCalled          int
+	NextErr              error
+	NextCalled           int
+	PrevErr              error
+	PrevCalled           int
+	VolumeArg1           int
+	VolumeErr            error
+	RepeatArg1           bool
+	RepeatErr            error
+	RandomArg1           bool
+	RandomErr            error
+	PlaylistRet1         []Song
+	PlaylistRet2         time.Time
+	LibraryRet1          []Song
+	LibraryRet2          time.Time
+	RescanLibraryRet1    error
+	OutputsRet1          []mpd.Attrs
+	OutputsRet2          time.Time
+	OutputArg1           int
+	OutputArg2           bool
+	OutputRet1           error
+	CurrentRet1          Song
+	CurrentRet2          time.Time
+	CommentsRet1         mpd.Attrs
+	CommentsRet2         time.Time
+	StatusRet1           Status
+	StatusRet2           time.Time
+	StatsRet1            mpd.Attrs
+	StatsRet2            time.Time
+	SortPlaylistArg1     []string
+	SortPlaylistArg2     [][]string
+	SortPlaylistArg3     int
+	SortPlaylistErr      error
+	PlaylistIsSortedRet1 bool
+	PlaylistIsSortedRet2 []string
+	PlaylistIsSortedRet3 [][]string
+	PlaylistIsSortedRet4 time.Time
+	Subscribers          []chan string
 }
 
 func (p *MockMusic) Play() error {
@@ -623,11 +629,14 @@ func (p *MockMusic) Status() (Status, time.Time) {
 func (p *MockMusic) Stats() (mpd.Attrs, time.Time) {
 	return p.StatsRet1, p.StatsRet2
 }
-func (p *MockMusic) SortPlaylist(s []string, u string, t [][]string) error {
+func (p *MockMusic) SortPlaylist(s []string, t [][]string, u int) error {
 	p.SortPlaylistArg1 = s
-	p.SortPlaylistArg2 = u
-	p.SortPlaylistArg3 = t
+	p.SortPlaylistArg2 = t
+	p.SortPlaylistArg3 = u
 	return p.SortPlaylistErr
+}
+func (p *MockMusic) PlaylistIsSorted() (bool, []string, [][]string, time.Time) {
+	return p.PlaylistIsSortedRet1, p.PlaylistIsSortedRet2, p.PlaylistIsSortedRet3, p.PlaylistIsSortedRet4
 }
 func (p *MockMusic) Subscribe(s chan string) {
 	p.Subscribers = []chan string{s}

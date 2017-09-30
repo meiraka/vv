@@ -61,6 +61,7 @@ func (s *Server) makeHandle() http.Handler {
 	h.HandleFunc("/api/music/songs", s.apiMusicSongs)
 	h.HandleFunc("/api/music/songs/", s.apiMusicSongsOne)
 	h.HandleFunc("/api/music/songs/current", s.apiMusicSongsCurrent)
+	h.HandleFunc("/api/music/songs/sort", s.apiMusicSongsSort)
 	h.HandleFunc("/api/music/stats", s.apiMusicStats)
 	h.HandleFunc("/api/version", s.apiVersion)
 	fs := http.StripPrefix(musicDirectoryPrefix, http.FileServer(http.Dir(s.MusicDirectory)))
@@ -221,13 +222,25 @@ func (s *Server) apiMusicSongs(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		d, l := s.Music.Playlist()
 		writeInterfaceIfModified(w, r, d, l, nil)
+	}
+}
+
+func (s *Server) apiMusicSongsSort(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		s, k, f, l := s.Music.PlaylistIsSorted()
+		d := struct {
+			Sorted  bool       `json:"sorted"`
+			Keys    []string   `json:"keys"`
+			Filters [][]string `json:"filters"`
+		}{s, k, f}
+		writeInterfaceIfModified(w, r, d, l, nil)
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
 		var data struct {
-			Action  string     `json:"action"`
 			Keys    []string   `json:"keys"`
-			URI     string     `json:"uri"`
 			Filters [][]string `json:"filters"`
+			Play    int        `json:"play"`
 		}
 		err := decoder.Decode(&data)
 		if err != nil {
@@ -238,7 +251,7 @@ func (s *Server) apiMusicSongs(w http.ResponseWriter, r *http.Request) {
 			writeError(w, &httpClientError{message: "failed to get request parameters. missing fields: keys or/and filters"})
 			return
 		}
-		s.Music.SortPlaylist(data.Keys, data.URI, data.Filters)
+		err = s.Music.SortPlaylist(data.Keys, data.Filters, data.Play)
 		writeError(w, err)
 		return
 	}
@@ -464,6 +477,7 @@ type MusicIF interface {
 	Repeat(bool) error
 	Random(bool) error
 	Playlist() ([]Song, time.Time)
+	PlaylistIsSorted() (bool, []string, [][]string, time.Time)
 	Library() ([]Song, time.Time)
 	RescanLibrary() error
 	Current() (Song, time.Time)
@@ -471,7 +485,7 @@ type MusicIF interface {
 	Stats() (mpd.Attrs, time.Time)
 	Output(int, bool) error
 	Outputs() ([]mpd.Attrs, time.Time)
-	SortPlaylist([]string, string, [][]string) error
+	SortPlaylist([]string, [][]string, int) error
 	Subscribe(chan string)
 	Unsubscribe(chan string)
 }
