@@ -1103,6 +1103,12 @@ vv.view.list = (function(){
         }
         if (s.length > 0) {
             var selectable = l.getElementsByClassName("selectable");
+            if (target == "up" && selectable[0] == s[0]) {
+                return;
+            }
+            if (target == "down" && selectable[selectable.length-1] == s[0]) {
+                return;
+            }
             for (i = 0; i < selectable.length; i++) {
                 c = selectable[i];
                 if (c == s[0]) {
