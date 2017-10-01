@@ -69,7 +69,7 @@ vv.song = (function(){
            return other;
        }
     }
-    var getSortkeyOrElse = function(song, key, other) {
+    var getOneOrElse = function(song, key, other) {
         if (!song.keys) {
             return getOrElseMulti(song, key, [other])[0];
         }
@@ -80,8 +80,8 @@ vv.song = (function(){
         }
         return getOrElseMulti(song, key, [other])[0];
     }
-    var getSortkey = function(song, key) {
-        return getSortkeyOrElse(song, key, '[no ' + key + ']');
+    var getOne = function(song, key) {
+        return getOneOrElse(song, key, '[no ' + key + ']');
     }
     var get = function(song, key) {
         return getOrElse(song, key, '[no ' + key + ']');
@@ -132,7 +132,7 @@ vv.song = (function(){
         e.classList.remove("playing");
         e.classList.add(style);
         e.classList.add("note-line");
-        e.setAttribute("key", vv.song.getSortkey(song, key));
+        e.setAttribute("key", vv.song.getOne(song, key));
         if (song["file"]) {
             e.setAttribute("uri", song["file"][0]);
             e.setAttribute("pos", song["pos"]);
@@ -214,7 +214,7 @@ vv.song = (function(){
         } else {
             var plain = document.createElement("span");
             plain.classList.add("plain-key");
-            plain.textContent = vv.song.getSortkey(song, key);
+            plain.textContent = vv.song.getOne(song, key);
             e.appendChild(plain);
         }
         return e;
@@ -223,7 +223,7 @@ vv.song = (function(){
     return {
         getOrElse: getOrElse,
         getOrElseMulti: getOrElseMulti,
-        getSortkey: getSortkey,
+        getOne: getOne,
         get: get,
         sortkeys: sortkeys,
         element: element,
@@ -247,7 +247,7 @@ vv.songs = (function(){
         return songs.filter(function (song, i , self) {
             if (i == 0) {
                 return true;
-            } else if (vv.song.getSortkey(song, key) != vv.song.getSortkey(self[i - 1], key)) {
+            } else if (vv.song.getOne(song, key) != vv.song.getOne(self[i - 1], key)) {
                 return true;
             } else {
                 return false;
@@ -258,7 +258,7 @@ vv.songs = (function(){
         return songs.filter(function(song) {
             var f;
             for (f in filters) {
-                if (vv.song.getSortkey(song, f) != filters[f]) {
+                if (vv.song.getOne(song, f) != filters[f]) {
                     return false;
                 }
             }
@@ -582,7 +582,7 @@ vv.model.list = (function() {
                     break;
                 }
                 var key = selected[i][0];
-                vv.storage.tree.push([key, vv.song.getSortkey(song, key)]);
+                vv.storage.tree.push([key, vv.song.getOne(song, key)]);
             }
             vv.storage.save();
         } else {
@@ -1658,7 +1658,7 @@ vv.view.system = (function() {
             var songs = vv.model.list.list()["songs"];
             if (songs[0]) {
                 var p = vv.model.list.grandparent();
-                e.textContent = vv.song.getSortkey(p.song, p.key);
+                e.textContent = vv.song.getOne(p.song, p.key);
             }
         } else {
             b.classList.add("root");
