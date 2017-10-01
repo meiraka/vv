@@ -204,9 +204,13 @@ type songSorter struct {
 // SortSongs sorts songs by song tag list.
 func SortSongs(s []Song, keys []string) []Song {
 	flatten := make([]*songSorter, 0, len(s))
-	for i := range s {
-		for _, key := range s[i].SortKeys(keys) {
-			flatten = append(flatten, &songSorter{s[i], key})
+	for _, song := range s {
+		for _, key := range song.SortKeys(keys) {
+			newsong := make(Song, len(song))
+			for k := range song {
+				newsong[k] = song[k]
+			}
+			flatten = append(flatten, &songSorter{newsong, key})
 		}
 	}
 	sort.Slice(flatten, func(i, j int) bool {

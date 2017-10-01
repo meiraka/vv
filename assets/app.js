@@ -68,16 +68,61 @@ vv.song = (function(){
            return other;
        }
     }
+    var getSortkeyOrElse = function(song, key, other) {
+        if (!song.keys) {
+            return getOrElseMulti(song, key, [other])[0];
+        }
+        for (var i in song.keys) {
+            if (song.keys[i][0] == key) {
+                return song.keys[i][1];
+            }
+        }
+        return getOrElseMulti(song, key, [other])[0];
+    }
+    var getSortkey = function(song, key) {
+        return getSortkeyOrElse(song, key, '[no ' + key + ']');
+    }
     var get = function(song, key) {
         return getOrElse(song, key, '[no ' + key + ']');
     }
-    var sortkey = function(song, keys) {
-        var sortkey = '';
-        var i;
-        for (i in keys) {
-            sortkey += getOrElse(song, keys[i], ' ')
+    var sortkeys = function(song, keys, memo) {
+        var songs = [vv.obj.copy(song)];
+        songs[0].sortkey = '';
+        songs[0].keys = [];
+        for (var i in keys) {
+            var writememo = memo.indexOf(keys[i]) != -1;
+            var newkeys = getOrElseMulti(song, keys[i], []);
+            if (newkeys.length == 0) {
+                for (var j in songs) {
+                    songs[j].sortkey += " ";
+                    if (writememo) {
+                        songs[j].keys.push([keys[i], '[no ' + keys[i] + ']']);
+                    }
+                }
+            } else if (newkeys.length == 1) {
+                for (j in songs) {
+                    songs[j].sortkey += newkeys[0];
+                    if (writememo) {
+                        songs[j].keys.push([keys[i], newkeys[0]]);
+                    }
+                }
+            } else {
+                var newsongs = [];
+                for (j in songs) {
+                    for (var k in newkeys) {
+                        var newsong = vv.obj.copy(songs[j]);
+                        newsong.keys = vv.obj.copy(songs[j].keys);
+                        newsong.sortkey += newkeys[k];
+                        if (writememo) {
+                            newsong.keys.push([keys[i], newkeys[k]]);
+                        }
+                        newsongs.push(newsong);
+                    }
+                }
+                songs = newsongs;
+            }
         }
-        return sortkey;
+        return songs;
     }
     var element = function(e, song, key, style) {
         e.classList.remove("plain");
@@ -86,7 +131,7 @@ vv.song = (function(){
         e.classList.remove("playing");
         e.classList.add(style);
         e.classList.add("note-line");
-        e.setAttribute("key", vv.song.get(song, key));
+        e.setAttribute("key", vv.song.getSortkey(song, key));
         if (song["file"]) {
             e.setAttribute("uri", song["file"][0]);
             e.setAttribute("pos", song["pos"]);
@@ -168,7 +213,7 @@ vv.song = (function(){
         } else {
             var plain = document.createElement("span");
             plain.classList.add("plain-key");
-            plain.textContent = vv.song.get(song, key);
+            plain.textContent = vv.song.getSortkey(song, key);
             e.appendChild(plain);
         }
         return e;
@@ -177,21 +222,22 @@ vv.song = (function(){
     return {
         getOrElse: getOrElse,
         getOrElseMulti: getOrElseMulti,
+        getSortkey: getSortkey,
         get: get,
-        sortkey: sortkey,
+        sortkeys: sortkeys,
         element: element,
     };
 }());
 vv.songs = (function(){
-    var sort = function(songs, keys) {
-        var sorted = songs.map(function(song) {
-            var n = vv.obj.copy(song);
-            n.sortkey = vv.song.sortkey(n, keys);
-            return n
-        }).sort(function (a, b) {
+    var sort = function(songs, keys, memo) {
+        var newsongs = [];
+        for (var i in songs) {
+            Array.prototype.push.apply(newsongs, vv.song.sortkeys(songs[i], keys, memo));
+        }
+        var sorted = newsongs.sort(function (a, b) {
             if (a.sortkey < b.sortkey) { return -1; } else { return 1; }
         });
-        for (var i in sorted) {
+        for (i in sorted) {
             sorted[i]["pos"] = [i];
         }
         return sorted;
@@ -200,7 +246,7 @@ vv.songs = (function(){
         return songs.filter(function (song, i , self) {
             if (i == 0) {
                 return true;
-            } else if (vv.song.getOrElse(song, key, ' ') != vv.song.getOrElse(self[i - 1], key, ' ')) {
+            } else if (vv.song.getSortkey(song, key) != vv.song.getSortkey(self[i - 1], key)) {
                 return true;
             } else {
                 return false;
@@ -211,7 +257,7 @@ vv.songs = (function(){
         return songs.filter(function(song) {
             var f;
             for (f in filters) {
-                if (vv.song.get(song, f) != filters[f]) {
+                if (vv.song.getSortkey(song, f) != filters[f]) {
                     return false;
                 }
             }
@@ -321,7 +367,7 @@ vv.model.list = (function() {
         },
         "Album": {
             "sort":
-                ["AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
+                ["AlbumArtist", "AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
             "tree":
                 [["Album", "album"],
                  ["Title", "song"]
@@ -352,16 +398,31 @@ vv.model.list = (function() {
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
     };
+    var removeEventListener = function(ev, func) {
+        for (var i in listener[ev]) {
+            if (listener[ev][i] == func) {
+                listener[ev].splice(i, 1);
+                return;
+            }
+        }
+    };
     var raiseEvent = function(ev) {
         var i;
         for (i in listener[ev]) {
             listener[ev][i]();
         }
     };
+    var mkmemo = function(key) {
+        var ret = [];
+        for (var i in TREE[key]["tree"]) {
+            ret.push(TREE[key]["tree"][i][0]);
+        }
+        return ret;
+    }
     var update = function(data) {
         var key;
         for (key in TREE) {
-            library[key] = vv.songs.sort(data, TREE[key]["sort"]);
+            library[key] = vv.songs.sort(data, TREE[key]["sort"], mkmemo(key));
         }
         update_list();
         raiseEvent("update");
@@ -373,7 +434,7 @@ vv.model.list = (function() {
         }
         return r;
     };
-    var filters = function(uri) {
+    var filters = function(uri, pos) {
         var song = vv.storage.current;
         var songs = list().songs;
         for (var i=0; i<songs.length; i++) {
@@ -385,6 +446,9 @@ vv.model.list = (function() {
         var ret = [];
         var t = rootname();
         if (t != "root") {
+            if (library[t][pos] && library[t][pos].file[0] == uri) {
+                return library[t][pos].keys;
+            }
             for (i = 0; i < TREE[t]["tree"].length; i++) {
                 var key = TREE[t]["tree"][i][0];
                 var value = vv.song.getOrElseMulti(song, key, null);
@@ -436,22 +500,56 @@ vv.model.list = (function() {
             raiseEvent("changed");
         }
     };
-    var abs = function(song) {
-        focus = song;
-        var i, root, key, selected;
+
+    var absSorted = function(song) {
+        var root = "";
+        var pos = parseInt(song.Pos[0]);
+        var keys = vv.storage.sorted.keys.join();
+        for (var newroot in TREE) {
+            if (TREE[newroot].sort.join() == keys) {
+                root = newroot;
+                break;
+            }
+        }
+        if (!root) {
+            alert("unknown sort keys:" + keys);
+            return;
+        }
+        if (!library[root]) {
+            return;
+        }
+        if (!library[root][pos]) {
+            return;
+        }
+        if (library[root][pos].file[0] == song.file[0]) {
+            focus = library[root][pos];
+            vv.storage.tree.length = 0;
+            vv.storage.tree.push(["root", root]);
+            for (var i=0; i < focus.keys.length - 1; i++) {
+                vv.storage.tree.push(focus.keys[i]);
+            }
+            vv.storage.save();
+            update_list();
+            raiseEvent("changed");
+        } else {
+            absFallback(song);
+        }
+    }
+
+    var absFallback = function(song) {
         if (rootname() != "root" && song.file) {
             var r = vv.storage.tree[0];
             vv.storage.tree.length = 0;
             vv.storage.tree.splice(0, vv.storage.tree.length);
             vv.storage.tree.push(r);
-            root = vv.storage.tree[0][1];
-            selected = TREE[root]["tree"];
-            for (i in selected) {
+            var root = vv.storage.tree[0][1];
+            var selected = TREE[root]["tree"];
+            for (var i in selected) {
                 if (i == selected.length - 1) {
                     break;
                 }
-                key = selected[i][0];
-                vv.storage.tree.push([key, vv.song.get(song, key)]);
+                var key = selected[i][0];
+                vv.storage.tree.push([key, vv.song.getSortkey(song, key)]);
             }
             vv.storage.save();
         } else {
@@ -460,6 +558,16 @@ vv.model.list = (function() {
         }
         update_list();
         raiseEvent("changed");
+    };
+    var abs = function(song) {
+        if (!vv.storage.sorted) {
+            return;
+        }
+        if (vv.storage.sorted.sorted) {
+            absSorted(song);
+        } else {
+            absFallback(song);
+        }
     };
     var list = function() {
         if (!list_cache.songs || !list_cache.songs.length == 0) {
@@ -530,7 +638,9 @@ vv.model.list = (function() {
         return {"key": "root", "song": {"root": ["Library"]}, "style": "plain", "isdir": true};
     };
     return {
+        library: library,
         addEventListener: addEventListener,
+        removeEventListener: removeEventListener,
         focused: focused,
         update: update,
         rootname: rootname,
@@ -549,6 +659,14 @@ vv.control = (function() {
                     "current": [], "outputs": [], "stats": [], "version": [], "start": [], "poll": [], "sorted": []}
     var addEventListener = function(ev, func) {
         listener[ev].push(func);
+    };
+    var removeEventListener = function(ev, func) {
+        for (var i in listener[ev]) {
+            if (listener[ev][i] == func) {
+                listener[ev].splice(i, 1);
+                return;
+            }
+        }
     };
     var raiseEvent = function(ev) {
         var i;
@@ -683,8 +801,8 @@ vv.control = (function() {
     var play = function(uri, pos) {
         post_request("/api/music/songs/sort", {
             "keys": vv.model.list.sortkeys(),
-            "filters": vv.model.list.filters(uri),
-            "play": parseInt(pos)});
+            "filters": vv.model.list.filters(uri, pos),
+            "play": pos});
     }
 
     var volume = function(num) {
@@ -788,12 +906,22 @@ vv.control = (function() {
         }
     };
 
-    addEventListener("current", function() {
+    var focus = function() {
         vv.storage.save();
-        if (vv.model.list.rootname() != "root" && vv.storage.preferences.playback.view_follow && vv.storage.current.file) {
+        if (vv.storage.preferences.playback.view_follow && vv.storage.current.file) {
             vv.model.list.abs(vv.storage.current);
         }
-    });
+    };
+    var focusremove = function(key, remove) {
+        var n = function() {
+            focus()
+            remove(key, n);
+        }
+        return n;
+    }
+    addEventListener("current", focus);
+    vv.model.list.addEventListener("update", focusremove("update", vv.model.list.removeEventListener));
+    addEventListener("sorted", focusremove("sorted", removeEventListener));
 
     addEventListener("library", function() {
         vv.model.list.update(vv.storage.library);
@@ -1053,7 +1181,7 @@ vv.view.list = (function(){
                 if (isdir) {
                     vv.model.list.down(value);
                 } else {
-                    vv.control.play(uri, pos);
+                    vv.control.play(uri, parseInt(pos));
                 }
             }, false);
             newul.appendChild(li);
@@ -1497,7 +1625,7 @@ vv.view.system = (function() {
             var songs = vv.model.list.list()["songs"];
             if (songs[0]) {
                 var p = vv.model.list.grandparent();
-                e.textContent = vv.song.get(p.song, p.key);
+                e.textContent = vv.song.getSortkey(p.song, p.key);
             }
         } else {
             b.classList.add("root");

@@ -140,7 +140,10 @@ func (p *Music) SortPlaylist(keys []string, filters [][]string, pos int) (err er
 func (p *Music) sortPlaylist(mpc mpdClient, keys []string, filters [][]string, pos int) error {
 	return p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
 		update := false
-		library := SortSongsUniq(masterLibrary, keys)
+		library := SortSongs(masterLibrary, keys)
+		for i := range library {
+			library[i]["Pos"] = []string{strconv.Itoa(i)}
+		}
 		target := library[pos]["Pos"][0]
 		library = WeakFilterSongs(library, filters, 9999)
 		p.playlistSort.lock(func(playlist []Song, _ time.Time) error {
@@ -449,7 +452,7 @@ func (p *Music) updatePlaylist(mpc mpdClient) error {
 	p.playlistSortLock.Lock()
 	if len(l) != 0 && p.playlistSortkeys != nil && p.playlistFilters != nil {
 		p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
-			library := SortSongsUniq(masterLibrary, p.playlistSortkeys)
+			library := SortSongs(masterLibrary, p.playlistSortkeys)
 			library = WeakFilterSongs(library, p.playlistFilters, 9999)
 			p.playlistSorted = true
 			if len(library) != len(playlist) {
