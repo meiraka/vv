@@ -1,4 +1,5 @@
 var vv = vv || {
+    consts: {playlistLength: 9999},
     obj: {},
     song: {},
     songs: {},
@@ -264,10 +265,35 @@ vv.songs = (function(){
             return true;
         });
     }
+    var weakFilter = function(songs, filters, max) {
+        if (songs.length <= max) {
+            return songs;
+        }
+        for (var i in filters) {
+            var newsongs = [];
+            for (var j in songs) {
+                if (songs[j][filters[i][0]] && songs[j][filters[i][0]].indexOf(filters[i][1]) != -1) {
+                    newsongs.push(songs[j]);
+                }
+            }
+            if (newsongs.length <= max) {
+                return newsongs;
+            }
+            songs = newsongs;
+        }
+        if (songs.length > max) {
+            newsongs = [];
+            for (i=0; i<max; i++) {
+                newsongs.push(songs[i]);
+            }
+        }
+        return songs;
+    }
     return {
         sort: sort,
         uniq: uniq,
         filter: filter,
+        weakFilter: weakFilter,
     };
 }());
 vv.storage = (function(){
@@ -515,14 +541,21 @@ vv.model.list = (function() {
             alert("unknown sort keys:" + keys);
             return;
         }
-        if (!library[root]) {
+        var songs = library[root];
+        if (!songs) {
             return;
         }
-        if (!library[root][pos]) {
+        if (songs.length == 0) {
             return;
         }
-        if (library[root][pos].file[0] == song.file[0]) {
-            focus = library[root][pos];
+        if (songs.length > vv.consts.playlistLength) {
+            songs = vv.songs.weakFilter(songs, vv.storage.sorted.filters, vv.consts.playlistLength);
+        }
+        if (!songs[pos]) {
+            return;
+        }
+        if (songs[pos].file[0] == song.file[0]) {
+            focus = songs[pos];
             vv.storage.tree.length = 0;
             vv.storage.tree.push(["root", root]);
             for (var i=0; i < focus.keys.length - 1; i++) {

@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+const (
+	playlistLength = 9999
+)
+
 /*Dial Connects to mpd server.*/
 func Dial(network, addr, passwd, musicDirectory string) (*Music, error) {
 	p := new(Music)
@@ -145,7 +149,7 @@ func (p *Music) sortPlaylist(mpc mpdClient, keys []string, filters [][]string, p
 			library[i]["Pos"] = []string{strconv.Itoa(i)}
 		}
 		target := library[pos]["Pos"][0]
-		library = WeakFilterSongs(library, filters, 9999)
+		library = WeakFilterSongs(library, filters, playlistLength)
 		p.playlistSort.lock(func(playlist []Song, _ time.Time) error {
 			if len(library) != len(playlist) {
 				update = true
@@ -453,7 +457,7 @@ func (p *Music) updatePlaylist(mpc mpdClient) error {
 	if len(l) != 0 && p.playlistSortkeys != nil && p.playlistFilters != nil {
 		p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
 			library := SortSongs(masterLibrary, p.playlistSortkeys)
-			library = WeakFilterSongs(library, p.playlistFilters, 9999)
+			library = WeakFilterSongs(library, p.playlistFilters, playlistLength)
 			p.playlistSorted = true
 			if len(library) != len(playlist) {
 				p.playlistSorted = false
