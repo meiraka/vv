@@ -134,7 +134,6 @@ vv.song = (function(){
         e.classList.add("note-line");
         e.setAttribute("key", vv.song.getOne(song, key));
         if (song["file"]) {
-            e.setAttribute("uri", song["file"][0]);
             e.setAttribute("pos", song["pos"]);
         }
         if (style == "song") {
@@ -460,30 +459,9 @@ vv.model.list = (function() {
         }
         return r;
     };
-    var filters = function(uri, pos) {
-        var song = vv.storage.current;
-        var songs = list().songs;
-        for (var i=0; i<songs.length; i++) {
-            if (songs[i].file[0] == uri) {
-                song = songs[i];
-                break;
-            }
-        }
-        var ret = [];
-        var t = rootname();
-        if (t != "root") {
-            if (library[t][pos] && library[t][pos].file[0] == uri) {
-                return library[t][pos].keys;
-            }
-            for (i = 0; i < TREE[t]["tree"].length; i++) {
-                var key = TREE[t]["tree"][i][0];
-                var value = vv.song.getOrElseMulti(song, key, null);
-                if (value) {
-                    ret.push([key, value[0]]);
-                }
-            }
-        }
-        return ret;
+    var filters = function(pos) {
+        var root = rootname();
+        return library[root][pos].keys;
     };
     var focused = function() {
         return focus;
@@ -831,10 +809,10 @@ vv.control = (function() {
         raiseEvent("control");
     }
 
-    var play = function(uri, pos) {
+    var play = function(pos) {
         post_request("/api/music/songs/sort", {
             "keys": vv.model.list.sortkeys(),
-            "filters": vv.model.list.filters(uri, pos),
+            "filters": vv.model.list.filters(pos),
             "play": pos});
     }
 
@@ -1209,12 +1187,11 @@ vv.view.list = (function(){
                     return;
                 }
                 var value = e.currentTarget.getAttribute("key");
-                var uri = e.currentTarget.getAttribute("uri");
                 var pos = e.currentTarget.getAttribute("pos");
                 if (isdir) {
                     vv.model.list.down(value);
                 } else {
-                    vv.control.play(uri, parseInt(pos));
+                    vv.control.play(parseInt(pos));
                 }
             }, false);
             newul.appendChild(li);
