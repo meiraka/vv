@@ -157,26 +157,6 @@ func TestSortSongs(t *testing.T) {
 	}
 }
 
-func TestSortSongsUniq(t *testing.T) {
-	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
-	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}
-	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}}
-	songs := []Song{a, b, c}
-	testsets := []struct {
-		input  []string
-		expect []Song
-	}{
-		{input: []string{"Album", "Track"}, expect: []Song{a, b, c}},
-		{input: []string{"Artist"}, expect: []Song{b, a, c}},
-	}
-	for _, tt := range testsets {
-		actual := SortSongsUniq(songs, tt.input)
-		if !reflect.DeepEqual(tt.expect, actual) {
-			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
-		}
-	}
-}
-
 func TestWeakFilterSongs(t *testing.T) {
 	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
 	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}

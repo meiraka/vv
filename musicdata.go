@@ -223,14 +223,6 @@ func SortSongs(s []Song, keys []string) []Song {
 	return ret
 }
 
-// SortSongsUniq sorts songs by song tag list.
-func SortSongsUniq(s []Song, keys []string) []Song {
-	sort.Slice(s, func(i, j int) bool {
-		return s[i].SortKey(keys) < s[j].SortKey(keys)
-	})
-	return s
-}
-
 // WeakFilterSongs removes songs if not matched by filters until len(songs) over max.
 // filters example: [][]string{[]string{"Artist", "foo"}}
 func WeakFilterSongs(s []Song, filters [][]string, max int) []Song {
