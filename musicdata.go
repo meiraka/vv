@@ -107,20 +107,6 @@ func MakeStatus(status mpd.Attrs) Status {
 // Song represents song metadata
 type Song map[string][]string
 
-// SortKey makes string for sort key by song tag list.
-func (s Song) SortKey(keys []string) string {
-	sp := make([]string, len(keys))
-	for i, key := range keys {
-		v := s.Tag(key)
-		if v != nil {
-			sp[i] = strings.Join(v, ",")
-		} else {
-			sp[i] = " "
-		}
-	}
-	return strings.Join(sp, "")
-}
-
 func songAddAll(sp []map[string]string, key string, add []string) []map[string]string {
 	if add == nil || len(add) == 0 {
 		for i := range sp {

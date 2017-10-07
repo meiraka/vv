@@ -55,25 +55,6 @@ func TestSongTag(t *testing.T) {
 	}
 }
 
-func TestSongSortKey(t *testing.T) {
-	song := Song{"Artist": {"foo", "bar"}, "Album": {"baz"}, "Genre": {"Jazz", "Rock"}}
-	testsets := []struct {
-		input  []string
-		expect string
-	}{
-		{input: []string{"Album"}, expect: "baz"},
-		{input: []string{"Not Found"}, expect: " "},
-		{input: []string{"Artist", "Album"}, expect: "foo,barbaz"},
-		{input: []string{"Artist", "Album", "Genre"}, expect: "foo,barbazJazz,Rock"},
-	}
-	for _, tt := range testsets {
-		actual := song.SortKey(tt.input)
-		if !reflect.DeepEqual(tt.expect, actual) {
-			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
-		}
-	}
-}
-
 func TestSongSortKeys(t *testing.T) {
 	song := Song{"Artist": {"foo", "bar"}, "Album": {"baz"}, "Genre": {"Jazz", "Rock"}}
 	testsets := []struct {
