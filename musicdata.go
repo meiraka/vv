@@ -139,7 +139,7 @@ func songAddAll(sp []map[string]string, key string, add []string) []map[string]s
 	return newsp
 }
 
-// SortKeys makes string list for sort key by song tag list.
+// SortKeys makes map list for sort key by song tag list.
 func (s Song) SortKeys(keys []string) []map[string]string {
 	sp := []map[string]string{{"all": ""}}
 	for _, key := range keys {
