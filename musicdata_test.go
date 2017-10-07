@@ -78,12 +78,16 @@ func TestSongSortKeys(t *testing.T) {
 	song := Song{"Artist": {"foo", "bar"}, "Album": {"baz"}, "Genre": {"Jazz", "Rock"}}
 	testsets := []struct {
 		input  []string
-		expect []string
+		expect []map[string]string
 	}{
-		{input: []string{"Album"}, expect: []string{"baz"}},
-		{input: []string{"Not Found"}, expect: []string{" "}},
-		{input: []string{"Artist", "Album"}, expect: []string{"foobaz", "barbaz"}},
-		{input: []string{"Artist", "Album", "Genre"}, expect: []string{"foobazJazz", "foobazRock", "barbazJazz", "barbazRock"}},
+		{input: []string{"Album"}, expect: []map[string]string{{"Album": "baz", "all": "baz"}}},
+		{input: []string{"Not Found"}, expect: []map[string]string{{"Not Found": " ", "all": " "}}},
+		{input: []string{"Artist", "Album"}, expect: []map[string]string{{"Artist": "foo", "Album": "baz", "all": "foobaz"}, {"Artist": "bar", "Album": "baz", "all": "barbaz"}}},
+		{input: []string{"Artist", "Album", "Genre"}, expect: []map[string]string{
+			{"Artist": "foo", "Album": "baz", "Genre": "Jazz", "all": "foobazJazz"},
+			{"Artist": "foo", "Album": "baz", "Genre": "Rock", "all": "foobazRock"},
+			{"Artist": "bar", "Album": "baz", "Genre": "Jazz", "all": "barbazJazz"},
+			{"Artist": "bar", "Album": "baz", "Genre": "Rock", "all": "barbazRock"}}},
 	}
 	for _, tt := range testsets {
 		actual := song.SortKeys(tt.input)
@@ -138,46 +142,65 @@ func TestStatus(t *testing.T) {
 }
 
 func TestSortSongs(t *testing.T) {
-	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
+	a := Song{"Artist": {"foo", "bar"}, "Track": {"1"}, "Album": {"baz"}}
 	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}
 	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}}
 	songs := []Song{a, b, c}
 	testsets := []struct {
-		input  []string
-		expect []Song
+		keys       []string
+		filters    [][]string
+		max        int
+		pos        int
+		expectSong []Song
+		expectPos  int
 	}{
-		{input: []string{"Album", "Track"}, expect: []Song{a, b, c}},
-		{input: []string{"Artist"}, expect: []Song{b, a, c, c}},
+		{
+			keys: []string{"Album", "Track"},
+			max:  100, filters: [][]string{},
+			pos:        0,
+			expectSong: []Song{a, b, c},
+			expectPos:  0,
+		},
+		{
+			keys: []string{"Album", "Track"},
+			max:  2, filters: [][]string{{"Album", "baz"}, {"Track", "1"}},
+			pos:        0,
+			expectSong: []Song{a, b},
+			expectPos:  0,
+		},
+		{
+			keys: []string{"Album", "Track"},
+			max:  1, filters: [][]string{{"Album", "baz"}, {"Track", "1"}},
+			pos:        0,
+			expectSong: []Song{a},
+			expectPos:  0,
+		},
+		{
+			keys: []string{"Album", "Track"},
+			max:  1, filters: [][]string{{"Album", "baz"}},
+			pos:        0,
+			expectSong: []Song{a},
+			expectPos:  0,
+		},
+		{
+			keys: []string{"Artist", "Album"},
+			max:  1, filters: [][]string{{"Artist", "fuga"}},
+			pos:        3,
+			expectSong: []Song{c},
+			expectPos:  0,
+		},
+		{
+			keys: []string{"Artist", "Album"},
+			max:  1, filters: [][]string{{"Artist", "fuga"}},
+			pos:        0,
+			expectSong: []Song{c},
+			expectPos:  -1,
+		},
 	}
 	for _, tt := range testsets {
-		actual := SortSongs(songs, tt.input)
-		if !reflect.DeepEqual(tt.expect, actual) {
-			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
-		}
-	}
-}
-
-func TestWeakFilterSongs(t *testing.T) {
-	a := Song{"Artist": {"foo"}, "Track": {"1"}, "Album": {"baz"}}
-	b := Song{"Artist": {"bar"}, "Track": {"2"}, "Album": {"baz"}}
-	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}, "Title": {"hogehoge"}}
-	songs := []Song{a, a, a, b, b, b, c, c, c}
-	testsets := []struct {
-		input  [][]string
-		max    int
-		expect []Song
-	}{
-		{input: [][]string{{"Album", "baz"}, {"Artist", "foo"}}, max: 6, expect: []Song{a, a, a, b, b, b}},
-		{input: [][]string{{"Album", "baz"}, {"Artist", "foo"}}, max: 3, expect: []Song{a, a, a}},
-		{input: [][]string{{"Album", "baz"}, {"Artist", "foo"}}, max: 1, expect: []Song{a}},
-		{input: [][]string{{"Album", "baz"}, {"Artist", "foo"}}, max: 9999, expect: []Song{a, a, a, b, b, b, c, c, c}},
-		{input: [][]string{{"Artist", "fuga"}}, max: 3, expect: []Song{c, c, c}},
-		{input: [][]string{{"Title", "hogehoge"}}, max: 3, expect: []Song{c, c, c}},
-	}
-	for _, tt := range testsets {
-		actual := WeakFilterSongs(songs, tt.input, tt.max)
-		if !reflect.DeepEqual(tt.expect, actual) {
-			t.Errorf("unexpected return for %s, %d. expect %s, actual %s", tt.input, tt.max, tt.expect, actual)
+		actualSong, actualPos := SortSongs(songs, tt.keys, tt.filters, tt.max, tt.pos)
+		if !reflect.DeepEqual(tt.expectSong, actualSong) || tt.expectPos != actualPos {
+			t.Errorf("unexpected return for SortSongs(%s, %s, %d, %d).\nexpectSong: %s expectPos: %d\nactualSong: %s actualPos: %d", tt.keys, tt.filters, tt.max, tt.pos, tt.expectSong, tt.expectPos, actualSong, actualPos)
 		}
 	}
 }

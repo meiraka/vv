@@ -271,7 +271,7 @@ vv.songs = (function(){
         for (var i in filters) {
             var newsongs = [];
             for (var j in songs) {
-                if (songs[j][filters[i][0]] && songs[j][filters[i][0]].indexOf(filters[i][1]) != -1) {
+                if (vv.song.getOne(songs[j], filters[i][0]) == filters[i][1]) {
                     newsongs.push(songs[j]);
                 }
             }
