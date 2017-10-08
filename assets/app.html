@@ -261,7 +261,7 @@
     </button>
     <h1 class="modal-window-header">Help</h1>
     <h2 class="modal-window-header-sub">Keyboard Shortcuts</h2>
-    <table class=modal-window-table>
+    <table class="modal-window-table">
       <tr class=modal-window-tableitem>
         <th class=modal-window-tablekey><kbd><kbd>space</kbd></kbd></th><td id=version class=modal-window-table-value>play or pause song</td>
       </tr>
@@ -288,7 +288,17 @@
       </tr>
     </table>
   </div>
-
+  <div id=modal-song class="modal-window hide">
+    <button id=modal-song-close class=modal-window-close type="button" value="">
+      <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
+        <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
+      </svg>
+    </button>
+    <div class="scrollable">
+      <table class="modal-window-table" id="modal-window-song-desclist">
+      </table>
+    </div>
+  </div>
 </div>
 <footer>
   <nav id="control" class="control">

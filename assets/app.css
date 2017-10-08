@@ -1553,6 +1553,7 @@ svg path {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  max-height: 80%;
 }
 
 .modal-window.hide {

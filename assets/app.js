@@ -10,7 +10,7 @@ var vv = vv || {
         list: {},
         system: {},
         popup: {},
-        modal: {help: {}}},
+        modal: {help: {}, song: {}}},
     control : {},
 };
 vv.obj = (function(){
@@ -1109,6 +1109,11 @@ vv.view.main = (function(){
         document.getElementById("control-volume").addEventListener("change", function() {
             vv.control.volume(parseInt(this.value));
         });
+        vv.control.click(document.getElementById("main-cover"), function() {
+            if (vv.storage.current) {
+                vv.view.modal.song.show(vv.storage.current);
+            }
+        });
         load_volume_preferences();
         update_style();
     };
@@ -1824,6 +1829,69 @@ vv.view.modal.help = (function() {
         vv.control.click(document.getElementById("modal-help-close"), hide);
         vv.control.click(document.getElementById("modal-outer"), vv.view.modal.hide);
         vv.control.click(document.getElementById("modal-background"), vv.view.modal.hide);
+
+        var ws = document.getElementsByClassName("modal-window");
+        var i;
+        for (i in ws) {
+            if (ws[i].addEventListener) {
+                vv.control.click(ws[i], function(e) {
+                    e.stopPropagation();
+                });
+            }
+        }
+    });
+    return {
+        "show": show,
+        "hide": hide,
+    }
+}());
+vv.view.modal.song = (function() {
+    var show = function(song) {
+        var table = document.getElementById("modal-window-song-desclist");
+        while (table.lastChild) {
+            table.removeChild(table.lastChild);
+        }
+        var newtable = document.createDocumentFragment();
+        var mktr = function(song, key) {
+            var tr = document.createElement("tr");
+            tr.classList.add("modal-window-tableitem");
+            var th = document.createElement("th");
+            th.classList.add("modal-window-tablekey");
+            th.textContent = key;
+            tr.appendChild(th);
+            var td = document.createElement("td");
+            td.classList.add("modal-window-table-value");
+            if (Object.prototype.toString.call(song[key]) == "[object Array]") {
+                for (var j in song[key]) {
+                    var childvalue = document.createElement("span");
+                    childvalue.textContent = song[key][j];
+                    td.appendChild(childvalue);
+                }
+            }
+            tr.appendChild(td);
+            return tr;
+        };
+        var mustkeys = ["Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer"];
+        for (var i in mustkeys) {
+            newtable.appendChild(mktr(song, mustkeys[i]));
+        }
+        for (i in song) {
+            if (mustkeys.indexOf(i) == -1) {
+                newtable.appendChild(mktr(song, i));
+            }
+        }
+        table.appendChild(newtable);
+        document.getElementById("modal-background").classList.remove("hide");
+        document.getElementById("modal-outer").classList.remove("hide");
+        document.getElementById("modal-song").classList.remove("hide");
+    }
+    var hide = function() {
+        document.getElementById("modal-background").classList.add("hide");
+        document.getElementById("modal-outer").classList.add("hide");
+        document.getElementById("modal-song").classList.add("hide");
+    }
+    vv.control.addEventListener("start", function() {
+        vv.control.click(document.getElementById("modal-song-close"), hide);
 
         var ws = document.getElementsByClassName("modal-window");
         var i;
