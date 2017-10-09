@@ -135,6 +135,17 @@ vv.song = (function(){
         e.setAttribute("key", vv.song.getOne(song, key));
         if (song["file"]) {
             e.setAttribute("pos", song["pos"]);
+            e.setAttribute("contextmenu", "conext-" + song.file[0]);
+            var menu = document.createElement("menu");
+            menu.setAttribute("type", "context");
+            menu.classList.add("contextmenu");
+            menu.id = "conext-" + song.file[0];
+            var menuitem;
+            menuitem = document.createElement("menuitem");
+            menuitem.setAttribute("label", "Song Infomation");
+            menuitem.addEventListener("click", function(e) {vv.view.modal.song.show(song); e.stopPropagation(); });
+            menu.appendChild(menuitem);
+            e.appendChild(menu);
         }
         if (style == "song") {
             var now_playing = vv.storage.current && vv.storage.current.file && song.file[0] == vv.storage.current.file[0];

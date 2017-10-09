@@ -271,6 +271,10 @@ svg path {
   fill: none;
 }
 
+.contextmenu {
+  display: none;
+}
+
 .background-overlay {
   transition: background-color 0.2s 0s ease;
 }
