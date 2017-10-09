@@ -212,7 +212,8 @@ footer {
 /* module, state, theme */
 
 body {
-  font-family: Arial,sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Migu 1C", "Noto Sans CJK JP Regular", "Noto Sans CJK JP", Arial, sans-serif;
+  font-feature-settings: 'palt' 1;
   transition: color 0.2s 0s ease;
 }
 
