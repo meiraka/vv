@@ -89,9 +89,12 @@ header {
 
 .background-image {
   z-index: 0;
-  margin: -5%;
-  height: 110%;
-  width: 110%;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  margin: calc(-64px);
+  height: calc(100% + 128px);
+  width: calc(100% + 128px);
 }
 
 .background-overlay {
