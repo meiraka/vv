@@ -744,10 +744,17 @@ svg path {
   }
 }
 
-@media (orientation: landscape) {
+@media (orientation: landscape) and (max-aspect-ratio: 2/1) {
   .main-cover {
     width: 35vw;
     height: 35vw;
+  }
+}
+
+@media (orientation: landscape) and (min-aspect-ratio: 2/1) {
+  .main-cover {
+    width: 70vh;
+    height: 70vh;
   }
 }
 
