@@ -380,7 +380,7 @@ svg path {
 }
 
 .header-item-icon {
-  width: 32px;
+  width: auto;
   height: 32px;
   stroke-width: 16;
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
@@ -392,7 +392,7 @@ svg path {
 
 .header-item:active .header-item-icon,
 .header-item.active .header-item-icon {
-  width: 28px;
+  width: auto;
   height: 28px;
 }
 
