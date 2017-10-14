@@ -696,6 +696,7 @@ vv.control = (function() {
     };
 
     var click = function(element, f) {
+        element.click_target = f;
         var enter = function(e) {
             e.currentTarget.classList.add("hover");
         };
@@ -1391,7 +1392,9 @@ vv.view.list = (function(){
     var activate = function() {
         var es = document.getElementById("list-items").getElementsByClassName("selected");
         if (es.length != 0) {
-            es[0].click();
+            var e = {};
+            e.currentTarget = es[0]
+            es[0].click_target(e);
             return true;
         }
         return false;
