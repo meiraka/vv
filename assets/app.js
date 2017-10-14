@@ -156,18 +156,16 @@ vv.song = (function(){
             track.classList.add("song-track");
             track.textContent = vv.song.get(song, "TrackNumber");
             e.appendChild(track);
-            if (now_playing) {
-                var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
-                svg.classList.add("song-playingicon");
-                svg.setAttribute("width", "22");
-                svg.setAttribute("height", "22");
-                svg.setAttribute("viewBox", "0 0 100 100");
-                var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                path.classList.add("fill");
-                path.setAttribute("d", "M 25,20 80,50 25,80 z");
-                svg.appendChild(path);
-                e.appendChild(svg);
-            }
+            var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+            svg.classList.add("song-playingicon");
+            svg.setAttribute("width", "22");
+            svg.setAttribute("height", "22");
+            svg.setAttribute("viewBox", "0 0 100 100");
+            var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.classList.add("fill");
+            path.setAttribute("d", "M 25,20 80,50 25,80 z");
+            svg.appendChild(path);
+            e.appendChild(svg);
             var title = document.createElement("span");
             title.classList.add("song-title");
             title.textContent = vv.song.get(song, "Title");
@@ -697,13 +695,46 @@ vv.control = (function() {
         }
     };
 
-    var click = function(e, f) {
-        if ("ontouchend" in e) {
-            e.addEventListener("touchstart", function() { this.touch = true; this.classList.add("active");});
-            e.addEventListener("touchmove", function() { this.touch = false; this.classList.remove("active");});
-            e.addEventListener("touchend", function(a) { this.classList.remove("active"); if (this.touch) {f(a);} });
+    var click = function(element, f) {
+        var enter = function(e) {
+            e.currentTarget.classList.add("hover");
+        };
+        var leave = function(e) {
+            e.currentTarget.classList.remove("hover");
+        };
+        var start = function(e) {
+            if (e.buttons && e.buttons != 1) {
+                return;
+            }
+            e.currentTarget.touch = true;
+            e.currentTarget.classList.add("active");
+        };
+        var move = function(e) {
+            if (e.buttons && e.buttons != 1) {
+                return;
+            }
+            e.currentTarget.touch = false;
+            e.currentTarget.classList.remove("active");
+        };
+        var end = function(e) {
+            if (e.buttons && e.buttons != 1) {
+                return;
+            }
+            e.currentTarget.classList.remove("active");
+            if (e.currentTarget.touch) {
+                f(e);
+            }
+        };
+        if ("ontouchend" in element) {
+            element.addEventListener("touchstart", start);
+            element.addEventListener("touchmove", move);
+            element.addEventListener("touchend",  end);
         } else {
-            e.addEventListener("click", f);
+            element.addEventListener("mousedown", start);
+            element.addEventListener("mousemove", move);
+            element.addEventListener("mouseup", end);
+            element.addEventListener("mouseenter", enter);
+            element.addEventListener("mouseleave", leave);
         }
     };
 
