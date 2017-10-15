@@ -707,6 +707,13 @@ vv.control = (function() {
             if (e.buttons && e.buttons != 1) {
                 return;
             }
+            if (e.touches) {
+                e.currentTarget.x = e.touches[0].screenX;
+                e.currentTarget.y = e.touches[0].screenY;
+            } else {
+                e.currentTarget.x = e.screenX;
+                e.currentTarget.y = e.screenY;
+            }
             e.currentTarget.touch = true;
             e.currentTarget.classList.add("active");
         };
@@ -714,8 +721,30 @@ vv.control = (function() {
             if (e.buttons && e.buttons != 1) {
                 return;
             }
-            e.currentTarget.touch = false;
-            e.currentTarget.classList.remove("active");
+            if (!e.currentTarget.touch) {
+                return;
+            }
+            var change = false;
+            var diff;
+            if (e.touches) {
+                diff = e.currentTarget.x - e.touches[0].screenX;
+                change = -5 > diff || diff > 5;
+                if (!change) {
+                    diff = e.currentTarget.y - e.touches[0].screenY;
+                    change = -5 > diff || diff > 5;
+                }
+            } else {
+                diff = e.currentTarget.x - e.screenX;
+                change = -5 > diff || diff > 5;
+                if (!change) {
+                    diff = e.currentTarget.y - e.screenY;
+                    change = -5 > diff || diff > 5;
+                }
+            }
+            if (change) {
+                e.currentTarget.touch = false;
+                e.currentTarget.classList.remove("active");
+            }
         };
         var end = function(e) {
             if (e.buttons && e.buttons != 1) {
