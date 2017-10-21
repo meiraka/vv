@@ -386,6 +386,7 @@ vv.model.list = (function() {
     var library = {
         "AlbumArtist": [],
         "Album": [],
+        "Artist": [],
         "Genre": [],
         "Date": [],
     }
@@ -404,6 +405,14 @@ vv.model.list = (function() {
                 ["AlbumArtist", "AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
             "tree":
                 [["Album", "album"],
+                 ["Title", "song"]
+                ],
+        },
+        "Artist": {
+            "sort":
+                ["Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
+            "tree":
+                [["Artist", "plain"],
                  ["Title", "song"]
                 ],
         },
