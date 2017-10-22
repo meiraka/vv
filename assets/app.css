@@ -742,6 +742,12 @@ svg path {
   }
 }
 
+@media (max-height: 4.00rem) {
+  .list-header {
+    display: none;
+  }
+}
+
 .main-box {
   width: 100%;
   height: 100%;

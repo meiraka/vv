@@ -1253,6 +1253,7 @@ vv.view.list = (function(){
                 li = document.createElement("li");
                 var p = vv.model.list.parent();
                 li = vv.song.element(li, p.song, p.key, p.style);
+                li.classList.add("list-header")
                 newul.appendChild(li);
             }
             li = document.createElement("li");
