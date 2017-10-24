@@ -152,6 +152,14 @@ vv.song = (function(){
             if (now_playing) {
                 e.classList.add("playing");
             }
+            if (song.file) {
+                var keys = ["Title", "Length", "Artist", "Album", "Track", "Genre", "Performer"];
+                var tooltip = "";
+                for (var i in keys) {
+                    tooltip += keys[i] + ": " + vv.song.get(song, keys[i]) + "\n";
+                }
+                e.setAttribute("title", tooltip);
+            }
             var track = document.createElement("span");
             track.classList.add("song-track");
             track.textContent = vv.song.get(song, "TrackNumber");
