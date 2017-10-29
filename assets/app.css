@@ -530,6 +530,10 @@ svg path {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
+.hover {
+  cursor: pointer;
+}
+
 .light .plain.hover,
 .light .song.hover,
 .light .album.hover {
@@ -1046,6 +1050,10 @@ svg path {
   transition: background-color 0.2s 0s ease;
 }
 
+.config-range:hover {
+  cursor: pointer;
+}
+
 .light .config-range {
   background-color: #404040;
 }
@@ -1136,6 +1144,10 @@ svg path {
 .dark .switch label,
 .dark .switch input:checked + label {
   border: solid 3px #e0e0e0;
+}
+
+.switch label:hover {
+  cursor: pointer;
 }
 
 .switch label:before,
@@ -1261,6 +1273,10 @@ svg path {
   padding: 5px 5px 0 50px;
   margin: 5px;
   transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
+}
+
+.tool-select:hover {
+  cursor: pointer;
 }
 
 .light .tool-select {
@@ -1447,6 +1463,10 @@ svg path {
 
 .dark .control-volume::-moz-range-track {
   background-color: #e0e0e0;
+}
+
+.control-volume:hover {
+  cursor: pointer;
 }
 
 .control-volume::-webkit-slider-thumb {
