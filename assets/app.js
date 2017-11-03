@@ -330,11 +330,21 @@ vv.storage = (function(){
             localStorage.preferences = JSON.stringify(data.preferences);
             localStorage.last_state = data.last_state;
             localStorage.current = JSON.stringify(data.current);
-            localStorage.last_modified = JSON.stringify({"current": data.last_modified.current})
+            localStorage.current_last_modified = data.last_modified.current;
         } catch (e) {
             // private browsing
         }
     }
+    var save_library = function() {
+        try {
+            if (localStorage.library_last_modified != data.last_modified.library) {
+                localStorage.library = JSON.stringify(data.library);
+                localStorage.library_last_modified = data.last_modified.library;
+            }
+        } catch (e) {
+            // private browsing
+        }
+    };
     var load = function() {
         try {
             if (localStorage.tree) {
@@ -352,11 +362,18 @@ vv.storage = (function(){
             if (localStorage.last_state) {
                 data.last_state = localStorage.last_state;
             }
-            if (localStorage.current && localStorage.last_modified) {
+            if (localStorage.current && localStorage.current_last_modified) {
                 var current = JSON.parse(localStorage.current);
                 if (Object.prototype.toString.call(current.file) == "[object Array]") {
                     data.current = current;
-                    data.last_modified.current = JSON.parse(localStorage.last_modified).current;
+                    data.last_modified.current = localStorage.current_last_modified;
+                }
+            }
+            if (localStorage.library && localStorage.library_last_modified) {
+                var library = JSON.parse(localStorage.library);
+                if (library.length) {
+                    data.library = library;
+                    data.last_modified.library = localStorage.library_last_modified;
                 }
             }
         } catch (e) {
@@ -382,6 +399,7 @@ vv.storage = (function(){
         last_modified: {},
         last_modified_ms: {},
         version: {},
+        save_library: save_library,
         save: save,
         load: load,
         last_state: "main",
@@ -820,9 +838,6 @@ vv.control = (function() {
         xhr.onerror = errorcatch("Error");
         xhr.onabort = errorcatch("Abort");
         xhr.open("GET", path, true);
-        if (ifmodified == "") {
-            ifmodified = 'Thu, 01 Jun 1970 00:00:00 GMT';
-        }
         xhr.setRequestHeader("If-Modified-Since", ifmodified);
         xhr.send();
     }
@@ -857,6 +872,9 @@ vv.control = (function() {
                 vv.storage[store] = ret.data;
                 vv.storage.last_modified_ms[store] = Date.parse(modified);
                 vv.storage.last_modified[store] = modified;
+                if (store == "library") {
+                    vv.storage.save_library();
+                }
                 raiseEvent(store)
             }
         });
@@ -1025,6 +1043,11 @@ vv.control = (function() {
 
     addEventListener("library", function() {
         vv.model.list.update(vv.storage.library);
+    });
+    addEventListener("start", function() {
+        if (vv.storage.library.length) {
+            vv.model.list.update(vv.storage.library);
+        }
     });
 
 
