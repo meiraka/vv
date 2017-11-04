@@ -1583,10 +1583,8 @@ vv.view.system = (function() {
                 var desc = document.createElement("div");
                 desc.classList.add("system-setting-desc");
                 desc.textContent = o["outputname"];
-                var sw = document.createElement("div");
-                sw.classList.add("system-setting-value");
-                sw.classList.add("switch");
                 var ch = document.createElement("input");
+                ch.classList.add("slideswitch");
                 ch.setAttribute("type", "checkbox");
                 ch.setAttribute("id", "device_"+o["outputname"]);
                 ch.setAttribute("deviceid", o["outputid"]);
@@ -1596,12 +1594,8 @@ vv.view.system = (function() {
                         parseInt(this.getAttribute("deviceid")),
                         this.checked);
                 });
-                var la = document.createElement("label");
-                la.setAttribute("for", "device_"+o["outputname"]);
-                sw.appendChild(ch);
-                sw.appendChild(la);
                 li.appendChild(desc);
-                li.appendChild(sw);
+                li.appendChild(ch);
                 ul.appendChild(li);
             }
         }

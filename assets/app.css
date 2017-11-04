@@ -1104,90 +1104,69 @@ svg path {
   background-color: #202020;
 }
 
-.switch {
-  margin: 5px;
-  width: 100px;
-  height: 30px;
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-}
-
-.switch input {
-  display: none;
-}
-
-.switch label,
-.switch input:checked + label {
-  position: relative;
+.slideswitch {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  margin: 0 5px;
+  padding: 0;
   display: block;
-  width: 100px;
   height: 30px;
-  border-radius: 30px;
-  box-sizing: border-box;
-  transition: border 0.2s 0s ease;
-}
-
-.light .switch label,
-.light .switch input:checked + label {
-  border: solid 3px #404040;
-}
-
-.dark .switch label,
-.dark .switch input:checked + label {
-  border: solid 3px #e0e0e0;
-}
-
-.switch label:hover {
-  cursor: pointer;
-}
-
-.switch label:before,
-.switch label:after {
-  content: "";
-  display: block;
-  position: absolute;
-  top: -3px;
-}
-
-.switch label:before {
-  left: -3px;
-  height: 30px;
-  width: 40px;
+  width: calc(100px);
+  border-width: 0;
+  -o-transform: scale(2);
   border-radius: 30px;
   transition: background-color 0.2s 0s ease, width 0.2s 0s ease;
 }
 
-.light .switch label:before {
-  background-color: #404040;
+.slideswitch:focus {
+  outline: 0;
 }
 
-.dark .switch label:before {
-  background-color: #e0e0e0;
+.light .slideswitch {
+  background-color: rgba(64, 64, 64, 0);
+  border: solid 1.5px #404040;
+  border: solid calc(3px) #404040;
 }
 
-.switch label:after {
+.light .slideswitch:checked {
+  background-color: rgba(64, 64, 64, 1);
+}
+
+.dark .slideswitch {
+  background-color: rgba(224, 224, 224, 0);
+  border: solid 1.5px #e0e0e0;
+  border: solid calc(3px) #e0e0e0;
+}
+
+.dark .slideswitch:checked {
+  background-color: rgba(224, 224, 224, 1);
+}
+
+.slideswitch:after {
+  content: "";
+  display: block;
+  position: relative;
+  box-sizing: border-box;
   left: -3px;
+  top: -3px;
   width: 56px;
   height: 30px;
   border-radius: 30px;
-  box-sizing: border-box;
-  transition: background-color 0.2s 0s ease, border 0.2s 0s ease, left 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease, left 0.2s 0s ease;
 }
 
-.light .switch label:after {
+.light .slideswitch:after {
   background-color: #ffffff;
   border: solid 3px #404040;
 }
 
-.dark .switch label:after {
+.dark .slideswitch:after {
   background-color: #202020;
   border: solid 3px #e0e0e0;
 }
 
-.switch input:checked + label:before {
-  width: 100px;
-}
-
-.switch input:checked + label:after {
+.slideswitch:checked:after {
   left: 41px;
 }
 
