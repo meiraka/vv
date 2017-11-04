@@ -1108,7 +1108,7 @@ svg path {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  margin: 0 5px;
+  margin: 0;
   padding: 0;
   display: block;
   height: 30px;
@@ -1240,7 +1240,6 @@ svg path {
   border-radius: 30px;
   font-size: 18px;
   padding: 5px 5px 0 50px;
-  margin: 5px;
   transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
 }
 
