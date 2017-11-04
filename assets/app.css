@@ -1119,6 +1119,10 @@ svg path {
   transition: background-color 0.2s 0s ease, width 0.2s 0s ease;
 }
 
+.slideswitch:hover {
+  cursor: pointer;
+}
+
 .slideswitch:focus {
   outline: 0;
 }
