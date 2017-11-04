@@ -153,8 +153,8 @@ vv.song = (function(){
                 e.classList.add("playing");
             }
             if (song.file) {
-                var keys = ["Title", "Length", "Artist", "Album", "Track", "Genre", "Performer"];
-                var tooltip = "";
+                var tooltip = vv.song.get(song, "Title") + "\n";
+                var keys = ["Length", "Artist", "Album", "Track", "Genre", "Performer"];
                 for (var i in keys) {
                     tooltip += keys[i] + ": " + vv.song.get(song, keys[i]) + "\n";
                 }
