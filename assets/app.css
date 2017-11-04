@@ -1029,33 +1029,42 @@ svg path {
 }
 
 .config-range {
+  margin: 0;
   padding: 0;
-  margin: 20px 0;
   box-sizing: border-box;
   width: 100%;
   appearance: none;
   -webkit-appearance: none;
-  height: 4px;
-  border-radius: 4px;
+  height: 30px;
   outline: none;
-  transition: background-color 0.2s 0s ease;
+  background-color: transparent;
 }
 
 .config-range:hover {
   cursor: pointer;
 }
 
-.light .config-range {
-  background-color: #404040;
+.config-range::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  appearance: none;
+  transition: background-color 0.2s 0s ease;
+  border-radius: 4px;
+  height: 4px;
 }
 
-.dark .config-range {
+.dark .config-range::-webkit-slider-runnable-track {
   background-color: #e0e0e0;
+}
+
+.light .config-range::-webkit-slider-runnable-track {
+  background-color: #404040;
 }
 
 .config-range::-moz-range-track {
   -moz-appearance: none;
   appearance: none;
+  border-radius: 4px;
+  height: 4px;
   transition: background-color 0.2s 0s ease;
 }
 
@@ -1070,8 +1079,10 @@ svg path {
 .config-range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
+  margin: -14px 0 0 0;
   width: 30px;
   height: 30px;
+  box-sizing: border-box;
   border-radius: 30px;
   transition: border 0.2s 0s ease, background-color 0.2s 0s ease;
 }
@@ -1091,6 +1102,7 @@ svg path {
   appearance: none;
   width: 30px;
   height: 30px;
+  box-sizing: border-box;
   border-radius: 30px;
   transition: border 0.2s 0s ease, background-color 0.2s 0s ease;
 }
