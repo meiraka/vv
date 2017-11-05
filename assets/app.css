@@ -113,12 +113,9 @@ footer {
   }
 
   .view-system .system,
+  .view-list .list,
   .view-main .main {
     display: flex;
-  }
-
-  .view-list .list {
-    display: block;
   }
 
   .view-main .list,
@@ -138,13 +135,10 @@ footer {
 @media (orientation: landscape) {
   .view-list .main,
   .view-main .main,
+  .view-list .list,
+  .view-main .list,
   .view-system .system {
     display: flex;
-  }
-
-  .view-list .list,
-  .view-main .list {
-    display: block;
   }
 
   .view-main .system,
@@ -464,6 +458,10 @@ svg path {
     display: block;
     opacity: 1;
   }
+}
+
+.list {
+  flex-flow: column nowrap;
 }
 
 .list-items {
