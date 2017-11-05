@@ -1343,13 +1343,14 @@ vv.view.list = (function(){
     }
     var select_focused_or = function(target) {
         var style = vv.model.list.list().style;
+        var scroll = document.getElementById("list");
         var l = document.getElementById("list-items");
-        var itemcount = parseInt(l.clientWidth / 160);
+        var itemcount = parseInt(scroll.clientWidth / 160);
         if (!vv.storage.preferences.appearance.gridview_album) {
             itemcount = 1;
         }
-        var t = l.scrollTop;
-        var h = l.clientHeight;
+        var t = scroll.scrollTop;
+        var h = scroll.clientHeight;
         var s = l.getElementsByClassName("selected");
         var f = l.getElementsByClassName("playing");
         var p = 0;
@@ -1391,7 +1392,7 @@ vv.view.list = (function(){
                         n.classList.add("selected");
                         p = n.offsetTop;
                         if (p < t) {
-                            l.scrollTop = p;
+                            scroll.scrollTop = p;
                         }
                         return;
                     }
@@ -1401,7 +1402,7 @@ vv.view.list = (function(){
                         n.classList.add("selected");
                         p = n.offsetTop;
                         if (p < t) {
-                            l.scrollTop = p;
+                            scroll.scrollTop = p;
                         }
                         return;
                     }
@@ -1411,7 +1412,7 @@ vv.view.list = (function(){
                         n.classList.add("selected");
                         p = n.offsetTop + n.offsetHeight;
                         if (t + h < p) {
-                            l.scrollTop = p - h ;
+                            scroll.scrollTop = p - h ;
                         }
                         return;
                     }
@@ -1425,7 +1426,7 @@ vv.view.list = (function(){
                         n.classList.add("selected");
                         p = n.offsetTop + n.offsetHeight;
                         if (t + h < p) {
-                            l.scrollTop = p - h ;
+                            scroll.scrollTop = p - h ;
                         }
                         return;
                     }
@@ -1435,13 +1436,14 @@ vv.view.list = (function(){
     }
 
     var select_near_item = function() {
+        var scroll = document.getElementById("list");
         var l = document.getElementById("list-items");
         var selectable = l.getElementsByClassName("selectable");
         var updated = false;
         for (var i = 0; i < selectable.length; i++) {
             var c = selectable[i];
             var p = c.offsetTop;
-            if (l.scrollTop < p && p < l.scrollTop + l.clientHeight && !updated) {
+            if (scroll.scrollTop < p && p < scroll.scrollTop + scroll.clientHeight && !updated) {
                 c.classList.add("selected");
                 updated = true;
             } else {
