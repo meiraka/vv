@@ -16,6 +16,10 @@
 <title>vv</title>
 </head>
 <body class="light">
+<div id="background" class="background">
+  <div id="background-image" class="background-image"></div>
+  <div id="background-overlay" class="background background-overlay"></div>
+</div>
 <header>
   <nav class="header-items">
     <button type="button" id="header-back" class="header-item header-iconlabel">
@@ -49,17 +53,11 @@
     </button>
   </nav>
 </header>
-<div id="background" class="background">
-  <div id="background-image" class="background-image"></div>
-  <div id="background-overlay" class="background background-overlay"></div>
-</div>
-<section id="list" class="full list">
-  <ol id="list-items" class="list-items scrollable"></ol>
-</section>
-<section id="main" class="full main">
-  <div id="main-box" class="main-box">
-    <cite id="main-box-title" class="main-box-text main-box-title">no title</cite>
-    <span id="main-box-artist" class="main-box-text main-box-artist">no artist</span>
+<main>
+  <section id="list" class="full list scrollable">
+    <ol id="list-items" class="list-items"></ol>
+  </section>
+  <section id="main" class="full main">
     <div id="main-cover" class="main-cover">
       <div id="main-cover-img" class="main-cover-img"></div>
       <svg id="main-cover-circle" class="main-cover-circle" width="200" height="200" viewBox="0 0 200 200">
@@ -67,10 +65,10 @@
           <path class="main-cover-circle-inactive stroke" d="M 100,10 L 100,10 A 90,90 0 0,1 100,190 L 100,190 A 90,90 0 0,1 100,10"></path>
       </svg>
     </div>
-  </div>
-</section>
-<section id="system" class="full system">
-  <div class="system-box">
+    <cite id="main-box-title" class="main-box-text main-box-title">no title</cite>
+    <span id="main-box-artist" class="main-box-text main-box-artist">no artist</span>
+  </section>
+  <section id="system" class="full system">
     <nav id="system-nav" class="system-nav">
       <button class="system-nav-item" id="system-nav-preferences" type="button">Preferences</button>
       <button class="system-nav-item" id="system-nav-stats" type="button">Stats</button>
@@ -243,11 +241,11 @@
               <a class="product-link" href="https://github.com/gorilla/websocket">https://github.com/gorilla/websocket</a>
               <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">BSD 2-clause license</a>
             </div>
-          </div>
         </ul>
       </article>
     </div>
-</section>
+  </section>
+</main>
 <section id="popup-box" class="popup-box">
 </section>
 <div id=modal-background class="modal-background hide">

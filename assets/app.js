@@ -1171,20 +1171,11 @@ vv.view.main = (function(){
         }
     };
     var update_style = function() {
-        var e = document.getElementById("main-cover-img");
-        var c = document.getElementById("main-cover-circle");
-        if (vv.storage.preferences.appearance.circled_image && !e.classList.contains("circled")) {
+        var e = document.getElementById("main-cover");
+        if (vv.storage.preferences.appearance.circled_image) {
             e.classList.add("circled");
-        }
-        if (vv.storage.preferences.appearance.circled_image && c.classList.contains("hide")) {
-            c.classList.remove("hide");
-        }
-        if (!vv.storage.preferences.appearance.circled_image && e.classList.contains("circled")) {
+        } else {
             e.classList.remove("circled");
-            c.classList.add("hide");
-        }
-        if (!vv.storage.preferences.appearance.circled_image && !c.classList.contains("hide")) {
-            c.classList.add("hide");
         }
         if (vv.storage.preferences.appearance.auto_hide_scrollbar != document.body.classList.contains("auto-hide-scrollbar")) {
             if (vv.storage.preferences.appearance.auto_hide_scrollbar) {
