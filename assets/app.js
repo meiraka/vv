@@ -1305,6 +1305,7 @@ vv.view.list = (function(){
         var style = ls.style;
         var newul = document.createDocumentFragment();
         var ul = document.getElementById("list-items");
+        var scroll = document.getElementById("list");
         while (ul.lastChild) {
             ul.removeChild(ul.lastChild);
         }
@@ -1351,17 +1352,16 @@ vv.view.list = (function(){
             newul.appendChild(li);
         }
         preferences_update();
-        var e = document.getElementById("list").children[0];
-        e.appendChild(newul);
+        ul.appendChild(newul);
         if (focus_li) {
             var pos = focus_li.offsetTop;
-            var t = ul.scrollTop;
-            if (t < pos && pos < t + ul.clientHeight) {
+            var t = scroll.scrollTop;
+            if (t < pos && pos < t + scroll.clientHeight) {
                 return;
             }
-            ul.scrollTop = pos;
+            scroll.scrollTop = pos;
         } else {
-            ul.scrollTop = 0;
+            scroll.scrollTop = 0;
         }
     };
     var preferences_update = function() {
