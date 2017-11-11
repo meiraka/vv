@@ -803,64 +803,90 @@ vv.control = (function() {
         }
     };
 
+    var requests = {};
+    var abort_all_requests = function() {
+        for (var i in requests) {
+            requests[i].abort();
+        }
+    };
     var get_request = function(path, ifmodified, callback, timeout) {
-        var xhr = new XMLHttpRequest();
+        var key = "GET " + path;
+        var xhr;
+        if (!requests[key]) {
+            xhr = new XMLHttpRequest();
+            requests[key] = xhr;
+        } else {
+            xhr = requests[key];
+            xhr.onabort = function() {};  // disable retry
+            xhr.abort();
+        }
         if (!timeout) {
-            timeout = 5000;
+            timeout = 1000;
         }
         xhr.timeout = timeout;
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4) {
-                if (xhr.status == 200 || xhr.status == 304) {
-                    if (xhr.status == 200 && callback) {
-                        callback(JSON.parse(xhr.responseText), xhr.getResponseHeader("Last-Modified"));
-                    }
-                    return;
+        xhr.onload = function() {
+            if (xhr.status == 200 || xhr.status == 304) {
+                if (xhr.status == 200 && callback) {
+                    callback(JSON.parse(xhr.responseText), xhr.getResponseHeader("Last-Modified"));
                 }
-                // error handling
-                if (xhr.status != 0) {
-                    vv.view.popup.show("GET "+path, xhr.statusText);
-                    if (timeout < 50000) {
-                        setTimeout(function() {get_request(path, ifmodified, callback, timeout*2);}, timeout*2);
-                    }
-                }
+                return;
+            }
+            // error handling
+            if (xhr.status != 0) {
+                vv.view.popup.show("GET "+path, xhr.statusText);
             }
         };
-        var errorcatch = function(label) {
-            return function() {
-                vv.view.popup.show("GET " + path, label);
-                if (timeout < 50000) {
-                    setTimeout(function() {get_request(path, ifmodified, callback, timeout*2);}, timeout*2);
-                }
-            };
+        xhr.onabort = function() {
+            if (timeout < 50000) {
+                vv.view.popup.show("GET " + path, "Abort. Retrying...");
+                setTimeout(function() {get_request(path, ifmodified, callback, timeout*2);});
+            } else {
+                vv.view.popup.show("GET " + path, "Abort");
+            }
         };
-        xhr.ontimeout = errorcatch("Timeout");
-        xhr.onerror = errorcatch("Error");
-        xhr.onabort = errorcatch("Abort");
+        xhr.onerror = function() {
+            vv.view.popup.show("GET " + path, "Error");
+        };
+        xhr.ontimeout = function() {
+            if (timeout < 50000) {
+                vv.view.popup.show("GET " + path, "Timeout. Retrying...");
+                abort_all_requests();
+                setTimeout(function() {get_request(path, ifmodified, callback, timeout*2);});
+            } else {
+                vv.view.popup.show("GET " + path, "Timeout");
+            }
+        };
         xhr.open("GET", path, true);
         xhr.setRequestHeader("If-Modified-Since", ifmodified);
         xhr.send();
     }
 
     var post_request = function(path, obj, callback) {
-        var xhr = new XMLHttpRequest();
+        var key = "POST " + path;
+        var xhr;
+        if (!requests[key]) {
+            xhr = new XMLHttpRequest();
+            requests[key] = xhr;
+        } else {
+            xhr = requests[key];
+            xhr.abort();
+        }
         xhr.timeout = 1000;
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4) {
-                if (xhr.status == 200 && callback) {
-                    callback(JSON.parse(xhr.responseText));
-                }
-                if (xhr.status == 404) {
-                    vv.view.popup.show("POST " + path, "Not Found");
-                }
-                else if (xhr.status != 200) {
-                    vv.view.popup.show("POST " + path, JSON.parse(xhr.responseText).error);
-                }
+        xhr.onload = function() {
+            if (xhr.status == 200 && callback) {
+                callback(JSON.parse(xhr.responseText));
+            }
+            if (xhr.status == 404) {
+                vv.view.popup.show("POST " + path, "Not Found");
+            } else if (xhr.status != 200) {
+                vv.view.popup.show("POST " + path, JSON.parse(xhr.responseText).error);
             }
         };
-        xhr.ontimeout = function() { vv.view.popup.show("POST " + path, "Timeout"); };
+        xhr.ontimeout = function() {
+            vv.view.popup.show("POST " + path, "Timeout");
+            abort_all_requests();
+        };
         xhr.onerror = function() { vv.view.popup.show("POST " + path, "Error"); };
-        xhr.onabort = function() { vv.view.popup.show("POST " + path, "Abort"); };
         xhr.open("POST", path, true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(obj));
@@ -932,8 +958,16 @@ vv.control = (function() {
     }
 
     var notify_last_update = (new Date()).getTime();
+    var notify_last_connection = (new Date()).getTime();
+    var connected = false;
     var notify_err_cnt = 0;
     var listennotify = function() {
+        if (notify_err_cnt > 20) {
+            vv.view.popup.show("WebSocket", "Stopped. Too many errors.");
+            return;
+        }
+        notify_last_connection = (new Date()).getTime();
+        connected = false;
         var uri = "ws://" + location.host + "/api/music/notify";
         if (ws != null) {
             ws.onclose = function() {};
@@ -941,6 +975,11 @@ vv.control = (function() {
         }
         var ws = new WebSocket(uri);
         ws.onopen = function() {
+            if (notify_err_cnt > 0) {
+                vv.view.popup.show("WebSocket", "Connected");
+            }
+            connected = true;
+            notify_last_update = (new Date()).getTime();
             update_all();
         }
         ws.onmessage = function(e) {
@@ -989,13 +1028,19 @@ vv.control = (function() {
         fetch("/api/music/songs/current", "current");
         fetch("/api/music/control", "control");
         fetch("/api/music/library", "library");
-        fetch("/api/music/stats", "stats");
     };
 
     var init = function() {
         var polling = function() {
-            if ((new Date()).getTime() - 10000 > notify_last_update) {
+            var now = (new Date()).getTime();
+            if (connected && now - 10000 > notify_last_update) {
+                notify_err_cnt++;
                 vv.view.popup.show("WebSocket", "Socket does not respond properly. Reconnecting");
+                setTimeout(listennotify);
+            }
+            if (!connected && now - 2000 > notify_last_connection) {
+                notify_err_cnt++;
+                vv.view.popup.show("WebSocket", "Connection timed out. Reconnecting");
                 setTimeout(listennotify);
             }
 
