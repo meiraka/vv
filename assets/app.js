@@ -81,14 +81,14 @@ vv.song = (function(){
         return getOrElseMulti(song, key, [other])[0];
     }
     var getOne = function(song, key) {
-        return getOneOrElse(song, key, '[no ' + key + ']');
+        return getOneOrElse(song, key, "[no " + key + "]");
     }
     var get = function(song, key) {
-        return getOrElse(song, key, '[no ' + key + ']');
+        return getOrElse(song, key, "[no " + key + "]");
     }
     var sortkeys = function(song, keys, memo) {
         var songs = [vv.obj.copy(song)];
-        songs[0].sortkey = '';
+        songs[0].sortkey = "";
         songs[0].keys = [];
         for (var i in keys) {
             var writememo = memo.indexOf(keys[i]) != -1;
@@ -97,7 +97,7 @@ vv.song = (function(){
                 for (var j in songs) {
                     songs[j].sortkey += " ";
                     if (writememo) {
-                        songs[j].keys.push([keys[i], '[no ' + keys[i] + ']']);
+                        songs[j].keys.push([keys[i], "[no " + keys[i] + "]"]);
                     }
                 }
             } else if (newkeys.length == 1) {
@@ -1062,10 +1062,10 @@ vv.control = (function() {
     };
 
     var start = function() {
-        if (document.readyState !== 'loading') {
+        if (document.readyState !== "loading") {
             init();
         } else {
-            document.addEventListener('DOMContentLoaded', init);
+            document.addEventListener("DOMContentLoaded", init);
         }
     };
 
@@ -1117,7 +1117,7 @@ vv.control = (function() {
 (function() {
     var color = 128;
     var calc_color = function(path) {
-        var canvas = document.createElement("canvas").getContext('2d');
+        var canvas = document.createElement("canvas").getContext("2d");
         var img = new Image();
         img.onload = function() {
             canvas.drawImage(img, 0, 0, 5, 5);
@@ -1145,7 +1145,7 @@ vv.control = (function() {
             if (vv.storage.current && vv.storage.current.cover) {
                 cover = "/music_directory/" + vv.storage.current.cover;
             }
-            var newimage = 'url("'+cover+'")';
+            var newimage = "url(\""+cover+"\")";
             if (e.style.backgroundImage != newimage) {
                 calc_color(cover);
                 e.style.backgroundImage = newimage;
@@ -1200,7 +1200,7 @@ vv.view.main = (function(){
     };
     var hidden = function() {
         var e = document.body;
-        if (window.matchMedia('(orientation: portrait)').matches) {
+        if (window.matchMedia("(orientation: portrait)").matches) {
             return !e.classList.contains("view-main");
         } else {
             return !(e.classList.contains("view-list") || e.classList.contains("view-main"));
@@ -1210,9 +1210,9 @@ vv.view.main = (function(){
         document.getElementById("main-box-title").textContent = vv.storage.current["Title"];
         document.getElementById("main-box-artist").textContent = vv.storage.current["Artist"];
         if (vv.storage.current.cover) {
-            document.getElementById("main-cover-img").style.backgroundImage = 'url("/music_directory/'+vv.storage.current["cover"]+'")';
+            document.getElementById("main-cover-img").style.backgroundImage = "url(\"/music_directory/"+vv.storage.current["cover"]+"\")";
         } else {
-            document.getElementById("main-cover-img").style.backgroundImage = '';
+            document.getElementById("main-cover-img").style.backgroundImage = "";
         }
     };
     var update_style = function() {
@@ -1284,7 +1284,7 @@ vv.view.list = (function(){
     }
     var hidden = function() {
         var e = document.body;
-        if (window.matchMedia('(orientation: portrait)').matches) {
+        if (window.matchMedia("(orientation: portrait)").matches) {
             return !e.classList.contains("view-list");
         } else {
             return !(e.classList.contains("view-list") || e.classList.contains("view-main"));
@@ -1536,7 +1536,7 @@ vv.view.system = (function() {
         };
     }
     var preferences = (function() {
-        vv.control.addEventListener('start', function() {
+        vv.control.addEventListener("start", function() {
             var update_animation = function() {
                 if (vv.storage.preferences.appearance.animation) {
                     document.body.classList.add("animation");
@@ -1649,8 +1649,8 @@ vv.view.system = (function() {
             }
         });
         return {
-            'show': mkshow("system-preferences", "system-nav-preferences"),
-            'hide': mkhide("system-preferences", "system-nav-preferences"),
+            "show": mkshow("system-preferences", "system-nav-preferences"),
+            "hide": mkhide("system-preferences", "system-nav-preferences"),
         }
     })();
     var stats = (function() {
@@ -1687,7 +1687,7 @@ vv.view.system = (function() {
             } else if (db_update_yyyymmdd + 1 == now_yyyymmdd) {
                 db_update_str += "yesterday, ";
             } else {
-                db_update_str += db_update.getFullYear() + '.' + db_update.getMonth() + '.' + db_update.getDate() + ' ';
+                db_update_str += db_update.getFullYear() + "." + db_update.getMonth() + "." + db_update.getDate() + " ";
             }
             db_update_str += db_update.getHours() + ":" + db_update.getMinutes() + ":" + db_update.getSeconds();
             document.getElementById("stat-db-update").textContent = db_update_str;
@@ -1719,8 +1719,8 @@ vv.view.system = (function() {
             show();
         }
         return {
-            'show': show_update,
-            'hide': mkhide("system-stats", "system-nav-stats"),
+            "show": show_update,
+            "hide": mkhide("system-stats", "system-nav-stats"),
         }
     })();
     var info = (function() {
@@ -1731,8 +1731,8 @@ vv.view.system = (function() {
             }
         });
         return {
-            'show': mkshow("system-info", "system-nav-info"),
-            'hide': mkhide("system-info", "system-nav-info"),
+            "show": mkshow("system-info", "system-nav-info"),
+            "hide": mkhide("system-info", "system-nav-info"),
         }
     })();
     var init = function() {
@@ -1923,7 +1923,7 @@ vv.view.popup = (function(){
 (function() {
     var update = function() {
         var data = vv.storage.control;
-        if ('state' in data) {
+        if ("state" in data) {
             var elapsed = parseInt(data["song_elapsed"] * 1000);
             var current = elapsed;
             if (data["state"] == "play") {
@@ -1932,7 +1932,7 @@ vv.view.popup = (function(){
             current = parseInt(current / 1000);
             var min = parseInt(current / 60)
             var sec = current % 60
-            var label = min + ':' + ("0" + sec).slice(-2)
+            var label = min + ":" + ("0" + sec).slice(-2)
             var texts = document.getElementsByClassName("elapsed");
             var i;
             for (i in texts) {
