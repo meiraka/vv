@@ -730,6 +730,79 @@ vv.control = (function() {
         }
     };
 
+    var swipe = function(element, f) {
+        element.swipe_target = f;
+        var starttime = 0;
+        var now = 0;
+        var start = function(e) {
+            if (e.buttons && e.buttons != 1) {
+                return;
+            }
+            if (e.touches) {
+                e.currentTarget.x = e.touches[0].screenX;
+                e.currentTarget.y = e.touches[0].screenY;
+            } else {
+                e.currentTarget.x = e.screenX;
+                e.currentTarget.y = e.screenY;
+            }
+            starttime = (new Date()).getTime();
+            e.currentTarget.swipe = true;
+            e.currentTarget.classList.add("swipe");
+        };
+        var move = function(e) {
+            if (e.buttons && e.buttons != 1) {
+                return;
+            }
+            if (!e.currentTarget.swipe) {
+                return;
+            }
+            if (e.touches) {
+                e.currentTarget.diff_x = e.currentTarget.x - e.touches[0].screenX;
+                e.currentTarget.diff_y = e.currentTarget.y - e.touches[0].screenY;
+            } else {
+                e.currentTarget.diff_x = e.currentTarget.x - e.screenX;
+                e.currentTarget.diff_y = e.currentTarget.y - e.screenY;
+            }
+            now = (new Date()).getTime();
+            e.currentTarget.diff_x_l = e.currentTarget.diff_x > 0? e.currentTarget.diff_x : e.currentTarget.diff_x * -1;
+            e.currentTarget.diff_y_l = e.currentTarget.diff_y > 0? e.currentTarget.diff_y : e.currentTarget.diff_y * -1;
+            if (now - starttime < 200 && e.currentTarget.diff_y_l > e.currentTarget.diff_x_l) {
+                e.currentTarget.swipe = false;
+                e.currentTarget.classList.remove("swipe");
+                e.currentTarget.style.transform = "translate3d(0,0,0)";
+            } else {
+                e.currentTarget.style.transform = "translate3d(" + e.currentTarget.diff_x * -1 + "px,0,0)";
+            }
+            
+        };
+        var end = function(e) {
+            if (e.buttons && e.buttons != 1) {
+                return;
+            }
+            if (!e.currentTarget.swipe) {
+                return;
+            }
+            var p = e.currentTarget.clientWidth / e.currentTarget.diff_x;
+            if (p > -4 && p < 0) {
+                f(e);
+            } else if (now - starttime < 200 && e.currentTarget.diff_y_l < e.currentTarget.diff_x_l && e.currentTarget.diff_x < 0) {
+                f(e);
+            }
+            e.currentTarget.swipe = false;
+            e.currentTarget.classList.remove("swipe");
+            e.currentTarget.style.transform = "translate3d(0,0,0)";
+        };
+        if ("ontouchend" in element) {
+            element.addEventListener("touchstart", start);
+            element.addEventListener("touchmove", move);
+            element.addEventListener("touchend",  end);
+        } else {
+            element.addEventListener("mousedown", start);
+            element.addEventListener("mousemove", move);
+            element.addEventListener("mouseup", end);
+        }
+    }
+
     var click = function(element, f) {
         element.click_target = f;
         var enter = function(e) {
@@ -1099,6 +1172,7 @@ vv.control = (function() {
     return {
         addEventListener: addEventListener,
         raiseEvent: raiseEvent,
+        swipe: swipe,
         click: click,
         rescan_library: rescan_library,
         prev: prev,
@@ -1512,6 +1586,7 @@ vv.view.list = (function(){
     vv.control.addEventListener("preferences", preferences_update);
     vv.model.list.addEventListener("update", update);
     vv.model.list.addEventListener("changed", update);
+    vv.control.addEventListener("start", function() { vv.control.swipe(document.getElementById("list"), vv.model.list.up); });
     return {
         up: up,
         left: left,
