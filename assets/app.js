@@ -1341,6 +1341,10 @@ vv.view.main = (function(){
         });
         load_volume_preferences();
         update_style();
+        vv.control.swipe(document.getElementById("main"), function() {
+            vv.model.list.abs(vv.storage.current);
+            vv.view.list.show();
+        });
     };
     vv.control.addEventListener("current", update);
     vv.control.addEventListener("poll", update_elapsed);
@@ -1834,6 +1838,10 @@ vv.view.system = (function() {
             location.reload();
         });
         document.getElementById("user-agent").textContent = navigator.userAgent;
+        vv.control.swipe(document.getElementById("system"), function() {
+            vv.model.list.abs(vv.storage.current);
+            vv.view.main.show();
+        });
 
     };
     var show = function() {
