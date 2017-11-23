@@ -745,6 +745,9 @@ vv.control = (function() {
                 e.currentTarget.x = e.screenX;
                 e.currentTarget.y = e.screenY;
             }
+            if (e.currentTarget.x > 40) {
+                return;
+            }
             starttime = (new Date()).getTime();
             e.currentTarget.swipe = true;
             e.currentTarget.classList.add("swipe");
