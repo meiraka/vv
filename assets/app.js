@@ -17,10 +17,12 @@ vv.obj = (function() {
     var ret = {};
     if (Object.prototype.toString.call(t) == "[object Array]") {
       ret = [];
+      for (var i = 0, imax = t.length; i < imax; i++) {
+        ret[i] = t[i];
+      }
+      return ret;
     }
-    for (var i in t) {
-      ret[i] = t[i];
-    }
+    Object.keys(t).forEach(function(k) { ret[k] = t[k]; });
     return ret;
   };
   return pub;
@@ -28,8 +30,7 @@ vv.obj = (function() {
 vv.song = (function() {
   var pub = {};
   var tag = function(song, keys, other) {
-    var i;
-    for (i in keys) {
+    for (var i = 0, imax = keys.length; i < imax; i++) {
       var key = keys[i];
       if (key in song) {
         return song[key];
@@ -65,7 +66,7 @@ vv.song = (function() {
     if (!song.keys) {
       return getOrElseMulti(song, key, [other])[0];
     }
-    for (var i in song.keys) {
+    for (var i = 0, imax = song.keys.length; i < imax; i++) {
       if (song.keys[i][0] == key) {
         return song.keys[i][1];
       }
@@ -82,18 +83,19 @@ vv.song = (function() {
     var songs = [vv.obj.copy(song)];
     songs[0].sortkey = "";
     songs[0].keys = [];
-    for (var i in keys) {
+    for (var i = 0, imax = keys.length; i < imax; i++) {
       var writememo = memo.indexOf(keys[i]) != -1;
       var newkeys = getOrElseMulti(song, keys[i], []);
+      var j, jmax, k, kmax;
       if (newkeys.length == 0) {
-        for (var j in songs) {
+        for (j = 0, jmax = songs.length; j < jmax; j++) {
           songs[j].sortkey += " ";
           if (writememo) {
             songs[j].keys.push([keys[i], "[no " + keys[i] + "]"]);
           }
         }
       } else if (newkeys.length == 1) {
-        for (j in songs) {
+        for (j = 0, jmax = songs.length; j < jmax; j++) {
           songs[j].sortkey += newkeys[0];
           if (writememo) {
             songs[j].keys.push([keys[i], newkeys[0]]);
@@ -101,8 +103,8 @@ vv.song = (function() {
         }
       } else {
         var newsongs = [];
-        for (j in songs) {
-          for (var k in newkeys) {
+        for (j = 0, jmax = songs.length; j < jmax; j++) {
+          for (k = 0, kmax = newkeys.length; k < kmax; k++) {
             var newsong = vv.obj.copy(songs[j]);
             newsong.keys = vv.obj.copy(songs[j].keys);
             newsong.sortkey += newkeys[k];
@@ -151,7 +153,7 @@ vv.song = (function() {
       if (song.file) {
         var tooltip = vv.song.get(song, "Title") + "\n";
         var keys = ["Length", "Artist", "Album", "Track", "Genre", "Performer"];
-        for (var i in keys) {
+        for (var i = 0, imax = keys.length; i < imax; i++) {
           tooltip += keys[i] + ": " + vv.song.get(song, keys[i]) + "\n";
         }
         e.setAttribute("title", tooltip);
@@ -238,7 +240,7 @@ vv.songs = (function() {
   var pub = {};
   pub.sort = function(songs, keys, memo) {
     var newsongs = [];
-    for (var i in songs) {
+    for (var i = 0, imax = songs.length; i < imax; i++) {
       Array.prototype.push.apply(
           newsongs, vv.song.sortkeys(songs[i], keys, memo));
     }
@@ -249,7 +251,7 @@ vv.songs = (function() {
         return 1;
       }
     });
-    for (i in sorted) {
+    for (i = 0, imax = sorted.length; i < imax; i++) {
       sorted[i]["pos"] = [i];
     }
     return sorted;
@@ -268,10 +270,11 @@ vv.songs = (function() {
   };
   pub.filter = function(songs, filters) {
     return songs.filter(function(song) {
-      var f;
-      for (f in filters) {
-        if (vv.song.getOne(song, f) != filters[f]) {
-          return false;
+      for (var key in filters) {
+        if (filters.hasOwnProperty(key)) {
+          if (vv.song.getOne(song, key) != filters[key]) {
+            return false;
+          }
         }
       }
       return true;
@@ -281,9 +284,9 @@ vv.songs = (function() {
     if (songs.length <= max) {
       return songs;
     }
-    for (var i in filters) {
+    for (var i = 0, imax = filters.length; i < imax; i++) {
       var newsongs = [];
-      for (var j in songs) {
+      for (var j = 0, jmax = songs.length; j < jmax; j++) {
         if (vv.song.getOne(songs[j], filters[i][0]) == filters[i][1]) {
           newsongs.push(songs[j]);
         }
@@ -364,10 +367,13 @@ vv.storage = (function() {
       }
       if (localStorage.preferences) {
         var c = JSON.parse(localStorage.preferences);
-        var i, j;
-        for (i in c) {
-          for (j in c[i]) {
-            pub.preferences[i][j] = c[i][j];
+        for (var i in c) {
+          if (c.hasOwnProperty(i)) {
+            for (var j in c[i]) {
+              if (c[i].hasOwnProperty(j)) {
+                pub.preferences[i][j] = c[i][j];
+              }
+            }
           }
         }
       }
@@ -456,7 +462,7 @@ vv.model.list = (function() {
   var listener = {"changed": [], "update": []};
   pub.addEventListener = function(ev, func) { listener[ev].push(func); };
   pub.removeEventListener = function(ev, func) {
-    for (var i in listener[ev]) {
+    for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       if (listener[ev][i] == func) {
         listener[ev].splice(i, 1);
         return;
@@ -464,22 +470,22 @@ vv.model.list = (function() {
     }
   };
   var raiseEvent = function(ev) {
-    var i;
-    for (i in listener[ev]) {
+    for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       listener[ev][i]();
     }
   };
   var mkmemo = function(key) {
     var ret = [];
-    for (var i in TREE[key]["tree"]) {
+    for (var i = 0, imax = TREE[key]["tree"].length; i < imax; i++) {
       ret.push(TREE[key]["tree"][i][0]);
     }
     return ret;
   };
   pub.update = function(data) {
-    var key;
-    for (key in TREE) {
-      library[key] = vv.songs.sort(data, TREE[key]["sort"], mkmemo(key));
+    for (var key in TREE) {
+      if (TREE.hasOwnProperty(key)) {
+        library[key] = vv.songs.sort(data, TREE[key]["sort"], mkmemo(key));
+      }
     }
     update_list();
     raiseEvent("update");
@@ -541,10 +547,12 @@ vv.model.list = (function() {
     var root = "";
     var pos = parseInt(song.Pos[0]);
     var keys = vv.storage.sorted.keys.join();
-    for (var newroot in TREE) {
-      if (TREE[newroot].sort.join() == keys) {
-        root = newroot;
-        break;
+    for (var key in TREE) {
+      if (TREE.hasOwnProperty(key)) {
+        if (TREE[key].sort.join() == keys) {
+          root = key;
+          break;
+        }
       }
     }
     if (!root) {
@@ -588,7 +596,7 @@ vv.model.list = (function() {
       vv.storage.tree.push(r);
       var root = vv.storage.tree[0][1];
       var selected = TREE[root]["tree"];
-      for (var i in selected) {
+      for (var i = 0, imax = selected.length; i < imax; i++) {
         if (i == selected.length - 1) {
           break;
         }
@@ -627,33 +635,29 @@ vv.model.list = (function() {
     }
   };
   var list_child = function() {
-    var root = pub.rootname(), selected_library = library[root], filters = {},
-        key = TREE[root]["tree"][vv.storage.tree.length - 1][0],
-        style = TREE[root]["tree"][vv.storage.tree.length - 1][1], isdir = true;
-    if (vv.storage.tree.length == TREE[root]["tree"].length) {
-      isdir = false;
-    }
-    var leef;
-    for (leef in vv.storage.tree) {
-      if (leef == 0) {
+    var root = pub.rootname();
+    var filters = {};
+    for (var i = 0, imax = vv.storage.tree.length; i < imax; i++) {
+      if (i == 0) {
         continue;
       }
-      filters[vv.storage.tree[leef][0]] = vv.storage.tree[leef][1];
+      filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
     }
-    selected_library = vv.songs.filter(selected_library, filters);
-    selected_library = vv.songs.uniq(selected_library, key);
-    return {
-      "key": key,
-      "songs": selected_library,
-      "style": style,
-      "isdir": isdir
-    };
+    var ret = {};
+    ret.key = TREE[root]["tree"][vv.storage.tree.length - 1][0];
+    ret.songs = library[root];
+    ret.songs = vv.songs.filter(ret.songs, filters);
+    ret.songs = vv.songs.uniq(ret.songs, ret.key);
+    ret.style = TREE[root]["tree"][vv.storage.tree.length - 1][1];
+    ret.isdir = vv.storage.tree.length != TREE[root]["tree"].length;
+    return ret;
   };
   var list_root = function() {
     var ret = [];
-    var rootname = "";
-    for (rootname in TREE) {
-      ret.push({"root": [rootname]});
+    for (var key in TREE) {
+      if (TREE.hasOwnProperty(key)) {
+        ret.push({"root": [key]});
+      }
     }
     return {"key": "root", "songs": ret, "style": "plain", "isdir": true};
   };
@@ -712,7 +716,7 @@ vv.control = (function() {
     listener[ev].push(func);
   };
   pub.removeEventListener = function(ev, func) {
-    for (var i in listener[ev]) {
+    for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       if (listener[ev][i] == func) {
         listener[ev].splice(i, 1);
         return;
@@ -720,8 +724,7 @@ vv.control = (function() {
     }
   };
   pub.raiseEvent = function(ev) {
-    var i;
-    for (i in listener[ev]) {
+    for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       listener[ev][i]();
     }
   };
@@ -882,8 +885,10 @@ vv.control = (function() {
 
   var requests = {};
   var abort_all_requests = function() {
-    for (var i in requests) {
-      requests[i].abort();
+    for (var key in requests) {
+      if (requests.hasOwnProperty(key)) {
+        requests[key].abort();
+      }
     }
   };
   var get_request = function(path, ifmodified, callback, timeout) {
@@ -1156,7 +1161,7 @@ vv.control = (function() {
   var focusremove = function(key, remove) {
     var n = function() {
       focus();
-      remove(key, n);
+      setTimeout(function() { remove(key, n); });
     };
     return n;
   };
@@ -1291,13 +1296,10 @@ vv.view.main = (function() {
     } else {
       e.classList.remove("circled");
     }
-    if (vv.storage.preferences.appearance.auto_hide_scrollbar !=
-        document.body.classList.contains("auto-hide-scrollbar")) {
-      if (vv.storage.preferences.appearance.auto_hide_scrollbar) {
-        document.body.classList.add("auto-hide-scrollbar");
-      } else {
-        document.body.classList.remove("auto-hide-scrollbar");
-      }
+    if (vv.storage.preferences.appearance.auto_hide_scrollbar) {
+      document.body.classList.add("auto-hide-scrollbar");
+    } else {
+      document.body.classList.remove("auto-hide-scrollbar");
     }
   };
   vv.control.addEventListener("preferences", update_style);
@@ -1388,13 +1390,12 @@ vv.view.list = (function() {
       ul.removeChild(ul.lastChild);
     }
     var li;
-    var i;
     var focus_li = null;
     ul.classList.remove("songlist");
     ul.classList.remove("albumlist");
     ul.classList.remove("plainlist");
     ul.classList.add(style + "list");
-    for (i in songs) {
+    for (var i = 0, imax = songs.length; i < imax; i++) {
       if (i == 0 && vv.model.list.rootname() != "root") {
         li = document.createElement("li");
         var p = vv.model.list.parent();
@@ -1685,8 +1686,7 @@ vv.view.system = (function() {
       while (ul.lastChild) {
         ul.removeChild(ul.lastChild);
       }
-      var i;
-      for (i in vv.storage.outputs) {
+      for (var i = 0, imax = vv.storage.outputs.length; i < imax; i++) {
         var o = vv.storage.outputs[i];
         var li = document.createElement("li");
         li.classList.add("note-line");
@@ -2030,8 +2030,7 @@ vv.view.modal.hide = function() {
   document.getElementById("modal-background").classList.add("hide");
   document.getElementById("modal-outer").classList.add("hide");
   var ws = document.getElementsByClassName("modal-window");
-  var i;
-  for (i in ws) {
+  for (var i = 0, imax = ws.length; i < imax; i++) {
     if (ws[i].classList) {
       ws[i].classList.add("hide");
     }
@@ -2061,8 +2060,7 @@ vv.view.modal.help = (function() {
         document.getElementById("modal-background"), vv.view.modal.hide);
 
     var ws = document.getElementsByClassName("modal-window");
-    var i;
-    for (i in ws) {
+    for (var i = 0, imax = ws.length; i < imax; i++) {
       if (ws[i].addEventListener) {
         vv.control.click(ws[i], function(e) { e.stopPropagation(); });
       }
@@ -2088,9 +2086,9 @@ vv.view.modal.song = (function() {
       var td = document.createElement("td");
       td.classList.add("modal-window-table-value");
       if (Object.prototype.toString.call(song[key]) == "[object Array]") {
-        for (var j in song[key]) {
+        for (var i = 0, imax = song[key].length; i < imax; i++) {
           var childvalue = document.createElement("span");
-          childvalue.textContent = song[key][j];
+          childvalue.textContent = song[key][i];
           td.appendChild(childvalue);
         }
       }
@@ -2100,12 +2098,14 @@ vv.view.modal.song = (function() {
     var mustkeys = [
       "Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer"
     ];
-    for (var i in mustkeys) {
+    for (var i = 0, imax = mustkeys.length; i < imax; i++) {
       newtable.appendChild(mktr(song, mustkeys[i]));
     }
-    for (i in song) {
-      if (mustkeys.indexOf(i) == -1) {
-        newtable.appendChild(mktr(song, i));
+    for (var key in song) {
+      if (song.hasOwnProperty(key)) {
+        if (mustkeys.indexOf(key) == -1) {
+          newtable.appendChild(mktr(song, key));
+        }
       }
     }
     table.appendChild(newtable);
@@ -2122,8 +2122,7 @@ vv.view.modal.song = (function() {
     vv.control.click(document.getElementById("modal-song-close"), pub.hide);
 
     var ws = document.getElementsByClassName("modal-window");
-    var i;
-    for (i in ws) {
+    for (var i = 0, max = ws.length; i < max; i++) {
       if (ws[i].addEventListener) {
         vv.control.click(ws[i], function(e) { e.stopPropagation(); });
       }
