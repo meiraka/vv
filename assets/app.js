@@ -233,7 +233,7 @@ vv.song = (function() {
   };
 
   return pub;
-}());
+})();
 vv.songs = (function() {
   var pub = {};
   pub.sort = function(songs, keys, memo) {
@@ -302,7 +302,7 @@ vv.songs = (function() {
     return songs;
   };
   return pub;
-}());
+})();
 vv.storage = (function() {
   var pub = {
     tree: [],
@@ -402,7 +402,7 @@ vv.storage = (function() {
   };
   pub.load();
   return pub;
-}());
+})();
 
 vv.model.list = (function() {
   var pub = {};
@@ -701,7 +701,7 @@ vv.model.list = (function() {
     };
   };
   return pub;
-}());
+})();
 vv.control = (function() {
   var pub = {};
   var listener = {};
@@ -1173,7 +1173,7 @@ vv.control = (function() {
   });
 
   return pub;
-}());
+})();
 
 // background
 (function() {
@@ -1232,7 +1232,7 @@ vv.control = (function() {
   vv.control.addEventListener("preferences", update);
   vv.control.addEventListener("preferences", update_theme);
   vv.control.addEventListener("start", update);
-}());
+})();
 
 vv.view.main = (function() {
   var pub = {};
@@ -1348,7 +1348,7 @@ vv.view.main = (function() {
   vv.control.addEventListener("poll", update_elapsed);
   vv.control.addEventListener("start", init);
   return pub;
-}());
+})();
 vv.view.list = (function() {
   var pub = {};
   pub.show = function() {
@@ -1593,7 +1593,7 @@ vv.view.list = (function() {
     vv.control.swipe(document.getElementById("list"), vv.model.list.up);
   });
   return pub;
-}());
+})();
 vv.view.system = (function() {
   var pub = {};
   var mkshow = function(p, e) {
@@ -1858,7 +1858,7 @@ vv.view.system = (function() {
   };
   vv.control.addEventListener("start", init);
   return pub;
-}());
+})();
 
 // header
 (function() {
@@ -1905,7 +1905,7 @@ vv.view.system = (function() {
     vv.model.list.addEventListener("changed", update);
     vv.model.list.addEventListener("update", update);
   });
-}());
+})();
 
 // footer
 (function() {
@@ -1955,7 +1955,7 @@ vv.view.system = (function() {
       document.getElementById("control-random").classList.remove("on");
     }
   });
-}());
+})();
 
 vv.view.popup = (function() {
   var pub = {};
@@ -1999,7 +1999,7 @@ vv.view.popup = (function() {
     }
   };
   return pub;
-}());
+})();
 
 // elapsed circle/time updater
 (function() {
@@ -2024,7 +2024,7 @@ vv.view.popup = (function() {
   };
   vv.control.addEventListener("control", update);
   vv.control.addEventListener("poll", update);
-}());
+})();
 
 vv.view.modal.hide = function() {
   document.getElementById("modal-background").classList.add("hide");
@@ -2069,7 +2069,7 @@ vv.view.modal.help = (function() {
     }
   });
   return pub;
-}());
+})();
 vv.view.modal.song = (function() {
   var pub = {};
   pub.show = function(song) {
@@ -2130,7 +2130,7 @@ vv.view.modal.song = (function() {
     }
   });
   return pub;
-}());
+})();
 
 // keyboard events
 (function() {
@@ -2216,6 +2216,6 @@ vv.view.modal.song = (function() {
       }
     });
   });
-}());
+})();
 
 vv.control.start();
