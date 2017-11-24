@@ -320,16 +320,16 @@ vv.storage = (function() {
     last_state: "main",
   };
   pub.preferences = {
-    "volume": {"show": true, "max": "100"},
-    "playback": {"view_follow": true},
-    "appearance": {
-      "color_threshold": 128,
-      "animation": true,
-      "background_image": true,
-      "background_image_blur": 32,
-      "circled_image": true,
-      "gridview_album": true,
-      "auto_hide_scrollbar": true
+    volume: {show: true, max: "100"},
+    playback: {view_follow: true},
+    appearance: {
+      color_threshold: 128,
+      animation: true,
+      background_image: true,
+      background_image_blur: 32,
+      circled_image: true,
+      gridview_album: true,
+      auto_hide_scrollbar: true
     },
   };
   // Presto Opera
@@ -413,44 +413,44 @@ vv.storage = (function() {
 vv.model.list = (function() {
   var pub = {};
   var library = {
-    "AlbumArtist": [],
-    "Album": [],
-    "Artist": [],
-    "Genre": [],
-    "Date": [],
+    AlbumArtist: [],
+    Album: [],
+    Artist: [],
+    Genre: [],
+    Date: [],
   };
   var TREE = {
-    "AlbumArtist": {
-      "sort": [
+    AlbumArtist: {
+      sort: [
         "AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title",
         "file"
       ],
-      "tree": [["AlbumArtist", "plain"], ["Album", "album"], ["Title", "song"]],
+      tree: [["AlbumArtist", "plain"], ["Album", "album"], ["Title", "song"]],
     },
-    "Album": {
-      "sort": [
+    Album: {
+      sort: [
         "AlbumArtist", "AlbumArtist", "Date", "Album", "DiscNumber",
         "TrackNumber", "Title", "file"
       ],
-      "tree": [["Album", "album"], ["Title", "song"]],
+      tree: [["Album", "album"], ["Title", "song"]],
     },
-    "Artist": {
-      "sort": [
+    Artist: {
+      sort: [
         "Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"
       ],
-      "tree": [["Artist", "plain"], ["Title", "song"]],
+      tree: [["Artist", "plain"], ["Title", "song"]],
     },
-    "Genre": {
-      "sort": ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
-      "tree": [
+    Genre: {
+      sort: ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
+      tree: [
         ["Genre", "plain"],
         ["Album", "album"],
         ["Title", "song"],
       ]
     },
-    "Date": {
-      "sort": ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
-      "tree": [
+    Date: {
+      sort: ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
+      tree: [
         ["Date", "plain"],
         ["Album", "album"],
         ["Title", "song"],
@@ -459,7 +459,7 @@ vv.model.list = (function() {
   };
   var focus = {};
   var list_cache = {};
-  var listener = {"changed": [], "update": []};
+  var listener = {changed: [], update: []};
   pub.addEventListener = function(ev, func) { listener[ev].push(func); };
   pub.removeEventListener = function(ev, func) {
     for (var i = 0, imax = listener[ev].length; i < imax; i++) {
@@ -657,10 +657,10 @@ vv.model.list = (function() {
     var ret = [];
     for (var key in TREE) {
       if (TREE.hasOwnProperty(key)) {
-        ret.push({"root": [key]});
+        ret.push({root: [key]});
       }
     }
-    return {"key": "root", "songs": ret, "style": "plain", "isdir": true};
+    return {key: "root", songs: ret, style: "plain", isdir: true};
   };
   pub.parent = function() {
     var v = pub.list().songs;
@@ -671,14 +671,9 @@ vv.model.list = (function() {
     if (vv.storage.tree.length > 1) {
       var key = TREE[root]["tree"][vv.storage.tree.length - 2][0];
       var style = TREE[root]["tree"][vv.storage.tree.length - 2][1];
-      return {"key": key, "song": v[0], "style": style, "isdir": true};
+      return {key: key, song: v[0], style: style, isdir: true};
     }
-    return {
-      "key": "top",
-      "song": {"top": [root]},
-      "style": "plain",
-      "isdir": true
-    };
+    return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
   };
   pub.grandparent = function() {
     var v = pub.list().songs;
@@ -689,20 +684,15 @@ vv.model.list = (function() {
     if (vv.storage.tree.length > 2) {
       var key = TREE[root]["tree"][vv.storage.tree.length - 3][0];
       var style = TREE[root]["tree"][vv.storage.tree.length - 3][1];
-      return {"key": key, "song": v[0], "style": style, "isdir": true};
+      return {key: key, song: v[0], style: style, isdir: true};
     } else if (vv.storage.tree.length === 2) {
-      return {
-        "key": "top",
-        "song": {"top": [root]},
-        "style": "plain",
-        "isdir": true
-      };
+      return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
     }
     return {
-      "key": "root",
-      "song": {"root": ["Library"]},
-      "style": "plain",
-      "isdir": true
+      key: "root",
+      song: {root: ["Library"]},
+      style: "plain",
+      isdir: true
     };
   };
   return pub;
@@ -993,55 +983,53 @@ vv.control = (function() {
   };
 
   pub.rescan_library = function() {
-    post_request("/api/music/library", {"action": "rescan"});
+    post_request("/api/music/library", {action: "rescan"});
     vv.storage.control.update_library = true;
     pub.raiseEvent("control");
   };
 
   pub.prev = function() {
-    post_request("/api/music/control", {"state": "prev"});
+    post_request("/api/music/control", {state: "prev"});
   };
 
   pub.play_pause = function() {
     var state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
     var action = state === "play" ? "pause" : "play";
-    post_request("/api/music/control", {"state": action});
+    post_request("/api/music/control", {state: action});
     vv.storage.control.state = action;
     pub.raiseEvent("control");
   };
 
   pub.next = function() {
-    post_request("/api/music/control", {"state": "next"});
+    post_request("/api/music/control", {state: "next"});
   };
 
   pub.toggle_repeat = function() {
-    post_request(
-        "/api/music/control", {"repeat": !vv.storage.control["repeat"]});
+    post_request("/api/music/control", {repeat: !vv.storage.control["repeat"]});
     vv.storage.control.repeat = !vv.storage.control.repeat;
     pub.raiseEvent("control");
   };
 
   pub.toggle_random = function() {
-    post_request(
-        "/api/music/control", {"random": !vv.storage.control["random"]});
+    post_request("/api/music/control", {random: !vv.storage.control["random"]});
     vv.storage.control.random = !vv.storage.control.random;
     pub.raiseEvent("control");
   };
 
   pub.play = function(pos) {
     post_request("/api/music/songs/sort", {
-      "keys": vv.model.list.sortkeys(),
-      "filters": vv.model.list.filters(pos),
-      "play": pos
+      keys: vv.model.list.sortkeys(),
+      filters: vv.model.list.filters(pos),
+      play: pos
     });
   };
 
   pub.volume = function(num) {
-    post_request("/api/music/control", {"volume": num});
+    post_request("/api/music/control", {volume: num});
   };
 
   pub.output = function(id, on) {
-    post_request("/api/music/outputs/" + id, {"outputenabled": on});
+    post_request("/api/music/outputs/" + id, {outputenabled: on});
   };
 
   var notify_last_update = (new Date()).getTime();
@@ -1132,9 +1120,9 @@ vv.control = (function() {
       setTimeout(polling, 1000);
     };
     var show = {
-      "main": vv.view.main.show,
-      "list": vv.view.list.show,
-      "system": vv.view.system.show
+      main: vv.view.main.show,
+      list: vv.view.list.show,
+      system: vv.view.system.show
     };
     show[vv.storage.last_state]();
     pub.raiseEvent("start");
@@ -1723,8 +1711,8 @@ vv.view.system = (function() {
       }
     });
     return {
-      "show": mkshow("system-preferences", "system-nav-preferences"),
-      "hide": mkhide("system-preferences", "system-nav-preferences"),
+      show: mkshow("system-preferences", "system-nav-preferences"),
+      hide: mkhide("system-preferences", "system-nav-preferences"),
     };
   })();
   var stats = (function() {
@@ -1803,8 +1791,8 @@ vv.view.system = (function() {
       show();
     };
     return {
-      "show": show_update,
-      "hide": mkhide("system-stats", "system-nav-stats"),
+      show: show_update,
+      hide: mkhide("system-stats", "system-nav-stats"),
     };
   })();
   var info = (function() {
@@ -1816,8 +1804,8 @@ vv.view.system = (function() {
       }
     });
     return {
-      "show": mkshow("system-info", "system-nav-info"),
-      "hide": mkhide("system-info", "system-nav-info"),
+      show: mkshow("system-info", "system-nav-info"),
+      hide: mkhide("system-info", "system-nav-info"),
     };
   })();
   var init = function() {
