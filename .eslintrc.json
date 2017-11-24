@@ -4,5 +4,7 @@
     "parserOptions": {},
     "env": {"browser": true},
     "globals": {},
-    "rules": {}
+    "rules": {
+        "semi": "error"
+    }
 }

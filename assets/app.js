@@ -160,9 +160,8 @@ vv.song = (function() {
       track.classList.add("song-track");
       track.textContent = vv.song.get(song, "TrackNumber");
       e.appendChild(track);
-      var svg =
-          document.createElementNS("http://www.w3.org/2000/svg", "svg")
-              svg.classList.add("song-playingicon");
+      var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("song-playingicon");
       svg.setAttribute("width", "22");
       svg.setAttribute("height", "22");
       svg.setAttribute("viewBox", "0 0 100 100");
@@ -538,8 +537,7 @@ vv.model.list = (function() {
     }
   };
 
-  var absSorted =
-      function(song) {
+  var absSorted = function(song) {
     var root = "";
     var pos = parseInt(song.Pos[0]);
     var keys = vv.storage.sorted.keys.join();
@@ -580,7 +578,7 @@ vv.model.list = (function() {
     } else {
       absFallback(song);
     }
-  }
+  };
 
   var absFallback = function(song) {
     if (pub.rootname() != "root" && song.file) {
@@ -944,8 +942,7 @@ vv.control = (function() {
     xhr.send();
   };
 
-  var post_request =
-      function(path, obj) {
+  var post_request = function(path, obj) {
     var key = "POST " + path;
     var xhr;
     if (!requests[key]) {
@@ -971,7 +968,7 @@ vv.control = (function() {
     xhr.open("POST", path, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.send(JSON.stringify(obj));
-  }
+  };
 
   var fetch = function(target, store) {
     get_request(
@@ -984,7 +981,7 @@ vv.control = (function() {
             if (store == "library") {
               vv.storage.save_library();
             }
-            pub.raiseEvent(store)
+            pub.raiseEvent(store);
           }
         });
   };
@@ -1096,7 +1093,7 @@ vv.control = (function() {
       }
       notify_last_update = (new Date()).getTime();
       notify_err_cnt++;
-      setTimeout(listennotify, 1000)
+      setTimeout(listennotify, 1000);
     };
   };
 
@@ -1313,7 +1310,7 @@ vv.view.main = (function() {
     var c = document.getElementById("main-cover-circle-active");
     var elapsed = parseInt(vv.storage.control["song_elapsed"] * 1000);
     if (vv.storage.control["state"] == "play") {
-      elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control
+      elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control;
     }
     var total = parseInt(vv.storage.current["Time"]);
     var d = (elapsed * 360 / 1000 / total - 90) * (Math.PI / 180);
@@ -1576,8 +1573,7 @@ vv.view.list = (function() {
     }
   };
 
-  pub.activate =
-      function() {
+  pub.activate = function() {
     var es = document.getElementById("list-items")
                  .getElementsByClassName("selected");
     if (es.length != 0) {
@@ -1587,9 +1583,9 @@ vv.view.list = (function() {
       return true;
     }
     return false;
-  }
+  };
 
-      vv.control.addEventListener("current", pub.update);
+  vv.control.addEventListener("current", pub.update);
   vv.control.addEventListener("preferences", preferences_update);
   vv.model.list.addEventListener("update", pub.update);
   vv.model.list.addEventListener("changed", pub.update);
@@ -1623,8 +1619,7 @@ vv.view.system = (function() {
       };
       vv.control.addEventListener("preferences", update_animation);
       update_animation();
-      var initconfig =
-          function(id) {
+      var initconfig = function(id) {
         var obj = document.getElementById(id);
         var s = id.indexOf("-");
         var mainkey = id.slice(0, s);
@@ -1649,7 +1644,7 @@ vv.view.system = (function() {
           vv.storage.save();
           vv.control.raiseEvent("preferences");
         });
-      }
+      };
 
       // Presto Opera
       if (navigator.userAgent.indexOf("Presto/2") > 1) {
@@ -1732,8 +1727,7 @@ vv.view.system = (function() {
   })();
   var stats = (function() {
     var zfill2 = function(i) { return ("00" + i).slice(-2); };
-    var strtimedelta =
-        function(i) {
+    var strtimedelta = function(i) {
       var ud = parseInt(i / (24 * 60 * 60));
       var uds = "";
       if (ud == 1) {
@@ -1745,7 +1739,7 @@ vv.view.system = (function() {
       var um = parseInt((i - ud * 24 * 60 * 60 - uh * 60 * 60) / 60);
       var us = parseInt(i - ud * 24 * 60 * 60 - uh * 60 * 60 - um * 60);
       return uds + zfill2(uh) + ":" + zfill2(um) + ":" + zfill2(us);
-    }
+    };
 
     var update = function() {
       document.getElementById("stat-albums").textContent =
@@ -2015,7 +2009,7 @@ vv.view.popup = (function() {
       var elapsed = parseInt(data["song_elapsed"] * 1000);
       var current = elapsed;
       if (data["state"] == "play") {
-        current += (new Date).getTime() - vv.storage.last_modified_ms.control
+        current += (new Date).getTime() - vv.storage.last_modified_ms.control;
       }
       current = parseInt(current / 1000);
       var min = parseInt(current / 60);
