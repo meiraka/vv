@@ -15,7 +15,7 @@ vv.obj = (function() {
   pub.getOrElse = function(m, k, v) { return k in m ? m[k] : v; };
   pub.copy = function(t) {
     var ret = {};
-    if (Object.prototype.toString.call(t) == "[object Array]") {
+    if (Object.prototype.toString.call(t) === "[object Array]") {
       ret = [];
       for (var i = 0, imax = t.length; i < imax; i++) {
         ret[i] = t[i];
@@ -48,15 +48,15 @@ vv.song = (function() {
   var getOrElseMulti = function(song, key, other) {
     if (key in song) {
       return song[key];
-    } else if (key == "AlbumSort") {
+    } else if (key === "AlbumSort") {
       return tag(song, ["Album"], other);
-    } else if (key == "ArtistSort") {
+    } else if (key === "ArtistSort") {
       return tag(song, ["Artist"], other);
-    } else if (key == "AlbumArtist") {
+    } else if (key === "AlbumArtist") {
       return tag(song, ["Artist"], other);
-    } else if (key == "AlbumArtistSort") {
+    } else if (key === "AlbumArtistSort") {
       return tag(song, ["AlbumArtist", "Artist"], other);
-    } else if (key == "AlbumSort") {
+    } else if (key === "AlbumSort") {
       return tag(song, ["Album"], other);
     } else {
       return other;
@@ -67,7 +67,7 @@ vv.song = (function() {
       return getOrElseMulti(song, key, [other])[0];
     }
     for (var i = 0, imax = song.keys.length; i < imax; i++) {
-      if (song.keys[i][0] == key) {
+      if (song.keys[i][0] === key) {
         return song.keys[i][1];
       }
     }
@@ -84,17 +84,17 @@ vv.song = (function() {
     songs[0].sortkey = "";
     songs[0].keys = [];
     for (var i = 0, imax = keys.length; i < imax; i++) {
-      var writememo = memo.indexOf(keys[i]) != -1;
+      var writememo = memo.indexOf(keys[i]) !== -1;
       var newkeys = getOrElseMulti(song, keys[i], []);
       var j, jmax, k, kmax;
-      if (newkeys.length == 0) {
+      if (newkeys.length === 0) {
         for (j = 0, jmax = songs.length; j < jmax; j++) {
           songs[j].sortkey += " ";
           if (writememo) {
             songs[j].keys.push([keys[i], "[no " + keys[i] + "]"]);
           }
         }
-      } else if (newkeys.length == 1) {
+      } else if (newkeys.length === 1) {
         for (j = 0, jmax = songs.length; j < jmax; j++) {
           songs[j].sortkey += newkeys[0];
           if (writememo) {
@@ -144,9 +144,9 @@ vv.song = (function() {
       menu.appendChild(menuitem);
       e.appendChild(menu);
     }
-    if (style == "song") {
+    if (style === "song") {
       var now_playing = vv.storage.current && vv.storage.current.file &&
-          song.file[0] == vv.storage.current.file[0];
+          song.file[0] === vv.storage.current.file[0];
       if (now_playing) {
         e.classList.add("playing");
       }
@@ -179,7 +179,7 @@ vv.song = (function() {
       var artist = document.createElement("span");
       artist.classList.add("song-artist");
       artist.textContent = vv.song.get(song, "Artist");
-      if (vv.song.get(song, "Artist") != vv.song.get(song, "AlbumArtist")) {
+      if (vv.song.get(song, "Artist") !== vv.song.get(song, "AlbumArtist")) {
         artist.classList.add("low-prio");
       }
       e.appendChild(artist);
@@ -197,7 +197,7 @@ vv.song = (function() {
       length.classList.add("song-length");
       length.textContent = vv.song.get(song, "Length");
       e.appendChild(length);
-    } else if (style == "album") {
+    } else if (style === "album") {
       var cover_path = "/assets/nocover.svg";
       if (song.cover) {
         cover_path = "/music_directory/" + song.cover;
@@ -258,10 +258,10 @@ vv.songs = (function() {
   };
   pub.uniq = function(songs, key) {
     return songs.filter(function(song, i, self) {
-      if (i == 0) {
+      if (i === 0) {
         return true;
       } else if (
-          vv.song.getOne(song, key) != vv.song.getOne(self[i - 1], key)) {
+          vv.song.getOne(song, key) !== vv.song.getOne(self[i - 1], key)) {
         return true;
       } else {
         return false;
@@ -272,7 +272,7 @@ vv.songs = (function() {
     return songs.filter(function(song) {
       for (var key in filters) {
         if (filters.hasOwnProperty(key)) {
-          if (vv.song.getOne(song, key) != filters[key]) {
+          if (vv.song.getOne(song, key) !== filters[key]) {
             return false;
           }
         }
@@ -287,7 +287,7 @@ vv.songs = (function() {
     for (var i = 0, imax = filters.length; i < imax; i++) {
       var newsongs = [];
       for (var j = 0, jmax = songs.length; j < jmax; j++) {
-        if (vv.song.getOne(songs[j], filters[i][0]) == filters[i][1]) {
+        if (vv.song.getOne(songs[j], filters[i][0]) === filters[i][1]) {
           newsongs.push(songs[j]);
         }
       }
@@ -352,7 +352,7 @@ vv.storage = (function() {
   };
   pub.save_library = function() {
     try {
-      if (localStorage.library_last_modified != pub.last_modified.library) {
+      if (localStorage.library_last_modified !== pub.last_modified.library) {
         localStorage.library = JSON.stringify(pub.library);
         localStorage.library_last_modified = pub.last_modified.library;
       }
@@ -382,7 +382,7 @@ vv.storage = (function() {
       }
       if (localStorage.current && localStorage.current_last_modified) {
         var current = JSON.parse(localStorage.current);
-        if (Object.prototype.toString.call(current.file) == "[object Array]") {
+        if (Object.prototype.toString.call(current.file) === "[object Array]") {
           pub.current = current;
           pub.last_modified.current = localStorage.current_last_modified;
         }
@@ -463,7 +463,7 @@ vv.model.list = (function() {
   pub.addEventListener = function(ev, func) { listener[ev].push(func); };
   pub.removeEventListener = function(ev, func) {
     for (var i = 0, imax = listener[ev].length; i < imax; i++) {
-      if (listener[ev][i] == func) {
+      if (listener[ev][i] === func) {
         listener[ev].splice(i, 1);
         return;
       }
@@ -492,7 +492,7 @@ vv.model.list = (function() {
   };
   pub.rootname = function() {
     var r = "root";
-    if (vv.storage.tree.length != 0) {
+    if (vv.storage.tree.length !== 0) {
       r = vv.storage.tree[0][1];
     }
     return r;
@@ -504,7 +504,7 @@ vv.model.list = (function() {
   pub.focused = function() { return focus; };
   pub.sortkeys = function() {
     var r = pub.rootname();
-    if (r == "root") {
+    if (r === "root") {
       return [];
     }
     return TREE[r]["sort"];
@@ -514,12 +514,12 @@ vv.model.list = (function() {
     if (songs[0]) {
       focus = songs[0];
     }
-    if (pub.rootname() != "root") {
+    if (pub.rootname() !== "root") {
       vv.storage.tree.pop();
       vv.storage.save();
     }
     update_list();
-    if (pub.list().songs.length == 1 && vv.storage.tree.length != 0) {
+    if (pub.list().songs.length === 1 && vv.storage.tree.length !== 0) {
       pub.up();
     } else {
       raiseEvent("changed");
@@ -528,7 +528,7 @@ vv.model.list = (function() {
   pub.down = function(value) {
     var r = pub.rootname();
     var key = "root";
-    if (r != "root") {
+    if (r !== "root") {
       key = TREE[r]["tree"][vv.storage.tree.length - 1][0];
     }
     vv.storage.tree.push([key, value]);
@@ -536,7 +536,8 @@ vv.model.list = (function() {
     focus = {};
     update_list();
     var songs = pub.list().songs;
-    if (songs.length == 1 && TREE[r]["tree"].length != vv.storage.tree.length) {
+    if (songs.length === 1 &&
+        TREE[r]["tree"].length !== vv.storage.tree.length) {
       pub.down(vv.song.get(songs[0], pub.list().key));
     } else {
       raiseEvent("changed");
@@ -549,7 +550,7 @@ vv.model.list = (function() {
     var keys = vv.storage.sorted.keys.join();
     for (var key in TREE) {
       if (TREE.hasOwnProperty(key)) {
-        if (TREE[key].sort.join() == keys) {
+        if (TREE[key].sort.join() === keys) {
           root = key;
           break;
         }
@@ -563,7 +564,7 @@ vv.model.list = (function() {
     if (!songs) {
       return;
     }
-    if (songs.length == 0) {
+    if (songs.length === 0) {
       return;
     }
     if (songs.length > vv.consts.playlistLength) {
@@ -573,7 +574,7 @@ vv.model.list = (function() {
     if (!songs[pos]) {
       return;
     }
-    if (songs[pos].file[0] == song.file[0]) {
+    if (songs[pos].file[0] === song.file[0]) {
       focus = songs[pos];
       vv.storage.tree.length = 0;
       vv.storage.tree.push(["root", root]);
@@ -589,7 +590,7 @@ vv.model.list = (function() {
   };
 
   var absFallback = function(song) {
-    if (pub.rootname() != "root" && song.file) {
+    if (pub.rootname() !== "root" && song.file) {
       var r = vv.storage.tree[0];
       vv.storage.tree.length = 0;
       vv.storage.tree.splice(0, vv.storage.tree.length);
@@ -597,7 +598,7 @@ vv.model.list = (function() {
       var root = vv.storage.tree[0][1];
       var selected = TREE[root]["tree"];
       for (var i = 0, imax = selected.length; i < imax; i++) {
-        if (i == selected.length - 1) {
+        if (i === selected.length - 1) {
           break;
         }
         var key = selected[i][0];
@@ -622,13 +623,13 @@ vv.model.list = (function() {
     }
   };
   pub.list = function() {
-    if (!list_cache.songs || !list_cache.songs.length == 0) {
+    if (!list_cache.songs || !list_cache.songs.length === 0) {
       update_list();
     }
     return list_cache;
   };
   var update_list = function() {
-    if (pub.rootname() == "root") {
+    if (pub.rootname() === "root") {
       list_cache = list_root();
     } else {
       list_cache = list_child();
@@ -638,7 +639,7 @@ vv.model.list = (function() {
     var root = pub.rootname();
     var filters = {};
     for (var i = 0, imax = vv.storage.tree.length; i < imax; i++) {
-      if (i == 0) {
+      if (i === 0) {
         continue;
       }
       filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
@@ -649,7 +650,7 @@ vv.model.list = (function() {
     ret.songs = vv.songs.filter(ret.songs, filters);
     ret.songs = vv.songs.uniq(ret.songs, ret.key);
     ret.style = TREE[root]["tree"][vv.storage.tree.length - 1][1];
-    ret.isdir = vv.storage.tree.length != TREE[root]["tree"].length;
+    ret.isdir = vv.storage.tree.length !== TREE[root]["tree"].length;
     return ret;
   };
   var list_root = function() {
@@ -664,7 +665,7 @@ vv.model.list = (function() {
   pub.parent = function() {
     var v = pub.list().songs;
     var root = pub.rootname();
-    if (root == "root") {
+    if (root === "root") {
       return;
     }
     if (vv.storage.tree.length > 1) {
@@ -682,14 +683,14 @@ vv.model.list = (function() {
   pub.grandparent = function() {
     var v = pub.list().songs;
     var root = pub.rootname();
-    if (root == "root") {
+    if (root === "root") {
       return;
     }
     if (vv.storage.tree.length > 2) {
       var key = TREE[root]["tree"][vv.storage.tree.length - 3][0];
       var style = TREE[root]["tree"][vv.storage.tree.length - 3][1];
       return {"key": key, "song": v[0], "style": style, "isdir": true};
-    } else if (vv.storage.tree.length == 2) {
+    } else if (vv.storage.tree.length === 2) {
       return {
         "key": "top",
         "song": {"top": [root]},
@@ -710,14 +711,14 @@ vv.control = (function() {
   var pub = {};
   var listener = {};
   pub.addEventListener = function(ev, func) {
-    if (listener[ev] == null) {
+    if (!(ev in listener)) {
       listener[ev] = [];
     }
     listener[ev].push(func);
   };
   pub.removeEventListener = function(ev, func) {
     for (var i = 0, imax = listener[ev].length; i < imax; i++) {
-      if (listener[ev][i] == func) {
+      if (listener[ev][i] === func) {
         listener[ev].splice(i, 1);
         return;
       }
@@ -734,7 +735,7 @@ vv.control = (function() {
     var starttime = 0;
     var now = 0;
     var start = function(e) {
-      if (e.buttons && e.buttons != 1) {
+      if (e.buttons && e.buttons !== 1) {
         return;
       }
       if (e.touches) {
@@ -752,7 +753,7 @@ vv.control = (function() {
       e.currentTarget.classList.add("swipe");
     };
     var move = function(e) {
-      if (e.buttons && e.buttons != 1) {
+      if (e.buttons && e.buttons !== 1) {
         return;
       }
       if (!e.currentTarget.swipe) {
@@ -784,7 +785,7 @@ vv.control = (function() {
 
     };
     var end = function(e) {
-      if (e.buttons && e.buttons != 1) {
+      if (e.buttons && e.buttons !== 1) {
         return;
       }
       if (!e.currentTarget.swipe) {
@@ -819,7 +820,7 @@ vv.control = (function() {
     var enter = function(e) { e.currentTarget.classList.add("hover"); };
     var leave = function(e) { e.currentTarget.classList.remove("hover"); };
     var start = function(e) {
-      if (e.buttons && e.buttons != 1) {
+      if (e.buttons && e.buttons !== 1) {
         return;
       }
       if (e.touches) {
@@ -833,7 +834,7 @@ vv.control = (function() {
       e.currentTarget.classList.add("active");
     };
     var move = function(e) {
-      if (e.buttons && e.buttons != 1) {
+      if (e.buttons && e.buttons !== 1) {
         return;
       }
       if (!e.currentTarget.touch) {
@@ -862,7 +863,7 @@ vv.control = (function() {
       }
     };
     var end = function(e) {
-      if (e.buttons && e.buttons != 1) {
+      if (e.buttons && e.buttons !== 1) {
         return;
       }
       e.currentTarget.classList.remove("active");
@@ -907,8 +908,8 @@ vv.control = (function() {
     }
     xhr.timeout = timeout;
     xhr.onload = function() {
-      if (xhr.status == 200 || xhr.status == 304) {
-        if (xhr.status == 200 && callback) {
+      if (xhr.status === 200 || xhr.status === 304) {
+        if (xhr.status === 200 && callback) {
           callback(
               JSON.parse(xhr.responseText),
               xhr.getResponseHeader("Last-Modified"));
@@ -916,7 +917,7 @@ vv.control = (function() {
         return;
       }
       // error handling
-      if (xhr.status != 0) {
+      if (xhr.status !== 0) {
         vv.view.popup.show("GET " + path, xhr.statusText);
       }
     };
@@ -959,9 +960,9 @@ vv.control = (function() {
     }
     xhr.timeout = 1000;
     xhr.onload = function() {
-      if (xhr.status == 404) {
+      if (xhr.status === 404) {
         vv.view.popup.show("POST " + path, "Not Found");
-      } else if (xhr.status != 200) {
+      } else if (xhr.status !== 200) {
         vv.view.popup.show("POST " + path, JSON.parse(xhr.responseText).error);
       }
     };
@@ -983,7 +984,7 @@ vv.control = (function() {
             vv.storage[store] = ret.data;
             vv.storage.last_modified_ms[store] = Date.parse(modified);
             vv.storage.last_modified[store] = modified;
-            if (store == "library") {
+            if (store === "library") {
               vv.storage.save_library();
             }
             pub.raiseEvent(store);
@@ -1003,7 +1004,7 @@ vv.control = (function() {
 
   pub.play_pause = function() {
     var state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
-    var action = state == "play" ? "pause" : "play";
+    var action = state === "play" ? "pause" : "play";
     post_request("/api/music/control", {"state": action});
     vv.storage.control.state = action;
     pub.raiseEvent("control");
@@ -1047,6 +1048,7 @@ vv.control = (function() {
   var notify_last_connection = (new Date()).getTime();
   var connected = false;
   var notify_err_cnt = 0;
+  var ws = null;
   var listennotify = function() {
     if (notify_err_cnt > 20) {
       vv.view.popup.show("WebSocket", "Stopped. Too many errors.");
@@ -1055,11 +1057,11 @@ vv.control = (function() {
     notify_last_connection = (new Date()).getTime();
     connected = false;
     var uri = "ws://" + location.host + "/api/music/notify";
-    if (ws != null) {
+    if (ws !== null) {
       ws.onclose = function() {};
       ws.close();
     }
-    var ws = new WebSocket(uri);
+    ws = new WebSocket(uri);
     ws.onopen = function() {
       if (notify_err_cnt > 0) {
         vv.view.popup.show("WebSocket", "Connected");
@@ -1070,17 +1072,17 @@ vv.control = (function() {
     };
     ws.onmessage = function(e) {
       if (e && e.data) {
-        if (e.data == "library") {
+        if (e.data === "library") {
           fetch("/api/music/library", "library");
-        } else if (e.data == "status") {
+        } else if (e.data === "status") {
           fetch("/api/music/control", "control");
-        } else if (e.data == "current") {
+        } else if (e.data === "current") {
           fetch("/api/music/songs/current", "current");
-        } else if (e.data == "outputs") {
+        } else if (e.data === "outputs") {
           fetch("/api/music/outputs", "outputs");
-        } else if (e.data == "stats") {
+        } else if (e.data === "stats") {
           fetch("/api/music/stats", "stats");
-        } else if (e.data == "playlist") {
+        } else if (e.data === "playlist") {
           fetch("/api/music/songs/sort", "sorted");
         }
         var new_notify_last_update = (new Date()).getTime();
@@ -1213,7 +1215,7 @@ vv.control = (function() {
         cover = "/music_directory/" + vv.storage.current.cover;
       }
       var newimage = "url(\"" + cover + "\")";
-      if (e.style.backgroundImage != newimage) {
+      if (e.style.backgroundImage !== newimage) {
         calc_color(cover);
         e.style.backgroundImage = newimage;
       }
@@ -1311,7 +1313,7 @@ vv.view.main = (function() {
     }
     var c = document.getElementById("main-cover-circle-active");
     var elapsed = parseInt(vv.storage.control["song_elapsed"] * 1000);
-    if (vv.storage.control["state"] == "play") {
+    if (vv.storage.control["state"] === "play") {
       elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control;
     }
     var total = parseInt(vv.storage.current["Time"]);
@@ -1371,7 +1373,7 @@ vv.view.list = (function() {
     }
   };
   pub.update = function() {
-    if (vv.storage.tree.length % 2 == 0) {
+    if (vv.storage.tree.length % 2 === 0) {
       document.getElementById("list").classList.remove("odd");
       document.getElementById("list").classList.add("even");
     } else {
@@ -1396,7 +1398,7 @@ vv.view.list = (function() {
     ul.classList.remove("plainlist");
     ul.classList.add(style + "list");
     for (var i = 0, imax = songs.length; i < imax; i++) {
-      if (i == 0 && vv.model.list.rootname() != "root") {
+      if (i === 0 && vv.model.list.rootname() !== "root") {
         li = document.createElement("li");
         var p = vv.model.list.parent();
         li = vv.song.element(li, p.song, p.key, p.style);
@@ -1408,9 +1410,9 @@ vv.view.list = (function() {
       li.classList.add("selectable");
       // do not select root items.
       // all root items have same song.
-      if (vv.model.list.rootname() != "root" && songs[i] &&
+      if (vv.model.list.rootname() !== "root" && songs[i] &&
           vv.model.list.focused() &&
-          songs[i].file == vv.model.list.focused().file) {
+          songs[i].file === vv.model.list.focused().file) {
         focus_li = li;
         focus_li.classList.add("selected");
       }
@@ -1473,7 +1475,7 @@ vv.view.list = (function() {
     var c = null;
     var n = null;
     var i = 0;
-    if (s.length == 0 && f.length == 1) {
+    if (s.length === 0 && f.length === 1) {
       p = f[0].offsetTop;
       if (t < p && p < t + h) {
         f[0].classList.add("selected");
@@ -1487,23 +1489,23 @@ vv.view.list = (function() {
         return;
       }
     }
-    if (s.length == 0 && f.length == 0) {
+    if (s.length === 0 && f.length === 0) {
       select_near_item();
       return;
     }
     if (s.length > 0) {
       var selectable = l.getElementsByClassName("selectable");
-      if (target == "up" && selectable[0] == s[0]) {
+      if (target === "up" && selectable[0] === s[0]) {
         return;
       }
-      if (target == "down" && selectable[selectable.length - 1] == s[0]) {
+      if (target === "down" && selectable[selectable.length - 1] === s[0]) {
         return;
       }
       for (i = 0; i < selectable.length; i++) {
         c = selectable[i];
-        if (c == s[0]) {
-          if ((i > 0 && target == "up" && style != "album") ||
-              (i > 0 && target == "left")) {
+        if (c === s[0]) {
+          if ((i > 0 && target === "up" && style !== "album") ||
+              (i > 0 && target === "left")) {
             n = selectable[i - 1];
             c.classList.remove("selected");
             n.classList.add("selected");
@@ -1513,7 +1515,7 @@ vv.view.list = (function() {
             }
             return;
           }
-          if (i > itemcount - 1 && target == "up" && style == "album") {
+          if (i > itemcount - 1 && target === "up" && style === "album") {
             n = selectable[i - itemcount];
             c.classList.remove("selected");
             n.classList.add("selected");
@@ -1523,9 +1525,9 @@ vv.view.list = (function() {
             }
             return;
           }
-          if ((i != (selectable.length - 1) && target == "down" &&
-               style != "album") ||
-              (i != (selectable.length - 1) && target == "right")) {
+          if ((i !== (selectable.length - 1) && target === "down" &&
+               style !== "album") ||
+              (i !== (selectable.length - 1) && target === "right")) {
             n = selectable[i + 1];
             c.classList.remove("selected");
             n.classList.add("selected");
@@ -1535,9 +1537,9 @@ vv.view.list = (function() {
             }
             return;
           }
-          if ((i < (selectable.length - 1) && target == "down" &&
-               style == "album") ||
-              (i != (selectable.length - 1) && target == "right")) {
+          if ((i < (selectable.length - 1) && target === "down" &&
+               style === "album") ||
+              (i !== (selectable.length - 1) && target === "right")) {
             if (i + itemcount >= selectable.length) {
               n = selectable[selectable.length - 1];
             } else {
@@ -1577,7 +1579,7 @@ vv.view.list = (function() {
   pub.activate = function() {
     var es = document.getElementById("list-items")
                  .getElementsByClassName("selected");
-    if (es.length != 0) {
+    if (es.length !== 0) {
       var e = {};
       e.currentTarget = es[0];
       es[0].click_target(e);
@@ -1626,13 +1628,13 @@ vv.view.system = (function() {
         var mainkey = id.slice(0, s);
         var subkey = id.slice(s + 1).replace(/-/g, "_");
         var getter = null;
-        if (obj.type == "checkbox") {
+        if (obj.type === "checkbox") {
           obj.checked = vv.storage.preferences[mainkey][subkey];
           getter = function() { return obj.checked; };
-        } else if (obj.tagName.toLowerCase() == "select") {
+        } else if (obj.tagName.toLowerCase() === "select") {
           obj.value = String(vv.storage.preferences[mainkey][subkey]);
           getter = function() { return obj.value; };
-        } else if (obj.type == "range") {
+        } else if (obj.type === "range") {
           obj.value = String(vv.storage.preferences[mainkey][subkey]);
           getter = function() { return parseInt(obj.value); };
           obj.addEventListener("input", function() {
@@ -1699,7 +1701,7 @@ vv.view.system = (function() {
         ch.setAttribute("type", "checkbox");
         ch.setAttribute("id", "device_" + o["outputname"]);
         ch.setAttribute("deviceid", o["outputid"]);
-        ch.checked = o["outputenabled"] == "1";
+        ch.checked = o["outputenabled"] === "1";
         ch.addEventListener("change", function() {
           vv.control.output(
               parseInt(this.getAttribute("deviceid")), this.checked);
@@ -1730,9 +1732,9 @@ vv.view.system = (function() {
     var strtimedelta = function(i) {
       var ud = parseInt(i / (24 * 60 * 60));
       var uds = "";
-      if (ud == 1) {
+      if (ud === 1) {
         uds = "1 day, ";
-      } else if (ud != 0) {
+      } else if (ud !== 0) {
         uds = ud + " days, ";
       }
       var uh = parseInt((i - ud * 24 * 60 * 60) / (60 * 60));
@@ -1759,9 +1761,9 @@ vv.view.system = (function() {
       var now = new Date();
       var now_yyyymmdd =
           now.getFullYear() * 1000 + now.getMonth() * 100 + now.getDate;
-      if (db_update_yyyymmdd == now_yyyymmdd) {
+      if (db_update_yyyymmdd === now_yyyymmdd) {
         db_update_str += "today, ";
-      } else if (db_update_yyyymmdd + 1 == now_yyyymmdd) {
+      } else if (db_update_yyyymmdd + 1 === now_yyyymmdd) {
         db_update_str += "yesterday, ";
       } else {
         db_update_str += db_update.getFullYear() + "." + db_update.getMonth() +
@@ -1777,7 +1779,7 @@ vv.view.system = (function() {
       var diff = parseInt(
           ((new Date()).getTime() - vv.storage.last_modified_ms.stats) / 1000);
       var uptime = parseInt(vv.storage.stats.uptime) + diff;
-      if (vv.storage.control.state == "play") {
+      if (vv.storage.control.state === "play") {
         var playtime = parseInt(vv.storage.stats.playtime) + diff;
         document.getElementById("stat-playtime").textContent =
             strtimedelta(playtime);
@@ -1866,7 +1868,7 @@ vv.view.system = (function() {
     var e = document.getElementById("header-back-label");
     var b = document.getElementById("header-back");
     var m = document.getElementById("header-main");
-    if (vv.model.list.rootname() != "root") {
+    if (vv.model.list.rootname() !== "root") {
       b.classList.remove("root");
       m.classList.remove("root");
       var songs = vv.model.list.list()["songs"];
@@ -1891,7 +1893,7 @@ vv.view.system = (function() {
     });
     vv.control.click(document.getElementById("header-main"), function(e) {
       e.stopPropagation();
-      if (vv.model.list.rootname() != "root") {
+      if (vv.model.list.rootname() !== "root") {
         vv.model.list.abs(vv.storage.current);
       }
       vv.view.main.show();
@@ -1933,7 +1935,7 @@ vv.view.system = (function() {
     });
   });
   vv.control.addEventListener("control", function() {
-    if (vv.storage.control["state"] == "play") {
+    if (vv.storage.control["state"] === "play") {
       document.getElementById("control-toggleplay").classList.add("pause");
       document.getElementById("control-toggleplay").classList.remove("play");
     } else {
@@ -2008,7 +2010,7 @@ vv.view.popup = (function() {
     if ("state" in data) {
       var elapsed = parseInt(data["song_elapsed"] * 1000);
       var current = elapsed;
-      if (data["state"] == "play") {
+      if (data["state"] === "play") {
         current += (new Date).getTime() - vv.storage.last_modified_ms.control;
       }
       current = parseInt(current / 1000);
@@ -2016,7 +2018,7 @@ vv.view.popup = (function() {
       var sec = current % 60;
       var label = min + ":" + ("0" + sec).slice(-2);
       [].forEach.call(document.getElementsByClassName("elapsed"), function(x) {
-        if (x.textContent != label) {
+        if (x.textContent !== label) {
           x.textContent = label;
         }
       });
@@ -2085,7 +2087,7 @@ vv.view.modal.song = (function() {
       tr.appendChild(th);
       var td = document.createElement("td");
       td.classList.add("modal-window-table-value");
-      if (Object.prototype.toString.call(song[key]) == "[object Array]") {
+      if (Object.prototype.toString.call(song[key]) === "[object Array]") {
         for (var i = 0, imax = song[key].length; i < imax; i++) {
           var childvalue = document.createElement("span");
           childvalue.textContent = song[key][i];
@@ -2103,7 +2105,7 @@ vv.view.modal.song = (function() {
     }
     for (var key in song) {
       if (song.hasOwnProperty(key)) {
-        if (mustkeys.indexOf(key) == -1) {
+        if (mustkeys.indexOf(key) === -1) {
           newtable.appendChild(mktr(song, key));
         }
       }
@@ -2137,7 +2139,7 @@ vv.view.modal.song = (function() {
     document.addEventListener("keydown", function(e) {
       if (!document.getElementById("modal-background")
                .classList.contains("hide")) {
-        if (e.key == "Escape" || e.key == "Esc") {
+        if (e.key === "Escape" || e.key === "Esc") {
           vv.view.modal.hide();
         }
         return;
@@ -2148,25 +2150,25 @@ vv.view.modal.song = (function() {
       mod = mod | e.altKey << 2;
       mod = mod | e.ctrlKey << 1;
       mod = mod | e.metaKey;
-      if (mod == 0 && (e.key == " " || e.key == "Spacebar")) {
+      if (mod === 0 && (e.key === " " || e.key === "Spacebar")) {
         vv.control.play_pause();
         e.stopPropagation();
         e.preventDefault();
-      } else if (mod == 10 && e.keyCode == 37) {
+      } else if (mod === 10 && e.keyCode === 37) {
         vv.control.prev();
         e.stopPropagation();
         e.preventDefault();
-      } else if (mod == 10 && e.keyCode == 39) {
+      } else if (mod === 10 && e.keyCode === 39) {
         vv.control.next();
         e.stopPropagation();
         e.preventDefault();
-      } else if (mod == 0 && e.keyCode == 13) {
+      } else if (mod === 0 && e.keyCode === 13) {
         if (!vv.view.list.hidden() && vv.view.list.activate()) {
           e.stopPropagation();
           e.preventDefault();
         }
       } else if (
-          (mod == 0 && e.keyCode == 8) || (mod == 1 && e.keyCode == 37)) {
+          (mod === 0 && e.keyCode === 8) || (mod === 1 && e.keyCode === 37)) {
         if (!vv.view.list.hidden()) {
           vv.model.list.up();
         } else {
@@ -2175,37 +2177,37 @@ vv.view.modal.song = (function() {
         vv.view.list.show();
         e.stopPropagation();
         e.preventDefault();
-      } else if (mod == 0 && e.keyCode == 37) {
+      } else if (mod === 0 && e.keyCode === 37) {
         if (!vv.view.list.hidden()) {
           vv.view.list.left();
           e.stopPropagation();
           e.preventDefault();
         }
-      } else if (mod == 0 && e.keyCode == 38) {
+      } else if (mod === 0 && e.keyCode === 38) {
         if (!vv.view.list.hidden()) {
           vv.view.list.up();
           e.stopPropagation();
           e.preventDefault();
         }
-      } else if (mod == 1 && e.keyCode == 39) {
-        if (vv.model.list.rootname() != "root") {
+      } else if (mod === 1 && e.keyCode === 39) {
+        if (vv.model.list.rootname() !== "root") {
           vv.model.list.abs(vv.storage.current);
         }
         vv.view.main.show();
         e.stopPropagation();
-      } else if (mod == 0 && e.keyCode == 39) {
+      } else if (mod === 0 && e.keyCode === 39) {
         if (!vv.view.list.hidden()) {
           vv.view.list.right();
           e.stopPropagation();
           e.preventDefault();
         }
-      } else if (mod == 0 && e.keyCode == 40) {
+      } else if (mod === 0 && e.keyCode === 40) {
         if (!vv.view.list.hidden()) {
           vv.view.list.down();
           e.stopPropagation();
           e.preventDefault();
         }
-      } else if ((mod & 7) == 0 && e.key == "?") {
+      } else if ((mod & 7) === 0 && e.key === "?") {
         vv.view.modal.help.show();
       } else {
         buble = true;
