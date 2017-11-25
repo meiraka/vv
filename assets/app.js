@@ -261,10 +261,10 @@ vv.songs = (function() {
       if (i === 0) {
         return true;
       } else if (
-          vv.song.getOne(song, key) !== vv.song.getOne(self[i - 1], key)) {
-        return true;
-      } else {
+          vv.song.getOne(song, key) === vv.song.getOne(self[i - 1], key)) {
         return false;
+      } else {
+        return true;
       }
     });
   };
@@ -870,13 +870,13 @@ vv.control = (function() {
   var get_request = function(path, ifmodified, callback, timeout) {
     var key = "GET " + path;
     var xhr;
-    if (!requests[key]) {
-      xhr = new XMLHttpRequest();
-      requests[key] = xhr;
-    } else {
+    if (requests[key]) {
       xhr = requests[key];
       xhr.onabort = function() {};  // disable retry
       xhr.abort();
+    } else {
+      xhr = new XMLHttpRequest();
+      requests[key] = xhr;
     }
     if (!timeout) {
       timeout = 1000;
@@ -926,12 +926,12 @@ vv.control = (function() {
   var post_request = function(path, obj) {
     var key = "POST " + path;
     var xhr;
-    if (!requests[key]) {
-      xhr = new XMLHttpRequest();
-      requests[key] = xhr;
-    } else {
+    if (requests[key]) {
       xhr = requests[key];
       xhr.abort();
+    } else {
+      xhr = new XMLHttpRequest();
+      requests[key] = xhr;
     }
     xhr.timeout = 1000;
     xhr.onload = function() {
@@ -1119,10 +1119,10 @@ vv.control = (function() {
   };
 
   pub.start = function() {
-    if (document.readyState !== "loading") {
-      init();
-    } else {
+    if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
     }
   };
 
@@ -1843,7 +1843,10 @@ vv.view.system = (function() {
     var e = document.getElementById("header-back-label");
     var b = document.getElementById("header-back");
     var m = document.getElementById("header-main");
-    if (vv.model.list.rootname() !== "root") {
+    if (vv.model.list.rootname() === "root") {
+      b.classList.add("root");
+      m.classList.add("root");
+    } else {
       b.classList.remove("root");
       m.classList.remove("root");
       var songs = vv.model.list.list().songs;
@@ -1851,17 +1854,14 @@ vv.view.system = (function() {
         var p = vv.model.list.grandparent();
         e.textContent = vv.song.getOne(p.song, p.key);
       }
-    } else {
-      b.classList.add("root");
-      m.classList.add("root");
     }
   };
   vv.control.addEventListener("start", function() {
     vv.control.click(document.getElementById("header-back"), function(e) {
-      if (!vv.view.list.hidden()) {
-        vv.model.list.up();
-      } else {
+      if (vv.view.list.hidden()) {
         vv.model.list.abs(vv.storage.current);
+      } else {
+        vv.model.list.up();
       }
       vv.view.list.show();
       e.stopPropagation();
@@ -2144,10 +2144,10 @@ vv.view.modal.song = (function() {
         }
       } else if (
           (mod === 0 && e.keyCode === 8) || (mod === 1 && e.keyCode === 37)) {
-        if (!vv.view.list.hidden()) {
-          vv.model.list.up();
-        } else {
+        if (vv.view.list.hidden()) {
           vv.model.list.abs(vv.storage.current);
+        } else {
+          vv.model.list.up();
         }
         vv.view.list.show();
         e.stopPropagation();
