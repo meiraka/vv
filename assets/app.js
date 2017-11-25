@@ -2121,10 +2121,10 @@ vv.view.modal.song = (function() {
       }
       var buble = false;
       var mod = 0;
-      mod = mod | e.shiftKey << 3;
-      mod = mod | e.altKey << 2;
-      mod = mod | e.ctrlKey << 1;
-      mod = mod | e.metaKey;
+      mod |= e.shiftKey << 3;
+      mod |= e.altKey << 2;
+      mod |= e.ctrlKey << 1;
+      mod |= e.metaKey;
       if (mod === 0 && (e.key === " " || e.key === "Spacebar")) {
         vv.control.play_pause();
         e.stopPropagation();
