@@ -85,30 +85,29 @@ vv.song = (function() {
     for (var i = 0, imax = keys.length; i < imax; i++) {
       var writememo = memo.indexOf(keys[i]) !== -1;
       var newkeys = getOrElseMulti(song, keys[i], []);
-      var j, jmax, k, kmax;
       if (newkeys.length === 0) {
-        for (j = 0, jmax = songs.length; j < jmax; j++) {
+        for (var j = 0, jmax = songs.length; j < jmax; j++) {
           songs[j].sortkey += " ";
           if (writememo) {
             songs[j].keys.push([keys[i], "[no " + keys[i] + "]"]);
           }
         }
       } else if (newkeys.length === 1) {
-        for (j = 0, jmax = songs.length; j < jmax; j++) {
-          songs[j].sortkey += newkeys[0];
+        for (var k = 0, kmax = songs.length; k < kmax; k++) {
+          songs[k].sortkey += newkeys[0];
           if (writememo) {
-            songs[j].keys.push([keys[i], newkeys[0]]);
+            songs[k].keys.push([keys[i], newkeys[0]]);
           }
         }
       } else {
         var newsongs = [];
-        for (j = 0, jmax = songs.length; j < jmax; j++) {
-          for (k = 0, kmax = newkeys.length; k < kmax; k++) {
-            var newsong = vv.obj.copy(songs[j]);
-            newsong.keys = vv.obj.copy(songs[j].keys);
-            newsong.sortkey += newkeys[k];
+        for (var l = 0, lmax = songs.length; l < lmax; l++) {
+          for (var m = 0, mmax = newkeys.length; m < mmax; m++) {
+            var newsong = vv.obj.copy(songs[l]);
+            newsong.keys = vv.obj.copy(songs[l].keys);
+            newsong.sortkey += newkeys[m];
             if (writememo) {
-              newsong.keys.push([keys[i], newkeys[k]]);
+              newsong.keys.push([keys[i], newkeys[m]]);
             }
             newsongs.push(newsong);
           }
@@ -596,7 +595,7 @@ vv.model.list = (function() {
       }
     }
     if (!root) {
-      alert("unknown sort keys:" + keys);
+      vv.view.popup.show("model", "fixme: unknown sort keys: " + keys);
       return;
     }
     var songs = library[root];
