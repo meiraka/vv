@@ -127,8 +127,8 @@ vv.song = (function() {
     e.classList.add(style);
     e.classList.add("note-line");
     e.setAttribute("key", vv.song.getOne(song, key));
-    if (song["file"]) {
-      e.setAttribute("pos", song["pos"]);
+    if (song.file) {
+      e.setAttribute("pos", song.pos);
       e.setAttribute("contextmenu", "conext-" + song.file[0]);
       var menu = document.createElement("menu");
       menu.setAttribute("type", "context");
@@ -252,7 +252,7 @@ vv.songs = (function() {
       }
     });
     for (i = 0, imax = sorted.length; i < imax; i++) {
-      sorted[i]["pos"] = [i];
+      sorted[i].pos = [i];
     }
     return sorted;
   };
@@ -462,15 +462,15 @@ vv.model.list = (function() {
   };
   var mkmemo = function(key) {
     var ret = [];
-    for (var i = 0, imax = TREE[key]["tree"].length; i < imax; i++) {
-      ret.push(TREE[key]["tree"][i][0]);
+    for (var i = 0, imax = TREE[key].tree.length; i < imax; i++) {
+      ret.push(TREE[key].tree[i][0]);
     }
     return ret;
   };
   pub.update = function(data) {
     for (var key in TREE) {
       if (TREE.hasOwnProperty(key)) {
-        library[key] = vv.songs.sort(data, TREE[key]["sort"], mkmemo(key));
+        library[key] = vv.songs.sort(data, TREE[key].sort, mkmemo(key));
       }
     }
     update_list();
@@ -493,7 +493,7 @@ vv.model.list = (function() {
     if (r === "root") {
       return [];
     }
-    return TREE[r]["sort"];
+    return TREE[r].sort;
   };
   pub.up = function() {
     var songs = pub.list().songs;
@@ -515,7 +515,7 @@ vv.model.list = (function() {
     var r = pub.rootname();
     var key = "root";
     if (r !== "root") {
-      key = TREE[r]["tree"][vv.storage.tree.length - 1][0];
+      key = TREE[r].tree[vv.storage.tree.length - 1][0];
     }
     vv.storage.tree.push([key, value]);
     vv.storage.save();
@@ -523,7 +523,7 @@ vv.model.list = (function() {
     update_list();
     var songs = pub.list().songs;
     if (songs.length === 1 &&
-        TREE[r]["tree"].length !== vv.storage.tree.length) {
+        TREE[r].tree.length !== vv.storage.tree.length) {
       pub.down(vv.song.get(songs[0], pub.list().key));
     } else {
       raiseEvent("changed");
@@ -582,7 +582,7 @@ vv.model.list = (function() {
       vv.storage.tree.splice(0, vv.storage.tree.length);
       vv.storage.tree.push(r);
       var root = vv.storage.tree[0][1];
-      var selected = TREE[root]["tree"];
+      var selected = TREE[root].tree;
       for (var i = 0, imax = selected.length; i < imax; i++) {
         if (i === selected.length - 1) {
           break;
@@ -631,12 +631,12 @@ vv.model.list = (function() {
       filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
     }
     var ret = {};
-    ret.key = TREE[root]["tree"][vv.storage.tree.length - 1][0];
+    ret.key = TREE[root].tree[vv.storage.tree.length - 1][0];
     ret.songs = library[root];
     ret.songs = vv.songs.filter(ret.songs, filters);
     ret.songs = vv.songs.uniq(ret.songs, ret.key);
-    ret.style = TREE[root]["tree"][vv.storage.tree.length - 1][1];
-    ret.isdir = vv.storage.tree.length !== TREE[root]["tree"].length;
+    ret.style = TREE[root].tree[vv.storage.tree.length - 1][1];
+    ret.isdir = vv.storage.tree.length !== TREE[root].tree.length;
     return ret;
   };
   var list_root = function() {
@@ -655,8 +655,8 @@ vv.model.list = (function() {
       return;
     }
     if (vv.storage.tree.length > 1) {
-      var key = TREE[root]["tree"][vv.storage.tree.length - 2][0];
-      var style = TREE[root]["tree"][vv.storage.tree.length - 2][1];
+      var key = TREE[root].tree[vv.storage.tree.length - 2][0];
+      var style = TREE[root].tree[vv.storage.tree.length - 2][1];
       return {key: key, song: v[0], style: style, isdir: true};
     }
     return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
@@ -668,8 +668,8 @@ vv.model.list = (function() {
       return;
     }
     if (vv.storage.tree.length > 2) {
-      var key = TREE[root]["tree"][vv.storage.tree.length - 3][0];
-      var style = TREE[root]["tree"][vv.storage.tree.length - 3][1];
+      var key = TREE[root].tree[vv.storage.tree.length - 3][0];
+      var style = TREE[root].tree[vv.storage.tree.length - 3][1];
       return {key: key, song: v[0], style: style, isdir: true};
     } else if (vv.storage.tree.length === 2) {
       return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
@@ -991,13 +991,13 @@ vv.control = (function() {
   };
 
   pub.toggle_repeat = function() {
-    post_request("/api/music/control", {repeat: !vv.storage.control["repeat"]});
+    post_request("/api/music/control", {repeat: !vv.storage.control.repeat});
     vv.storage.control.repeat = !vv.storage.control.repeat;
     pub.raiseEvent("control");
   };
 
   pub.toggle_random = function() {
-    post_request("/api/music/control", {random: !vv.storage.control["random"]});
+    post_request("/api/music/control", {random: !vv.storage.control.random});
     vv.storage.control.random = !vv.storage.control.random;
     pub.raiseEvent("control");
   };
@@ -1219,8 +1219,8 @@ vv.view.main = (function() {
   var pub = {};
   var load_volume_preferences = function() {
     var c = document.getElementById("control-volume");
-    c.max = vv.storage.preferences["volume"]["max"];
-    if (vv.storage.preferences["volume"]["show"]) {
+    c.max = vv.storage.preferences.volume.max;
+    if (vv.storage.preferences.volume.show) {
       c.classList.remove("hide");
     } else {
       c.classList.add("hide");
@@ -1255,12 +1255,12 @@ vv.view.main = (function() {
   };
   pub.update = function() {
     document.getElementById("main-box-title").textContent =
-        vv.storage.current["Title"];
+        vv.storage.current.Title;
     document.getElementById("main-box-artist").textContent =
-        vv.storage.current["Artist"];
+        vv.storage.current.Artist;
     if (vv.storage.current.cover) {
       document.getElementById("main-cover-img").style.backgroundImage =
-          "url(\"/music_directory/" + vv.storage.current["cover"] + "\")";
+          "url(\"/music_directory/" + vv.storage.current.cover + "\")";
     } else {
       document.getElementById("main-cover-img").style.backgroundImage = "";
     }
@@ -1286,11 +1286,11 @@ vv.view.main = (function() {
       return;
     }
     var c = document.getElementById("main-cover-circle-active");
-    var elapsed = parseInt(vv.storage.control["song_elapsed"] * 1000);
-    if (vv.storage.control["state"] === "play") {
+    var elapsed = parseInt(vv.storage.control.song_elapsed * 1000);
+    if (vv.storage.control.state === "play") {
       elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control;
     }
-    var total = parseInt(vv.storage.current["Time"]);
+    var total = parseInt(vv.storage.current.Time);
     var d = (elapsed * 360 / 1000 / total - 90) * (Math.PI / 180);
     if (isNaN(d)) {
       return;
@@ -1669,13 +1669,13 @@ vv.view.system = (function() {
         li.classList.add("system-setting");
         var desc = document.createElement("div");
         desc.classList.add("system-setting-desc");
-        desc.textContent = o["outputname"];
+        desc.textContent = o.outputname;
         var ch = document.createElement("input");
         ch.classList.add("slideswitch");
         ch.setAttribute("type", "checkbox");
-        ch.setAttribute("id", "device_" + o["outputname"]);
-        ch.setAttribute("deviceid", o["outputid"]);
-        ch.checked = o["outputenabled"] === "1";
+        ch.setAttribute("id", "device_" + o.outputname);
+        ch.setAttribute("deviceid", o.outputid);
+        ch.checked = o.outputenabled === "1";
         ch.addEventListener("change", function() {
           vv.control.output(
               parseInt(this.getAttribute("deviceid")), this.checked);
@@ -1845,7 +1845,7 @@ vv.view.system = (function() {
     if (vv.model.list.rootname() !== "root") {
       b.classList.remove("root");
       m.classList.remove("root");
-      var songs = vv.model.list.list()["songs"];
+      var songs = vv.model.list.list().songs;
       if (songs[0]) {
         var p = vv.model.list.grandparent();
         e.textContent = vv.song.getOne(p.song, p.key);
@@ -1909,21 +1909,21 @@ vv.view.system = (function() {
     });
   });
   vv.control.addEventListener("control", function() {
-    if (vv.storage.control["state"] === "play") {
+    if (vv.storage.control.state === "play") {
       document.getElementById("control-toggleplay").classList.add("pause");
       document.getElementById("control-toggleplay").classList.remove("play");
     } else {
       document.getElementById("control-toggleplay").classList.add("play");
       document.getElementById("control-toggleplay").classList.remove("pause");
     }
-    if (vv.storage.control["repeat"]) {
+    if (vv.storage.control.repeat) {
       document.getElementById("control-repeat").classList.add("on");
       document.getElementById("control-repeat").classList.remove("off");
     } else {
       document.getElementById("control-repeat").classList.add("off");
       document.getElementById("control-repeat").classList.remove("on");
     }
-    if (vv.storage.control["random"]) {
+    if (vv.storage.control.random) {
       document.getElementById("control-random").classList.add("on");
       document.getElementById("control-random").classList.remove("off");
     } else {
@@ -1982,9 +1982,9 @@ vv.view.popup = (function() {
   var update = function() {
     var data = vv.storage.control;
     if ("state" in data) {
-      var elapsed = parseInt(data["song_elapsed"] * 1000);
+      var elapsed = parseInt(data.song_elapsed * 1000);
       var current = elapsed;
-      if (data["state"] === "play") {
+      if (data.state === "play") {
         current += (new Date).getTime() - vv.storage.last_modified_ms.control;
       }
       current = parseInt(current / 1000);
