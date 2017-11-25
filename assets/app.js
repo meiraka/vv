@@ -522,8 +522,7 @@ vv.model.list = (function() {
     focus = {};
     update_list();
     var songs = pub.list().songs;
-    if (songs.length === 1 &&
-        TREE[r].tree.length !== vv.storage.tree.length) {
+    if (songs.length === 1 && TREE[r].tree.length !== vv.storage.tree.length) {
       pub.down(vv.song.get(songs[0], pub.list().key));
     } else {
       raiseEvent("changed");
@@ -532,7 +531,7 @@ vv.model.list = (function() {
 
   var absSorted = function(song) {
     var root = "";
-    var pos = parseInt(song.Pos[0]);
+    var pos = parseInt(song.Pos[0], 10);
     var keys = vv.storage.sorted.keys.join();
     for (var key in TREE) {
       if (TREE.hasOwnProperty(key)) {
@@ -1286,11 +1285,11 @@ vv.view.main = (function() {
       return;
     }
     var c = document.getElementById("main-cover-circle-active");
-    var elapsed = parseInt(vv.storage.control.song_elapsed * 1000);
+    var elapsed = parseInt(vv.storage.control.song_elapsed * 1000, 10);
     if (vv.storage.control.state === "play") {
       elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control;
     }
-    var total = parseInt(vv.storage.current.Time);
+    var total = parseInt(vv.storage.current.Time, 10);
     var d = (elapsed * 360 / 1000 / total - 90) * (Math.PI / 180);
     if (isNaN(d)) {
       return;
@@ -1308,8 +1307,9 @@ vv.view.main = (function() {
   };
   var init = function() {
     document.getElementById("control-volume")
-        .addEventListener(
-            "change", function() { vv.control.volume(parseInt(this.value)); });
+        .addEventListener("change", function() {
+          vv.control.volume(parseInt(this.value, 10));
+        });
     vv.control.click(document.getElementById("main-cover"), function() {
       if (vv.storage.current) {
         vv.view.modal.song.show(vv.storage.current);
@@ -1401,7 +1401,7 @@ vv.view.list = (function() {
         if (isdir) {
           vv.model.list.down(value);
         } else {
-          vv.control.play(parseInt(pos));
+          vv.control.play(parseInt(pos, 10));
         }
       }, false);
       newul.appendChild(li);
@@ -1437,7 +1437,7 @@ vv.view.list = (function() {
     var style = vv.model.list.list().style;
     var scroll = document.getElementById("list");
     var l = document.getElementById("list-items");
-    var itemcount = parseInt(scroll.clientWidth / 160);
+    var itemcount = parseInt(scroll.clientWidth / 160, 10);
     if (!vv.storage.preferences.appearance.gridview_album) {
       itemcount = 1;
     }
@@ -1610,7 +1610,7 @@ vv.view.system = (function() {
           getter = function() { return obj.value; };
         } else if (obj.type === "range") {
           obj.value = String(vv.storage.preferences[mainkey][subkey]);
-          getter = function() { return parseInt(obj.value); };
+          getter = function() { return parseInt(obj.value, 10); };
           obj.addEventListener("input", function() {
             vv.storage.preferences[mainkey][subkey] = obj.value;
             vv.control.raiseEvent("preferences");
@@ -1678,7 +1678,7 @@ vv.view.system = (function() {
         ch.checked = o.outputenabled === "1";
         ch.addEventListener("change", function() {
           vv.control.output(
-              parseInt(this.getAttribute("deviceid")), this.checked);
+              parseInt(this.getAttribute("deviceid"), 10), this.checked);
         });
         li.appendChild(desc);
         li.appendChild(ch);
@@ -1704,16 +1704,16 @@ vv.view.system = (function() {
   var stats = (function() {
     var zfill2 = function(i) { return ("00" + i).slice(-2); };
     var strtimedelta = function(i) {
-      var ud = parseInt(i / (24 * 60 * 60));
+      var ud = parseInt(i / (24 * 60 * 60), 10);
       var uds = "";
       if (ud === 1) {
         uds = "1 day, ";
       } else if (ud !== 0) {
         uds = ud + " days, ";
       }
-      var uh = parseInt((i - ud * 24 * 60 * 60) / (60 * 60));
-      var um = parseInt((i - ud * 24 * 60 * 60 - uh * 60 * 60) / 60);
-      var us = parseInt(i - ud * 24 * 60 * 60 - uh * 60 * 60 - um * 60);
+      var uh = parseInt((i - ud * 24 * 60 * 60) / (60 * 60), 10);
+      var um = parseInt((i - ud * 24 * 60 * 60 - uh * 60 * 60) / 60, 10);
+      var us = parseInt(i - ud * 24 * 60 * 60 - uh * 60 * 60 - um * 60, 10);
       return uds + zfill2(uh) + ":" + zfill2(um) + ":" + zfill2(us);
     };
 
@@ -1723,12 +1723,12 @@ vv.view.system = (function() {
       document.getElementById("stat-artists").textContent =
           vv.storage.stats.artists;
       document.getElementById("stat-db-playtime").textContent =
-          strtimedelta(parseInt(vv.storage.stats.db_playtime));
+          strtimedelta(parseInt(vv.storage.stats.db_playtime, 10));
       document.getElementById("stat-playtime").textContent =
-          strtimedelta(parseInt(vv.storage.stats.playtime));
+          strtimedelta(parseInt(vv.storage.stats.playtime, 10));
       document.getElementById("stat-tracks").textContent =
           vv.storage.stats.songs;
-      var db_update = new Date(parseInt(vv.storage.stats.db_update) * 1000);
+      var db_update = new Date(parseInt(vv.storage.stats.db_update, 10) * 1000);
       var db_update_yyyymmdd = db_update.getFullYear() * 1000 +
           db_update.getMonth() * 100 + db_update.getDay;
       var db_update_str = "";
@@ -1751,10 +1751,11 @@ vv.view.system = (function() {
     };
     var update_time = function() {
       var diff = parseInt(
-          ((new Date()).getTime() - vv.storage.last_modified_ms.stats) / 1000);
-      var uptime = parseInt(vv.storage.stats.uptime) + diff;
+          ((new Date()).getTime() - vv.storage.last_modified_ms.stats) / 1000,
+          10);
+      var uptime = parseInt(vv.storage.stats.uptime, 10) + diff;
       if (vv.storage.control.state === "play") {
-        var playtime = parseInt(vv.storage.stats.playtime) + diff;
+        var playtime = parseInt(vv.storage.stats.playtime, 10) + diff;
         document.getElementById("stat-playtime").textContent =
             strtimedelta(playtime);
       }
@@ -1982,13 +1983,13 @@ vv.view.popup = (function() {
   var update = function() {
     var data = vv.storage.control;
     if ("state" in data) {
-      var elapsed = parseInt(data.song_elapsed * 1000);
+      var elapsed = parseInt(data.song_elapsed * 1000, 10);
       var current = elapsed;
       if (data.state === "play") {
         current += (new Date).getTime() - vv.storage.last_modified_ms.control;
       }
-      current = parseInt(current / 1000);
-      var min = parseInt(current / 60);
+      current = parseInt(current / 1000, 10);
+      var min = parseInt(current / 60, 10);
       var sec = current % 60;
       var label = min + ":" + ("0" + sec).slice(-2);
       [].forEach.call(document.getElementsByClassName("elapsed"), function(x) {
