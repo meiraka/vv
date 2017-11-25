@@ -38,13 +38,6 @@ vv.song = (function() {
     }
     return other;
   };
-  var getOrElse = function(song, key, other) {
-    var ret = getOrElseMulti(song, key, null);
-    if (!ret) {
-      return other;
-    }
-    return ret.join();
-  };
   var getOrElseMulti = function(song, key, other) {
     if (key in song) {
       return song[key];
@@ -60,6 +53,13 @@ vv.song = (function() {
       return tag(song, ["Album"], other);
     }
     return other;
+  };
+  var getOrElse = function(song, key, other) {
+    var ret = getOrElseMulti(song, key, null);
+    if (!ret) {
+      return other;
+    }
+    return ret.join();
   };
   var getOneOrElse = function(song, key, other) {
     if (!song.keys) {
@@ -249,8 +249,8 @@ vv.songs = (function() {
       }
       return 1;
     });
-    for (i = 0, imax = sorted.length; i < imax; i++) {
-      sorted[i].pos = [i];
+    for (var j = 0, jmax = sorted.length; j < jmax; j++) {
+      sorted[j].pos = [j];
     }
     return sorted;
   };
@@ -294,10 +294,11 @@ vv.songs = (function() {
       songs = newsongs;
     }
     if (songs.length > max) {
-      newsongs = [];
-      for (i = 0; i < max; i++) {
-        newsongs.push(songs[i]);
+      var ret = [];
+      for (var k = 0; k < max; k++) {
+        ret.push(songs[k]);
       }
+      return ret;
     }
     return songs;
   };
@@ -464,6 +465,40 @@ vv.model.list = (function() {
     }
     return ret;
   };
+  var list_child = function() {
+    var root = pub.rootname();
+    var filters = {};
+    for (var i = 0, imax = vv.storage.tree.length; i < imax; i++) {
+      if (i === 0) {
+        continue;
+      }
+      filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
+    }
+    var ret = {};
+    ret.key = TREE[root].tree[vv.storage.tree.length - 1][0];
+    ret.songs = library[root];
+    ret.songs = vv.songs.filter(ret.songs, filters);
+    ret.songs = vv.songs.uniq(ret.songs, ret.key);
+    ret.style = TREE[root].tree[vv.storage.tree.length - 1][1];
+    ret.isdir = vv.storage.tree.length !== TREE[root].tree.length;
+    return ret;
+  };
+  var list_root = function() {
+    var ret = [];
+    for (var key in TREE) {
+      if (TREE.hasOwnProperty(key)) {
+        ret.push({root: [key]});
+      }
+    }
+    return {key: "root", songs: ret, style: "plain", isdir: true};
+  };
+  var update_list = function() {
+    if (pub.rootname() === "root") {
+      list_cache = list_root();
+    } else {
+      list_cache = list_child();
+    }
+  };
   pub.update = function(data) {
     for (var key in TREE) {
       if (TREE.hasOwnProperty(key)) {
@@ -525,7 +560,29 @@ vv.model.list = (function() {
       raiseEvent("changed");
     }
   };
-
+  var absFallback = function(song) {
+    if (pub.rootname() !== "root" && song.file) {
+      var r = vv.storage.tree[0];
+      vv.storage.tree.length = 0;
+      vv.storage.tree.splice(0, vv.storage.tree.length);
+      vv.storage.tree.push(r);
+      var root = vv.storage.tree[0][1];
+      var selected = TREE[root].tree;
+      for (var i = 0, imax = selected.length; i < imax; i++) {
+        if (i === selected.length - 1) {
+          break;
+        }
+        var key = selected[i][0];
+        vv.storage.tree.push([key, vv.song.getOne(song, key)]);
+      }
+      vv.storage.save();
+    } else {
+      vv.storage.tree.splice(0, vv.storage.tree.length);
+      vv.storage.save();
+    }
+    update_list();
+    raiseEvent("changed");
+  };
   var absSorted = function(song) {
     var root = "";
     var pos = parseInt(song.Pos[0], 10);
@@ -570,30 +627,6 @@ vv.model.list = (function() {
       absFallback(song);
     }
   };
-
-  var absFallback = function(song) {
-    if (pub.rootname() !== "root" && song.file) {
-      var r = vv.storage.tree[0];
-      vv.storage.tree.length = 0;
-      vv.storage.tree.splice(0, vv.storage.tree.length);
-      vv.storage.tree.push(r);
-      var root = vv.storage.tree[0][1];
-      var selected = TREE[root].tree;
-      for (var i = 0, imax = selected.length; i < imax; i++) {
-        if (i === selected.length - 1) {
-          break;
-        }
-        var key = selected[i][0];
-        vv.storage.tree.push([key, vv.song.getOne(song, key)]);
-      }
-      vv.storage.save();
-    } else {
-      vv.storage.tree.splice(0, vv.storage.tree.length);
-      vv.storage.save();
-    }
-    update_list();
-    raiseEvent("changed");
-  };
   pub.abs = function(song) {
     if (!vv.storage.sorted) {
       return;
@@ -609,40 +642,6 @@ vv.model.list = (function() {
       update_list();
     }
     return list_cache;
-  };
-  var update_list = function() {
-    if (pub.rootname() === "root") {
-      list_cache = list_root();
-    } else {
-      list_cache = list_child();
-    }
-  };
-  var list_child = function() {
-    var root = pub.rootname();
-    var filters = {};
-    for (var i = 0, imax = vv.storage.tree.length; i < imax; i++) {
-      if (i === 0) {
-        continue;
-      }
-      filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
-    }
-    var ret = {};
-    ret.key = TREE[root].tree[vv.storage.tree.length - 1][0];
-    ret.songs = library[root];
-    ret.songs = vv.songs.filter(ret.songs, filters);
-    ret.songs = vv.songs.uniq(ret.songs, ret.key);
-    ret.style = TREE[root].tree[vv.storage.tree.length - 1][1];
-    ret.isdir = vv.storage.tree.length !== TREE[root].tree.length;
-    return ret;
-  };
-  var list_root = function() {
-    var ret = [];
-    for (var key in TREE) {
-      if (TREE.hasOwnProperty(key)) {
-        ret.push({root: [key]});
-      }
-    }
-    return {key: "root", songs: ret, style: "plain", isdir: true};
   };
   pub.parent = function() {
     var v = pub.list().songs;
@@ -1013,6 +1012,15 @@ vv.control = (function() {
     post_request("/api/music/outputs/" + id, {outputenabled: on});
   };
 
+  var update_all = function() {
+    fetch("/api/music/songs/sort", "sorted");
+    fetch("/api/version", "version");
+    fetch("/api/music/outputs", "outputs");
+    fetch("/api/music/songs/current", "current");
+    fetch("/api/music/control", "control");
+    fetch("/api/music/library", "library");
+  };
+
   var notify_last_update = (new Date()).getTime();
   var notify_last_connection = (new Date()).getTime();
   var connected = false;
@@ -1071,15 +1079,6 @@ vv.control = (function() {
       notify_err_cnt++;
       setTimeout(listennotify, 1000);
     };
-  };
-
-  var update_all = function() {
-    fetch("/api/music/songs/sort", "sorted");
-    fetch("/api/version", "version");
-    fetch("/api/music/outputs", "outputs");
-    fetch("/api/music/songs/current", "current");
-    fetch("/api/music/control", "control");
-    fetch("/api/music/library", "library");
   };
 
   var init = function() {
@@ -1154,6 +1153,15 @@ vv.control = (function() {
 // background
 (function() {
   var color = 128;
+  var update_theme = function() {
+    if (color < vv.storage.preferences.appearance.color_threshold) {
+      document.body.classList.add("dark");
+      document.body.classList.remove("light");
+    } else {
+      document.body.classList.add("light");
+      document.body.classList.remove("dark");
+    }
+  };
   var calc_color = function(path) {
     var canvas = document.createElement("canvas").getContext("2d");
     var img = new Image();
@@ -1193,15 +1201,6 @@ vv.control = (function() {
     } else {
       e.classList.add("hide");
       document.getElementById("background-image").classList.add("hide");
-    }
-  };
-  var update_theme = function() {
-    if (color < vv.storage.preferences.appearance.color_threshold) {
-      document.body.classList.add("dark");
-      document.body.classList.remove("light");
-    } else {
-      document.body.classList.add("light");
-      document.body.classList.remove("dark");
     }
   };
   vv.control.addEventListener("current", update);
@@ -1338,6 +1337,16 @@ vv.view.list = (function() {
     return !(
         e.classList.contains("view-list") || e.classList.contains("view-main"));
   };
+  var preferences_update = function() {
+    var ul = document.getElementById("list-items");
+    if (vv.storage.preferences.appearance.gridview_album) {
+      ul.classList.add("grid");
+      ul.classList.remove("nogrid");
+    } else {
+      ul.classList.add("nogrid");
+      ul.classList.remove("grid");
+    }
+  };
   pub.update = function() {
     if (vv.storage.tree.length % 2 === 0) {
       document.getElementById("list").classList.remove("odd");
@@ -1411,20 +1420,23 @@ vv.view.list = (function() {
       scroll.scrollTop = 0;
     }
   };
-  var preferences_update = function() {
-    var ul = document.getElementById("list-items");
-    if (vv.storage.preferences.appearance.gridview_album) {
-      ul.classList.add("grid");
-      ul.classList.remove("nogrid");
-    } else {
-      ul.classList.add("nogrid");
-      ul.classList.remove("grid");
+  var select_near_item = function() {
+    var scroll = document.getElementById("list");
+    var l = document.getElementById("list-items");
+    var selectable = l.getElementsByClassName("selectable");
+    var updated = false;
+    for (var i = 0; i < selectable.length; i++) {
+      var c = selectable[i];
+      var p = c.offsetTop;
+      if (scroll.scrollTop < p && p < scroll.scrollTop + scroll.clientHeight &&
+          !updated) {
+        c.classList.add("selected");
+        updated = true;
+      } else {
+        c.classList.remove("selected");
+      }
     }
   };
-  pub.up = function() { select_focused_or("up"); };
-  pub.left = function() { select_focused_or("left"); };
-  pub.right = function() { select_focused_or("right"); };
-  pub.down = function() { select_focused_or("down"); };
   var select_focused_or = function(target) {
     var style = vv.model.list.list().style;
     var scroll = document.getElementById("list");
@@ -1523,24 +1535,10 @@ vv.view.list = (function() {
       }
     }
   };
-
-  var select_near_item = function() {
-    var scroll = document.getElementById("list");
-    var l = document.getElementById("list-items");
-    var selectable = l.getElementsByClassName("selectable");
-    var updated = false;
-    for (var i = 0; i < selectable.length; i++) {
-      var c = selectable[i];
-      var p = c.offsetTop;
-      if (scroll.scrollTop < p && p < scroll.scrollTop + scroll.clientHeight &&
-          !updated) {
-        c.classList.add("selected");
-        updated = true;
-      } else {
-        c.classList.remove("selected");
-      }
-    }
-  };
+  pub.up = function() { select_focused_or("up"); };
+  pub.left = function() { select_focused_or("left"); };
+  pub.right = function() { select_focused_or("right"); };
+  pub.down = function() { select_focused_or("down"); };
 
   pub.activate = function() {
     var es = document.getElementById("list-items")
