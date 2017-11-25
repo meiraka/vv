@@ -754,7 +754,6 @@ vv.control = (function() {
         e.currentTarget.style.transform =
             "translate3d(" + e.currentTarget.diff_x * -1 + "px,0,0)";
       }
-
     };
     var end = function(e) {
       if (e.buttons && e.buttons !== 1) {
@@ -1814,7 +1813,6 @@ vv.view.system = (function() {
       vv.model.list.abs(vv.storage.current);
       vv.view.main.show();
     });
-
   };
   pub.show = function() {
     vv.storage.last_state = "system";
