@@ -1,5 +1,5 @@
 "use strict";
-var vv = vv || {
+var vv = {
   consts: {playlistLength: 9999},
   obj: {},
   song: {},
@@ -814,17 +814,17 @@ vv.control = (function() {
       var diff;
       if (e.touches) {
         diff = e.currentTarget.x - e.touches[0].screenX;
-        change = -5 > diff || diff > 5;
+        change = diff < -5 || diff > 5;
         if (!change) {
           diff = e.currentTarget.y - e.touches[0].screenY;
-          change = -5 > diff || diff > 5;
+          change = diff < -5 || diff > 5;
         }
       } else {
         diff = e.currentTarget.x - e.screenX;
-        change = -5 > diff || diff > 5;
+        change = diff < -5 || diff > 5;
         if (!change) {
           diff = e.currentTarget.y - e.screenY;
-          change = -5 > diff || diff > 5;
+          change = diff < -5 || diff > 5;
         }
       }
       if (change) {
