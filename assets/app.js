@@ -8,7 +8,7 @@ var vv = vv || {
   model: {list: {}},
   view:
       {main: {}, list: {}, system: {}, popup: {}, modal: {help: {}, song: {}}},
-  control: {},
+  control: {}
 };
 vv.obj = (function() {
   var pub = {};
@@ -317,7 +317,7 @@ vv.storage = (function() {
     last_modified: {},
     last_modified_ms: {},
     version: {},
-    last_state: "main",
+    last_state: "main"
   };
   pub.preferences = {
     volume: {show: true, max: "100"},
@@ -330,7 +330,7 @@ vv.storage = (function() {
       circled_image: true,
       gridview_album: true,
       auto_hide_scrollbar: true
-    },
+    }
   };
   // Presto Opera
   if (navigator.userAgent.indexOf("Presto/2") > 1) {
@@ -412,49 +412,35 @@ vv.storage = (function() {
 
 vv.model.list = (function() {
   var pub = {};
-  var library = {
-    AlbumArtist: [],
-    Album: [],
-    Artist: [],
-    Genre: [],
-    Date: [],
-  };
+  var library = {AlbumArtist: [], Album: [], Artist: [], Genre: [], Date: []};
   var TREE = {
     AlbumArtist: {
       sort: [
         "AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title",
         "file"
       ],
-      tree: [["AlbumArtist", "plain"], ["Album", "album"], ["Title", "song"]],
+      tree: [["AlbumArtist", "plain"], ["Album", "album"], ["Title", "song"]]
     },
     Album: {
       sort: [
         "AlbumArtist", "AlbumArtist", "Date", "Album", "DiscNumber",
         "TrackNumber", "Title", "file"
       ],
-      tree: [["Album", "album"], ["Title", "song"]],
+      tree: [["Album", "album"], ["Title", "song"]]
     },
     Artist: {
       sort: [
         "Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"
       ],
-      tree: [["Artist", "plain"], ["Title", "song"]],
+      tree: [["Artist", "plain"], ["Title", "song"]]
     },
     Genre: {
       sort: ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
-      tree: [
-        ["Genre", "plain"],
-        ["Album", "album"],
-        ["Title", "song"],
-      ]
+      tree: [["Genre", "plain"], ["Album", "album"], ["Title", "song"]]
     },
     Date: {
       sort: ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
-      tree: [
-        ["Date", "plain"],
-        ["Album", "album"],
-        ["Title", "song"],
-      ]
+      tree: [["Date", "plain"], ["Album", "album"], ["Title", "song"]]
     }
   };
   var focus = {};
@@ -1712,7 +1698,7 @@ vv.view.system = (function() {
     });
     return {
       show: mkshow("system-preferences", "system-nav-preferences"),
-      hide: mkhide("system-preferences", "system-nav-preferences"),
+      hide: mkhide("system-preferences", "system-nav-preferences")
     };
   })();
   var stats = (function() {
@@ -1792,7 +1778,7 @@ vv.view.system = (function() {
     };
     return {
       show: show_update,
-      hide: mkhide("system-stats", "system-nav-stats"),
+      hide: mkhide("system-stats", "system-nav-stats")
     };
   })();
   var info = (function() {
@@ -1805,7 +1791,7 @@ vv.view.system = (function() {
     });
     return {
       show: mkshow("system-info", "system-nav-info"),
-      hide: mkhide("system-info", "system-nav-info"),
+      hide: mkhide("system-info", "system-nav-info")
     };
   })();
   var init = function() {
