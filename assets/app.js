@@ -1986,7 +1986,7 @@ vv.view.popup = (function() {
       var elapsed = parseInt(data.song_elapsed * 1000, 10);
       var current = elapsed;
       if (data.state === "play") {
-        current += (new Date).getTime() - vv.storage.last_modified_ms.control;
+        current += (new Date()).getTime() - vv.storage.last_modified_ms.control;
       }
       current = parseInt(current / 1000, 10);
       var min = parseInt(current / 60, 10);
