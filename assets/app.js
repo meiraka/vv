@@ -58,9 +58,8 @@ vv.song = (function() {
       return tag(song, ["AlbumArtist", "Artist"], other);
     } else if (key === "AlbumSort") {
       return tag(song, ["Album"], other);
-    } else {
-      return other;
     }
+    return other;
   };
   var getOneOrElse = function(song, key, other) {
     if (!song.keys) {
@@ -247,9 +246,8 @@ vv.songs = (function() {
     var sorted = newsongs.sort(function(a, b) {
       if (a.sortkey < b.sortkey) {
         return -1;
-      } else {
-        return 1;
       }
+      return 1;
     });
     for (i = 0, imax = sorted.length; i < imax; i++) {
       sorted[i].pos = [i];
@@ -263,9 +261,8 @@ vv.songs = (function() {
       } else if (
           vv.song.getOne(song, key) === vv.song.getOne(self[i - 1], key)) {
         return false;
-      } else {
-        return true;
       }
+      return true;
     });
   };
   pub.filter = function(songs, filters) {
@@ -1246,11 +1243,9 @@ vv.view.main = (function() {
     var e = document.body;
     if (window.matchMedia("(orientation: portrait)").matches) {
       return !e.classList.contains("view-main");
-    } else {
-      return !(
-          e.classList.contains("view-list") ||
-          e.classList.contains("view-main"));
     }
+    return !(
+        e.classList.contains("view-list") || e.classList.contains("view-main"));
   };
   pub.update = function() {
     document.getElementById("main-box-title").textContent =
@@ -1340,11 +1335,9 @@ vv.view.list = (function() {
     var e = document.body;
     if (window.matchMedia("(orientation: portrait)").matches) {
       return !e.classList.contains("view-list");
-    } else {
-      return !(
-          e.classList.contains("view-list") ||
-          e.classList.contains("view-main"));
     }
+    return !(
+        e.classList.contains("view-list") || e.classList.contains("view-main"));
   };
   pub.update = function() {
     if (vv.storage.tree.length % 2 === 0) {
