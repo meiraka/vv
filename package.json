@@ -4,6 +4,7 @@
   "description": "",
   "devDependencies": {
     "eslint": "^3.18.0",
-    "source-map-support": "^0.4.15"
+    "source-map-support": "^0.4.15",
+    "eslint-config-google": "^0.4.0"
   }
 }

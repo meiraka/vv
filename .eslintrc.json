@@ -1,10 +1,12 @@
 {
-    "extends": ["eslint:recommended"],
+    "extends": ["google"],
     "plugins": [],
     "parserOptions": {},
     "env": {"browser": true},
     "globals": {},
     "rules": {
-        "semi": "error"
+        "semi": "error",
+        "camelcase": "off",
+        "brace-style": "off"
     }
 }
