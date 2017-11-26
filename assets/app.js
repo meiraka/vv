@@ -1137,7 +1137,8 @@ vv.control = (function() {
   pub.addEventListener("current", focus);
   vv.model.list.addEventListener(
       "update", focusremove("update", vv.model.list.removeEventListener));
-  pub.addEventListener("sorted", focusremove("sorted", removeEventListener));
+  pub.addEventListener(
+      "sorted", focusremove("sorted", pub.removeEventListener));
   pub.addEventListener(
       "library", function() { vv.model.list.update(vv.storage.library); });
   pub.addEventListener("start", function() {
@@ -1346,7 +1347,7 @@ vv.view.list = (function() {
       ul.classList.remove("grid");
     }
   };
-  pub.update = function() {
+  var update = function() {
     if (vv.storage.tree.length % 2 === 0) {
       document.getElementById("list").classList.remove("odd");
       document.getElementById("list").classList.add("even");
@@ -1551,10 +1552,10 @@ vv.view.list = (function() {
     return false;
   };
 
-  vv.control.addEventListener("current", pub.update);
+  vv.control.addEventListener("current", update);
   vv.control.addEventListener("preferences", preferences_update);
-  vv.model.list.addEventListener("update", pub.update);
-  vv.model.list.addEventListener("changed", pub.update);
+  vv.model.list.addEventListener("update", update);
+  vv.model.list.addEventListener("changed", update);
   vv.control.addEventListener("start", function() {
     vv.control.swipe(document.getElementById("list"), vv.model.list.up);
   });
