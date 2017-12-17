@@ -1025,10 +1025,13 @@ vv.control = (function() {
   var connected = false;
   var notify_err_cnt = 0;
   var ws = null;
-  var listennotify = function() {
+  var listennotify = function(cause) {
     if (notify_err_cnt > 20) {
       vv.view.popup.show("WebSocket", "Stopped. Too many errors.");
       return;
+    }
+    if (cause) {
+      vv.view.popup.show("WebSocket", cause);
     }
     notify_last_connection = (new Date()).getTime();
     connected = false;
@@ -1085,14 +1088,15 @@ vv.control = (function() {
       var now = (new Date()).getTime();
       if (connected && now - 10000 > notify_last_update) {
         notify_err_cnt++;
-        vv.view.popup.show(
-            "WebSocket", "Socket does not respond properly. Reconnecting");
-        setTimeout(listennotify);
+        setTimeout(function() {
+          listennotify("Socket does not respond properly. Reconnecting");
+        });
       }
       if (!connected && now - 2000 > notify_last_connection) {
         notify_err_cnt++;
-        vv.view.popup.show("WebSocket", "Connection timed out. Reconnecting");
-        setTimeout(listennotify);
+        setTimeout(function() {
+          listennotify("Connection timed out. Reconnecting");
+        });
       }
 
       pub.raiseEvent("poll");
