@@ -32,6 +32,8 @@ func (e *httpClientError) Error() string {
 	return e.message
 }
 
+type jsonMap map[string]interface{}
+
 /*Server http server for vv.*/
 type Server struct {
 	Port           string
@@ -91,39 +93,61 @@ func (s *Server) makeHandle() http.Handler {
 func (s *Server) apiMusicControl(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
-		j, err := parseSimpleJSON(r.Body)
+		decoder := json.NewDecoder(r.Body)
+		var data struct {
+			Volume  *int    `json:"volume"`
+			Repeat  *bool   `json:"repeat"`
+			Random  *bool   `json:"random"`
+			Single  *bool   `json:"single"`
+			Consume *bool   `json:"consume"`
+			State   *string `json:"state"`
+		}
+		err := decoder.Decode(&data)
 		if err != nil {
 			writeError(w, &httpClientError{message: "failed to get request parameters", err: err})
 			return
 		}
-		funcs := []func() error{
-			func() error { return j.execIfInt("volume", s.Music.Volume) },
-			func() error { return j.execIfBool("repeat", s.Music.Repeat) },
-			func() error { return j.execIfBool("random", s.Music.Random) },
-			func() error {
-				return j.execIfString("state", func(state string) error {
-					switch state {
-					case "play":
-						return s.Music.Play()
-					case "pause":
-						return s.Music.Pause()
-					case "next":
-						return s.Music.Next()
-					case "prev":
-						return s.Music.Prev()
-					}
-					return &httpClientError{message: "unknown state value: " + state}
-				})
-			},
-		}
-		for i := range funcs {
-			err = funcs[i]()
+		if data.Volume != nil {
+			err = s.Music.Volume(*data.Volume)
 			if err != nil {
 				writeError(w, err)
 				return
 			}
 		}
-		writeError(w, err)
+		if data.Repeat != nil {
+			err = s.Music.Repeat(*data.Repeat)
+			if err != nil {
+				writeError(w, err)
+				return
+			}
+		}
+		if data.Random != nil {
+			s.Music.Random(*data.Random)
+			if err != nil {
+				writeError(w, err)
+				return
+			}
+		}
+		if data.State != nil {
+			switch *data.State {
+			case "play":
+				err = s.Music.Play()
+			case "pause":
+				err = s.Music.Pause()
+			case "next":
+				err = s.Music.Next()
+			case "prev":
+				err = s.Music.Prev()
+			default:
+				writeError(w, &httpClientError{message: "unknown state value: " + *data.State})
+				return
+			}
+			if err != nil {
+				writeError(w, err)
+				return
+			}
+		}
+		writeError(w, nil)
 		return
 	case "GET":
 		d, l := s.Music.Status()
