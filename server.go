@@ -39,7 +39,7 @@ type jsonMap map[string]interface{}
 
 /*Server http server for vv.*/
 type Server struct {
-	Port           string
+	Addr           string
 	Music          MusicIF
 	MusicDirectory string
 	StartTime      time.Time
@@ -52,7 +52,7 @@ type Server struct {
 // Serve serves http request.
 func (s *Server) Serve() {
 	handler := s.makeHandle()
-	srv := &http.Server{Addr: fmt.Sprintf(":%s", s.Port), Handler: handler}
+	srv := &http.Server{Addr: s.Addr, Handler: handler}
 	srv.SetKeepAlivesEnabled(s.KeepAlive)
 	go func() {
 		srv.ListenAndServe()
