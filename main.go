@@ -14,8 +14,8 @@ const staticVersion = "v0.3.1+"
 
 var version string
 
-func setupFlag() {
-	viper.SetConfigName("config")
+func setupFlag(name string) {
+	viper.SetConfigName(name)
 	viper.AddConfigPath("/etc/xdg/vv")
 	viper.AddConfigPath("$HOME/.config/vv")
 	pflag.String("mpd.host", "", "[DEPRECATED] mpd server hostname to connect")
@@ -55,7 +55,7 @@ func getMusicDirectory(confpath string) (string, error) {
 
 //go:generate go-bindata assets
 func main() {
-	setupFlag()
+	setupFlag("config")
 	err := viper.ReadInConfig()
 	if err != nil {
 		if _, notfound := err.(viper.ConfigFileNotFoundError); !notfound {

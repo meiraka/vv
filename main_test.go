@@ -8,35 +8,36 @@ import (
 )
 
 func TestReadConfig(t *testing.T) {
-	viper.AddConfigPath("./")
-	setupFlag()
-	const path = "./config.yaml"
-	input := []byte(
-		"mpd:\n" +
-			"    host: \"hoge.local\"\n" +
-			"    port: \"6600\"\n" +
-			"    music_directory: \"hoge\"\n" +
-			"server:\n" +
-			"    port: \"8080\"\n",
-	)
-	ioutil.WriteFile(path, input, os.ModePerm)
-	testsets := map[string]string{
-		"mpd.host":            "hoge.local",
-		"mpd.port":            "6600",
-		"mpd.music_directory": "hoge",
-		"server.port":         "8080",
+	viper.AddConfigPath("./appendix")
+	setupFlag("example.config")
+	testsets1 := map[string]string{
+		"mpd.host":            "",
+		"mpd.port":            "",
+		"mpd.network":         "tcp",
+		"mpd.music_directory": "/path/to/music/dir",
+		"server.port":         "",
+		"server.addr":         ":8080",
+	}
+	testsets2 := map[string]bool{
+		"server.keepalive": true,
+		"debug":            false,
 	}
 	err := viper.ReadInConfig()
 	if err != nil {
 		t.Errorf("unexpected err: %s", err.Error())
 	}
-	for input, expect := range testsets {
+	for input, expect := range testsets1 {
 		actual := viper.GetString(input)
 		if actual != expect {
 			t.Errorf("unexpected value for %s, actual:%s, expect:%s", input, actual, expect)
 		}
 	}
-	os.Remove(path)
+	for input, expect := range testsets2 {
+		actual := viper.GetBool(input)
+		if actual != expect {
+			t.Errorf("unexpected value for %s, actual:%t, expect:%t", input, actual, expect)
+		}
+	}
 }
 
 func TestGetMusicDirectory(t *testing.T) {

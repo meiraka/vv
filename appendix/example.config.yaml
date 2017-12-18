@@ -1,11 +1,11 @@
 mpd:
-    # mpd server host to connect
-    host: localhost
-    # mpd server TCP port to connect
-    port: "6600"
+    # mpd server network to connect
+    network: "tcp"
+    # mpd server address to connect
+    addr: "localhost:6600"
     # set music_directory in mpd.conf value to search album cover image.
-    music_directory: ""
+    music_directory: "/path/to/music/dir"
 
 server:
-    # this app serving TCP port
-    port: "8080"
+    # this app serving address
+    addr: ":8080"
