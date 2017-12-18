@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -10,11 +11,13 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"os/signal"
 	"path"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -48,7 +51,16 @@ type Server struct {
 // Serve serves http request.
 func (s *Server) Serve() {
 	handler := s.makeHandle()
-	http.ListenAndServe(fmt.Sprintf(":%s", s.Port), handler)
+	srv := &http.Server{Addr: fmt.Sprintf(":%s", s.Port), Handler: handler}
+	go func() {
+		srv.ListenAndServe()
+	}()
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT)
+	<-sc
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	srv.Shutdown(ctx)
 }
 
 func (s *Server) makeHandle() http.Handler {
