@@ -43,6 +43,7 @@ type Server struct {
 	Music          MusicIF
 	MusicDirectory string
 	StartTime      time.Time
+	KeepAlive      bool
 	upgrader       websocket.Upgrader
 	debug          bool
 	libraryCache   *gzCache
@@ -52,6 +53,7 @@ type Server struct {
 func (s *Server) Serve() {
 	handler := s.makeHandle()
 	srv := &http.Server{Addr: fmt.Sprintf(":%s", s.Port), Handler: handler}
+	srv.SetKeepAlivesEnabled(s.KeepAlive)
 	go func() {
 		srv.ListenAndServe()
 	}()
