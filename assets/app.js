@@ -1026,10 +1026,6 @@ vv.control = (function() {
   var notify_err_cnt = 0;
   var ws = null;
   var listennotify = function(cause) {
-    if (notify_err_cnt > 20) {
-      vv.view.popup.show("WebSocket", "Stopped. Too many errors.");
-      return;
-    }
     if (cause) {
       vv.view.popup.show("WebSocket", cause);
     }
