@@ -863,15 +863,12 @@ vv.control = (function() {
   };
   var get_request = function(path, ifmodified, callback, timeout) {
     var key = "GET " + path;
-    var xhr;
     if (requests[key]) {
-      xhr = requests[key];
-      xhr.onabort = function() {};  // disable retry
-      xhr.abort();
-    } else {
-      xhr = new XMLHttpRequest();
-      requests[key] = xhr;
+      requests[key].onabort = function() {};  // disable retry
+      requests[key].abort();
     }
+    var xhr = new XMLHttpRequest();
+    requests[key] = xhr;
     if (!timeout) {
       timeout = 1000;
     }
@@ -919,14 +916,11 @@ vv.control = (function() {
 
   var post_request = function(path, obj) {
     var key = "POST " + path;
-    var xhr;
     if (requests[key]) {
-      xhr = requests[key];
-      xhr.abort();
-    } else {
-      xhr = new XMLHttpRequest();
-      requests[key] = xhr;
+      requests[key].abort();
     }
+    var xhr = new XMLHttpRequest();
+    requests[key] = xhr;
     xhr.timeout = 1000;
     xhr.onload = function() {
       if (xhr.status === 404) {
