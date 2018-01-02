@@ -55,6 +55,10 @@ body {
   padding: constant(safe-area-inset-top) constant(safe-area-inset-right) constant(safe-area-inset-bottom) constant(safe-area-inset-left);
 }
 
+body.unload > * {
+  display: none;
+}
+
 main {
   display: flex;
   flex-flow: row nowrap;
@@ -195,19 +199,23 @@ body {
   font-size: 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Migu 1C", "Noto Sans CJK JP Regular", "Noto Sans CJK JP", Arial, sans-serif;
   font-feature-settings: 'palt' 1;
-  transition: color 0.2s 0s ease;
+  transition: color 0.2s 0s ease, background-color 0.2s 0s ease;
 }
 
-html,
 body.light {
   color: #303030;
   background-color: #ffffff;
 }
 
-html,
 body.dark {
   color: #d0d0d0;
   background-color: #000000;
+}
+
+html,
+body.unload {
+  color: rgba(0, 0, 0, 0);
+  background-color: #ffffff;
 }
 
 kbd {

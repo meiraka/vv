@@ -1196,6 +1196,7 @@ vv.control = (function() {
       e.classList.add("hide");
       document.getElementById("background-image").classList.add("hide");
     }
+    document.body.classList.remove("unload");
   };
   vv.control.addEventListener("current", update);
   vv.control.addEventListener("preferences", update);
