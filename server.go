@@ -80,6 +80,7 @@ func (s *Server) makeHandle() http.Handler {
 	h.HandleFunc("/api/music/songs/sort", s.apiMusicSongsSort)
 	h.HandleFunc("/api/music/stats", s.apiMusicStats)
 	h.HandleFunc("/api/version", s.apiVersion)
+	h.HandleFunc("/assets/startup/", s.assetsStartup)
 	fs := http.StripPrefix(musicDirectoryPrefix, http.FileServer(http.Dir(s.MusicDirectory)))
 	h.HandleFunc(musicDirectoryPrefix, func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
@@ -331,6 +332,42 @@ func (s *Server) apiVersion(w http.ResponseWriter, r *http.Request) {
 	} else {
 		writeNotModified(w, s.StartTime)
 	}
+}
+
+func (s *Server) assetsStartup(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/assets/startup/") {
+		w.WriteHeader(404)
+		return
+	}
+	fname := strings.TrimPrefix(r.URL.Path, "/assets/startup/")
+	fnames := strings.Split(fname, "x")
+	if len(fnames) != 2 {
+		w.WriteHeader(404)
+		return
+	}
+	width, err := strconv.Atoi(fnames[0])
+	if err != nil {
+		w.WriteHeader(404)
+		return
+	}
+	height, err := strconv.Atoi(fnames[1])
+	if err != nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	data, err := Asset("assets/app.png")
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+	newdata, err := expandImage(data, width, height)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+	w.Header().Add("Content-Type", "image/png")
+	w.Write(newdata)
 }
 
 type gzCache struct {
