@@ -774,11 +774,13 @@ vv.control = (function() {
       var p = e.currentTarget.clientWidth / e.currentTarget.diff_x;
       if (p > -4 && p < 0) {
         f(e);
+        e.currentTarget.classList.remove("swipe");
       } else if (
           now - starttime < 200 &&
           e.currentTarget.diff_y_l < e.currentTarget.diff_x_l &&
           e.currentTarget.diff_x < 0) {
         f(e);
+        e.currentTarget.classList.remove("swipe");
       } else {
         cancel(e);
       }
