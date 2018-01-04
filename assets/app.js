@@ -542,6 +542,7 @@ vv.model.list = (function() {
       raiseEvent("changed");
     }
   };
+  pub.TREE = TREE;
   pub.down = function(value) {
     var r = pub.rootname();
     var key = "root";
@@ -700,7 +701,7 @@ vv.control = (function() {
     }
   };
 
-  pub.swipe = function(element, f) {
+  pub.swipe = function(element, f, failure) {
     element.swipe_target = f;
     var starttime = 0;
     var now = 0;
@@ -715,18 +716,28 @@ vv.control = (function() {
         e.currentTarget.x = e.screenX;
         e.currentTarget.y = e.screenY;
       }
-      if (e.currentTarget.x > 40) {
-        return;
-      }
       starttime = (new Date()).getTime();
       e.currentTarget.swipe = true;
       e.currentTarget.classList.add("swipe");
     };
+    var cancel = function(e) {
+      if (e.currentTarget.swipe) {
+        e.currentTarget.swipe = false;
+        e.currentTarget.classList.remove("swipe");
+        if (failure) {
+          failure();
+        } else {
+          e.currentTarget.style.transform = "translate3d(0,0,0)";
+        }
+      }
+    };
     var move = function(e) {
-      if (e.buttons && e.buttons !== 1) {
+      if (e.buttons === 0 || (e.buttons && e.buttons !== 1)) {
+        cancel(e);
         return;
       }
       if (!e.currentTarget.swipe) {
+        cancel(e);
         return;
       }
       if (e.touches) {
@@ -745,9 +756,7 @@ vv.control = (function() {
           e.currentTarget.diff_y * -1;
       if (now - starttime < 200 &&
           e.currentTarget.diff_y_l > e.currentTarget.diff_x_l) {
-        e.currentTarget.swipe = false;
-        e.currentTarget.classList.remove("swipe");
-        e.currentTarget.style.transform = "translate3d(0,0,0)";
+        cancel(e);
       } else {
         e.currentTarget.style.transform =
             "translate3d(" + e.currentTarget.diff_x * -1 + "px,0,0)";
@@ -755,9 +764,11 @@ vv.control = (function() {
     };
     var end = function(e) {
       if (e.buttons && e.buttons !== 1) {
+        cancel(e);
         return;
       }
       if (!e.currentTarget.swipe) {
+        cancel(e);
         return;
       }
       var p = e.currentTarget.clientWidth / e.currentTarget.diff_x;
@@ -768,10 +779,9 @@ vv.control = (function() {
           e.currentTarget.diff_y_l < e.currentTarget.diff_x_l &&
           e.currentTarget.diff_x < 0) {
         f(e);
+      } else {
+        cancel(e);
       }
-      e.currentTarget.swipe = false;
-      e.currentTarget.classList.remove("swipe");
-      e.currentTarget.style.transform = "translate3d(0,0,0)";
     };
     if ("ontouchend" in element) {
       element.addEventListener("touchstart", start);
@@ -1333,7 +1343,8 @@ vv.view.list = (function() {
         e.classList.contains("view-list") || e.classList.contains("view-main"));
   };
   var preferences_update = function() {
-    var ul = document.getElementById("list-items");
+    var index = vv.storage.tree.length;
+    var ul = document.getElementById("list-items" + index);
     if (vv.storage.preferences.appearance.gridview_album) {
       ul.classList.add("grid");
       ul.classList.remove("nogrid");
@@ -1342,25 +1353,46 @@ vv.view.list = (function() {
       ul.classList.remove("grid");
     }
   };
-  var update = function() {
-    if (vv.storage.tree.length % 2 === 0) {
-      document.getElementById("list").classList.remove("odd");
-      document.getElementById("list").classList.add("even");
-    } else {
-      document.getElementById("list").classList.remove("even");
-      document.getElementById("list").classList.add("odd");
+  var updatepos = function() {
+    var index = vv.storage.tree.length;
+    var lists = document.getElementsByClassName("list");
+    for (var listindex = 0; listindex < lists.length; listindex++) {
+      if (listindex < index) {
+        lists[listindex].style.transform = "translate3d(-100%,0,0)";
+      } else if (listindex === index) {
+        lists[listindex].style.transform = "translate3d(0,0,0)";
+      } else {
+        lists[listindex].style.transform = "translate3d(100%,0,0)";
+      }
     }
+  };
+  var update = function() {
+    var index = vv.storage.tree.length;
     var ls = vv.model.list.list();
     var key = ls.key;
     var songs = ls.songs;
     var isdir = ls.isdir;
     var style = ls.style;
     var newul = document.createDocumentFragment();
-    var ul = document.getElementById("list-items");
-    var scroll = document.getElementById("list");
+    var ul = document.getElementById("list-items" + index);
+    var scroll = document.getElementById("list" + index);
+    var lists = document.getElementsByClassName("list");
+    for (var treeindex = 0; treeindex < vv.storage.tree.length; treeindex++) {
+      var currentleef = vv.storage.tree[treeindex];
+      var viewleef = lists[treeindex + 1].leef;
+      if (!viewleef || viewleef[0] !== currentleef[0] ||
+          viewleef[1] !== currentleef[1]) {
+        var oldul =
+            lists[treeindex + 1].getElementsByClassName("list-items")[0];
+        while (oldul.lastChild) {
+          oldul.removeChild(oldul.lastChild);
+        }
+      }
+    }
     while (ul.lastChild) {
       ul.removeChild(ul.lastChild);
     }
+    updatepos();
     var li;
     var focus_li = null;
     ul.classList.remove("songlist");
@@ -1416,8 +1448,9 @@ vv.view.list = (function() {
     }
   };
   var select_near_item = function() {
-    var scroll = document.getElementById("list");
-    var l = document.getElementById("list-items");
+    var index = vv.storage.tree.length;
+    var scroll = document.getElementById("list" + index);
+    var l = document.getElementById("list-items" + index);
     var selectable = l.getElementsByClassName("selectable");
     var updated = false;
     for (var i = 0; i < selectable.length; i++) {
@@ -1434,8 +1467,9 @@ vv.view.list = (function() {
   };
   var select_focused_or = function(target) {
     var style = vv.model.list.list().style;
-    var scroll = document.getElementById("list");
-    var l = document.getElementById("list-items");
+    var index = vv.storage.tree.length;
+    var scroll = document.getElementById("list" + index);
+    var l = document.getElementById("list-items" + index);
     var itemcount = parseInt(scroll.clientWidth / 160, 10);
     if (!vv.storage.preferences.appearance.gridview_album) {
       itemcount = 1;
@@ -1536,7 +1570,8 @@ vv.view.list = (function() {
   pub.down = function() { select_focused_or("down"); };
 
   pub.activate = function() {
-    var es = document.getElementById("list-items")
+    var index = vv.storage.tree.length;
+    var es = document.getElementById("list-items" + index)
                  .getElementsByClassName("selected");
     if (es.length !== 0) {
       var e = {};
@@ -1552,7 +1587,16 @@ vv.view.list = (function() {
   vv.model.list.addEventListener("update", update);
   vv.model.list.addEventListener("changed", update);
   vv.control.addEventListener("start", function() {
-    vv.control.swipe(document.getElementById("list"), vv.model.list.up);
+    vv.control.swipe(
+        document.getElementById("list1"), vv.model.list.up, updatepos);
+    vv.control.swipe(
+        document.getElementById("list2"), vv.model.list.up, updatepos);
+    vv.control.swipe(
+        document.getElementById("list3"), vv.model.list.up, updatepos);
+    vv.control.swipe(
+        document.getElementById("list4"), vv.model.list.up, updatepos);
+    vv.control.swipe(
+        document.getElementById("list5"), vv.model.list.up, updatepos);
   });
   return pub;
 })();
