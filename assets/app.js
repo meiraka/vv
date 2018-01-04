@@ -784,13 +784,13 @@ vv.control = (function() {
       }
     };
     if ("ontouchend" in element) {
-      element.addEventListener("touchstart", start);
-      element.addEventListener("touchmove", move);
-      element.addEventListener("touchend", end);
+      element.addEventListener("touchstart", start, {passive: true});
+      element.addEventListener("touchmove", move, {passive: true});
+      element.addEventListener("touchend", end, {passive: true});
     } else {
-      element.addEventListener("mousedown", start);
-      element.addEventListener("mousemove", move);
-      element.addEventListener("mouseup", end);
+      element.addEventListener("mousedown", start, {passive: true});
+      element.addEventListener("mousemove", move, {passive: true});
+      element.addEventListener("mouseup", end, {passive: true});
     }
   };
 
@@ -851,15 +851,15 @@ vv.control = (function() {
       }
     };
     if ("ontouchend" in element) {
-      element.addEventListener("touchstart", start);
-      element.addEventListener("touchmove", move);
-      element.addEventListener("touchend", end);
+      element.addEventListener("touchstart", start, {passive: true});
+      element.addEventListener("touchmove", move, {passive: true});
+      element.addEventListener("touchend", end, {passive: true});
     } else {
-      element.addEventListener("mousedown", start);
-      element.addEventListener("mousemove", move);
-      element.addEventListener("mouseup", end);
-      element.addEventListener("mouseenter", enter);
-      element.addEventListener("mouseleave", leave);
+      element.addEventListener("mousedown", start, {passive: true});
+      element.addEventListener("mousemove", move, {passive: true});
+      element.addEventListener("mouseup", end, {passive: true});
+      element.addEventListener("mouseenter", enter, {passive: true});
+      element.addEventListener("mouseleave", leave, {passive: true});
     }
   };
 
