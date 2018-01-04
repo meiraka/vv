@@ -112,10 +112,6 @@ footer {
     width: 100%;
   }
 
-  .tab {
-    height: 50px;
-  }
-
   .view-main .main {
     display: flex;
   }
@@ -135,26 +131,16 @@ footer {
 }
 
 @media (orientation: landscape) {
-  .view-list .main,
-  .view-main .main {
-    display: flex;
-  }
-
-  .view-main .lists,
-  .view-list .lists {
-    display: block;
-  }
-
-  .lists {
+  .full {
     width: 50%;
   }
 
   .main {
-    width: 50%;
+    display: flex;
   }
 
-  .tab {
-    width: 25%;
+  .lists {
+    display: block;
   }
 
   footer {
