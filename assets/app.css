@@ -116,7 +116,6 @@ footer {
     height: 50px;
   }
 
-  .view-system .system,
   .view-main .main {
     display: flex;
   }
@@ -126,11 +125,7 @@ footer {
   }
 
   .view-main .lists,
-  .view-main .system,
-  .view-list .main,
-  .view-list .system,
-  .view-system .lists,
-  .view-system .main {
+  .view-list .main {
     display: none;
   }
 
@@ -141,21 +136,13 @@ footer {
 
 @media (orientation: landscape) {
   .view-list .main,
-  .view-main .main,
-  .view-system .system {
+  .view-main .main {
     display: flex;
   }
 
   .view-main .lists,
   .view-list .lists {
     display: block;
-  }
-
-  .view-main .system,
-  .view-list .system,
-  .view-system .lists,
-  .view-system .main {
-    display: none;
   }
 
   .lists {
@@ -168,10 +155,6 @@ footer {
 
   .tab {
     width: 25%;
-  }
-
-  .system {
-    width: 100%;
   }
 
   footer {
@@ -385,10 +368,6 @@ svg path {
   visibility: hidden;
 }
 
-.view-system #header-back-label {
-  display: none;
-}
-
 @media (orientation: portrait) {
   .view-main #menu-main {
     visibility: hidden;
@@ -414,7 +393,6 @@ svg path {
 }
 
 @media (orientation: portrait) {
-  .animation.view-system .system,
   .animation.view-list .list.even,
   .animation.view-main .main {
     animation: show_opacity 100ms linear 0s;
@@ -426,7 +404,6 @@ svg path {
 }
 
 @media (orientation: landscape) {
-  .animation.view-system .system,
   .animation.view-list .list.even,
   .animation.view-list .main,
   .animation.view-main .main,
@@ -1607,10 +1584,29 @@ svg path {
   padding: 12px;
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex: column nowrap;
   align-items: center;
   justify-content: center;
   max-height: 80%;
+}
+
+.modal-window.system {
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 80%;
+  height: 80%;
+}
+
+@media (orientation: landscape) {
+  .modal-window.system {
+    flex-flow: row nowrap;
+  }
+}
+
+@media (orientation: portrait) {
+  .modal-window.system {
+    flex-flow: column nowrap;
+  }
 }
 
 .modal-window.hide {

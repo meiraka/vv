@@ -1102,12 +1102,7 @@ vv.control = (function() {
       pub.raiseEvent("poll");
       setTimeout(polling, 1000);
     };
-    var show = {
-      main: vv.view.main.show,
-      list: vv.view.list.show,
-      system: vv.view.system.show
-    };
-    show[vv.storage.last_state]();
+    vv.view.list.show();
     pub.raiseEvent("start");
     if (vv.storage.current && vv.storage.last_modified.current) {
       pub.raiseEvent("current");
@@ -1239,7 +1234,6 @@ vv.view.main = (function() {
     vv.storage.last_state = "main";
     vv.storage.save();
     document.body.classList.add("view-main");
-    document.body.classList.remove("view-system");
     document.body.classList.remove("view-list");
   };
   pub.hidden = function() {
@@ -1332,7 +1326,6 @@ vv.view.list = (function() {
     vv.storage.save();
     document.body.classList.add("view-list");
     document.body.classList.remove("view-main");
-    document.body.classList.remove("view-system");
   };
   pub.hidden = function() {
     var e = document.body;
@@ -1846,20 +1839,13 @@ vv.view.system = (function() {
       location.reload();
     });
     document.getElementById("user-agent").textContent = navigator.userAgent;
-    vv.control.swipe(document.getElementById("system"), function() {
-      vv.model.list.abs(vv.storage.current);
-      vv.view.main.show();
-    });
+    vv.control.click(
+        document.getElementById("modal-system-close"), vv.view.modal.hide);
   };
   pub.show = function() {
-    vv.storage.last_state = "system";
-    vv.storage.save();
-    document.body.classList.add("view-system");
-    document.body.classList.remove("view-list");
-    document.body.classList.remove("view-main");
-  };
-  pub.hidden = function() {
-    return !document.body.classList.contains("view-system");
+    document.getElementById("modal-background").classList.remove("hide");
+    document.getElementById("modal-outer").classList.remove("hide");
+    document.getElementById("modal-system").classList.remove("hide");
   };
   vv.control.addEventListener("start", init);
   return pub;

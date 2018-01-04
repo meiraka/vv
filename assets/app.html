@@ -89,7 +89,64 @@
     <cite id="main-box-title" class="main-box-text main-box-title">no title</cite>
     <span id="main-box-artist" class="main-box-text main-box-artist">no artist</span>
   </section>
-  <section id="system" class="full system">
+</main>
+<section id="popup-box" class="popup-box">
+</section>
+<div id=modal-background class="modal-background hide">
+</div>
+<div id=modal-outer class="modal-outer hide">
+  <div id=modal-help class="modal-window hide">
+    <button id=modal-help-close class=modal-window-close type="button" value="">
+      <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
+        <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
+      </svg>
+    </button>
+    <h1 class="modal-window-header">Help</h1>
+    <h2 class="modal-window-header-sub">Keyboard Shortcuts</h2>
+    <table class="modal-window-table">
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><kbd><kbd>space</kbd></kbd></th><td class=modal-window-table-value>play or pause song</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>go to next song</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2190;</kbd></kbd></th><td class=modal-window-table-value>go to previous song</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><kbd><kbd>&#x2190;</kbd></kbd><kbd><kbd>&#x2191;</kbd></kbd><kbd><kbd>&#x2192;</kbd></kbd><kbd><kbd>&#x2193;</kbd></kbd></th><td class=modal-window-table-value>move list-view cursor</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><kbd><kbd>&#x23ce;</kbd></kbd></th><td class=modal-window-table-value>activate list-view cursor item</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2190;</kbd></kbd>or<kbd><kbd>&#x232b;</kbd></kbd></th><td class=modal-window-table-value>show list / parent</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>show now playing</td>
+      </tr>
+      <tr class=modal-window-tableitem>
+        <th class=modal-window-tablekey><kbd><kbd>?</kbd></kbd></th><td class=modal-window-table-value>help</td>
+      </tr>
+    </table>
+  </div>
+  <div id=modal-song class="modal-window hide">
+    <button id=modal-song-close class=modal-window-close type="button" value="">
+      <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
+        <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
+      </svg>
+    </button>
+    <div class="scrollable">
+      <table class="modal-window-table" id="modal-window-song-desclist">
+      </table>
+    </div>
+  </div>
+  <div id="modal-system" class="modal-window hide system">
+    <button id="modal-system-close" class="modal-window-close" type="button" value="">
+      <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
+        <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
+      </svg>
+    </button>
     <nav id="system-nav" class="system-nav">
       <button class="system-nav-item" id="system-nav-preferences" type="button">Preferences</button>
       <button class="system-nav-item" id="system-nav-stats" type="button">Stats</button>
@@ -264,58 +321,6 @@
             </div>
         </ul>
       </article>
-    </div>
-  </section>
-</main>
-<section id="popup-box" class="popup-box">
-</section>
-<div id=modal-background class="modal-background hide">
-</div>
-<div id=modal-outer class="modal-outer hide">
-  <div id=modal-help class="modal-window hide">
-    <button id=modal-help-close class=modal-window-close type="button" value="">
-      <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
-        <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
-      </svg>
-    </button>
-    <h1 class="modal-window-header">Help</h1>
-    <h2 class="modal-window-header-sub">Keyboard Shortcuts</h2>
-    <table class="modal-window-table">
-      <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>space</kbd></kbd></th><td id=version class=modal-window-table-value>play or pause song</td>
-      </tr>
-      <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td id=version class=modal-window-table-value>go to next song</td>
-      </tr>
-      <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2190;</kbd></kbd></th><td id=version class=modal-window-table-value>go to previous song</td>
-      </tr>
-      <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x2190;</kbd></kbd><kbd><kbd>&#x2191;</kbd></kbd><kbd><kbd>&#x2192;</kbd></kbd><kbd><kbd>&#x2193;</kbd></kbd></th><td id=version class=modal-window-table-value>move list-view cursor</td>
-      </tr>
-      <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x23ce;</kbd></kbd></th><td id=version class=modal-window-table-value>activate list-view cursor item</td>
-      </tr>
-      <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2190;</kbd></kbd>or<kbd><kbd>&#x232b;</kbd></kbd></th><td id=version class=modal-window-table-value>show list / parent</td>
-      </tr>
-      <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td id=version class=modal-window-table-value>show now playing</td>
-      </tr>
-      <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>?</kbd></kbd></th><td id=version class=modal-window-table-value>help</td>
-      </tr>
-    </table>
-  </div>
-  <div id=modal-song class="modal-window hide">
-    <button id=modal-song-close class=modal-window-close type="button" value="">
-      <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
-        <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
-      </svg>
-    </button>
-    <div class="scrollable">
-      <table class="modal-window-table" id="modal-window-song-desclist">
-      </table>
     </div>
   </div>
 </div>
