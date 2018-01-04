@@ -1570,10 +1570,14 @@ svg path {
   padding: 12px;
   position: relative;
   display: flex;
-  flex: column nowrap;
+  max-height: 80%;
+}
+
+.modal-window.help,
+.modal-window.song {
+  flex-flow: column nowrap;
   align-items: center;
   justify-content: center;
-  max-height: 80%;
 }
 
 .modal-window.system {
