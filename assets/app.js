@@ -1385,6 +1385,7 @@ vv.view.list = (function() {
     while (ul.lastChild) {
       ul.removeChild(ul.lastChild);
     }
+    scroll.leef = vv.storage.tree[vv.storage.tree.length - 1];
     updatepos();
     var li;
     var focus_li = null;
