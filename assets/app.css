@@ -447,11 +447,15 @@ svg path {
   flex-flow: column nowrap;
   width: 100%;
   height: 100%;
-  transition: transform 0.5s 0s ease;
+  transition: transform 0.4s 0s ease;
 }
 
 .list.swipe {
   transition: none;
+}
+
+.list.swiped {
+  transition: transform 0.4s 0s ease-out;
 }
 
 .list-items {
@@ -711,6 +715,11 @@ svg path {
   flex-flow: column nowrap;
   align-items: center;
   justify-content: center;
+  transition: transform 0.5s 0s ease;
+}
+
+.main.swipe {
+  transition: none;
 }
 
 .main-box-text {

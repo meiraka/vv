@@ -14,13 +14,9 @@ var vv = {
 vv.env = (function() {
   var pub = {};
   if (navigator.userAgent.indexOf("Presto/2") > 1) {
-    pub.translateX = function(x) {
-      return "translate(" + x + ",0)";
-    };
+    pub.translateX = function(x) { return "translate(" + x + ",0)"; };
   } else {
-    pub.translateX = function(x) {
-      return "translate3d(" + x + ",0,0)";
-    };
+    pub.translateX = function(x) { return "translate3d(" + x + ",0,0)"; };
   }
   return pub;
 })();
@@ -219,9 +215,8 @@ vv.song = (function() {
       var cover = document.createElement("img");
       cover.classList.add("album-imgbox-cover");
       cover.src = cover_path;
-      cover.alt = 'Cover art: ' +
-            vv.song.get(song, "Album") + ' by ' +
-            vv.song.get(song, "AlbumArtist");
+      cover.alt = 'Cover art: ' + vv.song.get(song, "Album") + ' by ' +
+          vv.song.get(song, "AlbumArtist");
       imgbox.appendChild(cover);
       e.appendChild(imgbox);
 
@@ -481,6 +476,7 @@ vv.model.list = (function() {
     }
     return ret;
   };
+  var list_child_cache = [{}, {}, {}, {}, {}, {}];
   var list_child = function() {
     var root = pub.rootname();
     var filters = {};
@@ -497,6 +493,9 @@ vv.model.list = (function() {
     ret.songs = vv.songs.uniq(ret.songs, ret.key);
     ret.style = TREE[root].tree[vv.storage.tree.length - 1][1];
     ret.isdir = vv.storage.tree.length !== TREE[root].tree.length;
+    var leef = vv.storage.tree[vv.storage.tree.length - 1];
+    list_child_cache[vv.storage.tree.length - 1].leef = leef;
+    list_child_cache[vv.storage.tree.length - 1].data = ret;
     return ret;
   };
   var list_root = function() {
@@ -511,9 +510,20 @@ vv.model.list = (function() {
   var update_list = function() {
     if (pub.rootname() === "root") {
       list_cache = list_root();
-    } else {
-      list_cache = list_child();
+      return true;
     }
+    var cache = list_child_cache[vv.storage.tree.length - 1];
+    var leef = vv.storage.tree[vv.storage.tree.length - 1];
+    if ((typeof cache.leef !== "undefined") && cache.leef[0] === leef[0] &&
+        cache.leef[1] === leef[1]) {
+      list_cache = cache.data;
+      return false;
+    }
+    list_cache = list_child();
+    if (list_cache.songs.length === 0) {
+      pub.up();
+    }
+    return true;
   };
   pub.update = function(data) {
     for (var key in TREE) {
@@ -718,7 +728,7 @@ vv.control = (function() {
     }
   };
 
-  pub.swipe = function(element, f, failure, leftElement) {
+  pub.swipe = function(element, f, resetFunc, leftElement) {
     element.swipe_target = f;
     var starttime = 0;
     var now = 0;
@@ -739,17 +749,26 @@ vv.control = (function() {
     var finalize = function(e) {
       e.currentTarget.swipe = false;
       e.currentTarget.classList.remove("swipe");
+      e.currentTarget.classList.add("swiped");
       if (leftElement) {
         leftElement.classList.remove("swipe");
+        leftElement.classList.add("swiped");
       }
+      if (!resetFunc) {
+        e.currentTarget.style.transform = vv.env.translateX(0);
+      }
+      setTimeout(function() {
+        element.classList.remove("swiped");
+        if (leftElement) {
+          leftElement.classList.remove("swiped");
+        }
+      });
     };
     var cancel = function(e) {
       if (e.currentTarget.swipe) {
         finalize(e);
-        if (failure) {
-          failure();
-        } else {
-          e.currentTarget.style.transform = vv.env.translateX(0);
+        if (resetFunc) {
+          resetFunc();
         }
       }
     };
@@ -785,8 +804,7 @@ vv.control = (function() {
             vv.env.translateX(e.currentTarget.diff_x * -1 + "px");
         if (leftElement) {
           leftElement.classList.add("swipe");
-          leftElement.style.transform =
-              vv.env.translateX(
+          leftElement.style.transform = vv.env.translateX(
               (e.currentTarget.diff_x * -1 - e.currentTarget.offsetWidth) +
               "px");
         }
@@ -803,14 +821,14 @@ vv.control = (function() {
       }
       var p = e.currentTarget.clientWidth / e.currentTarget.diff_x;
       if (p > -4 && p < 0) {
-        f(e);
         finalize(e);
+        f(e);
       } else if (
           now - starttime < 200 &&
           e.currentTarget.diff_y_l < e.currentTarget.diff_x_l &&
           e.currentTarget.diff_x < 0) {
-        f(e);
         finalize(e);
+        f(e);
       } else {
         cancel(e);
       }
@@ -1412,13 +1430,19 @@ vv.view.list = (function() {
         while (oldul.lastChild) {
           oldul.removeChild(oldul.lastChild);
         }
+        lists[treeindex + 1].leef = null;
       }
     }
+    updatepos();
+    var lastleef = vv.storage.tree[vv.storage.tree.length - 1];
+    // if (scroll.leef && scroll.leef[0] === lastleef[0] &&
+    //     scroll.leef[1] === lastleef[1]) {
+    //   return;
+    // }
+    scroll.leef = lastleef;
     while (ul.lastChild) {
       ul.removeChild(ul.lastChild);
     }
-    scroll.leef = vv.storage.tree[vv.storage.tree.length - 1];
-    updatepos();
     var li;
     var focus_li = null;
     ul.classList.remove("songlist");
