@@ -1,5 +1,6 @@
 "use strict";
 var vv = {
+  env: {},
   consts: {playlistLength: 9999},
   obj: {},
   song: {},
@@ -10,6 +11,19 @@ var vv = {
       {main: {}, list: {}, system: {}, popup: {}, modal: {help: {}, song: {}}},
   control: {}
 };
+vv.env = (function() {
+  var pub = {};
+  if (navigator.userAgent.indexOf("Presto/2") > 1) {
+    pub.translateX = function(x) {
+      return "translate(" + x + ",0)";
+    };
+  } else {
+    pub.translateX = function(x) {
+      return "translate3d(" + x + ",0,0)";
+    };
+  }
+  return pub;
+})();
 vv.obj = (function() {
   var pub = {};
   pub.getOrElse = function(m, k, v) { return k in m ? m[k] : v; };
@@ -704,7 +718,7 @@ vv.control = (function() {
     }
   };
 
-  pub.swipe = function(element, f, failure) {
+  pub.swipe = function(element, f, failure, leftElement) {
     element.swipe_target = f;
     var starttime = 0;
     var now = 0;
@@ -721,16 +735,21 @@ vv.control = (function() {
       }
       starttime = (new Date()).getTime();
       e.currentTarget.swipe = true;
-      e.currentTarget.classList.add("swipe");
+    };
+    var finalize = function(e) {
+      e.currentTarget.swipe = false;
+      e.currentTarget.classList.remove("swipe");
+      if (leftElement) {
+        leftElement.classList.remove("swipe");
+      }
     };
     var cancel = function(e) {
       if (e.currentTarget.swipe) {
-        e.currentTarget.swipe = false;
-        e.currentTarget.classList.remove("swipe");
+        finalize(e);
         if (failure) {
           failure();
         } else {
-          e.currentTarget.style.transform = "translate3d(0,0,0)";
+          e.currentTarget.style.transform = vv.env.translateX(0);
         }
       }
     };
@@ -760,9 +779,17 @@ vv.control = (function() {
       if (now - starttime < 200 &&
           e.currentTarget.diff_y_l > e.currentTarget.diff_x_l) {
         cancel(e);
-      } else {
+      } else if (e.currentTarget.diff_x_l > 3) {
+        e.currentTarget.classList.add("swipe");
         e.currentTarget.style.transform =
-            "translate3d(" + e.currentTarget.diff_x * -1 + "px,0,0)";
+            vv.env.translateX(e.currentTarget.diff_x * -1 + "px");
+        if (leftElement) {
+          leftElement.classList.add("swipe");
+          leftElement.style.transform =
+              vv.env.translateX(
+              (e.currentTarget.diff_x * -1 - e.currentTarget.offsetWidth) +
+              "px");
+        }
       }
     };
     var end = function(e) {
@@ -777,13 +804,13 @@ vv.control = (function() {
       var p = e.currentTarget.clientWidth / e.currentTarget.diff_x;
       if (p > -4 && p < 0) {
         f(e);
-        e.currentTarget.classList.remove("swipe");
+        finalize(e);
       } else if (
           now - starttime < 200 &&
           e.currentTarget.diff_y_l < e.currentTarget.diff_x_l &&
           e.currentTarget.diff_x < 0) {
         f(e);
-        e.currentTarget.classList.remove("swipe");
+        finalize(e);
       } else {
         cancel(e);
       }
@@ -1356,11 +1383,11 @@ vv.view.list = (function() {
     var lists = document.getElementsByClassName("list");
     for (var listindex = 0; listindex < lists.length; listindex++) {
       if (listindex < index) {
-        lists[listindex].style.transform = "translate3d(-100%,0,0)";
+        lists[listindex].style.transform = vv.env.translateX("-100%");
       } else if (listindex === index) {
-        lists[listindex].style.transform = "translate3d(0,0,0)";
+        lists[listindex].style.transform = vv.env.translateX("0");
       } else {
-        lists[listindex].style.transform = "translate3d(100%,0,0)";
+        lists[listindex].style.transform = vv.env.translateX("100%");
       }
     }
   };
@@ -1587,15 +1614,20 @@ vv.view.list = (function() {
   vv.model.list.addEventListener("changed", update);
   vv.control.addEventListener("start", function() {
     vv.control.swipe(
-        document.getElementById("list1"), vv.model.list.up, updatepos);
+        document.getElementById("list1"), vv.model.list.up, updatepos,
+        document.getElementById("list0"));
     vv.control.swipe(
-        document.getElementById("list2"), vv.model.list.up, updatepos);
+        document.getElementById("list2"), vv.model.list.up, updatepos,
+        document.getElementById("list1"));
     vv.control.swipe(
-        document.getElementById("list3"), vv.model.list.up, updatepos);
+        document.getElementById("list3"), vv.model.list.up, updatepos,
+        document.getElementById("list2"));
     vv.control.swipe(
-        document.getElementById("list4"), vv.model.list.up, updatepos);
+        document.getElementById("list4"), vv.model.list.up, updatepos,
+        document.getElementById("list3"));
     vv.control.swipe(
-        document.getElementById("list5"), vv.model.list.up, updatepos);
+        document.getElementById("list5"), vv.model.list.up, updatepos,
+        document.getElementById("list4"));
   });
   return pub;
 })();
