@@ -127,11 +127,11 @@ vv.song = (function() {
     e.setAttribute("key", vv.song.getOne(song, key));
     if (song.file) {
       e.setAttribute("pos", song.pos);
-      e.setAttribute("contextmenu", "conext-" + song.file[0]);
+      e.setAttribute("contextmenu", "conext-" + style + song.file[0]);
       var menu = document.createElement("menu");
       menu.setAttribute("type", "context");
       menu.classList.add("contextmenu");
-      menu.id = "conext-" + song.file[0];
+      menu.id = "conext-" + style + song.file[0];
       var menuitem;
       menuitem = document.createElement("menuitem");
       menuitem.setAttribute("label", "Song Infomation");
@@ -205,6 +205,9 @@ vv.song = (function() {
       var cover = document.createElement("img");
       cover.classList.add("album-imgbox-cover");
       cover.src = cover_path;
+      cover.alt = 'Cover art: ' +
+            vv.song.get(song, "Album") + ' by ' +
+            vv.song.get(song, "AlbumArtist");
       imgbox.appendChild(cover);
       e.appendChild(imgbox);
 
