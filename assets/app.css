@@ -868,7 +868,7 @@ svg path {
     box-sizing: border-box;
     border-style: solid none solid solid;
     border-width: 3px;
-    height: 40px;
+    height: 36px;
   }
 
   .light .system-nav-item {
@@ -883,13 +883,13 @@ svg path {
 
   .system-nav-item:first-child {
     border-radius: 20px 0 0 20px / 20px 0 0 20px;
-    padding: 3px 8px 3px 20px;
+    padding: 3px 8px 3px 12px;
   }
 
   .system-nav-item:last-child {
     border-style: solid;
     border-radius: 0 20px 20px 0 / 0 20px 20px 0;
-    padding: 3px 20px 3px 8px;
+    padding: 3px 12px 3px 8px;
   }
 
   .light .system-nav-item.on {
