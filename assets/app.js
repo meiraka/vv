@@ -326,7 +326,6 @@ vv.storage = (function() {
     last_modified: {},
     last_modified_ms: {},
     version: {},
-    last_state: "main"
   };
   pub.preferences = {
     volume: {show: true, max: "100"},
@@ -350,9 +349,7 @@ vv.storage = (function() {
   }
   pub.save = function() {
     try {
-      localStorage.tree = JSON.stringify(pub.tree);
       localStorage.preferences = JSON.stringify(pub.preferences);
-      localStorage.last_state = pub.last_state;
       localStorage.current = JSON.stringify(pub.current);
       localStorage.current_last_modified = pub.last_modified.current;
     } catch (e) {
@@ -371,9 +368,6 @@ vv.storage = (function() {
   };
   pub.load = function() {
     try {
-      if (localStorage.tree) {
-        pub.tree = JSON.parse(localStorage.tree);
-      }
       if (localStorage.preferences) {
         var c = JSON.parse(localStorage.preferences);
         for (var i in c) {
@@ -385,9 +379,6 @@ vv.storage = (function() {
             }
           }
         }
-      }
-      if (localStorage.last_state) {
-        pub.last_state = localStorage.last_state;
       }
       if (localStorage.current && localStorage.current_last_modified) {
         var current = JSON.parse(localStorage.current);
@@ -1281,8 +1272,6 @@ vv.view.main = (function() {
   });
   vv.control.addEventListener("preferences", load_volume_preferences);
   pub.show = function() {
-    vv.storage.last_state = "main";
-    vv.storage.save();
     document.body.classList.add("view-main");
     document.body.classList.remove("view-list");
   };
@@ -1372,8 +1361,6 @@ vv.view.main = (function() {
 vv.view.list = (function() {
   var pub = {};
   pub.show = function() {
-    vv.storage.last_state = "list";
-    vv.storage.save();
     document.body.classList.add("view-list");
     document.body.classList.remove("view-main");
   };
