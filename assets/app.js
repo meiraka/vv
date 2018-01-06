@@ -723,22 +723,37 @@ vv.control = (function() {
     element.swipe_target = f;
     var starttime = 0;
     var now = 0;
+    var x = 0;
+    var y = 0;
+    var diff_x = 0;
+    var diff_y = 0;
+    var diff_x_l = 0;
+    var diff_y_l = 0;
+    var swipe = false;
     var start = function(e) {
       if (e.buttons && e.buttons !== 1) {
         return;
       }
       if (e.touches) {
-        e.currentTarget.x = e.touches[0].screenX;
-        e.currentTarget.y = e.touches[0].screenY;
+        x = e.touches[0].screenX;
+        y = e.touches[0].screenY;
       } else {
-        e.currentTarget.x = e.screenX;
-        e.currentTarget.y = e.screenY;
+        x = e.screenX;
+        y = e.screenY;
       }
       starttime = (new Date()).getTime();
-      e.currentTarget.swipe = true;
+      swipe = true;
     };
     var finalize = function(e) {
-      e.currentTarget.swipe = false;
+      starttime = 0;
+      now = 0;
+      x = 0;
+      y = 0;
+      diff_x = 0;
+      diff_y = 0;
+      diff_x_l = 0;
+      diff_y_l = 0;
+      swipe = false;
       e.currentTarget.classList.remove("swipe");
       e.currentTarget.classList.add("swiped");
       if (leftElement) {
@@ -756,7 +771,7 @@ vv.control = (function() {
       });
     };
     var cancel = function(e) {
-      if (e.currentTarget.swipe) {
+      if (swipe) {
         finalize(e);
         if (resetFunc) {
           resetFunc();
@@ -768,36 +783,29 @@ vv.control = (function() {
         cancel(e);
         return;
       }
-      if (!e.currentTarget.swipe) {
+      if (!swipe) {
         cancel(e);
         return;
       }
       if (e.touches) {
-        e.currentTarget.diff_x = e.currentTarget.x - e.touches[0].screenX;
-        e.currentTarget.diff_y = e.currentTarget.y - e.touches[0].screenY;
+        diff_x = x - e.touches[0].screenX;
+        diff_y = y - e.touches[0].screenY;
       } else {
-        e.currentTarget.diff_x = e.currentTarget.x - e.screenX;
-        e.currentTarget.diff_y = e.currentTarget.y - e.screenY;
+        diff_x = x - e.screenX;
+        diff_y = y - e.screenY;
       }
       now = (new Date()).getTime();
-      e.currentTarget.diff_x_l = e.currentTarget.diff_x > 0 ?
-          e.currentTarget.diff_x :
-          e.currentTarget.diff_x * -1;
-      e.currentTarget.diff_y_l = e.currentTarget.diff_y > 0 ?
-          e.currentTarget.diff_y :
-          e.currentTarget.diff_y * -1;
-      if (now - starttime < 200 &&
-          e.currentTarget.diff_y_l > e.currentTarget.diff_x_l) {
+      diff_x_l = diff_x > 0 ? diff_x : diff_x * -1;
+      diff_y_l = diff_y > 0 ? diff_y : diff_y * -1;
+      if (now - starttime < 200 && diff_y_l > diff_x_l) {
         cancel(e);
-      } else if (e.currentTarget.diff_x_l > 3) {
+      } else if (diff_x_l > 3) {
         e.currentTarget.classList.add("swipe");
-        e.currentTarget.style.transform =
-            vv.env.translateX(e.currentTarget.diff_x * -1 + "px");
+        e.currentTarget.style.transform = vv.env.translateX(diff_x * -1 + "px");
         if (leftElement) {
           leftElement.classList.add("swipe");
           leftElement.style.transform = vv.env.translateX(
-              (e.currentTarget.diff_x * -1 - e.currentTarget.offsetWidth) +
-              "px");
+              (diff_x * -1 - e.currentTarget.offsetWidth) + "px");
         }
       }
     };
@@ -806,18 +814,15 @@ vv.control = (function() {
         cancel(e);
         return;
       }
-      if (!e.currentTarget.swipe) {
+      if (!swipe) {
         cancel(e);
         return;
       }
-      var p = e.currentTarget.clientWidth / e.currentTarget.diff_x;
+      var p = e.currentTarget.clientWidth / diff_x;
       if (p > -4 && p < 0) {
         finalize(e);
         f(e);
-      } else if (
-          now - starttime < 200 &&
-          e.currentTarget.diff_y_l < e.currentTarget.diff_x_l &&
-          e.currentTarget.diff_x < 0) {
+      } else if (now - starttime < 200 && diff_y_l < diff_x_l && diff_x < 0) {
         finalize(e);
         f(e);
       } else {
