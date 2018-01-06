@@ -1580,6 +1580,8 @@ svg path {
   position: relative;
   display: flex;
   max-height: 80%;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .modal-window.help,
@@ -1613,11 +1615,11 @@ svg path {
 }
 
 .light .modal-window {
-  background-color: #ffffff;
+  background-color: rgba(255,255,255,0.4);
 }
 
 .dark .modal-window {
-  background-color: #000000;
+  background-color: rgba(0,0,0,0.4);
 }
 
 .modal-window-close {
