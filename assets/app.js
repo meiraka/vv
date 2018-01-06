@@ -1346,7 +1346,7 @@ vv.view.main = (function() {
         .addEventListener("change", function() {
           vv.control.volume(parseInt(this.value, 10));
         });
-    vv.control.click(document.getElementById("main-cover"), function() {
+    document.getElementById("main-cover").addEventListener("click", function() {
       if (vv.storage.current) {
         vv.view.modal.song.show(vv.storage.current);
       }
@@ -1736,7 +1736,8 @@ vv.view.system = (function() {
       initconfig("volume-show");
       initconfig("volume-max");
       var rescan = document.getElementById("library-rescan");
-      vv.control.click(rescan, function() { vv.control.rescan_library(); });
+      rescan.addEventListener(
+          "click", function() { vv.control.rescan_library(); });
     });
     var update_devices = function() {
       var ul = document.getElementById("devices");
@@ -1878,28 +1879,29 @@ vv.view.system = (function() {
   })();
   var init = function() {
     preferences.show();
-    vv.control.click(
-        document.getElementById("system-nav-preferences"), function() {
+    document.getElementById("system-nav-preferences")
+        .addEventListener("click", function() {
           stats.hide();
           info.hide();
           preferences.show();
         });
-    vv.control.click(document.getElementById("system-nav-stats"), function() {
-      preferences.hide();
-      info.hide();
-      stats.show();
-    });
-    vv.control.click(document.getElementById("system-nav-info"), function() {
-      preferences.hide();
-      stats.hide();
-      info.show();
-    });
-    vv.control.click(document.getElementById("system-reload"), function() {
-      location.reload();
-    });
+    document.getElementById("system-nav-stats")
+        .addEventListener("click", function() {
+          preferences.hide();
+          info.hide();
+          stats.show();
+        });
+    document.getElementById("system-nav-info")
+        .addEventListener("click", function() {
+          preferences.hide();
+          stats.hide();
+          info.show();
+        });
+    document.getElementById("system-reload")
+        .addEventListener("click", function() { location.reload(); });
     document.getElementById("user-agent").textContent = navigator.userAgent;
-    vv.control.click(
-        document.getElementById("modal-system-close"), vv.view.modal.hide);
+    document.getElementById("modal-system-close")
+        .addEventListener("click", vv.view.modal.hide);
   };
   pub.show = function() {
     document.getElementById("modal-background").classList.remove("hide");
@@ -1930,27 +1932,30 @@ vv.view.system = (function() {
     }
   };
   vv.control.addEventListener("start", function() {
-    vv.control.click(document.getElementById("header-back"), function(e) {
-      if (vv.view.list.hidden()) {
-        vv.model.list.abs(vv.storage.current);
-      } else {
-        vv.model.list.up();
-      }
-      vv.view.list.show();
-      e.stopPropagation();
-    });
-    vv.control.click(document.getElementById("header-main"), function(e) {
-      e.stopPropagation();
-      if (vv.model.list.rootname() !== "root") {
-        vv.model.list.abs(vv.storage.current);
-      }
-      vv.view.main.show();
-      e.stopPropagation();
-    });
-    vv.control.click(document.getElementById("header-system"), function(e) {
-      vv.view.system.show();
-      e.stopPropagation();
-    });
+    document.getElementById("header-back")
+        .addEventListener("click", function(e) {
+          if (vv.view.list.hidden()) {
+            vv.model.list.abs(vv.storage.current);
+          } else {
+            vv.model.list.up();
+          }
+          vv.view.list.show();
+          e.stopPropagation();
+        });
+    document.getElementById("header-main")
+        .addEventListener("click", function(e) {
+          e.stopPropagation();
+          if (vv.model.list.rootname() !== "root") {
+            vv.model.list.abs(vv.storage.current);
+          }
+          vv.view.main.show();
+          e.stopPropagation();
+        });
+    document.getElementById("header-system")
+        .addEventListener("click", function(e) {
+          vv.view.system.show();
+          e.stopPropagation();
+        });
     update();
     vv.model.list.addEventListener("changed", update);
     vv.model.list.addEventListener("update", update);
@@ -1960,27 +1965,31 @@ vv.view.system = (function() {
 // footer
 (function() {
   vv.control.addEventListener("start", function() {
-    vv.control.click(document.getElementById("control-prev"), function(e) {
-      vv.control.prev();
-      e.stopPropagation();
-    });
-    vv.control.click(
-        document.getElementById("control-toggleplay"), function(e) {
+    document.getElementById("control-prev")
+        .addEventListener("click", function(e) {
+          vv.control.prev();
+          e.stopPropagation();
+        });
+    document.getElementById("control-toggleplay")
+        .addEventListener("click", function(e) {
           vv.control.play_pause();
           e.stopPropagation();
         });
-    vv.control.click(document.getElementById("control-next"), function(e) {
-      vv.control.next();
-      e.stopPropagation();
-    });
-    vv.control.click(document.getElementById("control-repeat"), function(e) {
-      vv.control.toggle_repeat();
-      e.stopPropagation();
-    });
-    vv.control.click(document.getElementById("control-random"), function(e) {
-      vv.control.toggle_random();
-      e.stopPropagation();
-    });
+    document.getElementById("control-next")
+        .addEventListener("click", function(e) {
+          vv.control.next();
+          e.stopPropagation();
+        });
+    document.getElementById("control-repeat")
+        .addEventListener("click", function(e) {
+          vv.control.toggle_repeat();
+          e.stopPropagation();
+        });
+    document.getElementById("control-random")
+        .addEventListener("click", function(e) {
+          vv.control.toggle_random();
+          e.stopPropagation();
+        });
   });
   vv.control.addEventListener("control", function() {
     if (vv.storage.control.state === "play") {
@@ -2076,16 +2085,31 @@ vv.view.popup = (function() {
   vv.control.addEventListener("poll", update);
 })();
 
-vv.view.modal.hide = function() {
-  document.getElementById("modal-background").classList.add("hide");
-  document.getElementById("modal-outer").classList.add("hide");
-  var ws = document.getElementsByClassName("modal-window");
-  for (var i = 0, imax = ws.length; i < imax; i++) {
-    if (ws[i].classList) {
-      ws[i].classList.add("hide");
+(function() {
+  var pub = {};
+  pub.hide = function() {
+    document.getElementById("modal-background").classList.add("hide");
+    document.getElementById("modal-outer").classList.add("hide");
+    var ws = document.getElementsByClassName("modal-window");
+    for (var i = 0, imax = ws.length; i < imax; i++) {
+      if (ws[i].classList) {
+        ws[i].classList.add("hide");
+      }
     }
-  }
-};
+  };
+  vv.control.addEventListener("start", function() {
+    document.getElementById("modal-background")
+        .addEventListener("click", pub.hide);
+    document.getElementById("modal-outer").addEventListener("click", pub.hide);
+    var ws = document.getElementsByClassName("modal-window");
+    for (var i = 0, imax = ws.length; i < imax; i++) {
+      if (ws[i].addEventListener) {
+        ws[i].addEventListener("click", function(e) { e.stopPropagation(); });
+      }
+    }
+  });
+  vv.view.modal.hide = pub.hide;
+})();
 vv.view.modal.help = (function() {
   var pub = {};
   pub.show = function() {
@@ -2103,18 +2127,8 @@ vv.view.modal.help = (function() {
     document.getElementById("modal-help").classList.add("hide");
   };
   vv.control.addEventListener("start", function() {
-    vv.control.click(document.getElementById("modal-help-close"), pub.hide);
-    vv.control.click(
-        document.getElementById("modal-outer"), vv.view.modal.hide);
-    vv.control.click(
-        document.getElementById("modal-background"), vv.view.modal.hide);
-
-    var ws = document.getElementsByClassName("modal-window");
-    for (var i = 0, imax = ws.length; i < imax; i++) {
-      if (ws[i].addEventListener) {
-        vv.control.click(ws[i], function(e) { e.stopPropagation(); });
-      }
-    }
+    document.getElementById("modal-help-close")
+        .addEventListener("click", pub.hide);
   });
   return pub;
 })();
@@ -2169,14 +2183,8 @@ vv.view.modal.song = (function() {
     document.getElementById("modal-song").classList.add("hide");
   };
   vv.control.addEventListener("start", function() {
-    vv.control.click(document.getElementById("modal-song-close"), pub.hide);
-
-    var ws = document.getElementsByClassName("modal-window");
-    for (var i = 0, max = ws.length; i < max; i++) {
-      if (ws[i].addEventListener) {
-        vv.control.click(ws[i], function(e) { e.stopPropagation(); });
-      }
-    }
+    document.getElementById("modal-song-close")
+        .addEventListener("click", pub.hide);
   });
   return pub;
 })();

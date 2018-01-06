@@ -496,6 +496,10 @@ svg path {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
+button:hover {
+  cursor: pointer;
+}
+
 .hover {
   cursor: pointer;
 }
@@ -1586,6 +1590,7 @@ svg path {
   max-height: 80%;
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
+  cursor: default;
 }
 
 .modal-window.help,
