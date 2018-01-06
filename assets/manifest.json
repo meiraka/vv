@@ -4,6 +4,7 @@
     "icons": [
         {
             "src": "/assets/app.svg",
+            "sizes": "1024x1024",
             "type": "image/svg+xml"
         }
     ],
