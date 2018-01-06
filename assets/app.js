@@ -325,7 +325,7 @@ vv.storage = (function() {
     stats: {},
     last_modified: {},
     last_modified_ms: {},
-    version: {},
+    version: {}
   };
   pub.preferences = {
     volume: {show: true, max: "100"},
@@ -1473,6 +1473,11 @@ vv.view.list = (function() {
     }
     preferences_update();
     ul.appendChild(newul);
+    if (ul.getElementsByClassName("playing").length > 0) {
+      document.body.classList.add("view-playing");
+    } else {
+      document.body.classList.remove("view-playing");
+    }
     if (focus_li) {
       var pos = focus_li.offsetTop;
       var t = scroll.scrollTop;
