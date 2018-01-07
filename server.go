@@ -94,17 +94,17 @@ func (s *Server) makeHandle() http.Handler {
 	})
 	for _, f := range AssetNames() {
 		p := "/" + f
-		_, err := os.Stat(f)
-		if os.IsNotExist(err) || !s.debug {
-			data := AssetMust(f)
-			h.HandleFunc(p, makeHandleAssets(f, data))
-		} else {
-			func(path, rpath string) {
-				h.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-					http.ServeFile(w, r, rpath)
-				})
-			}(p, f)
+		if s.debug {
+			if _, err := os.Stat(f); err == nil {
+				func(path, rpath string) {
+					h.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+						http.ServeFile(w, r, rpath)
+					})
+				}(p, f)
+				continue
+			}
 		}
+		h.HandleFunc(p, makeHandleAssets(f))
 	}
 	return h
 }
@@ -360,11 +360,7 @@ func (s *Server) assetsStartup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := Asset("assets/app.png")
-	if err != nil {
-		w.WriteHeader(500)
-		return
-	}
+	data := mustAsset("assets/app.png")
 	newdata, err := expandImage(data, width, height)
 	if err != nil {
 		w.WriteHeader(500)
@@ -375,7 +371,7 @@ func (s *Server) assetsStartup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) root(w http.ResponseWriter, r *http.Request) {
-	info := AssetInfoMust("assets/app.html")
+	info := mustAssetInfo("assets/app.html")
 	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
 	tag, _, _ := s.matcher.Match(t...)
 	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
@@ -390,7 +386,7 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	data := AssetMust("assets/app.html")
+	data := mustAsset("assets/app.html")
 	// using local html file in debug
 	if s.debug {
 		newinfo, err := os.Stat("assets/app.html")
@@ -417,7 +413,7 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) rootCachesInit() {
-	data := AssetMust("assets/app.html")
+	data := mustAsset("assets/app.html")
 	for i := range translatePrio {
 		data, err := translate(data, translatePrio[i])
 		if err != nil {
@@ -463,8 +459,10 @@ func makeGZip(data []byte) ([]byte, error) {
 	return gz.Bytes(), nil
 }
 
-func makeHandleAssets(f string, data []byte) func(http.ResponseWriter, *http.Request) {
-	n := time.Now().UTC()
+func makeHandleAssets(f string) func(http.ResponseWriter, *http.Request) {
+	data := mustAsset(f)
+	info := mustAssetInfo(f)
+	n := info.ModTime()
 	m := mime.TypeByExtension(path.Ext(f))
 	var gzdata []byte
 	if !strings.Contains(m, "image") {
@@ -571,8 +569,8 @@ func writeInterfaceIfCached(w http.ResponseWriter, r *http.Request, d interface{
 		fmt.Fprintf(w, "{\"error\": \"failed to create json\"}")
 		return
 	}
-	newgzdata, _ := makeGZip(b)
-	if newgzdata == nil {
+	newgzdata, err := makeGZip(b)
+	if err != nil {
 		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 		fmt.Fprintf(w, string(b))
 		return
@@ -626,7 +624,7 @@ type MusicIF interface {
 	Unsubscribe(chan string)
 }
 
-func AssetMust(name string) []byte {
+func mustAsset(name string) []byte {
 	d, err := Asset(name)
 	if err != nil {
 		panic(err)
@@ -634,7 +632,7 @@ func AssetMust(name string) []byte {
 	return d
 }
 
-func AssetInfoMust(name string) os.FileInfo {
+func mustAssetInfo(name string) os.FileInfo {
 	i, err := AssetInfo(name)
 	if err != nil {
 		panic(err)
