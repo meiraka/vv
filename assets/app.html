@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ or .lang "en" }}">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
@@ -101,32 +101,32 @@
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
     </button>
-    <h1 class="modal-window-header">Help</h1>
-    <h2 class="modal-window-header-sub">Keyboard Shortcuts</h2>
+    <h1 class="modal-window-header">{{ or .Help "Help" }}</h1>
+    <h2 class="modal-window-header-sub">{{ or .KeyboardShortcuts "Keyboard Shortcuts" }}</h2>
     <table class="modal-window-table">
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>space</kbd></kbd></th><td class=modal-window-table-value>play or pause song</td>
+        <th class=modal-window-tablekey><kbd><kbd>space</kbd></kbd></th><td class=modal-window-table-value>{{ or .PlayOrPauseSong "play or pause song" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>go to next song</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>{{ or .GoToNextSong "go to next song" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2190;</kbd></kbd></th><td class=modal-window-table-value>go to previous song</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2190;</kbd></kbd></th><td class=modal-window-table-value>{{ or .GoToPreviousSong "go to previous song" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x2190;</kbd></kbd><kbd><kbd>&#x2191;</kbd></kbd><kbd><kbd>&#x2192;</kbd></kbd><kbd><kbd>&#x2193;</kbd></kbd></th><td class=modal-window-table-value>move list-view cursor</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x2190;</kbd></kbd><kbd><kbd>&#x2191;</kbd></kbd><kbd><kbd>&#x2192;</kbd></kbd><kbd><kbd>&#x2193;</kbd></kbd></th><td class=modal-window-table-value>{{ or .MoveListViewCursor "move list-view cursor" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x23ce;</kbd></kbd></th><td class=modal-window-table-value>activate list-view cursor item</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x23ce;</kbd></kbd></th><td class=modal-window-table-value>{{ or .ActivateListViewCursorItem "activate list-view cursor item" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2190;</kbd></kbd>or<kbd><kbd>&#x232b;</kbd></kbd></th><td class=modal-window-table-value>show list / parent</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2190;</kbd></kbd>or<kbd><kbd>&#x232b;</kbd></kbd></th><td class=modal-window-table-value>{{ or .ShowListParent "show list / parent" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>show now playing</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>{{ or .ShowNowPlayingItem "show now playing item" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>?</kbd></kbd></th><td class=modal-window-table-value>help</td>
+        <th class=modal-window-tablekey><kbd><kbd>?</kbd></kbd></th><td class=modal-window-table-value>{{ or .ShowThisHelp "show this help" }}</td>
       </tr>
     </table>
   </div>
@@ -148,33 +148,33 @@
       </svg>
     </button>
     <nav id="system-nav" class="system-nav">
-      <button class="system-nav-item" id="system-nav-preferences" type="button">Preferences</button>
-      <button class="system-nav-item" id="system-nav-stats" type="button">Stats</button>
-      <button class="system-nav-item" id="system-nav-info" type="button">Information</button>
+      <button class="system-nav-item" id="system-nav-preferences" type="button">{{ or .Preferences "Preferences" }}</button>
+      <button class="system-nav-item" id="system-nav-stats" type="button">{{ or .Stats "Stats" }}</button>
+      <button class="system-nav-item" id="system-nav-info" type="button">{{ or .Information "Information" }}</button>
     </nav>
     <div class="scrollable system-articles">
       <article id="system-preferences" class="system-article">
-        <h1 class="system-article-sub-header">System</h1>
+        <h1 class="system-article-sub-header">{{ or .System "System" }}</h1>
         <article class="system-article-sub">
           <ul class="system-settings">
             <li class="note-line system-setting">
-              <button id=system-reload class="system-setting-value button-simple" type="button">Reload Application</button>
+              <button id=system-reload class="system-setting-value button-simple" type="button">{{ or .ReloadApplication "Reload Application" }}</button>
           </ul>
         </article>
-        <h1 class="system-article-sub-header">Appearance</h1>
+        <h1 class="system-article-sub-header">{{ or .Appearance "Appearance" }}</h1>
         <article class="system-article-sub">
           <ul class="system-settings">
             <li class="note-line system-setting">
-              <div class="system-setting-desc">Color threshold</div>
+              <div class="system-setting-desc">{{ or .ColorThreshold "Color threshold" }}</div>
               <div class="system-setting-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range"></div>
             <li class="note-line system-setting" id="config-appearance-animation">
-              <div class="system-setting-desc">Animation</div>
+              <div class="system-setting-desc">{{ or .Animation "Animation" }}</div>
               <input type="checkbox" id="appearance-animation" class="slideswitch">
             <li class="note-line system-setting">
-              <div class="system-setting-desc">Background image</div>
+              <div class="system-setting-desc">{{ or .BackgroundImage "Background image" }}</div>
               <input type="checkbox" id="appearance-background-image" class="slideswitch">
             <li class="note-line system-setting">
-              <div class="system-setting-desc">Background image blur</div>
+              <div class="system-setting-desc">{{ or .BackgroundImageBlur "Background image blur" }}</div>
               <select class="tool-select value" id="appearance-background-image-blur">
                 <option value="0">0</option>
                 <option value="1">1</option>
@@ -185,39 +185,39 @@
                 <option value="32">32</option>
               </select>
             <li class="note-line system-setting">
-              <div class="system-setting-desc">Circled image</div>
+              <div class="system-setting-desc">{{ or .CircledImage "Circled image" }}</div>
               <input type="checkbox" id="appearance-circled-image" class="slideswitch">
             <li class="note-line system-setting">
-              <div class="system-setting-desc">Gridview album</div>
+              <div class="system-setting-desc">{{ or .GridviewAlbum "Gridview album" }}</div>
               <input type="checkbox" id="appearance-gridview-album" class="slideswitch">
             <li class="note-line system-setting" id="config-appearance-auto-hide-scrollbar">
-              <div class="system-setting-desc">Auto hide scrollbar</div>
+              <div class="system-setting-desc">{{ or .AutoHideScrollbar "Auto hide scrollbar" }}</div>
               <input type="checkbox" id="appearance-auto-hide-scrollbar" class="slideswitch">
           </ul>
         </article>
-        <h1 class="system-article-sub-header">Library</h1>
+        <h1 class="system-article-sub-header">{{ or .Library "Library" }}</h1>
         <article class="system-article-sub">
           <ul class="system-settings">
             <li class="note-line system-setting">
-              <button id=library-rescan class="system-setting-value button-simple" type="button">Rescan</button>
+              <button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .Rescan "Rescan" }}</button>
           </ul>
         </article>
-        <h1 class="system-article-sub-header">Playback</h1>
+        <h1 class="system-article-sub-header">{{ or .Playback "Playback" }}</h1>
         <article class="system-article-sub">
           <ul class="system-settings">
             <li class="note-line system-setting">
-              <div class="system-setting-desc">Listview follows playback</div>
+              <div class="system-setting-desc">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
               <input type="checkbox" id="playback-view-follow" class="slideswitch">
           </ul>
         </article>
-        <h1 class="system-article-sub-header" id="volume-header">Volume</h1>
+        <h1 class="system-article-sub-header" id="volume-header">{{ or .Volume "Volume" }}</h1>
         <article class="system-article-sub" id="volume-all">
           <ul class="system-settings">
             <li class="note-line system-setting">
-              <div class="system-setting-desc">Show volume nob</div>
+              <div class="system-setting-desc">{{ or .ShowVolumeNob "Show volume nob" }}</div>
               <input type="checkbox" id="volume-show" class="slideswitch">
             <li class="note-line system-setting">
-              <div class="system-setting-desc">Max volume</div>
+              <div class="system-setting-desc">{{ or .MaxVolume "Max volume" }}</div>
               <select class="tool-select value" id="volume-max">
                 <option value="50">50</option>
                 <option value="60">60</option>
@@ -228,7 +228,7 @@
               </select>
           </ul>
         </article>
-        <h1 class="system-article-sub-header">Devices</h1>
+        <h1 class="system-article-sub-header">{{ or .Devices "Devices" }}</h1>
         <article class="system-article-sub">
           <ul class="system-settings" id="devices"></ul>
         </article>
@@ -238,25 +238,25 @@
         <article class="system-article-sub">
           <ul class="system-settings">
             <li class="note-line system-setting">
-              <div class="system-setting-desc">tracks:</div><div class="system-setting-value" id=stat-tracks></div>
+              <div class="system-setting-desc">{{ or .Tracks "Tracks:" }}</div><div class="system-setting-value" id=stat-tracks></div>
             <li class="note-line system-setting">
-              <div class="system-setting-desc">artists:</div><div class="system-setting-value" id=stat-artists></div>
+              <div class="system-setting-desc">{{ or .Artists "Artists:" }}</div><div class="system-setting-value" id=stat-artists></div>
             <li class="note-line system-setting">
-              <div class="system-setting-desc">albums:</div><div class="system-setting-value" id=stat-albums></div>
+              <div class="system-setting-desc">{{ or .Albums "Albums:" }}</div><div class="system-setting-value" id=stat-albums></div>
             <li class="note-line system-setting">
-              <div class="system-setting-desc">total length:</div><div class="system-setting-value" id=stat-db-playtime></div>
+              <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
             <li class="note-line system-setting">
-              <div class="system-setting-desc">total playtime:</div><div class="system-setting-value" id=stat-playtime></div>
+              <div class="system-setting-desc">{{ or .TotalPlaytime "Total playtime:" }}</div><div class="system-setting-value" id=stat-playtime></div>
             <li class="note-line system-setting">
-              <div class="system-setting-desc">uptime:</div><div class="system-setting-value" id=stat-uptime></div>
+              <div class="system-setting-desc">{{ or .Uptime "Uptime:" }}</div><div class="system-setting-value" id=stat-uptime></div>
             <li class="note-line system-setting">
-              <div class="system-setting-desc">last library update:</div><div class="system-setting-value" id=stat-db-update></div>
+              <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><div class="system-setting-value" id=stat-db-update></div>
             <li class="note-line system-setting">
-              <div class="system-setting-desc">websockets:</div><div class="system-setting-value" id=stat-websockets></div>
+              <div class="system-setting-desc">{{ or .Websockets "Websockets:" }}</div><div class="system-setting-value" id=stat-websockets></div>
         </article>
       </article>
       <article id="system-info" class="system-article">
-        <h1 class="system-article-sub-header">This Application</h1>
+        <h1 class="system-article-sub-header">{{ or .ThisApplication "This Application" }}</h1>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -265,10 +265,10 @@
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/meiraka/vv">https://github.com/meiraka/vv</a>
-              <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">MIT license</a>
+              <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
             </div>
         </ul>
-        <h1 class="system-article-sub-header">Compiler</h1>
+        <h1 class="system-article-sub-header">{{ or .Compiler "Compiler" }}</h1>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -277,15 +277,15 @@
             </div>
             <div class="link">
               <a class="product-link" href="https://golang.org/">https://golang.org/</a>
-              <a class="license-link" href="https://golang.org/LICENSE">BSD 3-clause license</a>
+              <a class="license-link" href="https://golang.org/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
             </div>
         </ul>
-        <h1 class="system-article-sub-header">Renderer</h1>
+        <h1 class="system-article-sub-header">{{ or .Renderer "Renderer" }}</h1>
         <ul class="information-list">
           <li>
             <div class="information-box" id=user-agent></div>
         </ul>
-        <h1 class="system-article-sub-header">Credits</h1>
+        <h1 class="system-article-sub-header">{{ or .Credits "Credits" }}</h1>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -293,7 +293,7 @@
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/spf13/pflag">https://github.com/spf13/pflag</a>
-              <a class="license-link" href="https://github.com/spf13/pflag/blob/master/LICENSE">BSD 3-clause license</a>
+              <a class="license-link" href="https://github.com/spf13/pflag/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -301,7 +301,7 @@
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/spf13/viper">https://github.com/spf13/viper</a>
-              <a class="license-link" href="https://github.com/spf13/viper/blob/master/LICENSE">MIT license</a>
+              <a class="license-link" href="https://github.com/spf13/viper/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -309,7 +309,7 @@
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/meiraka/gompd">https://github.com/meiraka/gompd</a>
-              <a class="license-link" href="https://github.com/meiraka/gompd/blob/master/LICENSE">MIT license</a>
+              <a class="license-link" href="https://github.com/meiraka/gompd/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -317,7 +317,7 @@
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/gorilla/websocket">https://github.com/gorilla/websocket</a>
-              <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">BSD 2-clause license</a>
+              <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">{{ or .BSD2ClauseLicense "BSD 2-clause license" }}</a>
             </div>
         </ul>
       </article>

@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/gompd/mpd"
+	"golang.org/x/text/language"
+	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
@@ -47,6 +49,8 @@ type Server struct {
 	upgrader       websocket.Upgrader
 	debug          bool
 	libraryCache   *gzCache
+	matcher        language.Matcher
+	rootCaches     sync.Map
 }
 
 // Serve serves http request.
@@ -67,6 +71,8 @@ func (s *Server) Serve() {
 
 func (s *Server) makeHandle() http.Handler {
 	s.libraryCache = new(gzCache)
+	s.matcher = language.NewMatcher(translatePrio)
+	s.rootCachesInit()
 	h := http.NewServeMux()
 	h.HandleFunc("/api/music/control", s.apiMusicControl)
 	h.HandleFunc("/api/music/library", s.apiMusicLibrary)
@@ -81,18 +87,16 @@ func (s *Server) makeHandle() http.Handler {
 	h.HandleFunc("/api/music/stats", s.apiMusicStats)
 	h.HandleFunc("/api/version", s.apiVersion)
 	h.HandleFunc("/assets/startup/", s.assetsStartup)
+	h.HandleFunc("/", s.root)
 	fs := http.StripPrefix(musicDirectoryPrefix, http.FileServer(http.Dir(s.MusicDirectory)))
 	h.HandleFunc(musicDirectoryPrefix, func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
 	})
 	for _, f := range AssetNames() {
 		p := "/" + f
-		if f == "assets/app.html" {
-			p = "/"
-		}
 		_, err := os.Stat(f)
 		if os.IsNotExist(err) || !s.debug {
-			data, _ := Asset(f)
+			data := AssetMust(f)
 			h.HandleFunc(p, makeHandleAssets(f, data))
 		} else {
 			func(path, rpath string) {
@@ -370,6 +374,63 @@ func (s *Server) assetsStartup(w http.ResponseWriter, r *http.Request) {
 	w.Write(newdata)
 }
 
+func (s *Server) root(w http.ResponseWriter, r *http.Request) {
+	info := AssetInfoMust("assets/app.html")
+	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
+	tag, _, _ := s.matcher.Match(t...)
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		if cache, ok := s.rootCaches.Load(tag); ok {
+			if gzdata, ok := cache.([]byte); ok {
+				w.Header().Add("Content-Type", "text/html")
+				w.Header().Add("Content-Length", strconv.Itoa(len(gzdata)))
+				w.Header().Add("Content-Encoding", "gzip")
+				w.Header().Add("Last-Modified", info.ModTime().Format(http.TimeFormat))
+				w.Write(gzdata)
+				return
+			}
+		}
+	}
+	data := AssetMust("assets/app.html")
+	// using local html file in debug
+	if s.debug {
+		newinfo, err := os.Stat("assets/app.html")
+		if err == nil {
+			newdata, err := ioutil.ReadFile("assets/app.html")
+			if err != nil {
+				w.WriteHeader(500)
+				return
+			}
+			data = newdata
+			info = newinfo
+		}
+	}
+
+	data, err := translate(data, tag)
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+	w.Header().Add("Content-Type", "text/html")
+	w.Header().Add("Last-Modified", info.ModTime().Format(http.TimeFormat))
+	w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+	w.Write(data)
+}
+
+func (s *Server) rootCachesInit() {
+	data := AssetMust("assets/app.html")
+	for i := range translatePrio {
+		data, err := translate(data, translatePrio[i])
+		if err != nil {
+			continue
+		}
+		data, err = makeGZip(data)
+		if err != nil {
+			continue
+		}
+		s.rootCaches.Store(translatePrio[i], data)
+	}
+}
+
 type gzCache struct {
 	data     []byte
 	modified time.Time
@@ -563,4 +624,20 @@ type MusicIF interface {
 	SortPlaylist([]string, [][]string, int) error
 	Subscribe(chan string)
 	Unsubscribe(chan string)
+}
+
+func AssetMust(name string) []byte {
+	d, err := Asset(name)
+	if err != nil {
+		panic(err)
+	}
+	return d
+}
+
+func AssetInfoMust(name string) os.FileInfo {
+	i, err := AssetInfo(name)
+	if err != nil {
+		panic(err)
+	}
+	return i
 }
