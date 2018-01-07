@@ -26,12 +26,12 @@
 </div>
 <header>
   <nav class="header-items">
-    <button type="button" id="header-back" class="header-item header-iconlabel" aria-label="Back">
+    <button type="button" id="header-back" class="header-item header-back header-iconlabel" aria-label="Back">
       <div class="header-item-iconlabel">
         <svg class="header-item-icon" width="24" height="32" viewBox="0 0 150 200">
           <path class="stroke" d="M 100,40 40,100 100,160"/>
         </svg>
-        <span id="header-back-label" class="header-item-label"></span>
+        <span id="header-back-label" class="header-back-label header-item-label"></span>
       </div>
     </button>
     <button type="button" id="header-main" class="header-item header-main" aria-label="Now playing">
@@ -95,7 +95,7 @@
 <div id=modal-background class="modal-background hide">
 </div>
 <div id=modal-outer class="modal-outer hide">
-  <div id=modal-help class="modal-window help hide">
+  <div id=modal-help class="modal-window modal-help hide">
     <button id=modal-help-close class=modal-window-close type="button" value="" aria-label="Close">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
@@ -130,7 +130,7 @@
       </tr>
     </table>
   </div>
-  <div id=modal-song class="modal-window song hide">
+  <div id=modal-song class="modal-window modal-song hide">
     <button id=modal-song-close class=modal-window-close type="button" value="" aria-label="Close">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
@@ -141,7 +141,7 @@
       </table>
     </div>
   </div>
-  <div id="modal-system" class="modal-window hide system">
+  <div id="modal-system" class="modal-window hide modal-system">
     <button id="modal-system-close" class="modal-window-close" type="button" value="" aria-label="Close">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>

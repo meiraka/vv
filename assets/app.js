@@ -1479,9 +1479,9 @@ vv.view.list = (function() {
     preferences_update();
     ul.appendChild(newul);
     if (ul.getElementsByClassName("playing").length > 0) {
-      document.body.classList.add("view-playing");
+      document.getElementById("header-main").classList.add("playing");
     } else {
-      document.body.classList.remove("view-playing");
+      document.getElementById("header-main").classList.remove("playing");
     }
     if (focus_li) {
       var pos = focus_li.offsetTop;

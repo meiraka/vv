@@ -320,10 +320,6 @@ svg path {
   margin: 0 0 0 10px;
 }
 
-.view-playing .header-main {
-  display: none;
-}
-
 .header-item-iconlabel {
   display: flex;
   flex-flow: row nowrap;
@@ -354,24 +350,24 @@ svg path {
   white-space: nowrap;
 }
 
-.view-list #header-back.root {
+.view-list .header-back.root {
   visibility: hidden;
 }
 
 @media (orientation: portrait) {
-  .view-main #menu-main {
-    visibility: hidden;
-  }
-
-  .view-main #header-back-label {
+  .view-main .header-back-label {
     display: none;
   }
 }
 
 @media (orientation: landscape) {
-  .view-main #header-back.root {
+  .view-main .header-back.root {
     visibility: hidden;
   }
+}
+
+.header-main.playing {
+  display: none;
 }
 
 .background-image {
@@ -380,65 +376,6 @@ svg path {
 
 .background-image.hide {
   display: none;
-}
-
-@media (orientation: portrait) {
-  .animation.view-list .list.even,
-  .animation.view-main .main {
-    animation: show_opacity 100ms linear 0s;
-  }
-
-  .animation.view-list .list.odd {
-    animation: show_opacity2 100ms linear 0s;
-  }
-}
-
-@media (orientation: landscape) {
-  .animation.view-list .list.even,
-  .animation.view-list .main,
-  .animation.view-main .main,
-  .animation.view-main .list.even {
-    animation: show_opacity 100ms linear 0s;
-  }
-
-  .animation.view-list .list.odd,
-  .animation.view-main .list.odd {
-    animation: show_opacity2 100ms linear 0s;
-  }
-}
-
-@keyframes show_opacity {
-  0% {
-    display: none;
-    opacity: 0;
-  }
-
-  1% {
-    display: block;
-    opacity: 0;
-  }
-
-  100% {
-    display: block;
-    opacity: 1;
-  }
-}
-
-@keyframes show_opacity2 {
-  0% {
-    display: none;
-    opacity: 0;
-  }
-
-  1% {
-    display: block;
-    opacity: 0;
-  }
-
-  100% {
-    display: block;
-    opacity: 1;
-  }
 }
 
 .lists {
@@ -866,7 +803,7 @@ button:hover {
 }
 
 @media (orientation: portrait) {
-  .system {
+  .modal-system {
     flex-flow: column nowrap;
   }
 
@@ -1601,14 +1538,14 @@ button:hover {
   cursor: default;
 }
 
-.modal-window.help,
-.modal-window.song {
+.modal-help,
+.modal-song {
   flex-flow: column nowrap;
   align-items: center;
   justify-content: center;
 }
 
-.modal-window.system {
+.modal-system {
   align-items: stretch;
   justify-content: flex-start;
   width: 80%;
@@ -1616,13 +1553,13 @@ button:hover {
 }
 
 @media (orientation: landscape) {
-  .modal-window.system {
+  .modal-system {
     flex-flow: row nowrap;
   }
 }
 
 @media (orientation: portrait) {
-  .modal-window.system {
+  .modal-system {
     flex-flow: column nowrap;
   }
 }
