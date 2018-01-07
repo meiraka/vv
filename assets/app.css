@@ -504,6 +504,14 @@ button:hover {
   cursor: pointer;
 }
 
+.swipe .hover {
+  cursor: move;
+}
+
+.swipe {
+  cursor: move;
+}
+
 .light .plain.hover,
 .light .song.hover,
 .light .album.hover {
