@@ -380,6 +380,7 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 				w.Header().Add("Content-Type", "text/html")
 				w.Header().Add("Content-Length", strconv.Itoa(len(gzdata)))
 				w.Header().Add("Content-Encoding", "gzip")
+				w.Header().Add("Cache-Control", "max-age=86400")
 				w.Header().Add("Last-Modified", info.ModTime().Format(http.TimeFormat))
 				w.Write(gzdata)
 				return
@@ -475,6 +476,7 @@ func makeHandleAssets(f string) func(http.ResponseWriter, *http.Request) {
 		}
 		if gzdata != nil && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			w.Header().Add("Content-Length", strconv.Itoa(len(gzdata)))
+			w.Header().Add("Cache-Control", "max-age=86400")
 			w.Header().Add("Content-Encoding", "gzip")
 			w.Write(gzdata)
 		} else {
