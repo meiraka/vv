@@ -899,7 +899,7 @@ button:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1 1 auto;
-  padding: 8px 0;
+  padding: 8px 8px 8px 0;
 }
 
 .system-setting-value-expand {
@@ -1059,6 +1059,12 @@ button:hover {
   transition: background-color 0.2s 0s ease, width 0.2s 0s ease;
 }
 
+@media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
+  .slideswitch {
+    width: 50px;
+  }
+}
+
 .slideswitch:hover {
   cursor: pointer;
 }
@@ -1100,6 +1106,12 @@ button:hover {
   transition: background-color 0.2s 0s ease, left 0.2s 0s ease;
 }
 
+@media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
+  .slideswitch:after {
+    width: 30px;
+  }
+}
+
 .light .slideswitch:after {
   background-color: #ffffff;
   border: solid 3px #404040;
@@ -1112,6 +1124,12 @@ button:hover {
 
 .slideswitch:checked:after {
   left: 41px;
+}
+
+@media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
+  .slideswitch:checked:after {
+    left: 17px;
+  }
 }
 
 .button-simple {
@@ -1185,6 +1203,13 @@ button:hover {
   font-size: 18px;
   padding: 5px 5px 0 50px;
   transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
+}
+
+@media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
+  .tool-select{
+    width: 50px;
+    padding: 5px 15px;
+  }
 }
 
 .tool-select:hover {
@@ -1548,8 +1573,15 @@ button:hover {
 .modal-system {
   align-items: stretch;
   justify-content: flex-start;
-  width: 80%;
+  min-width: 80%;
+  max-width: 80%;
   height: 80%;
+}
+
+@media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
+  .modal-system {
+    max-width: 100%;
+  }
 }
 
 @media (orientation: landscape) {
