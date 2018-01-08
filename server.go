@@ -374,7 +374,7 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 	info := mustAssetInfo("assets/app.html")
 	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
 	tag, _, _ := s.matcher.Match(t...)
-	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+	if !s.debug && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		if cache, ok := s.rootCaches.Load(tag); ok {
 			if gzdata, ok := cache.([]byte); ok {
 				w.Header().Add("Content-Type", "text/html")
