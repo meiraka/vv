@@ -98,6 +98,7 @@ func (s *Server) makeHandle() http.Handler {
 			if _, err := os.Stat(f); err == nil {
 				func(path, rpath string) {
 					h.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+						w.Header().Add("Vary", "Accept-Encoding")
 						http.ServeFile(w, r, rpath)
 					})
 				}(p, f)
@@ -371,17 +372,23 @@ func (s *Server) assetsStartup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) root(w http.ResponseWriter, r *http.Request) {
-	info := mustAssetInfo("assets/app.html")
+	l := mustAssetInfo("assets/app.html").ModTime()
 	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
 	tag, _, _ := s.matcher.Match(t...)
 	if !s.debug && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		if cache, ok := s.rootCaches.Load(tag); ok {
 			if gzdata, ok := cache.([]byte); ok {
+				if !modifiedSince(r, l) {
+					w.WriteHeader(304)
+					return
+				}
+				w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+				w.Header().Add("Content-Language", tag.String())
 				w.Header().Add("Content-Type", "text/html")
 				w.Header().Add("Content-Length", strconv.Itoa(len(gzdata)))
 				w.Header().Add("Content-Encoding", "gzip")
 				w.Header().Add("Cache-Control", "max-age=86400")
-				w.Header().Add("Last-Modified", info.ModTime().Format(http.TimeFormat))
+				w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 				w.Write(gzdata)
 				return
 			}
@@ -398,7 +405,7 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			data = newdata
-			info = newinfo
+			l = newinfo.ModTime()
 		}
 	}
 
@@ -407,9 +414,15 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 		return
 	}
+	if !modifiedSince(r, l) {
+		w.WriteHeader(304)
+		return
+	}
 	w.Header().Add("Content-Type", "text/html")
-	w.Header().Add("Last-Modified", info.ModTime().Format(http.TimeFormat))
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+	w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+	w.Header().Add("Content-Language", tag.String())
 	w.Write(data)
 }
 
@@ -470,7 +483,12 @@ func makeHandleAssets(f string) func(http.ResponseWriter, *http.Request) {
 		gzdata, _ = makeGZip(data)
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !modifiedSince(r, n) {
+			w.WriteHeader(304)
+			return
+		}
 		w.Header().Add("Last-Modified", n.Format(http.TimeFormat))
+		w.Header().Add("Vary", "Accept-Encoding")
 		if m != "" {
 			w.Header().Add("Content-Type", m)
 		}
@@ -547,6 +565,7 @@ func writeInterfaceIfCached(w http.ResponseWriter, r *http.Request, d interface{
 		writeNotModified(w, l)
 		return
 	}
+	w.Header().Add("Vary", "Accept-Encoding")
 	if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") || g == nil {
 		writeInterface(w, d, l, err)
 		return
