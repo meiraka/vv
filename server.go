@@ -322,49 +322,49 @@ func (s *Server) apiMusicStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) apiVersion(w http.ResponseWriter, r *http.Request) {
-	if modifiedSince(r, s.StartTime) {
-		vvPostfix := ""
-		if s.debug {
-			vvPostfix = vvPostfix + " dev mode"
-		}
-		vvVersion := version
-		if len(vvVersion) == 0 {
-			vvVersion = staticVersion
-		}
-		goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
-		d := map[string]string{"vv": vvVersion + vvPostfix, "go": goVersion}
-		writeInterface(w, d, s.StartTime, nil)
-	} else {
-		writeNotModified(w, s.StartTime)
+	if !modifiedSince(r, s.StartTime) {
+		w.WriteHeader(http.StatusNotModified)
+		return
 	}
+	vvPostfix := ""
+	if s.debug {
+		vvPostfix = vvPostfix + " dev mode"
+	}
+	vvVersion := version
+	if len(vvVersion) == 0 {
+		vvVersion = staticVersion
+	}
+	goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	d := map[string]string{"vv": vvVersion + vvPostfix, "go": goVersion}
+	writeInterface(w, d, s.StartTime, nil)
 }
 
 func (s *Server) assetsStartup(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(r.URL.Path, "/assets/startup/") {
-		w.WriteHeader(404)
+		http.NotFound(w, r)
 		return
 	}
 	fname := strings.TrimPrefix(r.URL.Path, "/assets/startup/")
 	fnames := strings.Split(fname, "x")
 	if len(fnames) != 2 {
-		w.WriteHeader(404)
+		http.NotFound(w, r)
 		return
 	}
 	width, err := strconv.Atoi(fnames[0])
 	if err != nil {
-		w.WriteHeader(404)
+		http.NotFound(w, r)
 		return
 	}
 	height, err := strconv.Atoi(fnames[1])
 	if err != nil {
-		w.WriteHeader(404)
+		http.NotFound(w, r)
 		return
 	}
 
 	data := mustAsset("assets/app.png")
 	newdata, err := expandImage(data, width, height)
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Add("Content-Type", "image/png")
@@ -379,7 +379,7 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 		if cache, ok := s.rootCaches.Load(tag); ok {
 			if gzdata, ok := cache.([]byte); ok {
 				if !modifiedSince(r, l) {
-					w.WriteHeader(304)
+					w.WriteHeader(http.StatusNotModified)
 					return
 				}
 				w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
@@ -401,7 +401,7 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			newdata, err := ioutil.ReadFile("assets/app.html")
 			if err != nil {
-				w.WriteHeader(500)
+				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 			data = newdata
@@ -411,7 +411,7 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 
 	data, err := translate(data, tag)
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	if !modifiedSince(r, l) {
@@ -518,7 +518,7 @@ func writeError(w http.ResponseWriter, err error) {
 	v := jsonMap{"error": errstr}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"error\": \"failed to create json\"}")
 		return
 	}
@@ -526,7 +526,7 @@ func writeError(w http.ResponseWriter, err error) {
 		if _, ok := err.(*httpClientError); ok {
 			w.WriteHeader(400)
 		} else {
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
 	fmt.Fprintf(w, string(b))
@@ -535,10 +535,10 @@ func writeError(w http.ResponseWriter, err error) {
 
 func writeInterfaceIfModified(w http.ResponseWriter, r *http.Request, d interface{}, l time.Time, err error) {
 	if !modifiedSince(r, l) {
-		writeNotModified(w, l)
-	} else {
-		writeInterface(w, d, l, err)
+		w.WriteHeader(http.StatusNotModified)
+		return
 	}
+	writeInterface(w, d, l, err)
 }
 
 func writeInterface(w http.ResponseWriter, d interface{}, l time.Time, err error) {
@@ -551,8 +551,7 @@ func writeInterface(w http.ResponseWriter, d interface{}, l time.Time, err error
 	v := jsonMap{"error": errstr, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
-		w.WriteHeader(500)
-		fmt.Fprintf(w, "{\"error\": \"failed to create json\"}")
+		writeError(w, jsonerr)
 		return
 	}
 	w.Header().Add("Content-Length", strconv.Itoa(len(b)))
@@ -562,7 +561,7 @@ func writeInterface(w http.ResponseWriter, d interface{}, l time.Time, err error
 
 func writeInterfaceIfCached(w http.ResponseWriter, r *http.Request, d interface{}, l time.Time, g *gzCache, err error) {
 	if !modifiedSince(r, l) {
-		writeNotModified(w, l)
+		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 	w.Header().Add("Vary", "Accept-Encoding")
@@ -586,8 +585,7 @@ func writeInterfaceIfCached(w http.ResponseWriter, r *http.Request, d interface{
 	v := jsonMap{"error": errstr, "data": d}
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
-		w.WriteHeader(500)
-		fmt.Fprintf(w, "{\"error\": \"failed to create json\"}")
+		writeError(w, jsonerr)
 		return
 	}
 	newgzdata, err := makeGZip(b)
@@ -600,13 +598,6 @@ func writeInterfaceIfCached(w http.ResponseWriter, r *http.Request, d interface{
 	w.Header().Add("Content-Length", strconv.Itoa(len(newgzdata)))
 	w.Write(newgzdata)
 	g.set(newgzdata, l)
-}
-
-func writeNotModified(w http.ResponseWriter, l time.Time) {
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
-	w.WriteHeader(304)
-	return
 }
 
 func writeSongInList(w http.ResponseWriter, r *http.Request, path string, d []Song, l time.Time) {
