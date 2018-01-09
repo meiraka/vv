@@ -492,9 +492,6 @@ vv.model.list = (function() {
     ret.songs = vv.songs.uniq(ret.songs, ret.key);
     ret.style = TREE[root].tree[vv.storage.tree.length - 1][1];
     ret.isdir = vv.storage.tree.length !== TREE[root].tree.length;
-    var leef = vv.storage.tree[vv.storage.tree.length - 1];
-    list_child_cache[vv.storage.tree.length - 1].leef = leef;
-    list_child_cache[vv.storage.tree.length - 1].data = ret;
     return ret;
   };
   var list_root = function() {
@@ -521,6 +518,9 @@ vv.model.list = (function() {
     list_cache = list_child();
     if (list_cache.songs.length === 0) {
       pub.up();
+    } else {
+      list_child_cache[vv.storage.tree.length - 1].leef = leef;
+      list_child_cache[vv.storage.tree.length - 1].data = list_cache;
     }
     return true;
   };
