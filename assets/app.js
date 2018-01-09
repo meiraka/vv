@@ -317,6 +317,7 @@ vv.songs = (function() {
 })();
 vv.storage = (function() {
   var pub = {
+    root: "root",
     tree: [],
     current: {},
     control: {},
@@ -352,6 +353,7 @@ vv.storage = (function() {
       localStorage.preferences = JSON.stringify(pub.preferences);
       localStorage.current = JSON.stringify(pub.current);
       localStorage.current_last_modified = pub.last_modified.current;
+      localStorage.root = pub.root;
     } catch (e) {
       // private browsing
     }
@@ -368,6 +370,12 @@ vv.storage = (function() {
   };
   pub.load = function() {
     try {
+      if (localStorage.root) {
+        pub.root = localStorage.root;
+        if (pub.root !== "root") {
+          pub.tree.push(["root", pub.root]);
+        }
+      }
       if (localStorage.preferences) {
         var c = JSON.parse(localStorage.preferences);
         for (var i in c) {
@@ -530,6 +538,10 @@ vv.model.list = (function() {
     if (vv.storage.tree.length !== 0) {
       r = vv.storage.tree[0][1];
     }
+    if (r !== vv.storage.root) {
+      vv.storage.root = r;
+      vv.storage.save();
+    }
     return r;
   };
   pub.filters = function(pos) {
@@ -551,7 +563,6 @@ vv.model.list = (function() {
     }
     if (pub.rootname() !== "root") {
       vv.storage.tree.pop();
-      vv.storage.save();
     }
     update_list();
     if (pub.list().songs.length === 1 && vv.storage.tree.length !== 0) {
@@ -568,7 +579,6 @@ vv.model.list = (function() {
       key = TREE[r].tree[vv.storage.tree.length - 1][0];
     }
     vv.storage.tree.push([key, value]);
-    vv.storage.save();
     focus = {};
     update_list();
     var songs = pub.list().songs;
@@ -593,10 +603,8 @@ vv.model.list = (function() {
         var key = selected[i][0];
         vv.storage.tree.push([key, vv.song.getOne(song, key)]);
       }
-      vv.storage.save();
     } else {
       vv.storage.tree.splice(0, vv.storage.tree.length);
-      vv.storage.save();
     }
     update_list();
     raiseEvent("changed");
@@ -638,7 +646,6 @@ vv.model.list = (function() {
       for (var i = 0; i < focus.keys.length - 1; i++) {
         vv.storage.tree.push(focus.keys[i]);
       }
-      vv.storage.save();
       update_list();
       raiseEvent("changed");
     } else {
@@ -646,10 +653,7 @@ vv.model.list = (function() {
     }
   };
   pub.abs = function(song) {
-    if (!vv.storage.sorted) {
-      return;
-    }
-    if (vv.storage.sorted.sorted) {
+    if (vv.storage.sorted && vv.storage.sorted.sorted) {
       absSorted(song);
     } else {
       absFallback(song);
