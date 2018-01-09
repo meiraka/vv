@@ -153,7 +153,7 @@ vv.song = (function() {
       e.appendChild(menu);
     }
     if (style === "song") {
-      var now_playing = vv.storage.current && vv.storage.current.file &&
+      var now_playing = vv.storage.current !== null &&
           song.file[0] === vv.storage.current.file[0];
       if (now_playing) {
         e.classList.add("playing");
@@ -319,7 +319,7 @@ vv.storage = (function() {
   var pub = {
     root: "root",
     tree: [],
-    current: {},
+    current: null,
     control: {},
     library: [],
     outputs: [],
@@ -1004,6 +1004,11 @@ vv.control = (function() {
         target, vv.obj.getOrElse(vv.storage.last_modified, store, ""),
         function(ret, modified) {
           if (!ret.error) {
+            if (Object.prototype.toString.call(ret.data) ===
+                    "[object Object]" &&
+                Object.keys(ret.data).length === 0) {
+              return;
+            }
             vv.storage[store] = ret.data;
             vv.storage.last_modified_ms[store] = Date.parse(modified);
             vv.storage.last_modified[store] = modified;
@@ -1154,7 +1159,7 @@ vv.control = (function() {
     };
     vv.view.list.show();
     pub.raiseEvent("start");
-    if (vv.storage.current && vv.storage.last_modified.current) {
+    if (vv.storage.current !== null && vv.storage.last_modified.current) {
       pub.raiseEvent("current");
     }
     listennotify();
@@ -1172,7 +1177,7 @@ vv.control = (function() {
   var focus = function() {
     vv.storage.save();
     if (vv.storage.preferences.playback.view_follow &&
-        vv.storage.current.file) {
+        vv.storage.current !== null) {
       vv.model.list.abs(vv.storage.current);
     }
   };
@@ -1237,8 +1242,8 @@ vv.control = (function() {
       e.classList.remove("hide");
       document.getElementById("background-image").classList.remove("hide");
       var cover = "/assets/nocover.svg";
-      if (vv.storage.current && vv.storage.current.cover) {
-        cover = "/music_directory/" + vv.storage.current.cover;
+      if (vv.storage.current !== null && vv.storage.current.cover) {
+        cover = "/music_directory/" + vv.storage.current.cover[0];
       }
       var newimage = "url(\"" + cover + "\")";
       if (e.style.backgroundImage !== newimage) {
@@ -1293,13 +1298,16 @@ vv.view.main = (function() {
         e.classList.contains("view-list") || e.classList.contains("view-main"));
   };
   pub.update = function() {
+    if (vv.storage.current === null) {
+      return;
+    }
     document.getElementById("main-box-title").textContent =
         vv.storage.current.Title;
     document.getElementById("main-box-artist").textContent =
         vv.storage.current.Artist;
     if (vv.storage.current.cover) {
       document.getElementById("main-cover-img").style.backgroundImage =
-          "url(\"/music_directory/" + vv.storage.current.cover + "\")";
+          "url(\"/music_directory/" + vv.storage.current.cover[0] + "\")";
     } else {
       document.getElementById("main-cover-img").style.backgroundImage = "";
     }
@@ -1319,6 +1327,9 @@ vv.view.main = (function() {
   };
   vv.control.addEventListener("preferences", update_style);
   var update_elapsed = function() {
+    if (vv.storage.current === null) {
+      return;
+    }
     if (pub.hidden() ||
         document.getElementById("main-cover-circle")
             .classList.contains("hide")) {
@@ -1329,7 +1340,7 @@ vv.view.main = (function() {
     if (vv.storage.control.state === "play") {
       elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control;
     }
-    var total = parseInt(vv.storage.current.Time, 10);
+    var total = parseInt(vv.storage.current.Time[0], 10);
     var d = (elapsed * 360 / 1000 / total - 90) * (Math.PI / 180);
     if (isNaN(d)) {
       return;
@@ -1351,13 +1362,16 @@ vv.view.main = (function() {
           vv.control.volume(parseInt(this.value, 10));
         });
     document.getElementById("main-cover").addEventListener("click", function() {
-      if (vv.storage.current) {
+      if (vv.storage.current !== null) {
         vv.view.modal.song.show(vv.storage.current);
       }
     });
     load_volume_preferences();
     update_style();
     vv.control.swipe(document.getElementById("main"), function() {
+      if (vv.storage.current === null) {
+        return;
+      }
       vv.model.list.abs(vv.storage.current);
       vv.view.list.show();
     });
@@ -1466,6 +1480,9 @@ vv.view.list = (function() {
       }
       vv.control.click(li, function(e) {
         if (e.currentTarget.classList.contains("playing")) {
+          if (vv.storage.current === null) {
+            return;
+          }
           vv.model.list.abs(vv.storage.current);
           vv.view.main.show();
           return;
@@ -1939,7 +1956,9 @@ vv.view.system = (function() {
     document.getElementById("header-back")
         .addEventListener("click", function(e) {
           if (vv.view.list.hidden()) {
-            vv.model.list.abs(vv.storage.current);
+            if (vv.storage.current !== null) {
+              vv.model.list.abs(vv.storage.current);
+            }
           } else {
             vv.model.list.up();
           }
@@ -1950,7 +1969,9 @@ vv.view.system = (function() {
         .addEventListener("click", function(e) {
           e.stopPropagation();
           if (vv.model.list.rootname() !== "root") {
-            vv.model.list.abs(vv.storage.current);
+            if (vv.storage.current !== null) {
+              vv.model.list.abs(vv.storage.current);
+            }
           }
           vv.view.main.show();
           e.stopPropagation();
@@ -2230,7 +2251,9 @@ vv.view.modal.song = (function() {
       } else if (
           (mod === 0 && e.keyCode === 8) || (mod === 1 && e.keyCode === 37)) {
         if (vv.view.list.hidden()) {
-          vv.model.list.abs(vv.storage.current);
+          if (vv.storage.current !== null) {
+            vv.model.list.abs(vv.storage.current);
+          }
         } else {
           vv.model.list.up();
         }
@@ -2251,7 +2274,9 @@ vv.view.modal.song = (function() {
         }
       } else if (mod === 1 && e.keyCode === 39) {
         if (vv.model.list.rootname() !== "root") {
-          vv.model.list.abs(vv.storage.current);
+          if (vv.storage.current !== null) {
+            vv.model.list.abs(vv.storage.current);
+          }
         }
         vv.view.main.show();
         e.stopPropagation();
