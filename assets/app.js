@@ -370,7 +370,7 @@ vv.storage = (function() {
   };
   pub.load = function() {
     try {
-      if (localStorage.root) {
+      if (localStorage.root && Object.keys(localStorage.root).length !== 0) {
         pub.root = localStorage.root;
         if (pub.root !== "root") {
           pub.tree.push(["root", pub.root]);
