@@ -348,25 +348,28 @@ vv.storage = (function() {
     pub.preferences.appearance.circled_image = false;
     pub.preferences.volume.show = false;
   }
-  pub.save = function() {
+  pub.save = {};
+  pub.save.current = function() {
     try {
-      localStorage.preferences = JSON.stringify(pub.preferences);
       localStorage.current = JSON.stringify(pub.current);
       localStorage.current_last_modified = pub.last_modified.current;
-      localStorage.root = pub.root;
-    } catch (e) {
-      // private browsing
-    }
+    } catch (e) {}
   };
-  pub.save_library = function() {
+  pub.save.root = function() {
+    try { localStorage.root = pub.root; } catch (e) {}
+  };
+  pub.save.preferences = function() {
+    try {
+      localStorage.preferences = JSON.stringify(pub.preferences);
+    } catch (e) {}
+  };
+  pub.save.library = function() {
     try {
       if (localStorage.library_last_modified !== pub.last_modified.library) {
         localStorage.library = JSON.stringify(pub.library);
         localStorage.library_last_modified = pub.last_modified.library;
       }
-    } catch (e) {
-      // private browsing
-    }
+    } catch (e) {}
   };
   pub.load = function() {
     try {
@@ -540,7 +543,7 @@ vv.model.list = (function() {
     }
     if (r !== vv.storage.root) {
       vv.storage.root = r;
-      vv.storage.save();
+      vv.storage.save.root();
     }
     return r;
   };
@@ -1013,7 +1016,7 @@ vv.control = (function() {
             vv.storage.last_modified_ms[store] = Date.parse(modified);
             vv.storage.last_modified[store] = modified;
             if (store === "library") {
-              vv.storage.save_library();
+              vv.storage.save.library();
             }
             pub.raiseEvent(store);
           }
@@ -1175,7 +1178,7 @@ vv.control = (function() {
   };
 
   var focus = function() {
-    vv.storage.save();
+    vv.storage.save.current();
     if (vv.storage.preferences.playback.view_follow &&
         vv.storage.current !== null) {
       vv.model.list.abs(vv.storage.current);
@@ -1183,7 +1186,10 @@ vv.control = (function() {
   };
   var focusremove = function(key, remove) {
     var n = function() {
-      focus();
+      if (vv.storage.preferences.playback.view_follow &&
+          vv.storage.current !== null) {
+        vv.model.list.abs(vv.storage.current);
+      }
       setTimeout(function() { remove(key, n); });
     };
     return n;
@@ -1720,7 +1726,7 @@ vv.view.system = (function() {
         }
         obj.addEventListener("change", function() {
           vv.storage.preferences[mainkey][subkey] = getter();
-          vv.storage.save();
+          vv.storage.save.preferences();
           vv.control.raiseEvent("preferences");
         });
       };
