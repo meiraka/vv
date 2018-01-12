@@ -1799,10 +1799,8 @@ vv.view.system = (function() {
       var e = document.getElementById("library-rescan");
       if (vv.storage.control.update_library && !e.disabled) {
         e.disabled = true;
-        e.textContent = "Rescanning";
       } else if (!vv.storage.control.update_library && e.disabled) {
         e.disabled = false;
-        e.textContent = "Rescan";
       }
     });
     return {
