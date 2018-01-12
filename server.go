@@ -91,6 +91,7 @@ func (s *Server) makeHandle() http.Handler {
 	h.HandleFunc("/", s.root)
 	fs := http.StripPrefix(musicDirectoryPrefix, http.FileServer(http.Dir(s.MusicDirectory)))
 	h.HandleFunc(musicDirectoryPrefix, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Cache-Control", "max-age=86400")
 		fs.ServeHTTP(w, r)
 	})
 	for _, f := range AssetNames() {
