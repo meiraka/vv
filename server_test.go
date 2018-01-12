@@ -569,6 +569,7 @@ func TestRoot(t *testing.T) {
 			resHeader: map[string][]string{
 				"Vary":             {"Accept-Encoding, Accept-Language"},
 				"Content-Language": {"en-US"},
+				"Content-Length":   nil,
 				"Content-Type":     {"text/html; charset=utf-8"},
 				"Content-Encoding": {"gzip"},
 				"Cache-Control":    {"max-age=86400"},
@@ -582,6 +583,7 @@ func TestRoot(t *testing.T) {
 			resHeader: map[string][]string{
 				"Vary":             {"Accept-Encoding, Accept-Language"},
 				"Content-Language": {"en-US"},
+				"Content-Length":   nil,
 				"Content-Type":     {"text/html; charset=utf-8"},
 				"Cache-Control":    {"max-age=86400"},
 				"Last-Modified":    nil,
@@ -599,6 +601,7 @@ func TestRoot(t *testing.T) {
 			resHeader: map[string][]string{
 				"Vary":             {"Accept-Encoding, Accept-Language"},
 				"Content-Language": {"ja"},
+				"Content-Length":   nil,
 				"Content-Type":     {"text/html; charset=utf-8"},
 				"Content-Encoding": {"gzip"},
 				"Cache-Control":    {"max-age=86400"},
@@ -612,6 +615,7 @@ func TestRoot(t *testing.T) {
 			resHeader: map[string][]string{
 				"Vary":             {"Accept-Encoding, Accept-Language"},
 				"Content-Language": {"en-US"},
+				"Content-Length":   nil,
 				"Content-Type":     {"text/html; charset=utf-8"},
 				"Last-Modified":    nil,
 			},
