@@ -51,6 +51,7 @@ type Server struct {
 	libraryCache   *gzCache
 	matcher        language.Matcher
 	rootCaches     sync.Map
+	rootGzipCaches sync.Map
 }
 
 // Serve serves http request.
@@ -372,57 +373,64 @@ func (s *Server) assetsStartup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) root(w http.ResponseWriter, r *http.Request) {
-	l := mustAssetInfo("assets/app.html").ModTime()
 	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
 	tag, _, _ := s.matcher.Match(t...)
-	if !s.debug && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		if cache, ok := s.rootCaches.Load(tag); ok {
-			if gzdata, ok := cache.([]byte); ok {
-				if !modifiedSince(r, l) {
-					w.WriteHeader(http.StatusNotModified)
-					return
-				}
-				w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
-				w.Header().Add("Content-Language", tag.String())
-				w.Header().Add("Content-Type", "text/html")
-				w.Header().Add("Content-Length", strconv.Itoa(len(gzdata)))
-				w.Header().Add("Content-Encoding", "gzip")
-				w.Header().Add("Cache-Control", "max-age=86400")
-				w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
-				w.Write(gzdata)
+	if s.debug {
+		if info, err := os.Stat("assets/app.html"); err == nil {
+			l := info.ModTime()
+			if !modifiedSince(r, l) {
+				w.WriteHeader(304)
 				return
 			}
-		}
-	}
-	data := mustAsset("assets/app.html")
-	// using local html file in debug
-	if s.debug {
-		newinfo, err := os.Stat("assets/app.html")
-		if err == nil {
-			newdata, err := ioutil.ReadFile("assets/app.html")
+			data, err := ioutil.ReadFile("assets/app.html")
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			data = newdata
-			l = newinfo.ModTime()
+			data, err = translate(data, tag)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+			w.Header().Add("Content-Language", tag.String())
+			w.Header().Add("Content-Type", "text/html; charset=utf-8")
+			w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+			w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+			w.Write(data)
 		}
 	}
 
-	data, err := translate(data, tag)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	l := mustAssetInfo("assets/app.html").ModTime()
 	if !modifiedSince(r, l) {
-		w.WriteHeader(304)
+		w.WriteHeader(http.StatusNotModified)
 		return
 	}
-	w.Header().Add("Content-Type", "text/html")
-	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
-	w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+	var cvalue interface{}
+	gzip := false
+	ok := false
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		gzip = true
+		cvalue, ok = s.rootGzipCaches.Load(tag)
+	} else {
+		cvalue, ok = s.rootCaches.Load(tag)
+	}
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	data, ok := cvalue.([]byte)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 	w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
 	w.Header().Add("Content-Language", tag.String())
+	w.Header().Add("Content-Type", "text/html; charset=utf-8")
+	w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+	if gzip {
+		w.Header().Add("Content-Encoding", "gzip")
+	}
+	w.Header().Add("Cache-Control", "max-age=86400")
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	w.Write(data)
 }
 
@@ -433,11 +441,12 @@ func (s *Server) rootCachesInit() {
 		if err != nil {
 			continue
 		}
+		s.rootCaches.Store(translatePrio[i], data)
 		data, err = makeGZip(data)
 		if err != nil {
 			continue
 		}
-		s.rootCaches.Store(translatePrio[i], data)
+		s.rootGzipCaches.Store(translatePrio[i], data)
 	}
 }
 

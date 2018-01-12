@@ -554,6 +554,100 @@ func TestMusicDirectory(t *testing.T) {
 	}
 }
 
+func TestRoot(t *testing.T) {
+	testsets := []struct {
+		desc      string
+		status    int
+		debug     bool
+		reqHeader map[string]string
+		resHeader map[string][]string
+	}{
+		{
+			desc:      "use bindata",
+			status:    200,
+			reqHeader: map[string]string{"Accept-Encoding": "gzip"},
+			resHeader: map[string][]string{
+				"Vary":             {"Accept-Encoding, Accept-Language"},
+				"Content-Language": {"en-US"},
+				"Content-Type":     {"text/html; charset=utf-8"},
+				"Content-Encoding": {"gzip"},
+				"Cache-Control":    {"max-age=86400"},
+				"Last-Modified":    nil,
+			},
+		},
+		{
+			desc:      "use bindata, nogzip",
+			status:    200,
+			reqHeader: map[string]string{"Accept-Encoding": "identity"},
+			resHeader: map[string][]string{
+				"Vary":             {"Accept-Encoding, Accept-Language"},
+				"Content-Language": {"en-US"},
+				"Content-Type":     {"text/html; charset=utf-8"},
+				"Cache-Control":    {"max-age=86400"},
+				"Last-Modified":    nil,
+			},
+		},
+		{
+			desc:      "use bindata, If-Modified-Since",
+			status:    304,
+			reqHeader: map[string]string{"Accept-Encoding": "gzip", "If-Modified-Since": mustAssetInfo("assets/app.html").ModTime().Format(http.TimeFormat)},
+		},
+		{
+			desc:      "use bindata, lang ja",
+			status:    200,
+			reqHeader: map[string]string{"Accept-Encoding": "gzip", "Accept-Language": "ja,en-US;q=0.9,en;q=0.8"},
+			resHeader: map[string][]string{
+				"Vary":             {"Accept-Encoding, Accept-Language"},
+				"Content-Language": {"ja"},
+				"Content-Type":     {"text/html; charset=utf-8"},
+				"Content-Encoding": {"gzip"},
+				"Cache-Control":    {"max-age=86400"},
+				"Last-Modified":    nil,
+			},
+		},
+		{
+			desc:      "use local file",
+			status:    200,
+			reqHeader: map[string]string{"Accept-Encoding": "identity"},
+			resHeader: map[string][]string{
+				"Vary":             {"Accept-Encoding, Accept-Language"},
+				"Content-Language": {"en-US"},
+				"Content-Type":     {"text/html; charset=utf-8"},
+				"Last-Modified":    nil,
+			},
+			debug: true,
+		},
+	}
+	for _, tt := range testsets {
+		m := new(MockMusic)
+		s := Server{Music: m, debug: tt.debug}
+		handler := s.makeHandle()
+		ts := httptest.NewServer(handler)
+		defer ts.Close()
+		res := testHTTPGet(t, ts.URL+"/", tt.reqHeader)
+		if res.StatusCode != tt.status {
+			t.Errorf("[%s] unexpected status: %d expect: %d", tt.desc, res.StatusCode, tt.status)
+		}
+		if res.ContentLength < 0 {
+			t.Errorf("[%s] response header does not contain: Content-Length", tt.desc)
+		}
+		if tt.resHeader != nil {
+			for key, value := range tt.resHeader {
+				actual, ok := res.Header[key]
+				if !ok {
+					t.Errorf("[%s] response header does not contain: %s", tt.desc, key)
+					continue
+				}
+				if value != nil && !reflect.DeepEqual(value, actual) {
+					t.Errorf("[%s] response header %s has: %s, expect: %s", tt.desc, key, actual, value)
+				}
+
+			}
+		}
+
+	}
+}
+
 type MockMusic struct {
 	PlayErr              error
 	PlayCalled           int
