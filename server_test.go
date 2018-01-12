@@ -617,6 +617,12 @@ func TestRoot(t *testing.T) {
 			},
 			debug: true,
 		},
+		{
+			desc:      "use local file, If-Modified-Since",
+			status:    304,
+			reqHeader: map[string]string{"Accept-Encoding": "identity", "If-Modified-Since": time.Now().Format(http.TimeFormat)},
+			debug:     true,
+		},
 	}
 	for _, tt := range testsets {
 		m := new(MockMusic)

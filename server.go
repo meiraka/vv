@@ -515,7 +515,11 @@ func makeHandleAssets(f string) func(http.ResponseWriter, *http.Request) {
 
 /*modifiedSince compares If-Modified-Since header given time.Time.*/
 func modifiedSince(r *http.Request, l time.Time) bool {
-	return r.Header.Get("If-Modified-Since") != l.Format(http.TimeFormat)
+	t, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since"))
+	if err != nil {
+		return true
+	}
+	return !l.Before(t.Add(time.Second))
 }
 
 func writeError(w http.ResponseWriter, err error) {
