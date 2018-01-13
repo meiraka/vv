@@ -358,16 +358,20 @@ svg path {
   .view-main .header-back-label {
     display: none;
   }
+
+  .view-main .header-main.playing {
+    display: none;
+  }
 }
 
 @media (orientation: landscape) {
   .view-main .header-back.root {
     visibility: hidden;
   }
-}
 
-.header-main.playing {
-  display: none;
+  .header-main.playing {
+    display: none;
+  }
 }
 
 .background-image {
