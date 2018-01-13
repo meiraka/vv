@@ -418,10 +418,12 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 	}
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	data, ok := cvalue.([]byte)
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
 	w.Header().Add("Content-Language", tag.String())
