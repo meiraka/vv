@@ -935,13 +935,12 @@ vv.control = (function() {
     if (!timeout) {
       timeout = 1000;
     }
+    xhr.responseType = "json";
     xhr.timeout = timeout;
     xhr.onload = function() {
       if (xhr.status === 200 || xhr.status === 304) {
         if (xhr.status === 200 && callback) {
-          callback(
-              JSON.parse(xhr.responseText),
-              xhr.getResponseHeader("Last-Modified"));
+          callback(xhr.response, xhr.getResponseHeader("Last-Modified"));
         }
         return;
       }
@@ -984,12 +983,17 @@ vv.control = (function() {
     }
     var xhr = new XMLHttpRequest();
     requests[key] = xhr;
+    xhr.responseType = "json";
     xhr.timeout = 1000;
     xhr.onload = function() {
       if (xhr.status === 404) {
         vv.view.popup.show("POST " + path, "Not Found");
       } else if (xhr.status !== 200) {
-        vv.view.popup.show("POST " + path, JSON.parse(xhr.responseText).error);
+        if (xhr.response && xhr.response.error) {
+          vv.view.popup.show("POST " + path, xhr.response.error);
+        } else {
+          vv.view.popup.show("POST " + path, xhr.responseText);
+        }
       }
     };
     xhr.ontimeout = function() {
