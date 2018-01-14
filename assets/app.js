@@ -172,6 +172,7 @@ vv.song = (function() {
       e.appendChild(track);
       var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.classList.add("song-playingicon");
+      svg.classList.add("reversible-icon");
       svg.setAttribute("width", "22");
       svg.setAttribute("height", "22");
       svg.setAttribute("viewBox", "0 0 100 100");
@@ -353,15 +354,20 @@ vv.storage = (function() {
     try {
       localStorage.current = JSON.stringify(pub.current);
       localStorage.current_last_modified = pub.last_modified.current;
-    } catch (e) {}
+    } catch (e) {
+    }
   };
   pub.save.root = function() {
-    try { localStorage.root = pub.root; } catch (e) {}
+    try {
+      localStorage.root = pub.root;
+    } catch (e) {
+    }
   };
   pub.save.preferences = function() {
     try {
       localStorage.preferences = JSON.stringify(pub.preferences);
-    } catch (e) {}
+    } catch (e) {
+    }
   };
   pub.save.library = function() {
     try {
@@ -369,7 +375,8 @@ vv.storage = (function() {
         localStorage.library = JSON.stringify(pub.library);
         localStorage.library_last_modified = pub.last_modified.library;
       }
-    } catch (e) {}
+    } catch (e) {
+    }
   };
   pub.load = function() {
     try {

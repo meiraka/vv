@@ -236,6 +236,10 @@ svg path {
   fill: none;
 }
 
+.rtl .reversible-icon {
+  transform: scale(-1, 1);
+}
+
 .contextmenu {
   display: none;
 }
@@ -313,11 +317,16 @@ svg path {
 }
 
 .header-item:first-of-type {
-  margin: 0 auto 0 0;
+  margin: 0;
 }
 
 .header-item:nth-of-type(n+2) {
   margin: 0 0 0 10px;
+}
+
+.header-space {
+  visibility: hidden;
+  flex: 1 1 auto;
 }
 
 .header-item-iconlabel {
@@ -575,7 +584,7 @@ button:hover {
 
 .song {
   align-items: center;
-  padding: 4px;
+  padding: 4px 0;
 }
 
 .song-playingicon {
@@ -625,12 +634,9 @@ button:hover {
 .song-title,
 .song-artist,
 .song-elapsed,
-.song-lengthseparator {
-  margin: 0 8px 0 0;
-}
-
+.song-lengthseparator,
 .song-length {
-  margin: 0;
+  margin: 0 4px;
 }
 
 @media (max-width: 400px), (max-width: 800px) and (orientation: landscape) {
@@ -824,7 +830,7 @@ button:hover {
     color: #e0e0e0;
     font-size: 18px;
     box-sizing: border-box;
-    border-style: solid none solid solid;
+    border-style: solid none;
     border-width: 3px;
     height: 36px;
   }
@@ -839,12 +845,15 @@ button:hover {
     color: #e0e0e0;
   }
 
-  .system-nav-item:first-child {
+  .system-nav-item:first-child,
+  .rtl .system-nav-item:last-child {
+    border-style: solid;
     border-radius: 20px 0 0 20px / 20px 0 0 20px;
     padding: 3px 8px 3px 12px;
   }
 
-  .system-nav-item:last-child {
+  .system-nav-item:last-child,
+  .rtl .system-nav-item:first-child {
     border-style: solid;
     border-radius: 0 20px 20px 0 / 0 20px 20px 0;
     padding: 3px 12px 3px 8px;
@@ -1111,6 +1120,10 @@ button:hover {
   transition: background-color 0.2s 0s ease, left 0.2s 0s ease;
 }
 
+.rtl .slideswitch:after {
+  left: 3px;
+}
+
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
   .slideswitch:after {
     width: 30px;
@@ -1131,9 +1144,17 @@ button:hover {
   left: 41px;
 }
 
+.rtl .slideswitch:checked:after {
+  left: -41px;
+}
+
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
   .slideswitch:checked:after {
     left: 17px;
+  }
+
+  .rtl .slideswitch:checked:after {
+    left: -17px;
   }
 }
 
@@ -1211,7 +1232,7 @@ button:hover {
 }
 
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
-  .tool-select{
+  .tool-select {
     width: 50px;
     padding: 5px 15px;
   }
