@@ -559,6 +559,7 @@ func TestRoot(t *testing.T) {
 		desc      string
 		status    int
 		debug     bool
+		addr      string
 		reqHeader map[string]string
 		resHeader map[string][]string
 	}{
@@ -609,6 +610,27 @@ func TestRoot(t *testing.T) {
 			},
 		},
 		{
+			desc:      "use bindata, address lang ja",
+			addr:      "ja/",
+			status:    200,
+			reqHeader: map[string]string{"Accept-Encoding": "gzip"},
+			resHeader: map[string][]string{
+				"Vary":             {"Accept-Encoding"},
+				"Content-Language": {"ja"},
+				"Content-Length":   nil,
+				"Content-Type":     {"text/html; charset=utf-8"},
+				"Content-Encoding": {"gzip"},
+				"Cache-Control":    {"max-age=86400"},
+				"Last-Modified":    nil,
+			},
+		},
+		{
+			desc:      "use bindata, address unknown lang",
+			addr:      "foobar/",
+			status:    404,
+			reqHeader: map[string]string{"Accept-Encoding": "gzip"},
+		},
+		{
 			desc:      "use local file",
 			status:    200,
 			reqHeader: map[string]string{"Accept-Encoding": "identity"},
@@ -634,7 +656,7 @@ func TestRoot(t *testing.T) {
 		handler := s.makeHandle()
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
-		res := testHTTPGet(t, ts.URL+"/", tt.reqHeader)
+		res := testHTTPGet(t, ts.URL+"/"+tt.addr, tt.reqHeader)
 		if res.StatusCode != tt.status {
 			t.Errorf("[%s] unexpected status: %d expect: %d", tt.desc, res.StatusCode, tt.status)
 		}

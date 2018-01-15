@@ -376,6 +376,22 @@ func (s *Server) assetsStartup(w http.ResponseWriter, r *http.Request) {
 func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
 	tag, _, _ := s.matcher.Match(t...)
+	specifiedLang := r.URL.Path != "/"
+	if specifiedLang {
+		lang := strings.Trim(r.URL.Path, "/")
+		found := false
+		for i := range translatePrio {
+			if translatePrio[i].String() == lang {
+				tag = translatePrio[i]
+				found = true
+				break
+			}
+		}
+		if !found {
+			http.NotFound(w, r)
+			return
+		}
+	}
 	if s.debug {
 		if info, err := os.Stat("assets/app.html"); err == nil {
 			l := info.ModTime()
@@ -393,7 +409,11 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+			if specifiedLang {
+				w.Header().Add("Vary", "Accept-Encoding")
+			} else {
+				w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+			}
 			w.Header().Add("Content-Language", tag.String())
 			w.Header().Add("Content-Type", "text/html; charset=utf-8")
 			w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
@@ -425,7 +445,11 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+	if specifiedLang {
+		w.Header().Add("Vary", "Accept-Encoding")
+	} else {
+		w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+	}
 	w.Header().Add("Content-Language", tag.String())
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 	w.Header().Add("Content-Length", strconv.Itoa(len(data)))
