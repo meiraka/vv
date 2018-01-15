@@ -1847,23 +1847,17 @@ vv.view.system = (function() {
       document.getElementById("stat-tracks").textContent =
           vv.storage.stats.songs;
       var db_update = new Date(parseInt(vv.storage.stats.db_update, 10) * 1000);
-      var db_update_yyyymmdd = db_update.getFullYear() * 1000 +
-          db_update.getMonth() * 100 + db_update.getDay;
-      var db_update_str = "";
-      var now = new Date();
-      var now_yyyymmdd =
-          now.getFullYear() * 1000 + now.getMonth() * 100 + now.getDate;
-      if (db_update_yyyymmdd === now_yyyymmdd) {
-        db_update_str += "today, ";
-      } else if (db_update_yyyymmdd + 1 === now_yyyymmdd) {
-        db_update_str += "yesterday, ";
-      } else {
-        db_update_str += db_update.getFullYear() + "." + db_update.getMonth() +
-            "." + db_update.getDate() + " ";
-      }
-      db_update_str += db_update.getHours() + ":" + db_update.getMinutes() +
-          ":" + db_update.getSeconds();
-      document.getElementById("stat-db-update").textContent = db_update_str;
+      var options = {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        weekday: "short"
+      };
+      document.getElementById("stat-db-update").textContent =
+          db_update.toLocaleString(document.documentElement.lang, options);
       document.getElementById("stat-websockets").textContent =
           vv.storage.stats.subscribers;
     };
