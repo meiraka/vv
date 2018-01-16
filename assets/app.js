@@ -1820,19 +1820,15 @@ vv.view.system = (function() {
     };
   })();
   var stats = (function() {
-    var zfill2 = function(i) { return ("00" + i).slice(-2); };
+    var zfill2 = function(i) {
+      if (i < 100) {return ("00" + i).slice(-2);}
+      return i;
+    };
     var strtimedelta = function(i) {
-      var ud = parseInt(i / (24 * 60 * 60), 10);
-      var uds = "";
-      if (ud === 1) {
-        uds = "1 day, ";
-      } else if (ud !== 0) {
-        uds = ud + " days, ";
-      }
-      var uh = parseInt((i - ud * 24 * 60 * 60) / (60 * 60), 10);
-      var um = parseInt((i - ud * 24 * 60 * 60 - uh * 60 * 60) / 60, 10);
-      var us = parseInt(i - ud * 24 * 60 * 60 - uh * 60 * 60 - um * 60, 10);
-      return uds + zfill2(uh) + ":" + zfill2(um) + ":" + zfill2(us);
+      var uh = parseInt(i / (60 * 60), 10);
+      var um = parseInt((i - uh * 60 * 60) / 60, 10);
+      var us = parseInt(i - uh * 60 * 60 - um * 60, 10);
+      return zfill2(uh) + ":" + zfill2(um) + ":" + zfill2(us);
     };
 
     var update = function() {
