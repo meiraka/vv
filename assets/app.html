@@ -26,7 +26,7 @@
 </div>
 <header>
   <nav class="header-items">
-    <button type="button" id="header-back" class="header-item header-back header-iconlabel" data-title-format="{{ or .titleFormatBackTo "Back to %s" }}" aria-label="{{ or .ariaLabelShowParentList "Show parent list" }}">
+    <button type="button" id="header-back" class="header-item header-back header-iconlabel" data-title-format="{{ or .titleFormatBackTo "Back to %s" }}" data-aria-label-format="{{ or .ariaLabelBackTo "Back to %s" }}">
       <div class="header-item-iconlabel">
         <svg class="header-item-icon reversible-icon" width="24" height="32" viewBox="0 0 150 200">
           <path class="stroke" d="M 100,40 40,100 100,160"/>
@@ -341,7 +341,7 @@
           <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
         </svg>
       </button>
-      <button class="control-button control-playback-toggleplay" id="control-toggleplay" class=play type="button" value="play/pause" title="{{ or .titlePlayOrPause "Play / Pause" }}" aria-label="{{ or .ariaLabelPlayOrPauseSong "Play or pause song" }}">
+      <button class="control-button control-playback-toggleplay" id="control-toggleplay" class=play type="button" value="play/pause" title="{{ or .titlePlayOrPause "Play / Pause" }}" data-aria-label-play="{{ or .ariaLabelPlaySong "Play song" }}" data-aria-label-pause="{{ or .ariaLabelPauseSong "Pause song" }}">
         <svg class="control-playback-toggleplay-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
           <path class="fill play" d="M 70,60 140,100 70,140 z"/>
           <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
@@ -355,13 +355,13 @@
       </button>
     </nav>
     <input id="control-volume" class="disabled control-volume" type="range" min=0 max=100 step=1>
-    <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .titleRepeat "Repeat" }}" aria-label="{{ or .ariaLabelToggleRepeatState "Toggle repeat state" }}">
+    <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .titleRepeat "Repeat" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRepeat "Turn on repeat" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRepeat "Turn off repeat" }}">
       <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class=fill d="M 87.5,30 112.5,45 87.5,60 z M 112.5,145 87.5,160 112.5,175 z"/>
         <rect class=stroke x="40" y="45" width="120" height="110" rx="30" ry="30"/>
       </svg>
     </button>
-    <button class="control-button control-sub" id=control-random title="{{ or .titleRandom "Random" }}" aria-label="{{ or .ariaLabelToggleRandomState "Toggle random state" }}">
+    <button class="control-button control-sub" id=control-random title="{{ or .titleRandom "Random" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRandom "Turn on random" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRandom "Turn off random" }}" >
       <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class=fill d="M 150,30 170,45 150,60 z M 150,140 170,155 150,170 z"/>
         <path class=stroke d="M 30,45 A 60,55 0 1,1 30,155 M 150,155 A 60,55 0 1,1 150,45 "/>

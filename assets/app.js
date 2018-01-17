@@ -1956,8 +1956,11 @@ vv.view.system = (function() {
       if (songs[0]) {
         var p = vv.model.list.grandparent();
         e.textContent = vv.song.getOne(p.song, p.key);
-        var titleString = b.dataset.titleFormat.replace("%s", e.textContent);
-        b.setAttribute("title", titleString);
+        b.setAttribute(
+            "title", b.dataset.titleFormat.replace("%s", e.textContent));
+        b.setAttribute(
+            "aria-label",
+            b.dataset.ariaLabelFormat.replace("%s", e.textContent));
       }
     }
   };
@@ -2026,26 +2029,35 @@ vv.view.system = (function() {
         });
   });
   vv.control.addEventListener("control", function() {
+    var toggleplay = document.getElementById("control-toggleplay");
     if (vv.storage.control.state === "play") {
-      document.getElementById("control-toggleplay").classList.add("pause");
-      document.getElementById("control-toggleplay").classList.remove("play");
+      toggleplay.setAttribute("aria-label", toggleplay.dataset.ariaLabelPause);
+      toggleplay.classList.add("pause");
+      toggleplay.classList.remove("play");
     } else {
-      document.getElementById("control-toggleplay").classList.add("play");
-      document.getElementById("control-toggleplay").classList.remove("pause");
+      toggleplay.setAttribute("aria-label", toggleplay.dataset.ariaLabelPlay);
+      toggleplay.classList.add("play");
+      toggleplay.classList.remove("pause");
     }
+    var repeat = document.getElementById("control-repeat");
     if (vv.storage.control.repeat) {
-      document.getElementById("control-repeat").classList.add("on");
-      document.getElementById("control-repeat").classList.remove("off");
+      repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOn);
+      repeat.classList.add("on");
+      repeat.classList.remove("off");
     } else {
-      document.getElementById("control-repeat").classList.add("off");
-      document.getElementById("control-repeat").classList.remove("on");
+      repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOff);
+      repeat.classList.add("off");
+      repeat.classList.remove("on");
     }
+    var random = document.getElementById("control-random");
     if (vv.storage.control.random) {
-      document.getElementById("control-random").classList.add("on");
-      document.getElementById("control-random").classList.remove("off");
+      random.setAttribute("aria-label", random.dataset.ariaLabelOn);
+      random.classList.add("on");
+      random.classList.remove("off");
     } else {
-      document.getElementById("control-random").classList.add("off");
-      document.getElementById("control-random").classList.remove("on");
+      random.setAttribute("aria-label", random.dataset.ariaLabelOff);
+      random.classList.add("off");
+      random.classList.remove("on");
     }
   });
 })();
