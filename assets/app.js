@@ -1821,7 +1821,9 @@ vv.view.system = (function() {
   })();
   var stats = (function() {
     var zfill2 = function(i) {
-      if (i < 100) {return ("00" + i).slice(-2);}
+      if (i < 100) {
+        return ("00" + i).slice(-2);
+      }
       return i;
     };
     var strtimedelta = function(i) {
@@ -1954,6 +1956,8 @@ vv.view.system = (function() {
       if (songs[0]) {
         var p = vv.model.list.grandparent();
         e.textContent = vv.song.getOne(p.song, p.key);
+        var titleString = b.dataset.titleFormat.replace("%s", e.textContent);
+        b.setAttribute("title", titleString);
       }
     }
   };

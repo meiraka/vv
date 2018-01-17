@@ -26,7 +26,7 @@
 </div>
 <header>
   <nav class="header-items">
-    <button type="button" id="header-back" class="header-item header-back header-iconlabel" aria-label="{{ or .ariaLabelShowParentList "Show parent list" }}">
+    <button type="button" id="header-back" class="header-item header-back header-iconlabel" data-title-format="{{ or .titleFormatBackTo "Back to %s" }}" aria-label="{{ or .ariaLabelShowParentList "Show parent list" }}">
       <div class="header-item-iconlabel">
         <svg class="header-item-icon reversible-icon" width="24" height="32" viewBox="0 0 150 200">
           <path class="stroke" d="M 100,40 40,100 100,160"/>
@@ -35,12 +35,12 @@
       </div>
     </button>
     <div class="header-item header-space"></div>
-    <button type="button" id="header-main" class="header-item header-main" aria-label="{{ or .ariaLabelShowNowPlayingItem "Show now playing item" }}">
+    <button type="button" id="header-main" class="header-item header-main" title="{{ or .titleShowNowPlayingItem "Show now playing item" }}" aria-label="{{ or .ariaLabelShowNowPlayingItem "Show now playing item" }}">
       <svg class=header-item-icon width="32" height="32" viewBox="0 0 200 200">
         <path class="stroke" d="M 100,40 160,100 160,160 40,160 40,100 z"/>
       </svg>
     </button>
-    <button type="button" id="header-system" class="header-item" aria-label="{{ or .ariaLabelShowSettingsWindow "Show settings window" }}">
+    <button type="button" id="header-system" class="header-item" title="{{ or .titleShowSettingsWindow "Settings" }}" aria-label="{{ or .ariaLabelShowSettingsWindow "Show settings window" }}">
       <svg class=header-item-icon width="32" height="32" viewBox="0 0 200 200">
         <path class="stroke"
          d="M 100,30 100,60 z
@@ -97,7 +97,7 @@
 </div>
 <div id=modal-outer class="modal-outer hide">
   <div id=modal-help class="modal-window modal-help hide">
-    <button id=modal-help-close class=modal-window-close type="button" value="" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
+    <button id=modal-help-close class=modal-window-close type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
@@ -132,7 +132,7 @@
     </table>
   </div>
   <div id=modal-song class="modal-window modal-song hide">
-    <button id=modal-song-close class=modal-window-close type="button" value="" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
+    <button id=modal-song-close class=modal-window-close type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
@@ -143,7 +143,7 @@
     </div>
   </div>
   <div id="modal-system" class="modal-window hide modal-system">
-    <button id="modal-system-close" class="modal-window-close" type="button" value="" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
+    <button id="modal-system-close" class="modal-window-close" type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
@@ -336,32 +336,32 @@
 <footer>
   <nav id="control" class="control">
     <nav id="control-playback" class="control-playback">
-      <button class="control-button control-playback-sub" id="control-prev" class=prev type="button" value="prev" aria-label="{{ or .ariaLabelGoToPreviousSong "Go to previous song" }}">
+      <button class="control-button control-playback-sub" id="control-prev" class=prev type="button" value="prev" title="{{ or .titlePrevious "Previous" }}" aria-label="{{ or .ariaLabelGoToPreviousSong "Go to previous song" }}">
         <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
           <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
         </svg>
       </button>
-      <button class="control-button control-playback-toggleplay" id="control-toggleplay" class=play type="button" value="play/pause"  aria-label="{{ or .ariaLabelPlayOrPauseSong "Play or pause song" }}">
+      <button class="control-button control-playback-toggleplay" id="control-toggleplay" class=play type="button" value="play/pause" title="{{ or .titlePlayOrPause "Play / Pause" }}" aria-label="{{ or .ariaLabelPlayOrPauseSong "Play or pause song" }}">
         <svg class="control-playback-toggleplay-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
           <path class="fill play" d="M 70,60 140,100 70,140 z"/>
           <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
           <path class="stroke" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
         </svg>
       </button>
-      <button class="control-button control-playback-sub" id="control-next" class=next type="button" value="next" aria-label="{{ or .ariaLabelGoToNextSong "Go to next song" }}">
+      <button class="control-button control-playback-sub" id="control-next" class=next type="button" value="next" title="{{ or .titleNext "Next" }}" aria-label="{{ or .ariaLabelGoToNextSong "Go to next song" }}">
         <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
           <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
         </svg>
       </button>
     </nav>
     <input id="control-volume" class="disabled control-volume" type="range" min=0 max=100 step=1>
-    <button class="control-button control-sub control-repeat" id=control-repeat  aria-label="{{ or .ariaLabelToggleRepeatState "Toggle repeat state" }}">
+    <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .titleRepeat "Repeat" }}" aria-label="{{ or .ariaLabelToggleRepeatState "Toggle repeat state" }}">
       <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class=fill d="M 87.5,30 112.5,45 87.5,60 z M 112.5,145 87.5,160 112.5,175 z"/>
         <rect class=stroke x="40" y="45" width="120" height="110" rx="30" ry="30"/>
       </svg>
     </button>
-    <button class="control-button control-sub" id=control-random  aria-label="{{ or .ariaLabelToggleRandomState "Toggle random state" }}">
+    <button class="control-button control-sub" id=control-random title="{{ or .titleRandom "Random" }}" aria-label="{{ or .ariaLabelToggleRandomState "Toggle random state" }}">
       <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class=fill d="M 150,30 170,45 150,60 z M 150,140 170,155 150,170 z"/>
         <path class=stroke d="M 30,45 A 60,55 0 1,1 30,155 M 150,155 A 60,55 0 1,1 150,45 "/>

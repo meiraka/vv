@@ -70,6 +70,15 @@ var translateData = map[language.Tag]map[string]string{
 		"ariaLabelPlayOrPauseSong":    "再生・一時停止",
 		"ariaLabelToggleRepeatState":  "リピート設定を切り替え",
 		"ariaLabelToggleRandomState":  "ランダム設定を切り替え",
+		"titleFormatBackTo":           "%s に戻る",
+		"titleShowNowPlayingItem":     "現在再生中の曲へ移動",
+		"titleShowSettingsWindow":     "設定",
+		"titleClose":                  "閉じる",
+		"titlePrevious":               "前の曲",
+		"titlePlayOrPause":            "再生・一時停止",
+		"titleNext":                   "次の曲",
+		"titleRepeat":                 "リピート",
+		"titleRandom":                 "ランダム",
 	},
 }
 
