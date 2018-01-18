@@ -419,6 +419,7 @@ func (s *Server) root(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 			w.Header().Add("Content-Length", strconv.Itoa(len(data)))
 			w.Write(data)
+			return
 		}
 	}
 
