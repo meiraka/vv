@@ -808,7 +808,7 @@ button:hover {
     color: #404040;
   }
 
-  .system-articles {
+  .system-article {
     width: 75%;
   }
 }
@@ -869,7 +869,7 @@ button:hover {
     color: #404040;
   }
 
-  .system-articles {
+  .system-article {
     height: calc(100% - 40px);
   }
 }
@@ -1311,7 +1311,8 @@ button:hover {
   margin: 5px;
 }
 
-.control {
+footer {
+  box-sizing: border-box;
   padding: 0 10px;
   border: 0;
   margin: 0;

@@ -96,6 +96,7 @@
 <div id=modal-background class="modal-background hide">
 </div>
 <div id=modal-outer class="modal-outer hide">
+
   <div id=modal-help class="modal-window modal-help hide">
     <button id=modal-help-close class=modal-window-close type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
@@ -131,6 +132,7 @@
       </tr>
     </table>
   </div>
+
   <div id=modal-song class="modal-window modal-song hide">
     <button id=modal-song-close class=modal-window-close type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
@@ -142,6 +144,7 @@
       </table>
     </div>
   </div>
+
   <div id="modal-system" class="modal-window hide modal-system">
     <button id="modal-system-close" class="modal-window-close" type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
@@ -153,221 +156,222 @@
       <button class="system-nav-item" id="system-nav-stats" type="button">{{ or .Stats "Stats" }}</button>
       <button class="system-nav-item" id="system-nav-info" type="button">{{ or .Information "Information" }}</button>
     </nav>
-    <div class="scrollable system-articles">
-      <article id="system-preferences" class="system-article">
-        <h1 class="system-article-sub-header">{{ or .System "System" }}</h1>
-        <article class="system-article-sub">
-          <ul class="system-settings">
-            <li class="note-line system-setting">
-              <button id=system-reload class="system-setting-value button-simple" type="button">{{ or .ReloadApplication "Reload Application" }}</button>
-          </ul>
-        </article>
-        <h1 class="system-article-sub-header">{{ or .Appearance "Appearance" }}</h1>
-        <article class="system-article-sub">
-          <ul class="system-settings">
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .ColorThreshold "Color threshold" }}</div>
-              <div class="system-setting-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range"></div>
-            <li class="note-line system-setting" id="config-appearance-animation">
-              <div class="system-setting-desc">{{ or .Animation "Animation" }}</div>
-              <input type="checkbox" id="appearance-animation" class="slideswitch">
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .BackgroundImage "Background image" }}</div>
-              <input type="checkbox" id="appearance-background-image" class="slideswitch">
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .BackgroundImageBlur "Background image blur" }}</div>
-              <select class="tool-select value" id="appearance-background-image-blur">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="4">4</option>
-                <option value="8">8</option>
-                <option value="16">16</option>
-                <option value="32">32</option>
-              </select>
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .CircledImage "Circled image" }}</div>
-              <input type="checkbox" id="appearance-circled-image" class="slideswitch">
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .GridviewAlbum "Gridview album" }}</div>
-              <input type="checkbox" id="appearance-gridview-album" class="slideswitch">
-            <li class="note-line system-setting" id="config-appearance-auto-hide-scrollbar">
-              <div class="system-setting-desc">{{ or .AutoHideScrollbar "Auto hide scrollbar" }}</div>
-              <input type="checkbox" id="appearance-auto-hide-scrollbar" class="slideswitch">
-          </ul>
-        </article>
-        <h1 class="system-article-sub-header">{{ or .Library "Library" }}</h1>
-        <article class="system-article-sub">
-          <ul class="system-settings">
-            <li class="note-line system-setting">
-              <button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .Rescan "Rescan" }}</button>
-          </ul>
-        </article>
-        <h1 class="system-article-sub-header">{{ or .Playback "Playback" }}</h1>
-        <article class="system-article-sub">
-          <ul class="system-settings">
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
-              <input type="checkbox" id="playback-view-follow" class="slideswitch">
-          </ul>
-        </article>
-        <h1 class="system-article-sub-header" id="volume-header">{{ or .Volume "Volume" }}</h1>
-        <article class="system-article-sub" id="volume-all">
-          <ul class="system-settings">
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .ShowVolumeNob "Show volume nob" }}</div>
-              <input type="checkbox" id="volume-show" class="slideswitch">
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .MaxVolume "Max volume" }}</div>
-              <select class="tool-select value" id="volume-max">
-                <option value="50">50</option>
-                <option value="60">60</option>
-                <option value="70">70</option>
-                <option value="80">80</option>
-                <option value="90">90</option>
-                <option value="100">100</option>
-              </select>
-          </ul>
-        </article>
-        <h1 class="system-article-sub-header">{{ or .Devices "Devices" }}</h1>
-        <article class="system-article-sub">
-          <ul class="system-settings" id="devices"></ul>
-        </article>
-      </article>
-      <article id="system-stats" class="system-article">
-        <h1 class="system-article-sub-header">mpd</h1>
-        <article class="system-article-sub">
-          <ul class="system-settings">
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .Tracks "Tracks:" }}</div><div class="system-setting-value" id=stat-tracks></div>
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .Artists "Artists:" }}</div><div class="system-setting-value" id=stat-artists></div>
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .Albums "Albums:" }}</div><div class="system-setting-value" id=stat-albums></div>
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .TotalPlaytime "Total playtime:" }}</div><div class="system-setting-value" id=stat-playtime></div>
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .Uptime "Uptime:" }}</div><div class="system-setting-value" id=stat-uptime></div>
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><div class="system-setting-value" id=stat-db-update></div>
-            <li class="note-line system-setting">
-              <div class="system-setting-desc">{{ or .Websockets "Websockets:" }}</div><div class="system-setting-value" id=stat-websockets></div>
-        </article>
-      </article>
-      <article id="system-info" class="system-article">
-        <h1 class="system-article-sub-header">{{ or .ThisApplication "This Application" }}</h1>
-        <ul class="information-list">
-          <li class="license-box information-box">
-            <div>
-              <span class="product-name">vv</span>
-              <span class="product-version" id="version"></span>
-            </div>
-            <div class="link">
-              <a class="product-link" href="https://github.com/meiraka/vv">https://github.com/meiraka/vv</a>
-              <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
-            </div>
-        </ul>
-        <h1 class="system-article-sub-header">{{ or .Compiler "Compiler" }}</h1>
-        <ul class="information-list">
-          <li class="license-box information-box">
-            <div>
-              <span class="product-name">The Go Programming Language</span>
-              <span class="product-version" id="go-version"></span>
-            </div>
-            <div class="link">
-              <a class="product-link" href="https://golang.org/">https://golang.org/</a>
-              <a class="license-link" href="https://golang.org/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
-            </div>
-        </ul>
-        <h1 class="system-article-sub-header">{{ or .Renderer "Renderer" }}</h1>
-        <ul class="information-list">
-          <li>
-            <div class="information-box" id=user-agent></div>
-        </ul>
-        <h1 class="system-article-sub-header">{{ or .Credits "Credits" }}</h1>
-        <ul class="information-list">
-          <li class="license-box information-box">
-            <div>
-              <span class="product-name">golang.org/x/text</span>
-            </div>
-            <div class="link">
-              <a class="product-link" href="https://go.googlesource.com/text">https://go.googlesource.com/text</a>
-              <a class="license-link" href="https://go.googlesource.com/text/+/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
-            </div>
-          <li class="license-box information-box">
-            <div>
-              <span class="product-name">github.com/spf13/pflag</span>
-            </div>
-            <div class="link">
-              <a class="product-link" href="https://github.com/spf13/pflag">https://github.com/spf13/pflag</a>
-              <a class="license-link" href="https://github.com/spf13/pflag/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
-            </div>
-          <li class="license-box information-box">
-            <div>
-              <span class="product-name">github.com/spf13/viper</span>
-            </div>
-            <div class="link">
-              <a class="product-link" href="https://github.com/spf13/viper">https://github.com/spf13/viper</a>
-              <a class="license-link" href="https://github.com/spf13/viper/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
-            </div>
-          <li class="license-box information-box">
-            <div>
-              <span class="product-name">github.com/meiraka/gompd</span>
-            </div>
-            <div class="link">
-              <a class="product-link" href="https://github.com/meiraka/gompd">https://github.com/meiraka/gompd</a>
-              <a class="license-link" href="https://github.com/meiraka/gompd/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
-            </div>
-          <li class="license-box information-box">
-            <div>
-              <span class="product-name">github.com/gorilla/websocket</span>
-            </div>
-            <div class="link">
-              <a class="product-link" href="https://github.com/gorilla/websocket">https://github.com/gorilla/websocket</a>
-              <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">{{ or .BSD2ClauseLicense "BSD 2-clause license" }}</a>
-            </div>
+
+    <article id="system-preferences" class="scrollable system-article">
+      <h1 class="system-article-sub-header">{{ or .System "System" }}</h1>
+      <article class="system-article-sub">
+        <ul class="system-settings">
+          <li class="note-line system-setting">
+            <button id=system-reload class="system-setting-value button-simple" type="button">{{ or .ReloadApplication "Reload Application" }}</button>
         </ul>
       </article>
+      <h1 class="system-article-sub-header">{{ or .Appearance "Appearance" }}</h1>
+      <article class="system-article-sub">
+        <ul class="system-settings">
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .ColorThreshold "Color threshold" }}</div>
+            <div class="system-setting-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range"></div>
+          <li class="note-line system-setting" id="config-appearance-animation">
+            <div class="system-setting-desc">{{ or .Animation "Animation" }}</div>
+            <input type="checkbox" id="appearance-animation" class="slideswitch">
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .BackgroundImage "Background image" }}</div>
+            <input type="checkbox" id="appearance-background-image" class="slideswitch">
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .BackgroundImageBlur "Background image blur" }}</div>
+            <select class="tool-select value" id="appearance-background-image-blur">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="4">4</option>
+              <option value="8">8</option>
+              <option value="16">16</option>
+              <option value="32">32</option>
+            </select>
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .CircledImage "Circled image" }}</div>
+            <input type="checkbox" id="appearance-circled-image" class="slideswitch">
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .GridviewAlbum "Gridview album" }}</div>
+            <input type="checkbox" id="appearance-gridview-album" class="slideswitch">
+          <li class="note-line system-setting" id="config-appearance-auto-hide-scrollbar">
+            <div class="system-setting-desc">{{ or .AutoHideScrollbar "Auto hide scrollbar" }}</div>
+            <input type="checkbox" id="appearance-auto-hide-scrollbar" class="slideswitch">
+        </ul>
+      </article>
+      <h1 class="system-article-sub-header">{{ or .Library "Library" }}</h1>
+      <article class="system-article-sub">
+        <ul class="system-settings">
+          <li class="note-line system-setting">
+            <button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .Rescan "Rescan" }}</button>
+        </ul>
+      </article>
+      <h1 class="system-article-sub-header">{{ or .Playback "Playback" }}</h1>
+      <article class="system-article-sub">
+        <ul class="system-settings">
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
+            <input type="checkbox" id="playback-view-follow" class="slideswitch">
+        </ul>
+      </article>
+      <h1 class="system-article-sub-header" id="volume-header">{{ or .Volume "Volume" }}</h1>
+      <article class="system-article-sub" id="volume-all">
+        <ul class="system-settings">
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .ShowVolumeNob "Show volume nob" }}</div>
+            <input type="checkbox" id="volume-show" class="slideswitch">
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .MaxVolume "Max volume" }}</div>
+            <select class="tool-select value" id="volume-max">
+              <option value="50">50</option>
+              <option value="60">60</option>
+              <option value="70">70</option>
+              <option value="80">80</option>
+              <option value="90">90</option>
+              <option value="100">100</option>
+            </select>
+        </ul>
+      </article>
+      <h1 class="system-article-sub-header">{{ or .Devices "Devices" }}</h1>
+      <article class="system-article-sub">
+        <ul class="system-settings" id="devices"></ul>
+      </article>
+    </article>
+
+    <article id="system-stats" class="scrollable system-article">
+      <h1 class="system-article-sub-header">mpd</h1>
+      <article class="system-article-sub">
+        <ul class="system-settings">
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .Tracks "Tracks:" }}</div><div class="system-setting-value" id=stat-tracks></div>
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .Artists "Artists:" }}</div><div class="system-setting-value" id=stat-artists></div>
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .Albums "Albums:" }}</div><div class="system-setting-value" id=stat-albums></div>
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .TotalPlaytime "Total playtime:" }}</div><div class="system-setting-value" id=stat-playtime></div>
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .Uptime "Uptime:" }}</div><div class="system-setting-value" id=stat-uptime></div>
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><time class="system-setting-value" id=stat-db-update></time>
+          <li class="note-line system-setting">
+            <div class="system-setting-desc">{{ or .Websockets "Websockets:" }}</div><div class="system-setting-value" id=stat-websockets></div>
+      </article>
+    </article>
+
+    <article id="system-info" class="scrollable system-article">
+      <h1 class="system-article-sub-header">{{ or .ThisApplication "This Application" }}</h1>
+      <ul class="information-list">
+        <li class="license-box information-box">
+          <div>
+            <span class="product-name">vv</span>
+            <span class="product-version" id="version"></span>
+          </div>
+          <div class="link">
+            <a class="product-link" href="https://github.com/meiraka/vv">https://github.com/meiraka/vv</a>
+            <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
+          </div>
+      </ul>
+      <h1 class="system-article-sub-header">{{ or .Compiler "Compiler" }}</h1>
+      <ul class="information-list">
+        <li class="license-box information-box">
+          <div>
+            <span class="product-name">The Go Programming Language</span>
+            <span class="product-version" id="go-version"></span>
+          </div>
+          <div class="link">
+            <a class="product-link" href="https://golang.org/">https://golang.org/</a>
+            <a class="license-link" href="https://golang.org/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+          </div>
+      </ul>
+      <h1 class="system-article-sub-header">{{ or .Renderer "Renderer" }}</h1>
+      <ul class="information-list">
+        <li>
+          <div class="information-box" id=user-agent></div>
+      </ul>
+      <h1 class="system-article-sub-header">{{ or .Credits "Credits" }}</h1>
+      <ul class="information-list">
+        <li class="license-box information-box">
+          <div>
+            <span class="product-name">golang.org/x/text</span>
+          </div>
+          <div class="link">
+            <a class="product-link" href="https://go.googlesource.com/text">https://go.googlesource.com/text</a>
+            <a class="license-link" href="https://go.googlesource.com/text/+/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+          </div>
+        <li class="license-box information-box">
+          <div>
+            <span class="product-name">github.com/spf13/pflag</span>
+          </div>
+          <div class="link">
+            <a class="product-link" href="https://github.com/spf13/pflag">https://github.com/spf13/pflag</a>
+            <a class="license-link" href="https://github.com/spf13/pflag/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+          </div>
+        <li class="license-box information-box">
+          <div>
+            <span class="product-name">github.com/spf13/viper</span>
+          </div>
+          <div class="link">
+            <a class="product-link" href="https://github.com/spf13/viper">https://github.com/spf13/viper</a>
+            <a class="license-link" href="https://github.com/spf13/viper/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
+          </div>
+        <li class="license-box information-box">
+          <div>
+            <span class="product-name">github.com/meiraka/gompd</span>
+          </div>
+          <div class="link">
+            <a class="product-link" href="https://github.com/meiraka/gompd">https://github.com/meiraka/gompd</a>
+            <a class="license-link" href="https://github.com/meiraka/gompd/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
+          </div>
+        <li class="license-box information-box">
+          <div>
+            <span class="product-name">github.com/gorilla/websocket</span>
+          </div>
+          <div class="link">
+            <a class="product-link" href="https://github.com/gorilla/websocket">https://github.com/gorilla/websocket</a>
+            <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">{{ or .BSD2ClauseLicense "BSD 2-clause license" }}</a>
+          </div>
+      </ul>
+    </article>
+
     </div>
   </div>
 </div>
 <footer>
-  <nav id="control" class="control">
-    <nav id="control-playback" class="control-playback">
-      <button class="control-button control-playback-sub" id="control-prev" class=prev type="button" value="prev" title="{{ or .titlePrevious "Previous" }}" aria-label="{{ or .ariaLabelGoToPreviousSong "Go to previous song" }}">
-        <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
-          <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
-        </svg>
-      </button>
-      <button class="control-button control-playback-toggleplay" id="control-toggleplay" class=play type="button" value="play/pause" title="{{ or .titlePlayOrPause "Play / Pause" }}" data-aria-label-play="{{ or .ariaLabelPlaySong "Play song" }}" data-aria-label-pause="{{ or .ariaLabelPauseSong "Pause song" }}">
-        <svg class="control-playback-toggleplay-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
-          <path class="fill play" d="M 70,60 140,100 70,140 z"/>
-          <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
-          <path class="stroke" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
-        </svg>
-      </button>
-      <button class="control-button control-playback-sub" id="control-next" class=next type="button" value="next" title="{{ or .titleNext "Next" }}" aria-label="{{ or .ariaLabelGoToNextSong "Go to next song" }}">
-        <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
-          <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
-        </svg>
-      </button>
-    </nav>
-    <input id="control-volume" class="disabled control-volume" type="range" min=0 max=100 step=1>
-    <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .titleRepeat "Repeat" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRepeat "Turn on repeat" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRepeat "Turn off repeat" }}">
-      <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
-        <path class=fill d="M 87.5,30 112.5,45 87.5,60 z M 112.5,145 87.5,160 112.5,175 z"/>
-        <rect class=stroke x="40" y="45" width="120" height="110" rx="30" ry="30"/>
+  <nav id="control-playback" class="control-playback">
+    <button class="control-button control-playback-sub" id="control-prev" class=prev type="button" value="prev" title="{{ or .titlePrevious "Previous" }}" aria-label="{{ or .ariaLabelGoToPreviousSong "Go to previous song" }}">
+      <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
+        <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
       </svg>
     </button>
-    <button class="control-button control-sub" id=control-random title="{{ or .titleRandom "Random" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRandom "Turn on random" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRandom "Turn off random" }}" >
-      <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
-        <path class=fill d="M 150,30 170,45 150,60 z M 150,140 170,155 150,170 z"/>
-        <path class=stroke d="M 30,45 A 60,55 0 1,1 30,155 M 150,155 A 60,55 0 1,1 150,45 "/>
+    <button class="control-button control-playback-toggleplay" id="control-toggleplay" class=play type="button" value="play/pause" title="{{ or .titlePlayOrPause "Play / Pause" }}" data-aria-label-play="{{ or .ariaLabelPlaySong "Play song" }}" data-aria-label-pause="{{ or .ariaLabelPauseSong "Pause song" }}">
+      <svg class="control-playback-toggleplay-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
+        <path class="fill play" d="M 70,60 140,100 70,140 z"/>
+        <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
+        <path class="stroke" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
+      </svg>
+    </button>
+    <button class="control-button control-playback-sub" id="control-next" class=next type="button" value="next" title="{{ or .titleNext "Next" }}" aria-label="{{ or .ariaLabelGoToNextSong "Go to next song" }}">
+      <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
+        <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
       </svg>
     </button>
   </nav>
+  <input id="control-volume" class="disabled control-volume" type="range" min=0 max=100 step=1>
+  <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .titleRepeat "Repeat" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRepeat "Turn on repeat" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRepeat "Turn off repeat" }}">
+    <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
+      <path class=fill d="M 87.5,30 112.5,45 87.5,60 z M 112.5,145 87.5,160 112.5,175 z"/>
+      <rect class=stroke x="40" y="45" width="120" height="110" rx="30" ry="30"/>
+    </svg>
+  </button>
+  <button class="control-button control-sub" id=control-random title="{{ or .titleRandom "Random" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRandom "Turn on random" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRandom "Turn off random" }}" >
+    <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
+      <path class=fill d="M 150,30 170,45 150,60 z M 150,140 170,155 150,170 z"/>
+      <path class=stroke d="M 30,45 A 60,55 0 1,1 30,155 M 150,155 A 60,55 0 1,1 150,45 "/>
+    </svg>
+  </button>
 </footer>
 </body>
 
