@@ -1792,6 +1792,7 @@ vv.view.system = (function() {
         desc.textContent = o.outputname;
         var ch = document.createElement("input");
         ch.classList.add("slideswitch");
+        ch.setAttribute("aria-label", o.outputname);
         ch.setAttribute("type", "checkbox");
         ch.setAttribute("id", "device_" + o.outputname);
         ch.setAttribute("deviceid", o.outputid);
