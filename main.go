@@ -64,7 +64,7 @@ func main() {
 		}
 	}
 	musicDirectory := viper.GetString("mpd.music_directory")
-	if len(musicDirectory) == 0 && viper.GetString("mpd.host") == "localhost" {
+	if len(musicDirectory) == 0 {
 		dir, err := getMusicDirectory("/etc/mpd.conf")
 		if err == nil {
 			musicDirectory = dir
