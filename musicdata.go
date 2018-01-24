@@ -199,7 +199,9 @@ type songSorter struct {
 // SortSongs sorts songs by song tag list.
 func SortSongs(s []Song, keys []string, filters [][]string, max, pos int) ([]Song, int) {
 	flatten := sortSongs(s, keys)
-	flatten[pos].target = true
+	if pos < len(flatten) && pos >= 0 {
+		flatten[pos].target = true
+	}
 	flatten = weakFilterSongs(flatten, filters, max)
 	ret := make([]Song, len(flatten))
 	newpos := -1

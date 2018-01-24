@@ -144,6 +144,13 @@ func TestSortSongs(t *testing.T) {
 		},
 		{
 			keys: []string{"Album", "Track"},
+			max:  100, filters: [][]string{},
+			pos:        -1,
+			expectSong: []Song{a, b, c},
+			expectPos:  -1,
+		},
+		{
+			keys: []string{"Album", "Track"},
 			max:  2, filters: [][]string{{"Album", "baz"}, {"Track", "1"}},
 			pos:        0,
 			expectSong: []Song{a, b},
