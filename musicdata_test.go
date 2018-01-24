@@ -128,6 +128,7 @@ func TestSortSongs(t *testing.T) {
 	c := Song{"Artist": {"hoge", "fuga"}, "Album": {"piyo"}}
 	songs := []Song{a, b, c}
 	testsets := []struct {
+		desc       string
 		keys       []string
 		filters    [][]string
 		max        int
@@ -143,6 +144,7 @@ func TestSortSongs(t *testing.T) {
 			expectPos:  0,
 		},
 		{
+			desc: "invalid pos returns -1",
 			keys: []string{"Album", "Track"},
 			max:  100, filters: [][]string{},
 			pos:        -1,
@@ -150,6 +152,7 @@ func TestSortSongs(t *testing.T) {
 			expectPos:  -1,
 		},
 		{
+			desc: "filter 1st item",
 			keys: []string{"Album", "Track"},
 			max:  2, filters: [][]string{{"Album", "baz"}, {"Track", "1"}},
 			pos:        0,
@@ -157,6 +160,7 @@ func TestSortSongs(t *testing.T) {
 			expectPos:  0,
 		},
 		{
+			desc: "filter 2nd item",
 			keys: []string{"Album", "Track"},
 			max:  1, filters: [][]string{{"Album", "baz"}, {"Track", "1"}},
 			pos:        0,
@@ -164,6 +168,7 @@ func TestSortSongs(t *testing.T) {
 			expectPos:  0,
 		},
 		{
+			desc: "filter by max value",
 			keys: []string{"Album", "Track"},
 			max:  1, filters: [][]string{{"Album", "baz"}},
 			pos:        0,
@@ -171,6 +176,15 @@ func TestSortSongs(t *testing.T) {
 			expectPos:  0,
 		},
 		{
+			desc: "multi tags",
+			keys: []string{"Artist", "Album"},
+			max:  100, filters: [][]string{{"Artist", "fuga"}},
+			pos:        3,
+			expectSong: []Song{a, b, a, c, c},
+			expectPos:  3,
+		},
+		{
+			desc: "expectPos changed {removed(a), removed(b), removed(a), selected(c), removed(c)}",
 			keys: []string{"Artist", "Album"},
 			max:  1, filters: [][]string{{"Artist", "fuga"}},
 			pos:        3,
@@ -178,6 +192,7 @@ func TestSortSongs(t *testing.T) {
 			expectPos:  0,
 		},
 		{
+			desc: "selected pos was removed {selected(removed(a)), removed(b), removed(a), c, removed(c)}",
 			keys: []string{"Artist", "Album"},
 			max:  1, filters: [][]string{{"Artist", "fuga"}},
 			pos:        0,
@@ -188,7 +203,7 @@ func TestSortSongs(t *testing.T) {
 	for _, tt := range testsets {
 		actualSong, actualPos := SortSongs(songs, tt.keys, tt.filters, tt.max, tt.pos)
 		if !reflect.DeepEqual(tt.expectSong, actualSong) || tt.expectPos != actualPos {
-			t.Errorf("unexpected return for SortSongs(%s, %s, %d, %d).\nexpectSong: %s expectPos: %d\nactualSong: %s actualPos: %d", tt.keys, tt.filters, tt.max, tt.pos, tt.expectSong, tt.expectPos, actualSong, actualPos)
+			t.Errorf("[%s] unexpected return for SortSongs(%s, %s, %d, %d).\nexpectSong: %s expectPos: %d\nactualSong: %s actualPos: %d", tt.desc, tt.keys, tt.filters, tt.max, tt.pos, tt.expectSong, tt.expectPos, actualSong, actualPos)
 		}
 	}
 }
