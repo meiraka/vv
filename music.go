@@ -167,7 +167,7 @@ func (p *Music) sortPlaylist(mpc mpdClient, keys []string, filters [][]string, p
 		p.playlistSortUpdate = time.Now().UTC()
 		p.playlistSortLock.Unlock()
 		if update {
-			cl := mpc.BeginCommandList()
+			cl := musicMpdBeginCommandList(mpc)
 			cl.Clear()
 			for i := range library {
 				cl.Add(library[i]["file"][0])
@@ -266,6 +266,12 @@ type mpdClient interface {
 	Update(string) (int, error)
 }
 
+type mpdClientCommandList interface {
+	Clear()
+	Add(string)
+	End() error
+}
+
 func (p *Music) initIfNot() error {
 	p.init.Lock()
 	defer p.init.Unlock()
@@ -291,9 +297,14 @@ func musicRealMpdWatcherClose(w mpd.Watcher) error {
 	return w.Close()
 }
 
+func musicRealMpdBeginCommandList(m mpdClient) mpdClientCommandList {
+	return m.BeginCommandList()
+}
+
 var musicMpdDial = musicRealMpdDial
 var musicMpdNewWatcher = musicRealMpdNewWatcher
 var musicMpdWatcherClose = musicRealMpdWatcherClose
+var musicMpdBeginCommandList = musicRealMpdBeginCommandList
 
 func (p *Music) connect() (mpdClient, *mpd.Watcher) {
 	mpc, err := musicMpdDial(p.network, p.addr, p.passwd)

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func initMock(dialError, newWatcherError error) (*mockMpc, *mpd.Watcher) {
+func initMock(dialError, newWatcherError error) (*mockMpc, *mpd.Watcher, *mockCommandList) {
 	m := new(mockMpc)
 	m.ListAllInfoRet1 = []mpd.Tags{}
 	m.PlaylistInfoRet1 = []mpd.Tags{}
@@ -33,11 +33,15 @@ func initMock(dialError, newWatcherError error) (*mockMpc, *mpd.Watcher) {
 		w.Event = nil
 		return nil
 	}
-	return m, w
+	c := new(mockCommandList)
+	musicMpdBeginCommandList = func(m mpdClient) mpdClientCommandList {
+		return c
+	}
+	return m, w, c
 }
 
 func TestDial(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, err := Dial("tcp", "localhost:6600", "", "./")
 	if err != nil {
 		t.Errorf("unexpected return error: %s", err.Error())
@@ -50,7 +54,7 @@ func TestDial(t *testing.T) {
 	}
 	p.Close()
 	me := new(mockError)
-	m, _ = initMock(me, nil)
+	m, _, _ = initMock(me, nil)
 	p, err = Dial("tcp", "localhost:6600", "", "./")
 	if m.DialCalled != 1 {
 		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
@@ -60,7 +64,7 @@ func TestDial(t *testing.T) {
 	}
 	p.Close()
 
-	m, _ = initMock(nil, me)
+	m, _, _ = initMock(nil, me)
 	p, err = Dial("tcp", "localhost:6600", "", "./")
 	if m.DialCalled != 1 {
 		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
@@ -75,7 +79,7 @@ func TestDial(t *testing.T) {
 }
 
 func TestMusicWatch(t *testing.T) {
-	_, w := initMock(nil, nil)
+	_, w, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	p.watcherResponse = make(chan error, 10)
 	defer p.Close()
@@ -107,7 +111,7 @@ func TestMusicWatch(t *testing.T) {
 }
 
 func TestMusicPlay(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	m.PlayRet1 = new(mockError)
 	err := p.Play()
@@ -137,7 +141,7 @@ func TestMusicPlay(t *testing.T) {
 }
 
 func TestMusicRescanLibrary(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	m.UpdateRet2 = nil
@@ -154,7 +158,7 @@ func TestMusicRescanLibrary(t *testing.T) {
 }
 
 func TestMusicPause(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	m.PauseRet1 = new(mockError)
@@ -184,7 +188,7 @@ func TestMusicPause(t *testing.T) {
 }
 
 func TestMusicNext(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	m.NextRet1 = new(mockError)
@@ -206,7 +210,7 @@ func TestMusicNext(t *testing.T) {
 }
 
 func TestMusicPrevious(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	m.PreviousRet1 = new(mockError)
@@ -228,7 +232,7 @@ func TestMusicPrevious(t *testing.T) {
 }
 
 func TestMusicSetVolume(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	err := p.Volume(1)
@@ -241,7 +245,7 @@ func TestMusicSetVolume(t *testing.T) {
 }
 
 func TestMusicRepeat(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	err := p.Repeat(true)
@@ -257,7 +261,7 @@ func TestMusicRepeat(t *testing.T) {
 }
 
 func TestMusicRandom(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	err := p.Random(true)
@@ -272,8 +276,89 @@ func TestMusicRandom(t *testing.T) {
 	}
 }
 
+func TestMusicSortPlaylist(t *testing.T) {
+	m, _, c := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
+	defer p.Close()
+	e := make(chan string, 1)
+	p.Subscribe(e)
+	defer p.Unsubscribe(e)
+	if event := <-e; event != "stats" {
+		t.Errorf("unexpected event. expect: stats, actual: %s", event)
+	}
+	songs := []Song{
+		{"Artist": {"1"}, "Title": {"1"}, "file": {"foo"}},
+		{"Artist": {"1"}, "Title": {"2"}, "file": {"bar"}},
+		{"Artist": {"2"}, "Title": {"1"}, "file": {"baz"}},
+	}
+	p.librarySort.set(songs, time.Now().UTC())
+	t.Run("empty playlist", func(t *testing.T) {
+		p.SortPlaylist([]string{"Artist", "Title"}, [][]string{}, 1)
+		expectAddArg1 := []string{"foo", "bar", "baz"}
+		if c.ClearCalled != 1 {
+			t.Errorf("CommandList.Clear does not called")
+		}
+		if !reflect.DeepEqual(expectAddArg1, c.AddArg1) {
+			t.Errorf("unexpected Add call stack. expect: %s, actual: %s", expectAddArg1, c.AddArg1)
+		}
+		if c.EndCalled != 1 {
+			t.Errorf("CommandList.Clear does not called")
+		}
+		if m.PlayArg1 != 1 {
+			t.Errorf("unexpected Client.Play Arguments. expect: %d, actual: %d", 1, m.PlayArg1)
+		}
+	})
+
+	t.Run("same playlist: skip update playlist", func(t *testing.T) {
+		c.reset()
+		playlist := []Song{
+			{"Artist": {"1"}, "Title": {"1"}, "file": {"foo"}},
+			{"Artist": {"1"}, "Title": {"2"}, "file": {"bar"}},
+			{"Artist": {"2"}, "Title": {"1"}, "file": {"baz"}},
+		}
+		p.playlistSort.set(playlist, time.Now().UTC())
+		p.SortPlaylist([]string{"Artist", "Title"}, [][]string{}, 1)
+		if c.ClearCalled != 0 {
+			t.Errorf("CommandList.Clear called")
+		}
+		if c.AddCalled != 0 {
+			t.Errorf("CommandList.Add called")
+		}
+		if c.EndCalled != 0 {
+			t.Errorf("CommandList.Clear does not called")
+		}
+		if m.PlayArg1 != 1 {
+			t.Errorf("unexpected Client.Play Arguments. expect: %d, actual: %d", 1, m.PlayArg1)
+		}
+	})
+
+	t.Run("unsorted playlist", func(t *testing.T) {
+		c.reset()
+		playlist := []Song{
+			{"Artist": {"2"}, "Title": {"1"}, "file": {"baz"}},
+			{"Artist": {"1"}, "Title": {"1"}, "file": {"foo"}},
+			{"Artist": {"1"}, "Title": {"2"}, "file": {"bar"}},
+		}
+		p.playlistSort.set(playlist, time.Now().UTC())
+		p.SortPlaylist([]string{"Artist", "Title"}, [][]string{}, 1)
+		expectAddArg1 := []string{"foo", "bar", "baz"}
+		if c.ClearCalled != 1 {
+			t.Errorf("CommandList.Clear does not called")
+		}
+		if !reflect.DeepEqual(expectAddArg1, c.AddArg1) {
+			t.Errorf("unexpected Add call stack. expect: %s, actual: %s", expectAddArg1, c.AddArg1)
+		}
+		if c.EndCalled != 1 {
+			t.Errorf("CommandList.Clear does not called")
+		}
+		if m.PlayArg1 != 1 {
+			t.Errorf("unexpected Client.Play Arguments. expect: %d, actual: %d", 1, m.PlayArg1)
+		}
+	})
+}
+
 func TestMusicPlaylist(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	e := make(chan string, 1)
@@ -305,7 +390,7 @@ func TestMusicPlaylist(t *testing.T) {
 }
 
 func TestMusicStats(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	e := make(chan string, 1)
@@ -365,7 +450,7 @@ func TestMusicStats(t *testing.T) {
 }
 
 func TestMusicLibrary(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	e := make(chan string, 1)
@@ -397,7 +482,7 @@ func TestMusicLibrary(t *testing.T) {
 }
 
 func TestMusicCurrent(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	e := make(chan string, 1)
@@ -478,7 +563,7 @@ func TestMusicCurrent(t *testing.T) {
 }
 
 func TestMusicOutputs(t *testing.T) {
-	m, _ := initMock(nil, nil)
+	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	e := make(chan string, 1)
@@ -670,3 +755,43 @@ func (p *mockMpc) Update(arg1 string) (int, error) {
 type mockError struct{}
 
 func (m *mockError) Error() string { return "err" }
+
+type mockCommandList struct {
+	ClearCalled int
+	AddCalled   int
+	AddArg1     []string
+	EndCalled   int
+	EndRet1     []error
+}
+
+func (p *mockCommandList) reset() {
+	p.ClearCalled = 0
+	p.AddCalled = 0
+	p.AddArg1 = []string{}
+	p.EndCalled = 0
+	p.EndRet1 = []error{}
+}
+
+func (p *mockCommandList) Clear() {
+	p.ClearCalled++
+}
+
+func (p *mockCommandList) Add(url string) {
+	p.AddCalled++
+	p.AddArg1 = append(p.AddArg1, url)
+}
+
+func (p *mockCommandList) End() error {
+	p.EndCalled++
+	var ret error
+	newEndRet1 := []error{}
+	for i := range p.EndRet1 {
+		if i == 0 {
+			ret = p.EndRet1[i]
+		} else {
+			newEndRet1 = append(newEndRet1, p.EndRet1[i])
+		}
+	}
+	p.EndRet1 = newEndRet1
+	return ret
+}
