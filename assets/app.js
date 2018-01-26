@@ -127,7 +127,7 @@ vv.song = (function() {
     }
     return songs;
   };
-  pub.element = function(e, song, key, style) {
+  pub.element = function(e, song, key, style, largeImage) {
     e.classList.remove("plain");
     e.classList.remove("song");
     e.classList.remove("album");
@@ -207,19 +207,26 @@ vv.song = (function() {
       length.textContent = vv.song.get(song, "Length");
       e.appendChild(length);
     } else if (style === "album") {
-      var cover_path = "/assets/nocover.svg";
-      if (song.cover) {
-        cover_path = "/music_directory/" + song.cover;
-      }
-      var imgbox = document.createElement("div");
-      imgbox.classList.add("album-imgbox");
+      var coverbox = document.createElement("div");
+      coverbox.classList.add("album-coverbox");
+      var p = window.devicePixelRatio;
       var cover = document.createElement("img");
-      cover.classList.add("album-imgbox-cover");
-      cover.src = cover_path;
+      cover.classList.add("album-cover");
+      var imgsize = 70 * p;
+      if (song.cover) {
+        if (largeImage) {
+          imgsize = 150 * p;
+        }
+        cover.src =
+          "/api/images/music_directory/" + song.cover +
+          "?width=" + imgsize + "&height=" + imgsize;
+      } else {
+        cover.src = "/assets/nocover.svg";
+      }
       cover.alt = 'Cover art: ' + vv.song.get(song, "Album") + ' by ' +
           vv.song.get(song, "AlbumArtist");
-      imgbox.appendChild(cover);
-      e.appendChild(imgbox);
+      coverbox.appendChild(cover);
+      e.appendChild(coverbox);
 
       var detail = document.createElement("div");
       detail.classList.add("album-detail");
@@ -1476,6 +1483,7 @@ vv.view.list = (function() {
     ul.classList.remove("albumlist");
     ul.classList.remove("plainlist");
     ul.classList.add(style + "list");
+    preferences_update();
     for (var i = 0, imax = songs.length; i < imax; i++) {
       if (i === 0 && vv.model.list.rootname() !== "root") {
         li = document.createElement("li");
@@ -1485,7 +1493,8 @@ vv.view.list = (function() {
         newul.appendChild(li);
       }
       li = document.createElement("li");
-      li = vv.song.element(li, songs[i], key, style);
+      li = vv.song.element(
+        li, songs[i], key, style, ul.classList.contains("grid"));
       li.classList.add("selectable");
       // do not select root items.
       // all root items have same song.
@@ -1514,7 +1523,6 @@ vv.view.list = (function() {
       }, false);
       newul.appendChild(li);
     }
-    preferences_update();
     ul.appendChild(newul);
     if (ul.getElementsByClassName("playing").length > 0) {
       document.getElementById("header-main").classList.add("playing");

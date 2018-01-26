@@ -489,19 +489,18 @@ button:hover {
   flex-direction: column;
 }
 
-.album-imgbox {
-  display: flex;
-  justify-content: flex-end;
+.album-coverbox {
   width: 70px;
   height: 70px;
   padding: 5px;
 }
 
-.album-imgbox-cover {
-  width: auto;
+.album-cover {
+  width: 70px;
   height: 70px;
-  max-height: 100%;
   border-radius: 2px;
+  object-fit: contain;
+  -o-object-fit: contain;
 }
 
 .album-detail-album {
@@ -524,22 +523,17 @@ button:hover {
   border: 0;
 }
 
-.albumlist.grid .album-imgbox {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.albumlist.grid .album-coverbox {
   width: 150px;
   height: 150px;
-  min-height: 160px;
-  overflow: hidden;
-  box-sizing: border-box;
   padding: 5px;
 }
 
-.albumlist.grid .album-imgbox-cover {
-  width: auto;
+.albumlist.grid .album-cover {
+  width: 150px;
   height: 150px;
-  border-radius: 2px;
+  object-fit: contain;
+  -o-object-fit: contain;
 }
 
 .albumlist.grid .album-detail {

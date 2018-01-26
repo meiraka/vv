@@ -2,9 +2,12 @@ package main
 
 import (
 	"bytes"
+	"github.com/nfnt/resize"
+	_ "golang.org/x/image/bmp"
 	"image"
 	"image/color"
 	"image/draw"
+	"image/jpeg"
 	"image/png"
 )
 
@@ -28,5 +31,18 @@ func expandImage(data []byte, width, height int) ([]byte, error) {
 	draw.Draw(out, target, img, image.ZP, draw.Over)
 	outwriter := new(bytes.Buffer)
 	png.Encode(outwriter, out)
+	return outwriter.Bytes(), nil
+}
+
+func resizeImage(data []byte, width, height int) ([]byte, error) {
+	r := bytes.NewReader(data)
+	img, _, err := image.Decode(r)
+	if err != nil {
+		return nil, err
+	}
+	out := resize.Thumbnail(uint(width), uint(height), img, resize.Bicubic)
+	outwriter := new(bytes.Buffer)
+	opt := jpeg.Options{Quality: 100}
+	jpeg.Encode(outwriter, out, &opt)
 	return outwriter.Bytes(), nil
 }

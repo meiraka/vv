@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -75,6 +76,7 @@ func (s *Server) makeHandle() http.Handler {
 	s.matcher = language.NewMatcher(translatePrio)
 	s.rootCachesInit()
 	h := http.NewServeMux()
+	h.HandleFunc("/api/images/", s.apiImages)
 	h.HandleFunc("/api/music/control", s.apiMusicControl)
 	h.HandleFunc("/api/music/library", s.apiMusicLibrary)
 	h.HandleFunc("/api/music/library/", s.apiMusicLibraryOne)
@@ -110,6 +112,59 @@ func (s *Server) makeHandle() http.Handler {
 		h.HandleFunc(p, makeHandleAssets(f))
 	}
 	return h
+}
+
+func (s *Server) apiImages(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	prefix := "/api/images" + musicDirectoryPrefix
+	if !strings.HasPrefix(r.URL.Path, prefix) {
+		http.NotFound(w, r)
+		return
+	}
+	q := r.URL.Query()
+	ws, wok := q["width"]
+	hs, hok := q["height"]
+	if !wok || !hok || len(ws) != 1 || len(hs) != 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	width, err := strconv.Atoi(ws[0])
+	height, err := strconv.Atoi(hs[0])
+	imgurl, err := url.QueryUnescape(strings.TrimPrefix(r.URL.Path, prefix))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	imgpath := s.MusicDirectory + imgurl
+	info, err := os.Stat(imgpath)
+	if err != nil {
+		fmt.Println("file not found")
+		http.NotFound(w, r)
+		return
+	}
+	l := info.ModTime()
+	if !modifiedSince(r, l) {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	data, err := ioutil.ReadFile(imgpath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	data, err = resizeImage(data, width, height)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Add("Content-Type", "image/jpeg")
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+	w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+	w.Header().Add("Cache-Control", "max-age=86400")
+	w.Write(data)
 }
 
 func (s *Server) apiMusicControl(w http.ResponseWriter, r *http.Request) {

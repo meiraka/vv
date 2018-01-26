@@ -16,6 +16,40 @@ import (
 	"time"
 )
 
+func TestApiImage(t *testing.T) {
+	m := new(MockMusic)
+	s := Server{Music: m, MusicDirectory: "assets/"}
+	handler := s.makeHandle()
+	ts := httptest.NewServer(handler)
+	testsets := []struct {
+		desc            string
+		path            string
+		ret             int
+		ifModifiedSince time.Time
+	}{
+		{desc: "404: not music_directory", path: "/api/images/app.png?width=100&height=100", ret: 404},
+		{desc: "404: file not found", path: "/api/images/music_directory/notfound.png?width=100&height=100", ret: 404},
+		{desc: "500: unsupported format", path: "/api/images/music_directory/app.svg?width=100&height=100", ret: 500},
+		{desc: "400: missing queries", path: "/api/images/music_directory/app.png", ret: 400},
+		{desc: "200: ok", path: "/api/images/music_directory/app.png?width=100&height=100", ret: 200},
+		{
+			desc:            "304: not modified",
+			path:            "/api/images/music_directory/app.png?width=100&height=100",
+			ifModifiedSince: time.Now().UTC(),
+			ret:             304,
+		},
+	}
+	for _, tt := range testsets {
+		req, _ := http.NewRequest("GET", ts.URL+tt.path, nil)
+		req.Header.Set("If-Modified-Since", tt.ifModifiedSince.Format(http.TimeFormat))
+		client := new(http.Client)
+		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
+		if res.StatusCode != tt.ret {
+			t.Errorf("[%s] unexpected status. actual:%d expect:%d", tt.desc, res.StatusCode, tt.ret)
+		}
+	}
+}
+
 func TestApiMusicControl(t *testing.T) {
 	t.Run("get", func(t *testing.T) {
 		m := new(MockMusic)
