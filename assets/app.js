@@ -954,7 +954,8 @@ vv.control = (function() {
     xhr.onload = function() {
       if (xhr.status === 200 || xhr.status === 304) {
         if (xhr.status === 200 && callback) {
-          callback(xhr.response, xhr.getResponseHeader("Last-Modified"));
+          callback(xhr.response, xhr.getResponseHeader("Last-Modified"),
+            xhr.getResponseHeader("Date"));
         }
         return;
       }
@@ -1023,15 +1024,21 @@ vv.control = (function() {
   var fetch = function(target, store) {
     get_request(
         target, vv.obj.getOrElse(vv.storage.last_modified, store, ""),
-        function(ret, modified) {
+        function(ret, modified, date) {
           if (!ret.error) {
             if (Object.prototype.toString.call(ret.data) ===
                     "[object Object]" &&
                 Object.keys(ret.data).length === 0) {
               return;
             }
+            var diff = 0;
+            try {
+              diff = Date.now() - Date.parse(date);
+            } catch (e) {
+              // use default value;
+            }
             vv.storage[store] = ret.data;
-            vv.storage.last_modified_ms[store] = Date.parse(modified);
+            vv.storage.last_modified_ms[store] = Date.parse(modified) + diff;
             vv.storage.last_modified[store] = modified;
             if (store === "library") {
               vv.storage.save.library();
