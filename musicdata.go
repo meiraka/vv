@@ -11,6 +11,10 @@ import (
 )
 
 func findCovers(dir, file, glob string, cache map[string]string) string {
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		return ""
+	}
 	addr := path.Join(dir, file)
 	d := path.Dir(addr)
 	k := path.Join(d, glob)
@@ -23,7 +27,7 @@ func findCovers(dir, file, glob string, cache map[string]string) string {
 		cache[k] = ""
 		return ""
 	}
-	cover := strings.Replace(m[0], dir, "", -1)
+	cover := strings.TrimPrefix(strings.TrimPrefix(m[0], dir), "/")
 	cache[k] = cover
 	return cover
 }

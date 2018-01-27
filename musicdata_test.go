@@ -9,7 +9,7 @@ import (
 
 func TestSong(t *testing.T) {
 	cache := map[string]string{}
-	dir := "./"
+	dir := "."
 	glob := "main.*"
 
 	input := []mpd.Tags{

@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -138,7 +139,7 @@ func (s *Server) apiImages(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	imgpath := s.MusicDirectory + imgurl
+	imgpath := filepath.Join(s.MusicDirectory, imgurl)
 	info, err := os.Stat(imgpath)
 	if err != nil {
 		fmt.Println("file not found")
