@@ -142,7 +142,6 @@ func (s *Server) apiImages(w http.ResponseWriter, r *http.Request) {
 	imgpath := filepath.Join(s.MusicDirectory, imgurl)
 	info, err := os.Stat(imgpath)
 	if err != nil {
-		fmt.Println("file not found")
 		http.NotFound(w, r)
 		return
 	}
