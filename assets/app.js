@@ -212,7 +212,7 @@ vv.song = (function() {
       var p = window.devicePixelRatio;
       var cover = document.createElement("img");
       cover.classList.add("album-cover");
-      var imgsize = 70 * p;
+      var imgsize = parseInt(70 * p, 10);
       if (song.cover) {
         if (largeImage) {
           imgsize = 150 * p;
