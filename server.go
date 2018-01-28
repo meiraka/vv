@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -134,11 +133,7 @@ func (s *Server) apiImages(w http.ResponseWriter, r *http.Request) {
 	}
 	width, err := strconv.Atoi(ws[0])
 	height, err := strconv.Atoi(hs[0])
-	imgurl, err := url.QueryUnescape(strings.TrimPrefix(r.URL.Path, prefix))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	imgurl := strings.TrimPrefix(r.URL.Path, prefix)
 	imgpath := filepath.Join(s.MusicDirectory, imgurl)
 	info, err := os.Stat(imgpath)
 	if err != nil {
