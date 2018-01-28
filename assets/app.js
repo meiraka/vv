@@ -683,11 +683,11 @@ vv.model.list = (function() {
     return list_cache;
   };
   pub.parent = function() {
-    var v = pub.list().songs;
     var root = pub.rootname();
     if (root === "root") {
       return;
     }
+    var v = pub.list().songs;
     if (vv.storage.tree.length > 1) {
       var key = TREE[root].tree[vv.storage.tree.length - 2][0];
       var style = TREE[root].tree[vv.storage.tree.length - 2][1];
@@ -696,11 +696,11 @@ vv.model.list = (function() {
     return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
   };
   pub.grandparent = function() {
-    var v = pub.list().songs;
     var root = pub.rootname();
     if (root === "root") {
       return;
     }
+    var v = pub.list().songs;
     if (vv.storage.tree.length > 2) {
       var key = TREE[root].tree[vv.storage.tree.length - 3][0];
       var style = TREE[root].tree[vv.storage.tree.length - 3][1];
@@ -1492,12 +1492,14 @@ vv.view.list = (function() {
     ul.classList.add(style + "list");
     preferences_update();
     for (var i = 0, imax = songs.length; i < imax; i++) {
-      if (i === 0 && vv.model.list.rootname() !== "root") {
-        li = document.createElement("li");
+      if (i === 0) {
         var p = vv.model.list.parent();
-        li = vv.song.element(li, p.song, p.key, p.style);
-        li.classList.add("list-header");
-        newul.appendChild(li);
+        if (p) {
+          li = document.createElement("li");
+          li = vv.song.element(li, p.song, p.key, p.style);
+          li.classList.add("list-header");
+          newul.appendChild(li);
+        }
       }
       li = document.createElement("li");
       li = vv.song.element(
@@ -1971,12 +1973,14 @@ vv.view.system = (function() {
       var songs = vv.model.list.list().songs;
       if (songs[0]) {
         var p = vv.model.list.grandparent();
-        e.textContent = vv.song.getOne(p.song, p.key);
-        b.setAttribute(
-            "title", b.dataset.titleFormat.replace("%s", e.textContent));
-        b.setAttribute(
-            "aria-label",
-            b.dataset.ariaLabelFormat.replace("%s", e.textContent));
+        if (p) {
+          e.textContent = vv.song.getOne(p.song, p.key);
+          b.setAttribute(
+              "title", b.dataset.titleFormat.replace("%s", e.textContent));
+          b.setAttribute(
+              "aria-label",
+              b.dataset.ariaLabelFormat.replace("%s", e.textContent));
+        }
       }
     }
   };
