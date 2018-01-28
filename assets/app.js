@@ -217,9 +217,8 @@ vv.song = (function() {
         if (largeImage) {
           imgsize = 150 * p;
         }
-        cover.src =
-          "/api/images/music_directory/" + song.cover +
-          "?width=" + imgsize + "&height=" + imgsize;
+        cover.src = "/api/images/music_directory/" + song.cover + "?width=" +
+            imgsize + "&height=" + imgsize;
       } else {
         cover.src = "/assets/nocover.svg";
       }
@@ -954,8 +953,9 @@ vv.control = (function() {
     xhr.onload = function() {
       if (xhr.status === 200 || xhr.status === 304) {
         if (xhr.status === 200 && callback) {
-          callback(xhr.response, xhr.getResponseHeader("Last-Modified"),
-            xhr.getResponseHeader("Date"));
+          callback(
+              xhr.response, xhr.getResponseHeader("Last-Modified"),
+              xhr.getResponseHeader("Date"));
         }
         return;
       }
@@ -1503,7 +1503,7 @@ vv.view.list = (function() {
       }
       li = document.createElement("li");
       li = vv.song.element(
-        li, songs[i], key, style, ul.classList.contains("grid"));
+          li, songs[i], key, style, ul.classList.contains("grid"));
       li.classList.add("selectable");
       // do not select root items.
       // all root items have same song.
