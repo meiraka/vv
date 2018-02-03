@@ -41,41 +41,47 @@ func initMock(dialError, newWatcherError error) (*mockMpc, *mpd.Watcher, *mockCo
 }
 
 func TestDial(t *testing.T) {
-	m, _, _ := initMock(nil, nil)
-	p, err := Dial("tcp", "localhost:6600", "", "./")
-	if err != nil {
-		t.Errorf("unexpected return error: %s", err.Error())
-	}
-	if m.DialCalled != 1 {
-		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
-	}
-	if m.NewWatcherCalled != 1 {
-		t.Errorf("mpd.NewWatcher was not called: %d", m.NewWatcherCalled)
-	}
-	p.Close()
 	me := new(mockError)
-	m, _, _ = initMock(me, nil)
-	p, err = Dial("tcp", "localhost:6600", "", "./")
-	if m.DialCalled != 1 {
-		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
+	testsets := []struct {
+		desc             string
+		dialError        error
+		watcherError     error
+		ret              error
+		DialCalled       int
+		NewWatcherCalled int
+	}{
+		{
+			desc:             "all ok",
+			DialCalled:       1,
+			NewWatcherCalled: 1,
+		},
+		{
+			desc:             "dial failed",
+			dialError:        me,
+			DialCalled:       1,
+			NewWatcherCalled: 0,
+		},
+		{
+			desc:             "watcher failed",
+			watcherError:     me,
+			DialCalled:       1,
+			NewWatcherCalled: 1,
+		},
 	}
-	if m.NewWatcherCalled != 0 {
-		t.Errorf("mpd.NewWatcher was not called: %d", m.NewWatcherCalled)
+	for _, tt := range testsets {
+		m, _, _ := initMock(tt.dialError, tt.watcherError)
+		p, err := Dial("tcp", "localhost:6600", "", "./")
+		if err != tt.ret {
+			t.Errorf("[%s] unexpected return error. expect: %s, actual: %s", tt.desc, tt.ret, err)
+		}
+		if m.DialCalled != tt.DialCalled {
+			t.Errorf("[%s] unexpected mpd.Dial call count. expect: %d, actual: %d", tt.desc, tt.DialCalled, m.DialCalled)
+		}
+		if m.NewWatcherCalled != tt.NewWatcherCalled {
+			t.Errorf("[%s] unexpected mpd.NewWatcher call count. expect: %d, actual: %d", tt.desc, tt.NewWatcherCalled, m.NewWatcherCalled)
+		}
+		p.Close()
 	}
-	p.Close()
-
-	m, _, _ = initMock(nil, me)
-	p, err = Dial("tcp", "localhost:6600", "", "./")
-	if m.DialCalled != 1 {
-		t.Errorf("mpd.Dial was not called: %d", m.DialCalled)
-	}
-	if m.NewWatcherCalled != 1 {
-		t.Errorf("mpd.NewWatcher was not called: %d", m.NewWatcherCalled)
-	}
-	if m.CloseCalled != 1 {
-		t.Errorf("mpd.Client.Close was not called: %d", m.CloseCalled)
-	}
-	p.Close()
 }
 
 func TestMusicWatch(t *testing.T) {
