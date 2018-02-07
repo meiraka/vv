@@ -633,6 +633,11 @@ button:hover {
   margin: 0 4px;
 }
 
+.song-lengthseparator[aria-hidden="true"],
+.song-elapsed[aria-hidden="true"] {
+  display: none;
+}
+
 @media (max-width: 400px), (max-width: 800px) and (orientation: landscape) {
   .song {
     flex-flow: row wrap;
