@@ -318,7 +318,81 @@ vv.songs = (function() {
   return pub;
 })();
 vv.storage = (function() {
+  var idbUpdateTables = function(e) {
+    var db = e.target.result;
+    var st = db.createObjectStore("cache", {keyPath: "id"});
+    var close = function() { db.close(); };
+    st.onsuccess = close;
+    st.onerror = close;
+  };
+  var cacheLoad = function(key, callback) {
+    if (!window.indexedDB) {
+      var ls = localStorage[key + "_last_modified"];
+      var data = localStorage[key];
+      if (ls && data) {
+        callback(JSON.parse(data), ls);
+        return;
+      }
+      callback();
+      return;
+    }
+    var req = window.indexedDB.open("storage", 1);
+    req.onerror = function() {};
+    req.onupgradeneeded = idbUpdateTables;
+    req.onsuccess = function(e) {
+      var db = e.target.result;
+      var t = db.transaction("cache", "readonly");
+      var so = t.objectStore("cache");
+      var req = so.get(key);
+      req.onsuccess = function(e) {
+        var ret = e.target.result;
+        if (ret && ret.value && ret.date) {
+          callback(e.target.result.value, e.target.result.date);
+        } else {
+          callback();
+        }
+        db.close();
+      };
+      req.onerror = function() {
+        callback();
+        db.close();
+      };
+    };
+  };
+
+  var cacheSave = function(key, value, date) {
+    if (!window.indexedDB) {
+      var ls = localStorage[key + "_last_modified"];
+      if (ls && ls === date) {
+        return;
+      }
+      localStorage[key] = JSON.stringify(value);
+      localStorage[key + "_last_modified"] = date;
+      return;
+    }
+    var req = window.indexedDB.open("storage", 1);
+    req.onerror = function() {};
+    req.onupgradeneeded = idbUpdateTables;
+    req.onsuccess = function(e) {
+      var db = e.target.result;
+      var t = db.transaction("cache", "readwrite");
+      var so = t.objectStore("cache");
+      var req = so.get(key);
+      req.onerror = function() { db.close(); };
+      req.onsuccess = function(e) {
+        var ret = e.target.result;
+        if (ret && ret.date && ret.date === date) {
+          return;
+        }
+        var req = so.put({id: key, value: value, date: date});
+        req.onerror = function() { db.close(); };
+        req.onsuccess = function() { db.close(); };
+      };
+    };
+  };
+
   var pub = {
+    loaded: false,
     root: "root",
     tree: [],
     current: null,
@@ -329,6 +403,14 @@ vv.storage = (function() {
     last_modified: {},
     last_modified_ms: {},
     version: {}
+  };
+
+  var listener = {onload: []};
+  pub.addEventListener = function(ev, func) { listener[ev].push(func); };
+  var raiseEvent = function(ev) {
+    for (var i = 0, imax = listener[ev].length; i < imax; i++) {
+      listener[ev][i]();
+    }
   };
   pub.preferences = {
     volume: {show: true, max: "100"},
@@ -372,10 +454,7 @@ vv.storage = (function() {
   };
   pub.save.library = function() {
     try {
-      if (localStorage.library_last_modified !== pub.last_modified.library) {
-        localStorage.library = JSON.stringify(pub.library);
-        localStorage.library_last_modified = pub.last_modified.library;
-      }
+      cacheSave("library", pub.library, pub.last_modified.library);
     } catch (e) {
     }
   };
@@ -393,7 +472,9 @@ vv.storage = (function() {
           if (c.hasOwnProperty(i)) {
             for (var j in c[i]) {
               if (c[i].hasOwnProperty(j)) {
-                pub.preferences[i][j] = c[i][j];
+                if (pub.preferences[i]) {
+                  pub.preferences[i][j] = c[i][j];
+                }
               }
             }
           }
@@ -406,14 +487,17 @@ vv.storage = (function() {
           pub.last_modified.current = localStorage.current_last_modified;
         }
       }
-      if (localStorage.library && localStorage.library_last_modified) {
-        var library = JSON.parse(localStorage.library);
-        if (library.length) {
-          pub.library = library;
-          pub.last_modified.library = localStorage.library_last_modified;
+      cacheLoad("library", function(data, date) {
+        if (data && date) {
+          pub.library = data;
+          pub.last_modified.library = date;
         }
-      }
+        pub.loaded = true;
+        raiseEvent("onload");
+      });
     } catch (e) {
+      pub.loaded = true;
+      raiseEvent("onload");
       // private browsing
     }
     // Presto Opera
@@ -535,15 +619,20 @@ vv.model.list = (function() {
     }
     return true;
   };
-  pub.update = function(data) {
+  var updateData = function(data) {
     for (var key in TREE) {
       if (TREE.hasOwnProperty(key)) {
         library[key] = vv.songs.sort(data, TREE[key].sort, mkmemo(key));
       }
     }
+  };
+
+  pub.update = function(data) {
+    updateData(data);
     update_list();
     raiseEvent("update");
   };
+
   pub.rootname = function() {
     var r = "root";
     if (vv.storage.tree.length !== 0) {
@@ -709,6 +798,12 @@ vv.model.list = (function() {
       isdir: true
     };
   };
+  if (vv.storage.loaded) {
+    updateData(vv.storage.library);
+  } else {
+    vv.storage.addEventListener(
+        "onload", function() { updateData(vv.storage.library); });
+  }
   return pub;
 })();
 vv.control = (function() {
@@ -1180,13 +1275,18 @@ vv.control = (function() {
       pub.raiseEvent("poll");
       setTimeout(polling, 1000);
     };
-    vv.view.list.show();
-    pub.raiseEvent("start");
-    if (vv.storage.current !== null && vv.storage.last_modified.current) {
+    var start = function() {
+      pub.raiseEvent("start");
+      vv.view.list.show();
       pub.raiseEvent("current");
+      listennotify();
+      polling();
+    };
+    if (vv.storage.loaded) {
+      start();
+    } else {
+      vv.storage.addEventListener("onload", start);
     }
-    listennotify();
-    polling();
   };
 
   pub.start = function() {
@@ -1221,11 +1321,6 @@ vv.control = (function() {
       "sorted", focusremove("sorted", pub.removeEventListener));
   pub.addEventListener(
       "library", function() { vv.model.list.update(vv.storage.library); });
-  pub.addEventListener("start", function() {
-    if (vv.storage.library.length) {
-      vv.model.list.update(vv.storage.library);
-    }
-  });
 
   return pub;
 })();
