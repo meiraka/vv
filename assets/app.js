@@ -703,10 +703,18 @@ vv.model.list = (function() {
         var key = selected[i][0];
         vv.storage.tree.push([key, vv.song.getOne(song, key)]);
       }
+      update_list();
+      var songs = pub.list().songs;
+      for (var j = 0, jmax = songs.length; j < jmax; j++) {
+        if (songs[j].file && songs[j].file[0] === song.file[0]) {
+          focus = songs[j];
+          break;
+        }
+      }
     } else {
       vv.storage.tree.splice(0, vv.storage.tree.length);
+      update_list();
     }
-    update_list();
     raiseEvent("changed");
   };
   var absSorted = function(song) {
