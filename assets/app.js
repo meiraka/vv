@@ -134,10 +134,10 @@ vv.song = (function() {
     e.classList.remove("playing");
     e.classList.add(style);
     e.classList.add("note-line");
-    e.setAttribute("key", vv.song.getOne(song, key));
+    e.dataset.key = vv.song.getOne(song, key);
     if (song.file) {
       e.dataset.file = song.file[0];
-      e.setAttribute("pos", song.pos);
+      e.dataset.pos = song.pos;
       e.setAttribute("contextmenu", "conext-" + style + song.file[0]);
       var menu = document.createElement("menu");
       menu.setAttribute("type", "context");
@@ -1689,8 +1689,8 @@ vv.view.list = (function() {
           vv.view.main.show();
           return;
         }
-        var value = e.currentTarget.getAttribute("key");
-        var pos = e.currentTarget.getAttribute("pos");
+        var value = e.currentTarget.dataset.key;
+        var pos = e.currentTarget.dataset.pos;
         if (isdir) {
           vv.model.list.down(value);
         } else {
