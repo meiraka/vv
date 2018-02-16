@@ -573,6 +573,10 @@ vv.model.list = (function() {
   var list_child_cache = [{}, {}, {}, {}, {}, {}];
   var list_child = function() {
     var root = pub.rootname();
+    if (library[root].length === 0) {
+      library[root] =
+          vv.songs.sort(vv.storage.library, TREE[root].sort, mkmemo(root));
+    }
     var filters = {};
     for (var i = 0, imax = vv.storage.tree.length; i < imax; i++) {
       if (i === 0) {
@@ -622,7 +626,11 @@ vv.model.list = (function() {
   var updateData = function(data) {
     for (var key in TREE) {
       if (TREE.hasOwnProperty(key)) {
-        library[key] = vv.songs.sort(data, TREE[key].sort, mkmemo(key));
+        if (key === vv.storage.root) {
+          library[key] = vv.songs.sort(data, TREE[key].sort, mkmemo(key));
+        } else {
+          library[key] = [];
+        }
       }
     }
   };
