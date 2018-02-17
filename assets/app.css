@@ -324,6 +324,10 @@ svg path {
   margin: 0 0 0 10px;
 }
 
+.header-iconlabel {
+  min-width: 0;
+}
+
 .header-space {
   visibility: hidden;
   flex: 1 1 auto;
@@ -333,6 +337,7 @@ svg path {
   display: flex;
   flex-flow: row nowrap;
   align-items: center;
+  min-width: 0;
 }
 
 .header-item-icon {
