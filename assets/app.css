@@ -694,13 +694,6 @@ button:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
-}
-
-.main-box-title {
-  font-size: 20px;
-}
-
-.main-box-artist {
   font-size: 20px;
 }
 
@@ -718,8 +711,8 @@ button:hover {
 
 @media (orientation: portrait) {
   .main-cover {
-    width: 70vw;
-    height: 70vw;
+    width: calc(80vh - 200px);
+    height: calc(80vh - 200px);
   }
 }
 
@@ -732,8 +725,8 @@ button:hover {
 
 @media (orientation: landscape) and (min-aspect-ratio: 2/1) {
   .main-cover {
-    width: 70vh;
-    height: 70vh;
+    width: calc(100vh - 200px);
+    height: calc(100vh - 200px);
   }
 }
 
