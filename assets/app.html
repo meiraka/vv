@@ -139,9 +139,48 @@
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
     </button>
-    <div class="scrollable">
-      <table class="modal-window-table" id="modal-window-song-desclist">
-      </table>
+    <div class="scrollable modal-song-box">
+      <ol class="modal-song-box-main modal-song-box-items">
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoTitle "Title" }}</div>
+          <div class="modal-song-box-item-values" id="modal-song-box-Title"></div>
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoArtist "Artist" }}</div>
+          <div class="modal-song-box-item-values" id="modal-song-box-Artist"></div>
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoAlbum "Album" }}</div>
+          <div class="modal-song-box-item-values" id="modal-song-box-Album"></div>
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoAlbumArtist "AlbumArtist" }}</div>
+          <div class="modal-song-box-item-values" id="modal-song-box-AlbumArtist"></div>
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoGenre "Genre" }}</div>
+          <div class="modal-song-box-item-values wrappable" id="modal-song-box-Genre"></div>
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoComposer "Composer" }}</div>
+          <div class="modal-song-box-item-values" id="modal-song-box-Composer"></div>
+      </ol>
+      <ol class="modal-song-box-sub modal-song-box-items">
+        <li class="modal-song-box-bigitem">
+          <img class="modal-song-box-item-img" id="modal-song-box-cover" src="/assets/nocover.svg"/>
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoDate "Date" }}</div>
+          <div class="modal-song-box-item-values" id="modal-song-box-Date"></div>
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoLength "Length" }}</div>
+          <div class="modal-song-box-item-values" id="modal-song-box-Length"></div>
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoDisc "Disc" }}</div>
+          <div class="modal-song-box-item-values" id="modal-song-box-Disc"></div>
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoTrack "Track" }}</div>
+          <div class="modal-song-box-item-values" id="modal-song-box-Track"></div>
+      </ol>
+      <ol class="modal-song-box-other modal-song-box-items">
+        <li class="modal-song-box-item">
+          <div class="modal-song-box-item-key">{{ or .SongInfoPerformer "Performer" }}</div>
+          <div class="modal-song-box-item-values wrappable" id="modal-song-box-Performer"></div>
+      </ol>
     </div>
   </div>
 

@@ -1677,3 +1677,154 @@ footer {
 .modal-window-tableitem {
   margin: 6px;
 }
+
+@media (min-width: 1440px) {
+  .modal-song {
+    width: 50%;
+  }
+}
+
+@media (max-width: 1440px) and (min-width: 800px) {
+  .modal-song {
+    width: 720px;
+  }
+}
+
+@media (max-width: 800px) {
+  .modal-song {
+    width: 90%;
+  }
+}
+
+.modal-song-box {
+  display: flex;
+  flex-flow: row wrap;
+  width: 100%;
+}
+
+.modal-song-box-items {
+  padding: 0;
+  margin: 0;
+}
+
+.modal-song-box-main {
+  flex: 1 1 auto;
+}
+
+.modal-song-box-sub {
+  flex: 1 1 auto;
+}
+
+@media (min-width: 600px) {
+  .modal-song-box-main {
+    width: 70%;
+    width: calc(100% - 120px);
+  }
+
+  .modal-song-box-sub {
+    width: 30%;
+    width: calc(120px);
+  }
+}
+
+@media (max-width: 600px) {
+  .modal-song-box-main,
+  .modal-song-box-sub {
+    width: 100%;
+  }
+
+  .modal-song-box-bigitem {
+    display: none;
+  }
+}
+
+.modal-song-box-other {
+  width: 100%;
+}
+
+.modal-song-box-item {
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.modal-song-box-bigitem {
+  height: 120px;
+}
+
+.modal-song-box-item-key,
+.modal-song-box-item-value,
+.modal-song-box-item-emptyvalue,
+.modal-song-box-item-values {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+}
+
+.modal-song-box-item-key,
+.modal-song-box-item-value {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+.modal-song-box-item-key {
+  margin: 6px 4px 0;
+  height: 24px;
+  line-height: 24px;
+}
+
+.modal-song-box-item-values {
+  margin: 0;
+  display: flex;
+}
+
+@media (min-width: 600px) {
+  .modal-song-box-item-values {
+    flex-flow: row nowrap;
+    height: 30px;
+  }
+}
+
+@media (max-width: 600px) {
+  .modal-song-box-item-values {
+    flex-flow: column wrap;
+    height: auto;
+  }
+}
+
+.modal-song-box-item-emptyvalue,
+.modal-song-box-item-value {
+  margin: 2px 4px;
+  height: 26px;
+  line-height: 26px;
+}
+
+.modal-song-box-item-img {
+  width: 112px;
+  height: 112px;
+  padding: 2px;
+  margin: 2px;
+  object-fit: contain;
+  -o-object-fit: contain;
+}
+
+.light .modal-song-box-item-img,
+.light .modal-song-box-item-value {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.light .modal-song-box-item-emptyvalue {
+  background-color: rgba(215, 215, 215, 0.2);
+}
+
+.dark .modal-song-box-item-img,
+.dark .modal-song-box-item-value {
+  background-color: rgba(40, 40, 40, 0.3);
+}
+
+.dark .modal-song-box-item-emptyvalue {
+  background-color: rgba(0, 0, 0, 0.2);
+}

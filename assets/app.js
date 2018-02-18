@@ -2362,44 +2362,40 @@ vv.view.modal.help = (function() {
 vv.view.modal.song = (function() {
   var pub = {};
   pub.show = function(song) {
-    var table = document.getElementById("modal-window-song-desclist");
-    while (table.lastChild) {
-      table.removeChild(table.lastChild);
-    }
-    var newtable = document.createDocumentFragment();
-    var mktr = function(song, key) {
-      var tr = document.createElement("tr");
-      tr.classList.add("modal-window-tableitem");
-      var th = document.createElement("th");
-      th.classList.add("modal-window-tablekey");
-      th.textContent = key;
-      tr.appendChild(th);
-      var td = document.createElement("td");
-      td.classList.add("modal-window-table-value");
-      if (Object.prototype.toString.call(song[key]) === "[object Array]") {
-        for (var i = 0, imax = song[key].length; i < imax; i++) {
-          var childvalue = document.createElement("span");
-          childvalue.textContent = song[key][i];
-          td.appendChild(childvalue);
-        }
-      }
-      tr.appendChild(td);
-      return tr;
-    };
     var mustkeys = [
-      "Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer"
+      "Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer",
+      "Disc", "Track", "Composer", "Length"
     ];
     for (var i = 0, imax = mustkeys.length; i < imax; i++) {
-      newtable.appendChild(mktr(song, mustkeys[i]));
-    }
-    for (var key in song) {
-      if (song.hasOwnProperty(key)) {
-        if (mustkeys.indexOf(key) === -1) {
-          newtable.appendChild(mktr(song, key));
-        }
+      var key = mustkeys[i];
+      var doc = document.getElementById("modal-song-box-" + key);
+      while (doc.lastChild) {
+        doc.removeChild(doc.lastChild);
       }
+      var newdoc = document.createDocumentFragment();
+      var values = song[key];
+      if (values) {
+        for (var j = 0, jmax = values.length; j < jmax; j++) {
+          var value = document.createElement("span");
+          value.classList.add("modal-song-box-item-value");
+          value.textContent = values[j];
+          newdoc.appendChild(value);
+        }
+      } else {
+        var emptyvalue = document.createElement("span");
+        emptyvalue.classList.add("modal-song-box-item-emptyvalue");
+        newdoc.appendChild(emptyvalue);
+      }
+      doc.appendChild(newdoc);
     }
-    table.appendChild(newtable);
+    var cover = document.getElementById("modal-song-box-cover");
+    if (song.cover) {
+      var imgsize = window.devicePixelRatio * 112;
+      cover.src = "/api/images/music_directory/" + song.cover + "?width=" +
+          imgsize + "&height=" + imgsize;
+    } else {
+      cover.src = "/assets/nocover.svg";
+    }
     document.getElementById("modal-background").classList.remove("hide");
     document.getElementById("modal-outer").classList.remove("hide");
     document.getElementById("modal-song").classList.remove("hide");

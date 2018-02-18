@@ -82,6 +82,17 @@ var translateData = map[language.Tag]map[string]string{
 		"titleNext":                   "次の曲",
 		"titleRepeat":                 "リピート",
 		"titleRandom":                 "ランダム",
+		"SongInfoTitle":               "名前",
+		"SongInfoArtist":              "アーティスト",
+		"SongInfoAlbum":               "アルバム",
+		"SongInfoAlbumArtist":         "アルバムアーティスト",
+		"SongInfoComposer":            "作曲者",
+		"SongInfoPerformer":           "演奏者",
+		"SongInfoDate":                "日付",
+		"SongInfoDisc":                "ディスク",
+		"SongInfoTrack":               "トラック",
+		"SongInfoLength":              "時間",
+		"SongInfoGenre":               "ジャンル",
 	},
 }
 
