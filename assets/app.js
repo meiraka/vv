@@ -48,7 +48,7 @@ vv.song = (function() {
     }
     return other;
   };
-  var getOrElseMulti = function(song, key, other) {
+  pub.getOrElseMulti = function(song, key, other) {
     if (key in song) {
       return song[key];
     } else if (key === "AlbumSort") {
@@ -65,7 +65,7 @@ vv.song = (function() {
     return other;
   };
   var getOrElse = function(song, key, other) {
-    var ret = getOrElseMulti(song, key, null);
+    var ret = pub.getOrElseMulti(song, key, null);
     if (!ret) {
       return other;
     }
@@ -73,14 +73,14 @@ vv.song = (function() {
   };
   var getOneOrElse = function(song, key, other) {
     if (!song.keys) {
-      return getOrElseMulti(song, key, [other])[0];
+      return pub.getOrElseMulti(song, key, [other])[0];
     }
     for (var i = 0, imax = song.keys.length; i < imax; i++) {
       if (song.keys[i][0] === key) {
         return song.keys[i][1];
       }
     }
-    return getOrElseMulti(song, key, [other])[0];
+    return pub.getOrElseMulti(song, key, [other])[0];
   };
   pub.getOne = function(song, key) {
     return getOneOrElse(song, key, "[no " + key + "]");
@@ -94,7 +94,7 @@ vv.song = (function() {
     songs[0].keys = [];
     for (var i = 0, imax = keys.length; i < imax; i++) {
       var writememo = memo.indexOf(keys[i]) !== -1;
-      var newkeys = getOrElseMulti(song, keys[i], []);
+      var newkeys = pub.getOrElseMulti(song, keys[i], []);
       if (newkeys.length === 0) {
         for (var j = 0, jmax = songs.length; j < jmax; j++) {
           songs[j].sortkey += " ";
@@ -516,7 +516,7 @@ vv.storage = (function() {
 vv.model.list = (function() {
   var pub = {};
   var library = {AlbumArtist: [], Album: [], Artist: [], Genre: [], Date: []};
-  var TREE = {
+  pub.TREE = Object.freeze({
     AlbumArtist: {
       sort: [
         "AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title",
@@ -545,7 +545,7 @@ vv.model.list = (function() {
       sort: ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
       tree: [["Date", "plain"], ["Album", "album"], ["Title", "song"]]
     }
-  };
+  });
   var focus = {};
   var list_cache = {};
   var listener = {changed: [], update: []};
@@ -565,8 +565,8 @@ vv.model.list = (function() {
   };
   var mkmemo = function(key) {
     var ret = [];
-    for (var i = 0, imax = TREE[key].tree.length; i < imax; i++) {
-      ret.push(TREE[key].tree[i][0]);
+    for (var i = 0, imax = pub.TREE[key].tree.length; i < imax; i++) {
+      ret.push(pub.TREE[key].tree[i][0]);
     }
     return ret;
   };
@@ -575,7 +575,7 @@ vv.model.list = (function() {
     var root = pub.rootname();
     if (library[root].length === 0) {
       library[root] =
-          vv.songs.sort(vv.storage.library, TREE[root].sort, mkmemo(root));
+          vv.songs.sort(vv.storage.library, pub.TREE[root].sort, mkmemo(root));
     }
     var filters = {};
     for (var i = 0, imax = vv.storage.tree.length; i < imax; i++) {
@@ -585,18 +585,18 @@ vv.model.list = (function() {
       filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
     }
     var ret = {};
-    ret.key = TREE[root].tree[vv.storage.tree.length - 1][0];
+    ret.key = pub.TREE[root].tree[vv.storage.tree.length - 1][0];
     ret.songs = library[root];
     ret.songs = vv.songs.filter(ret.songs, filters);
     ret.songs = vv.songs.uniq(ret.songs, ret.key);
-    ret.style = TREE[root].tree[vv.storage.tree.length - 1][1];
-    ret.isdir = vv.storage.tree.length !== TREE[root].tree.length;
+    ret.style = pub.TREE[root].tree[vv.storage.tree.length - 1][1];
+    ret.isdir = vv.storage.tree.length !== pub.TREE[root].tree.length;
     return ret;
   };
   var list_root = function() {
     var ret = [];
-    for (var key in TREE) {
-      if (TREE.hasOwnProperty(key)) {
+    for (var key in pub.TREE) {
+      if (pub.TREE.hasOwnProperty(key)) {
         ret.push({root: [key]});
       }
     }
@@ -624,10 +624,10 @@ vv.model.list = (function() {
     return true;
   };
   var updateData = function(data) {
-    for (var key in TREE) {
-      if (TREE.hasOwnProperty(key)) {
+    for (var key in pub.TREE) {
+      if (pub.TREE.hasOwnProperty(key)) {
         if (key === vv.storage.root) {
-          library[key] = vv.songs.sort(data, TREE[key].sort, mkmemo(key));
+          library[key] = vv.songs.sort(data, pub.TREE[key].sort, mkmemo(key));
         } else {
           library[key] = [];
         }
@@ -662,7 +662,7 @@ vv.model.list = (function() {
     if (r === "root") {
       return [];
     }
-    return TREE[r].sort;
+    return pub.TREE[r].sort;
   };
   pub.up = function() {
     var songs = pub.list().songs;
@@ -679,22 +679,31 @@ vv.model.list = (function() {
       raiseEvent("changed");
     }
   };
-  pub.TREE = TREE;
+  pub.TREE = pub.TREE;
   pub.down = function(value) {
     var r = pub.rootname();
     var key = "root";
     if (r !== "root") {
-      key = TREE[r].tree[vv.storage.tree.length - 1][0];
+      key = pub.TREE[r].tree[vv.storage.tree.length - 1][0];
     }
     vv.storage.tree.push([key, value]);
     focus = {};
     update_list();
     var songs = pub.list().songs;
-    if (songs.length === 1 && TREE[r].tree.length !== vv.storage.tree.length) {
+    if (songs.length === 1 &&
+        pub.TREE[r].tree.length !== vv.storage.tree.length) {
       pub.down(vv.song.get(songs[0], pub.list().key));
     } else {
       raiseEvent("changed");
     }
+  };
+  pub.absaddr = function(first, second) {
+    vv.storage.tree.splice(0, vv.storage.tree.length);
+    vv.storage.tree.push(["root", first]);
+    vv.storage.tree.push([first, second]);
+    focus = {};
+    update_list();
+    raiseEvent("changed");
   };
   var absFallback = function(song) {
     if (pub.rootname() !== "root" && song.file) {
@@ -703,7 +712,7 @@ vv.model.list = (function() {
       vv.storage.tree.splice(0, vv.storage.tree.length);
       vv.storage.tree.push(r);
       var root = vv.storage.tree[0][1];
-      var selected = TREE[root].tree;
+      var selected = pub.TREE[root].tree;
       for (var i = 0, imax = selected.length; i < imax; i++) {
         if (i === selected.length - 1) {
           break;
@@ -729,9 +738,9 @@ vv.model.list = (function() {
     var root = "";
     var pos = parseInt(song.Pos[0], 10);
     var keys = vv.storage.sorted.keys.join();
-    for (var key in TREE) {
-      if (TREE.hasOwnProperty(key)) {
-        if (TREE[key].sort.join() === keys) {
+    for (var key in pub.TREE) {
+      if (pub.TREE.hasOwnProperty(key)) {
+        if (pub.TREE[key].sort.join() === keys) {
           root = key;
           break;
         }
@@ -788,8 +797,8 @@ vv.model.list = (function() {
     }
     var v = pub.list().songs;
     if (vv.storage.tree.length > 1) {
-      var key = TREE[root].tree[vv.storage.tree.length - 2][0];
-      var style = TREE[root].tree[vv.storage.tree.length - 2][1];
+      var key = pub.TREE[root].tree[vv.storage.tree.length - 2][0];
+      var style = pub.TREE[root].tree[vv.storage.tree.length - 2][1];
       return {key: key, song: v[0], style: style, isdir: true};
     }
     return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
@@ -801,8 +810,8 @@ vv.model.list = (function() {
     }
     var v = pub.list().songs;
     if (vv.storage.tree.length > 2) {
-      var key = TREE[root].tree[vv.storage.tree.length - 3][0];
-      var style = TREE[root].tree[vv.storage.tree.length - 3][1];
+      var key = pub.TREE[root].tree[vv.storage.tree.length - 3][0];
+      var style = pub.TREE[root].tree[vv.storage.tree.length - 3][1];
       return {key: key, song: v[0], style: style, isdir: true};
     } else if (vv.storage.tree.length === 2) {
       return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
@@ -2373,18 +2382,32 @@ vv.view.modal.song = (function() {
         doc.removeChild(doc.lastChild);
       }
       var newdoc = document.createDocumentFragment();
-      var values = song[key];
-      if (values) {
+      var values = vv.song.getOrElseMulti(song, key, []);
+      if (values.length === 0) {
+        var emptyvalue = document.createElement("span");
+        emptyvalue.classList.add("modal-song-box-item-value");
+        emptyvalue.classList.add("modal-song-box-item-value-empty");
+        newdoc.appendChild(emptyvalue);
+      } else {
         for (var j = 0, jmax = values.length; j < jmax; j++) {
           var value = document.createElement("span");
           value.classList.add("modal-song-box-item-value");
+          value.dataset.root = key;
+          value.dataset.value = values[j];
           value.textContent = values[j];
+          var root = vv.model.list.TREE[key];
+          if (root && root.tree && root.tree[0][0] === key) {
+            value.classList.add("modal-song-box-item-value-clickable");
+            value.addEventListener("click", function(e) {
+              var d = e.currentTarget.dataset;
+              vv.model.list.absaddr(d.root, d.value);
+              vv.view.list.show();
+            });
+          } else {
+            value.classList.add("modal-song-box-item-value-unclickable");
+          }
           newdoc.appendChild(value);
         }
-      } else {
-        var emptyvalue = document.createElement("span");
-        emptyvalue.classList.add("modal-song-box-item-emptyvalue");
-        newdoc.appendChild(emptyvalue);
       }
       doc.appendChild(newdoc);
     }

@@ -1795,7 +1795,6 @@ footer {
   }
 }
 
-.modal-song-box-item-emptyvalue,
 .modal-song-box-item-value {
   margin: 2px 4px;
   height: 26px;
@@ -1811,18 +1810,31 @@ footer {
   -o-object-fit: contain;
 }
 
+.modal-song-box-item-value-clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
 .light .modal-song-box-item-img,
-.light .modal-song-box-item-value {
+.light .modal-song-box-item-value-unclickable {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
-.light .modal-song-box-item-emptyvalue {
+.light .modal-song-box-item-value-clickable {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.light .modal-song-box-item-value-empty {
   background-color: rgba(215, 215, 215, 0.2);
 }
 
 .dark .modal-song-box-item-img,
-.dark .modal-song-box-item-value {
+.dark .modal-song-box-item-value-unclickable {
   background-color: rgba(40, 40, 40, 0.3);
+}
+
+.dark .modal-song-box-item-value-clickable {
+  background-color: rgba(40, 40, 40, 0.7);
 }
 
 .dark .modal-song-box-item-emptyvalue {
