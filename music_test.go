@@ -266,6 +266,22 @@ func TestMusicRepeat(t *testing.T) {
 	}
 }
 
+func TestMusicSingle(t *testing.T) {
+	m, _, _ := initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
+	defer p.Close()
+	err := p.Single(true)
+	if m.SingleCalled != 1 {
+		t.Errorf("Client.Single does not Called")
+	}
+	if m.SingleArg1 != true {
+		t.Errorf("unexpected argument: %t", m.SingleArg1)
+	}
+	if err != m.SingleRet1 {
+		t.Errorf("unexpected return error: %s", err.Error())
+	}
+}
+
 func TestMusicRandom(t *testing.T) {
 	m, _, _ := initMock(nil, nil)
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
@@ -617,6 +633,9 @@ type mockMpc struct {
 	RepeatCalled           int
 	RepeatArg1             bool
 	RepeatRet1             error
+	SingleCalled           int
+	SingleArg1             bool
+	SingleRet1             error
 	RandomCalled           int
 	RandomArg1             bool
 	RandomRet1             error
@@ -691,6 +710,11 @@ func (p *mockMpc) Repeat(b bool) error {
 	p.RepeatCalled++
 	p.RepeatArg1 = b
 	return p.RepeatRet1
+}
+func (p *mockMpc) Single(b bool) error {
+	p.SingleCalled++
+	p.SingleArg1 = b
+	return p.SingleRet1
 }
 func (p *mockMpc) Random(b bool) error {
 	p.RandomCalled++

@@ -193,6 +193,13 @@ func (s *Server) apiMusicControl(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		if data.Single != nil {
+			err = s.Music.Single(*data.Single)
+			if err != nil {
+				writeError(w, err)
+				return
+			}
+		}
 		if data.Random != nil {
 			s.Music.Random(*data.Random)
 			if err != nil {
@@ -711,6 +718,7 @@ type MusicIF interface {
 	Next() error
 	Prev() error
 	Volume(int) error
+	Single(bool) error
 	Repeat(bool) error
 	Random(bool) error
 	Playlist() ([]Song, time.Time)

@@ -1498,6 +1498,14 @@ footer {
   opacity: 0.5;
 }
 
+.single-off .control-single {
+  opacity: 0;
+}
+
+.single-on .control-single {
+  opacity: 1;
+}
+
 @media (orientation: portrait) {
   .control-volume {
     width: 100%;

@@ -70,6 +70,7 @@ var translateData = map[language.Tag]map[string]string{
 		"ariaLabelPauseSong":          "一時停止",
 		"ariaLabelPlaySong":           "再生",
 		"ariaLabelTurnOnRepeat":       "リピート再生を有効にする",
+		"ariaLabelTurnOnRepeat1":      "1曲リピート再生を有効にする",
 		"ariaLabelTurnOffRepeat":      "リピート再生を無効にする",
 		"ariaLabelTurnOnRandom":       "ランダム再生を有効にする",
 		"ariaLabelTurnOffRandom":      "ランダム再生を無効にする",

@@ -128,6 +128,11 @@ func (p *Music) Repeat(on bool) error {
 	return p.request(func(mpc mpdClient) error { return mpc.Repeat(on) })
 }
 
+/*Single enable if true*/
+func (p *Music) Single(on bool) error {
+	return p.request(func(mpc mpdClient) error { return mpc.Single(on) })
+}
+
 /*RescanLibrary scans music directory and update library database.*/
 func (p *Music) RescanLibrary() error {
 	return p.request(func(mpc mpdClient) error {
@@ -253,6 +258,7 @@ type mpdClient interface {
 	Ping() error
 	Close() error
 	Repeat(bool) error
+	Single(bool) error
 	Random(bool) error
 	CurrentSongTags() (mpd.Tags, error)
 	Status() (mpd.Attrs, error)

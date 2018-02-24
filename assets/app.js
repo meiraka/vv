@@ -1186,8 +1186,17 @@ vv.control = (function() {
   };
 
   pub.toggle_repeat = function() {
-    post_request("/api/music/control", {repeat: !vv.storage.control.repeat});
-    vv.storage.control.repeat = !vv.storage.control.repeat;
+    if (vv.storage.control.single) {
+      post_request("/api/music/control", {repeat: false, single: false});
+      vv.storage.control.single = false;
+      vv.storage.control.repeat = false;
+    } else if (vv.storage.control.repeat) {
+      post_request("/api/music/control", {single: true});
+      vv.storage.control.single = true;
+    } else {
+      post_request("/api/music/control", {repeat: true});
+      vv.storage.control.repeat = true;
+    }
     pub.raiseEvent("control");
   };
 
@@ -2241,12 +2250,24 @@ vv.view.system = (function() {
       toggleplay.classList.remove("pause");
     }
     var repeat = document.getElementById("control-repeat");
-    if (vv.storage.control.repeat) {
+    if (vv.storage.control.single) {
       repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOn);
+      repeat.classList.add("single-on");
+      repeat.classList.remove("single-off");
+    } else {
+      repeat.classList.add("single-off");
+      repeat.classList.remove("single-on");
+    }
+    if (vv.storage.control.repeat) {
+      if (!vv.storage.control.single) {
+        repeat.setAttribute("aria-label", repeat.dataset.ariaLabelSingleOff);
+      }
       repeat.classList.add("on");
       repeat.classList.remove("off");
     } else {
-      repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOff);
+      if (!vv.storage.control.single) {
+        repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOff);
+      }
       repeat.classList.add("off");
       repeat.classList.remove("on");
     }

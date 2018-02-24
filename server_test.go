@@ -98,6 +98,7 @@ func TestApiMusicControl(t *testing.T) {
 			input       string
 			volumearg1  int
 			repeatarg1  bool
+			singlearg1  bool
 			randomarg1  bool
 			playcalled  int
 			pausecalled int
@@ -108,6 +109,7 @@ func TestApiMusicControl(t *testing.T) {
 			{desc: "parse error 400 bad request", ret: 400, input: "hoge", errstr: "failed to get request parameters: invalid character 'h' looking for beginning of value"},
 			{desc: "volume 200 ok", ret: 200, input: "{\"volume\": 1}", volumearg1: 1},
 			{desc: "repeat 200 ok", ret: 200, input: "{\"repeat\": true}", repeatarg1: true},
+			{desc: "single 200 ok", ret: 200, input: "{\"single\": true}", singlearg1: true},
 			{desc: "random 200 ok", ret: 200, input: "{\"random\": true}", randomarg1: true},
 			{desc: "play 200 ok", ret: 200, input: "{\"state\": \"play\"}", playcalled: 1},
 			{desc: "pause 200 ok", ret: 200, input: "{\"state\": \"pause\"}", pausecalled: 1},
@@ -132,6 +134,9 @@ func TestApiMusicControl(t *testing.T) {
 			}
 			if m.RepeatArg1 != tt.repeatarg1 {
 				t.Errorf("[%s] unexpected Music.Repeat arguments. actual:%t expect:%t", tt.desc, m.RepeatArg1, tt.repeatarg1)
+			}
+			if m.SingleArg1 != tt.singlearg1 {
+				t.Errorf("[%s] unexpected Music.Single arguments. actual:%t expect:%t", tt.desc, m.SingleArg1, tt.singlearg1)
 			}
 			if m.RandomArg1 != tt.randomarg1 {
 				t.Errorf("[%s] unexpected Music.Random arguments. actual:%t expect:%t", tt.desc, m.RandomArg1, tt.randomarg1)
@@ -727,6 +732,8 @@ type MockMusic struct {
 	VolumeErr            error
 	RepeatArg1           bool
 	RepeatErr            error
+	SingleArg1           bool
+	SingleErr            error
 	RandomArg1           bool
 	RandomErr            error
 	PlaylistRet1         []Song
@@ -783,6 +790,10 @@ func (p *MockMusic) Volume(i int) error {
 func (p *MockMusic) Repeat(b bool) error {
 	p.RepeatArg1 = b
 	return p.RepeatErr
+}
+func (p *MockMusic) Single(b bool) error {
+	p.SingleArg1 = b
+	return p.SingleErr
 }
 func (p *MockMusic) Random(b bool) error {
 	p.RandomArg1 = b

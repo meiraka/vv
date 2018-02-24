@@ -415,9 +415,10 @@
     </button>
   </nav>
   <input id="control-volume" class="disabled control-volume" type="range" min=0 max=100 step=1>
-  <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .titleRepeat "Repeat" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRepeat "Turn on repeat" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRepeat "Turn off repeat" }}">
+  <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .titleRepeat "Repeat" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRepeat "Turn on repeat" }}" data-aria-label-single-off="{{ or .ariaLabelTurnOnRepeat1 "Turn on repeat1" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRepeat "Turn off repeat" }}">
     <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
       <path class=fill d="M 87.5,30 112.5,45 87.5,60 z M 112.5,145 87.5,160 112.5,175 z"/>
+      <rect class="fill control-single" x="97.5" y="75" width="5" height="50"/>
       <rect class=stroke x="40" y="45" width="120" height="110" rx="30" ry="30"/>
     </svg>
   </button>
