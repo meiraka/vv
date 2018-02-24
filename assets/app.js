@@ -1572,13 +1572,14 @@ vv.view.list = (function() {
     var lis = ul.children;
     var focus = null;
     var viewNowPlaying = false;
+    var rootname = vv.model.list.rootname();
     for (var i = 0; i < lis.length; i++) {
       if (lis[i].classList.contains("list-header")) {
         continue;
       }
       // do not select root items.
       // all root items have same song.
-      if (vv.model.list.rootname() !== "root" && vv.model.list.focused() &&
+      if (rootname !== "root" && vv.model.list.focused() &&
           vv.model.list.focused().file &&
           lis[i].dataset.file === vv.model.list.focused().file[0]) {
         focus = lis[i];
@@ -1589,7 +1590,17 @@ vv.view.list = (function() {
       var elapsed = lis[i].getElementsByClassName("song-elapsed");
       var sep = lis[i].getElementsByClassName("song-lengthseparator");
       var j = 0;
-      if (vv.storage.current !== null &&
+      var treeFocused = true;
+      if (vv.storage.sorted && vv.storage.sorted.sorted) {
+        if (rootname === "root") {
+          treeFocused = false;
+        } else if (
+            vv.storage.sorted.keys.join() !==
+            vv.model.list.TREE[rootname].sort.join()) {
+          treeFocused = false;
+        }
+      }
+      if (treeFocused && elapsed.length !== 0 && vv.storage.current !== null &&
           vv.storage.current.file[0] === lis[i].dataset.file) {
         viewNowPlaying = true;
         if (lis[i].classList.contains("playing")) {
