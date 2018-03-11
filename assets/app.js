@@ -527,7 +527,15 @@ vv.storage = (function() {
 
 vv.model.list = (function() {
   var pub = {};
-  var library = {AlbumArtist: [], Album: [], Artist: [], Genre: [], Date: []};
+  var library = {
+    AlbumArtist: [],
+    Album: [],
+    Artist: [],
+    Genre: [],
+    Date: [],
+    Composer: [],
+    Performer: []
+  };
   pub.TREE = Object.freeze({
     AlbumArtist: {
       sort: [
@@ -786,11 +794,13 @@ vv.model.list = (function() {
       return;
     }
     var songs = library[root];
-    if (!songs) {
-      return;
-    }
-    if (songs.length === 0) {
-      return;
+    if (!songs || songs.length === 0) {
+      library[root] =
+          vv.songs.sort(vv.storage.library, pub.TREE[root].sort, mkmemo(root));
+      songs = library[root];
+      if (songs.length === 0) {
+        return;
+      }
     }
     if (songs.length > vv.consts.playlistLength) {
       songs = vv.songs.weakFilter(
