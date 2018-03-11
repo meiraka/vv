@@ -452,6 +452,13 @@ vv.storage = (function() {
     } catch (e) {
     }
   };
+  pub.save.sorted = function() {
+    try {
+      localStorage.sorted = JSON.stringify(pub.sorted);
+      localStorage.sorted_last_modified = pub.last_modified.sorted;
+    } catch (e) {
+    }
+  };
   pub.save.library = function() {
     try {
       cacheSave("library", pub.library, pub.last_modified.library);
@@ -486,6 +493,11 @@ vv.storage = (function() {
           pub.current = current;
           pub.last_modified.current = localStorage.current_last_modified;
         }
+      }
+      if (localStorage.sorted && localStorage.sorted_last_modified) {
+        var sorted = JSON.parse(localStorage.sorted);
+        pub.sorted = sorted;
+        pub.last_modified.sorted = localStorage.sorted_last_modified;
       }
       cacheLoad("library", function(data, date) {
         if (data && date) {
@@ -1157,6 +1169,8 @@ vv.control = (function() {
             vv.storage.last_modified[store] = modified;
             if (store === "library") {
               vv.storage.save.library();
+            } else if (store === "sorted") {
+              vv.storage.save.sorted();
             }
             pub.raiseEvent(store);
           }
@@ -2165,6 +2179,14 @@ vv.view.system = (function() {
         var p = vv.model.list.grandparent();
         if (p) {
           e.textContent = vv.song.getOne(p.song, p.key);
+          if (p.song.keys) {
+            for (var i = 0, imax = p.song.keys.length; i < imax; i++) {
+              if (p.song.keys[i][0] === p.key) {
+                e.textContent = p.song.keys[i][1];
+                break;
+              }
+            }
+          }
           b.setAttribute(
               "title", b.dataset.titleFormat.replace("%s", e.textContent));
           b.setAttribute(
