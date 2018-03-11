@@ -2247,10 +2247,8 @@ vv.view.system = (function() {
     document.getElementById("header-main")
         .addEventListener("click", function(e) {
           e.stopPropagation();
-          if (vv.model.list.rootname() !== "root") {
-            if (vv.storage.current !== null) {
-              vv.model.list.abs(vv.storage.current);
-            }
+          if (vv.storage.current !== null) {
+            vv.model.list.abs(vv.storage.current);
           }
           vv.view.main.show();
           e.stopPropagation();
