@@ -556,6 +556,20 @@ vv.model.list = (function() {
     Date: {
       sort: ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
       tree: [["Date", "plain"], ["Album", "album"], ["Title", "song"]]
+    },
+    Composer: {
+      sort: [
+        "Composer", "Date", "Album", "DiscNumber", "TrackNumber", "Title",
+        "file"
+      ],
+      tree: [["Composer", "plain"], ["Album", "album"], ["Title", "song"]]
+    },
+    Performer: {
+      sort: [
+        "Performer", "Date", "Album", "DiscNumber", "TrackNumber", "Title",
+        "file"
+      ],
+      tree: [["Performer", "plain"], ["Album", "album"], ["Title", "song"]]
     }
   });
   var focus = {};
