@@ -573,6 +573,7 @@ vv.model.list = (function() {
     }
   });
   var focus = {};
+  var child = null;
   var list_cache = {};
   var listener = {changed: [], update: []};
   pub.addEventListener = function(ev, func) { listener[ev].push(func); };
@@ -682,7 +683,7 @@ vv.model.list = (function() {
     var root = pub.rootname();
     return library[root][pos].keys;
   };
-  pub.focused = function() { return focus; };
+  pub.focused = function() { return [focus, child]; };
   pub.sortkeys = function() {
     var r = pub.rootname();
     if (r === "root") {
@@ -694,6 +695,11 @@ vv.model.list = (function() {
     var songs = pub.list().songs;
     if (songs[0]) {
       focus = songs[0];
+      if (pub.rootname() === "root") {
+        child = null;
+      } else {
+        child = vv.storage.tree[vv.storage.tree.length - 1][1];
+      }
     }
     if (pub.rootname() !== "root") {
       vv.storage.tree.pop();
@@ -714,6 +720,7 @@ vv.model.list = (function() {
     }
     vv.storage.tree.push([key, value]);
     focus = {};
+    child = null;
     update_list();
     var songs = pub.list().songs;
     if (songs.length === 1 &&
@@ -728,6 +735,7 @@ vv.model.list = (function() {
     vv.storage.tree.push(["root", first]);
     vv.storage.tree.push([first, second]);
     focus = {};
+    child = null;
     update_list();
     raiseEvent("changed");
   };
@@ -751,6 +759,7 @@ vv.model.list = (function() {
       for (var j = 0, jmax = songs.length; j < jmax; j++) {
         if (songs[j].file && songs[j].file[0] === song.file[0]) {
           focus = songs[j];
+          child = null;
           break;
         }
       }
@@ -792,6 +801,7 @@ vv.model.list = (function() {
     }
     if (songs[pos].file[0] === song.file[0]) {
       focus = songs[pos];
+      child = null;
       vv.storage.tree.length = 0;
       vv.storage.tree.push(["root", root]);
       for (var i = 0; i < focus.keys.length - 1; i++) {
@@ -1610,15 +1620,23 @@ vv.view.list = (function() {
     var focus = null;
     var viewNowPlaying = false;
     var rootname = vv.model.list.rootname();
+    var f = vv.model.list.focused();
+    var focusSong = f[0];
+    var focusParent = f[1];
     for (var i = 0; i < lis.length; i++) {
       if (lis[i].classList.contains("list-header")) {
         continue;
       }
-      // do not select root items.
-      // all root items have same song.
-      if (rootname !== "root" && vv.model.list.focused() &&
-          vv.model.list.focused().file &&
-          lis[i].dataset.file === vv.model.list.focused().file[0]) {
+      if (focusSong && focusSong.file && focusParent) {
+        if (focusParent === lis[i].dataset.key) {
+          focus = lis[i];
+          focus.classList.add("selected");
+        } else {
+          lis[i].classList.remove("selected");
+        }
+      } else if (
+          rootname !== "root" && focusSong && focusSong.file &&
+          lis[i].dataset.file === focusSong.file[0]) {
         focus = lis[i];
         focus.classList.add("selected");
       } else {
@@ -1686,42 +1704,35 @@ vv.view.list = (function() {
 
   var update = function() {
     var index = vv.storage.tree.length;
-    var ul = document.getElementById("list-items" + index);
+    var scroll = document.getElementById("list" + index);
     var pwd = vv.storage.tree.join();
-    if (ul.dataset.pwd === pwd) {
+    if (scroll.dataset.pwd === pwd) {
       updatepos();
       updateFocus();
       return;
     }
-    ul.dataset.pwd = pwd;
+    scroll.dataset.pwd = pwd;
     var ls = vv.model.list.list();
     var key = ls.key;
     var songs = ls.songs;
     var isdir = ls.isdir;
     var style = ls.style;
     var newul = document.createDocumentFragment();
-    var scroll = document.getElementById("list" + index);
     var lists = document.getElementsByClassName("list");
     for (var treeindex = 0; treeindex < vv.storage.tree.length; treeindex++) {
-      var currentleef = vv.storage.tree[treeindex];
-      var viewleef = lists[treeindex + 1].leef;
-      if (!viewleef || viewleef[0] !== currentleef[0] ||
-          viewleef[1] !== currentleef[1]) {
+      var currentpwd = vv.storage.tree.slice(0, treeindex + 1).join();
+      var viewpwd = lists[treeindex + 1].dataset.pwd;
+      if (currentpwd !== viewpwd) {
         var oldul =
             lists[treeindex + 1].getElementsByClassName("list-items")[0];
         while (oldul.lastChild) {
           oldul.removeChild(oldul.lastChild);
         }
-        lists[treeindex + 1].leef = null;
+        lists[treeindex + 1].dataset.pwd = "";
       }
     }
     updatepos();
-    var lastleef = vv.storage.tree[vv.storage.tree.length - 1];
-    // if (scroll.leef && scroll.leef[0] === lastleef[0] &&
-    //     scroll.leef[1] === lastleef[1]) {
-    //   return;
-    // }
-    scroll.leef = lastleef;
+    var ul = document.getElementById("list-items" + index);
     while (ul.lastChild) {
       ul.removeChild(ul.lastChild);
     }
