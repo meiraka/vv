@@ -408,6 +408,7 @@ vv.storage = (function() {
   var listener = {onload: []};
   pub.addEventListener = function(ev, func) { listener[ev].push(func); };
   var raiseEvent = function(ev) {
+    if (!(ev in listener)) { return; }
     for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       listener[ev][i]();
     }
@@ -594,6 +595,7 @@ vv.model.list = (function() {
     }
   };
   var raiseEvent = function(ev) {
+    if (!(ev in listener)) { return; }
     for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       listener[ev][i]();
     }
@@ -896,6 +898,7 @@ vv.control = (function() {
     }
   };
   pub.raiseEvent = function(ev) {
+    if (!(ev in listener)) { return; }
     for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       listener[ev][i]();
     }
@@ -1400,8 +1403,6 @@ vv.control = (function() {
   pub.addEventListener("current", focus);
   vv.model.list.addEventListener(
       "update", focusremove("update", vv.model.list.removeEventListener));
-  pub.addEventListener(
-      "sorted", focusremove("sorted", pub.removeEventListener));
   pub.addEventListener(
       "library", function() { vv.model.list.update(vv.storage.library); });
 
