@@ -659,6 +659,7 @@ vv.model.list = (function() {
     return true;
   };
   var updateData = function(data) {
+    list_child_cache = [{}, {}, {}, {}, {}, {}];
     for (var key in pub.TREE) {
       if (pub.TREE.hasOwnProperty(key)) {
         if (key === vv.storage.root) {
@@ -1711,7 +1712,16 @@ vv.view.list = (function() {
       document.getElementById("header-main").classList.remove("playing");
     }
   };
-
+  var clearAllLists = function() {
+    var lists = document.getElementsByClassName("list");
+    for (var treeindex = 0; treeindex < vv.storage.tree.length; treeindex++) {
+      var oldul = lists[treeindex + 1].getElementsByClassName("list-items")[0];
+      while (oldul.lastChild) {
+        oldul.removeChild(oldul.lastChild);
+      }
+      lists[treeindex + 1].dataset.pwd = "";
+    }
+  };
   var update = function() {
     var index = vv.storage.tree.length;
     var scroll = document.getElementById("list" + index);
@@ -1787,6 +1797,10 @@ vv.view.list = (function() {
     }
     ul.appendChild(newul);
     updateFocus();
+  };
+  var updateForce = function() {
+    clearAllLists();
+    update();
   };
   var select_near_item = function() {
     var index = vv.storage.tree.length;
@@ -1925,7 +1939,7 @@ vv.view.list = (function() {
 
   vv.control.addEventListener("current", update);
   vv.control.addEventListener("preferences", preferences_update);
-  vv.model.list.addEventListener("update", update);
+  vv.model.list.addEventListener("update", updateForce);
   vv.model.list.addEventListener("changed", update);
   vv.control.addEventListener("start", function() {
     vv.control.swipe(
