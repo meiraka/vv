@@ -93,6 +93,7 @@ header {
 }
 
 .background-image {
+  background-position: center;
   margin: 0;
   height: 100%;
   width: 100%;
