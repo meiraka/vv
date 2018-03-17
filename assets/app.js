@@ -408,7 +408,9 @@ vv.storage = (function() {
   var listener = {onload: []};
   pub.addEventListener = function(ev, func) { listener[ev].push(func); };
   var raiseEvent = function(ev) {
-    if (!(ev in listener)) { return; }
+    if (!(ev in listener)) {
+      return;
+    }
     for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       listener[ev][i]();
     }
@@ -595,7 +597,9 @@ vv.model.list = (function() {
     }
   };
   var raiseEvent = function(ev) {
-    if (!(ev in listener)) { return; }
+    if (!(ev in listener)) {
+      return;
+    }
     for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       listener[ev][i]();
     }
@@ -793,7 +797,7 @@ vv.model.list = (function() {
       }
     }
     if (!root) {
-      vv.view.popup.show("model", "fixme: unknown sort keys: " + keys);
+      vv.view.popup.show("fixme", "modal: unknown sort keys: " + keys);
       return;
     }
     var songs = library[root];
@@ -898,7 +902,9 @@ vv.control = (function() {
     }
   };
   pub.raiseEvent = function(ev) {
-    if (!(ev in listener)) { return; }
+    if (!(ev in listener)) {
+      return;
+    }
     for (var i = 0, imax = listener[ev].length; i < imax; i++) {
       listener[ev][i]();
     }
@@ -1126,29 +1132,26 @@ vv.control = (function() {
       }
       // error handling
       if (xhr.status !== 0) {
-        vv.view.popup.show("GET " + path, xhr.statusText);
+        vv.view.popup.show("network-error", xhr.statusText);
       }
     };
     xhr.onabort = function() {
       if (timeout < 50000) {
-        vv.view.popup.show("GET " + path, "Abort. Retrying...");
         setTimeout(function() {
           get_request(path, ifmodified, callback, timeout * 2);
         });
-      } else {
-        vv.view.popup.show("GET " + path, "Abort");
       }
     };
-    xhr.onerror = function() { vv.view.popup.show("GET " + path, "Error"); };
+    xhr.onerror = function() { vv.view.popup.show("network-error", "Error"); };
     xhr.ontimeout = function() {
       if (timeout < 50000) {
-        vv.view.popup.show("GET " + path, "Timeout. Retrying...");
+        vv.view.popup.show("network-timeout-retry");
         abort_all_requests();
         setTimeout(function() {
           get_request(path, ifmodified, callback, timeout * 2);
         });
       } else {
-        vv.view.popup.show("GET " + path, "Timeout");
+        vv.view.popup.show("network-timeout");
       }
     };
     xhr.open("GET", path, true);
@@ -1166,21 +1169,19 @@ vv.control = (function() {
     xhr.responseType = "json";
     xhr.timeout = 1000;
     xhr.onload = function() {
-      if (xhr.status === 404) {
-        vv.view.popup.show("POST " + path, "Not Found");
-      } else if (xhr.status !== 200) {
+      if (xhr.status !== 200) {
         if (xhr.response && xhr.response.error) {
-          vv.view.popup.show("POST " + path, xhr.response.error);
+          vv.view.popup.show("network-error", xhr.response.error);
         } else {
-          vv.view.popup.show("POST " + path, xhr.responseText);
+          vv.view.popup.show("network-error", xhr.responseText);
         }
       }
     };
     xhr.ontimeout = function() {
-      vv.view.popup.show("POST " + path, "Timeout");
+      vv.view.popup.show("network-timeout");
       abort_all_requests();
     };
-    xhr.onerror = function() { vv.view.popup.show("POST " + path, "Error"); };
+    xhr.onerror = function() { vv.view.popup.show("network-error", "Error"); };
     xhr.open("POST", path, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.send(JSON.stringify(obj));
@@ -1290,7 +1291,7 @@ vv.control = (function() {
   var ws = null;
   var listennotify = function(cause) {
     if (cause) {
-      vv.view.popup.show("WebSocket", cause);
+      vv.view.popup.show(cause);
     }
     notify_last_connection = (new Date()).getTime();
     connected = false;
@@ -1302,7 +1303,9 @@ vv.control = (function() {
     ws = new WebSocket(uri);
     ws.onopen = function() {
       if (notify_err_cnt > 0) {
-        vv.view.popup.show("WebSocket", "Connected");
+        vv.view.popup.hide("network-closed");
+        vv.view.popup.hide("network-does-not-respond");
+        vv.view.popup.hide("network-timeout-retry");
       }
       connected = true;
       notify_last_update = (new Date()).getTime();
@@ -1334,7 +1337,7 @@ vv.control = (function() {
     };
     ws.onclose = function() {
       if (notify_err_cnt > 0) {
-        vv.view.popup.show("WebSocket", "Socket is closed. Reconnecting");
+        vv.view.popup.show("network-closed");
       }
       notify_last_update = (new Date()).getTime();
       notify_err_cnt++;
@@ -1347,15 +1350,11 @@ vv.control = (function() {
       var now = (new Date()).getTime();
       if (connected && now - 10000 > notify_last_update) {
         notify_err_cnt++;
-        setTimeout(function() {
-          listennotify("Socket does not respond properly. Reconnecting");
-        });
+        setTimeout(function() { listennotify("network-does-not-respond"); });
       }
       if (!connected && now - 2000 > notify_last_connection) {
         notify_err_cnt++;
-        setTimeout(function() {
-          listennotify("Connection timed out. Reconnecting");
-        });
+        setTimeout(function() { listennotify("network-timeout-retry"); });
       }
 
       pub.raiseEvent("poll");
@@ -2356,27 +2355,15 @@ vv.view.system = (function() {
 
 vv.view.popup = (function() {
   var pub = {};
-  var data = {};
-  pub.exists = function(title) { return title in data; };
-  pub.show = function(title, description) {
-    var obj = null;
-    if (title in data) {
-      obj = data[title];
+  pub.show = function(target, description) {
+    var obj = document.getElementById("popup-" + target);
+    if (!obj) {
+      vv.view.popup.show("fixme", "popup-" + target + " is not found in html");
+      return;
+    }
+    if (description) {
       obj.getElementsByClassName("popup-description")[0].textContent =
           description;
-    } else {
-      obj = document.createElement("section");
-      obj.classList.add("popup");
-      var popup_title = document.createElement("h3");
-      popup_title.classList.add("popup-title");
-      popup_title.textContent = title;
-      obj.appendChild(popup_title);
-      var popup_description = document.createElement("span");
-      popup_description.classList.add("popup-description");
-      popup_description.textContent = description;
-      obj.appendChild(popup_description);
-      data[title] = obj;
-      document.getElementById("popup-box").appendChild(obj);
     }
     obj.classList.remove("hide");
     obj.classList.add("show");
@@ -2388,11 +2375,11 @@ vv.view.popup = (function() {
       }
     }, 5000);
   };
-  pub.hide = function(title) {
-    if (title in data) {
-      var e = data[title];
-      e.classList.remove("show");
-      e.classList.add("hide");
+  pub.hide = function(target) {
+    var obj = document.getElementById("popup-" + target);
+    if (obj) {
+      obj.classList.remove("show");
+      obj.classList.add("hide");
     }
   };
   return pub;

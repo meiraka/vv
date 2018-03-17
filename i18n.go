@@ -94,6 +94,11 @@ var translateData = map[language.Tag]map[string]string{
 		"SongInfoTrack":               "トラック",
 		"SongInfoLength":              "時間",
 		"SongInfoGenre":               "ジャンル",
+		"NotifyNetwork":               "ネットワーク",
+		"NotifyNetworkTimeoutRetry":   "タイムアウト. 再接続中...",
+		"NotifyNetworkTimeout":        "タイムアウト",
+		"NotifyNetworkClosed":         "再接続中...",
+		"NotifyNetworkDoesNotRespond": "再接続中...",
 	},
 }
 

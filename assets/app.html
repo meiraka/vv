@@ -92,6 +92,30 @@
   </section>
 </main>
 <section id="popup-box" class="popup-box">
+  <section id="popup-fixme" class="popup hide">
+    <h3 class="popup-title">{{ or .NotifyFixme "FIXME" }}</h3>
+    <span class="popup-description"></span>
+  </section>
+  <section id="popup-network-timeout-retry" class="popup hide">
+    <h3 class="popup-title">{{ or .NotifyNetwork "Network" }}</h3>
+    <span class="popup-description">{{ or .NotifyNetworkTimeoutRetry "Request timeout. Retrying..." }}</span>
+  </section>
+  <section id="popup-network-timeout" class="popup hide">
+    <h3 class="popup-title">{{ or .NotifyNetwork "Network" }}</h3>
+    <span class="popup-description">{{ or .NotifyNetworkTimeout "Request timeout." }}</span>
+  </section>
+  <section id="popup-network-closed" class="popup hide">
+    <h3 class="popup-title">{{ or .NotifyNetwork "Network" }}</h3>
+    <span class="popup-description">{{ or .NotifyNetworkClosed "Closed. Reconnecting..." }}</span>
+  </section>
+  <section id="popup-network-does-not-respond" class="popup hide">
+    <h3 class="popup-title">{{ or .NotifyNetwork "Network" }}</h3>
+    <span class="popup-description">{{ or .NotifyNetworkDoesNotRespond "does not respond properly. Reconnecting..." }}</span>
+  </section>
+  <section id="popup-network-error" class="popup hide">
+    <h3 class="popup-title">{{ or .NotifyNetwork "Network" }}</h3>
+    <span class="popup-description"></span>
+  </section>
 </section>
 <div id=modal-background class="modal-background hide">
 </div>
