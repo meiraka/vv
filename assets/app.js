@@ -1101,9 +1101,13 @@ vv.control = (function() {
   };
 
   var requests = {};
-  var abort_all_requests = function() {
+  var abort_all_requests = function(options) {
+    options = options || {};
     for (var key in requests) {
       if (requests.hasOwnProperty(key)) {
+        if (options.stop) {
+          requests[key].onabort = function() {};
+        }
         requests[key].abort();
       }
     }
@@ -1290,6 +1294,7 @@ vv.control = (function() {
   var notify_err_cnt = 0;
   var ws = null;
   var listennotify = function(cause) {
+    abort_all_requests({stop: true});
     if (cause) {
       vv.view.popup.show(cause);
     }
