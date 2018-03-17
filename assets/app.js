@@ -1429,9 +1429,9 @@ vv.control = (function() {
     }
   };
   var calc_color = function(path) {
-    var canvas = document.createElement("canvas").getContext("2d");
     var img = new Image();
     img.onload = function() {
+      var canvas = document.createElement("canvas").getContext("2d");
       canvas.drawImage(img, 0, 0, 5, 5);
       try {
         var d = canvas.getImageData(0, 0, 5, 5).data;
