@@ -1296,6 +1296,9 @@ vv.control = (function() {
     notify_last_connection = (new Date()).getTime();
     connected = false;
     var uri = "ws://" + location.host + "/api/music/notify";
+    if (document.location.protocol === "https:") {
+      uri = "wss://" + location.host + "/api/music/notify";
+    }
     if (ws !== null) {
       ws.onclose = function() {};
       ws.close();
