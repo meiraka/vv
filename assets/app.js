@@ -1480,7 +1480,7 @@ vv.view.main = (function() {
   var pub = {};
   var load_volume_preferences = function() {
     var c = document.getElementById("control-volume");
-    c.max = vv.storage.preferences.volume.max;
+    c.max = parseInt(vv.storage.preferences.volume.max, 10);
     if (vv.storage.preferences.volume.show) {
       c.classList.remove("hide");
     } else {
