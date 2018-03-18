@@ -1222,17 +1222,18 @@ button:hover {
   appearance: none;
   width: 100px;
   height: 30px;
+  line-height: 30px;
+  vertical-align: middle;
+  text-align-last: center;
   border: none;
   border-radius: 30px;
   font-size: 18px;
-  padding: 5px 5px 0 50px;
   transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
 }
 
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
   .tool-select {
     width: 50px;
-    padding: 5px 15px;
   }
 }
 
