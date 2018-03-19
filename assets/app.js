@@ -1431,10 +1431,11 @@ vv.control = (function() {
   var calc_color = function(path) {
     var img = new Image();
     img.onload = function() {
-      var canvas = document.createElement("canvas").getContext("2d");
-      canvas.drawImage(img, 0, 0, 5, 5);
+      var canvas = document.createElement("canvas");
+      var context = canvas.getContext("2d");
+      context.drawImage(img, 0, 0, 5, 5);
       try {
-        var d = canvas.getImageData(0, 0, 5, 5).data;
+        var d = context.getImageData(0, 0, 5, 5).data;
         var i = 0;
         var newcolor = 0;
         for (i = 0; i < d.length; i++) {
@@ -1454,12 +1455,17 @@ vv.control = (function() {
       e.classList.remove("hide");
       document.getElementById("background-image").classList.remove("hide");
       var cover = "/assets/nocover.svg";
+      var coverForCalc = "/assets/nocover.svg";
       if (vv.storage.current !== null && vv.storage.current.cover) {
         cover = "/music_directory/" + vv.storage.current.cover[0];
+        var p = window.devicePixelRatio;
+        var imgsize = parseInt(70 * p, 10);
+        coverForCalc = "/api/images/music_directory/" + vv.storage.current.cover[0] +
+            "?width=" + imgsize + "&height=" + imgsize;
       }
       var newimage = "url(\"" + cover + "\")";
       if (e.style.backgroundImage !== newimage) {
-        calc_color(cover);
+        calc_color(coverForCalc);
         e.style.backgroundImage = newimage;
       }
       e.style.filter = "blur(" +
