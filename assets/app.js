@@ -1397,21 +1397,31 @@ vv.control = (function() {
       vv.model.list.abs(vv.storage.current);
     }
   };
+
+  var unsorted = !vv.storage.sorted;
   var focusremove = function(key, remove) {
     var n = function() {
-      if (vv.storage.preferences.playback.view_follow &&
-          vv.storage.current !== null) {
-        vv.model.list.abs(vv.storage.current);
+      if (unsorted && vv.storage.sorted && vv.storage.current !== null) {
+        if (vv.storage.sorted && vv.storage.preferences.playback.view_follow) {
+          vv.model.list.abs(vv.storage.current);
+        }
+        unsorted = false;
       }
       setTimeout(function() { remove(key, n); });
     };
     return n;
   };
   pub.addEventListener("current", focus);
-  vv.model.list.addEventListener(
-      "update", focusremove("update", vv.model.list.removeEventListener));
   pub.addEventListener(
       "library", function() { vv.model.list.update(vv.storage.library); });
+  if (unsorted) {
+    pub.addEventListener(
+        "current", focusremove("current", pub.removeEventListener));
+    pub.addEventListener(
+        "sorted", focusremove("sorted", pub.removeEventListener));
+    vv.model.list.addEventListener(
+        "update", focusremove("update", vv.model.list.removeEventListener));
+  }
 
   return pub;
 })();
