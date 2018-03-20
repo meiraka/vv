@@ -1470,8 +1470,9 @@ vv.control = (function() {
         cover = "/music_directory/" + vv.storage.current.cover[0];
         var p = window.devicePixelRatio;
         var imgsize = parseInt(70 * p, 10);
-        coverForCalc = "/api/images/music_directory/" + vv.storage.current.cover[0] +
-            "?width=" + imgsize + "&height=" + imgsize;
+        coverForCalc = "/api/images/music_directory/" +
+            vv.storage.current.cover[0] + "?width=" + imgsize + "&height=" +
+            imgsize;
       }
       var newimage = "url(\"" + cover + "\")";
       if (e.style.backgroundImage !== newimage) {
@@ -1999,78 +2000,39 @@ vv.view.system = (function() {
     };
   };
   var preferences = (function() {
-    vv.control.addEventListener("start", function() {
-      var update_animation = function() {
-        if (vv.storage.preferences.appearance.animation) {
-          document.body.classList.add("animation");
-        } else {
-          document.body.classList.remove("animation");
-        }
-      };
-      vv.control.addEventListener("preferences", update_animation);
-      update_animation();
-      var initconfig = function(id) {
-        var obj = document.getElementById(id);
-        var s = id.indexOf("-");
-        var mainkey = id.slice(0, s);
-        var subkey = id.slice(s + 1).replace(/-/g, "_");
-        var getter = null;
-        if (obj.type === "checkbox") {
-          obj.checked = vv.storage.preferences[mainkey][subkey];
-          getter = function() { return obj.checked; };
-        } else if (obj.tagName.toLowerCase() === "select") {
-          obj.value = String(vv.storage.preferences[mainkey][subkey]);
-          getter = function() { return obj.value; };
-        } else if (obj.type === "range") {
-          obj.value = String(vv.storage.preferences[mainkey][subkey]);
-          getter = function() { return parseInt(obj.value, 10); };
-          obj.addEventListener("input", function() {
-            vv.storage.preferences[mainkey][subkey] = obj.value;
-            vv.control.raiseEvent("preferences");
-          });
-        }
-        obj.addEventListener("change", function() {
-          vv.storage.preferences[mainkey][subkey] = getter();
-          vv.storage.save.preferences();
+    var update_animation = function() {
+      if (vv.storage.preferences.appearance.animation) {
+        document.body.classList.add("animation");
+      } else {
+        document.body.classList.remove("animation");
+      }
+    };
+    var initconfig = function(id) {
+      var obj = document.getElementById(id);
+      var s = id.indexOf("-");
+      var mainkey = id.slice(0, s);
+      var subkey = id.slice(s + 1).replace(/-/g, "_");
+      var getter = null;
+      if (obj.type === "checkbox") {
+        obj.checked = vv.storage.preferences[mainkey][subkey];
+        getter = function() { return obj.checked; };
+      } else if (obj.tagName.toLowerCase() === "select") {
+        obj.value = String(vv.storage.preferences[mainkey][subkey]);
+        getter = function() { return obj.value; };
+      } else if (obj.type === "range") {
+        obj.value = String(vv.storage.preferences[mainkey][subkey]);
+        getter = function() { return parseInt(obj.value, 10); };
+        obj.addEventListener("input", function() {
+          vv.storage.preferences[mainkey][subkey] = obj.value;
           vv.control.raiseEvent("preferences");
         });
-      };
-
-      // Presto Opera
-      if (navigator.userAgent.indexOf("Presto/2") > 1) {
-        document.getElementById("config-appearance-animation")
-            .classList.add("hide");
       }
-      // Mobile
-      if (navigator.userAgent.indexOf("Mobile") > 1) {
-        document.getElementById("config-appearance-auto-hide-scrollbar")
-            .classList.add("hide");
-      }
-
-      vv.control.addEventListener("control", function() {
-        if (vv.storage.control.volume < 0) {
-          document.getElementById("volume-header").classList.add("hide");
-          document.getElementById("volume-all").classList.add("hide");
-        } else {
-          document.getElementById("volume-header").classList.remove("hide");
-          document.getElementById("volume-all").classList.remove("hide");
-        }
+      obj.addEventListener("change", function() {
+        vv.storage.preferences[mainkey][subkey] = getter();
+        vv.storage.save.preferences();
+        vv.control.raiseEvent("preferences");
       });
-
-      initconfig("appearance-color-threshold");
-      initconfig("appearance-animation");
-      initconfig("appearance-background-image");
-      initconfig("appearance-background-image-blur");
-      initconfig("appearance-circled-image");
-      initconfig("appearance-gridview-album");
-      initconfig("appearance-auto-hide-scrollbar");
-      initconfig("playback-view-follow");
-      initconfig("volume-show");
-      initconfig("volume-max");
-      var rescan = document.getElementById("library-rescan");
-      rescan.addEventListener(
-          "click", function() { vv.control.rescan_library(); });
-    });
+    };
     var update_devices = function() {
       var ul = document.getElementById("devices");
       while (ul.lastChild) {
@@ -2108,6 +2070,47 @@ vv.view.system = (function() {
       } else if (!vv.storage.control.update_library && e.disabled) {
         e.disabled = false;
       }
+    });
+    vv.control.addEventListener("start", function() {
+      vv.control.addEventListener("preferences", update_animation);
+      update_animation();
+
+      // Presto Opera
+      if (navigator.userAgent.indexOf("Presto/2") > 1) {
+        document.getElementById("config-appearance-animation")
+            .classList.add("hide");
+      }
+      // Mobile
+      if (navigator.userAgent.indexOf("Mobile") > 1) {
+        document.getElementById("config-appearance-auto-hide-scrollbar")
+            .classList.add("hide");
+      }
+
+      vv.control.addEventListener("control", function() {
+        if (vv.storage.control.volume < 0) {
+          document.getElementById("volume-header").classList.add("hide");
+          document.getElementById("volume-all").classList.add("hide");
+        } else {
+          document.getElementById("volume-header").classList.remove("hide");
+          document.getElementById("volume-all").classList.remove("hide");
+        }
+      });
+
+      initconfig("appearance-color-threshold");
+      initconfig("appearance-animation");
+      initconfig("appearance-background-image");
+      initconfig("appearance-background-image-blur");
+      initconfig("appearance-circled-image");
+      initconfig("appearance-gridview-album");
+      initconfig("appearance-auto-hide-scrollbar");
+      initconfig("playback-view-follow");
+      initconfig("volume-show");
+      initconfig("volume-max");
+      document.getElementById("system-reload")
+          .addEventListener("click", function() { location.reload(); });
+      document.getElementById("library-rescan")
+          .addEventListener(
+              "click", function() { vv.control.rescan_library(); });
     });
     return {
       show: mkshow("system-preferences", "system-nav-preferences"),
@@ -2220,8 +2223,6 @@ vv.view.system = (function() {
           stats.hide();
           info.show();
         });
-    document.getElementById("system-reload")
-        .addEventListener("click", function() { location.reload(); });
     document.getElementById("user-agent").textContent = navigator.userAgent;
     document.getElementById("modal-system-close")
         .addEventListener("click", vv.view.modal.hide);
