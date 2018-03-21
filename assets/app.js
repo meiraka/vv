@@ -1136,7 +1136,7 @@ vv.control = (function() {
       }
       // error handling
       if (xhr.status !== 0) {
-        vv.view.popup.show("network-error", xhr.statusText);
+        vv.view.popup.show("network", xhr.statusText);
       }
     };
     xhr.onabort = function() {
@@ -1146,16 +1146,16 @@ vv.control = (function() {
         });
       }
     };
-    xhr.onerror = function() { vv.view.popup.show("network-error", "Error"); };
+    xhr.onerror = function() { vv.view.popup.show("network", "Error"); };
     xhr.ontimeout = function() {
       if (timeout < 50000) {
-        vv.view.popup.show("network-timeout-retry");
+        vv.view.popup.show("network", "timeoutRetry");
         abort_all_requests();
         setTimeout(function() {
           get_request(path, ifmodified, callback, timeout * 2);
         });
       } else {
-        vv.view.popup.show("network-timeout");
+        vv.view.popup.show("network", "timeout");
       }
     };
     xhr.open("GET", path, true);
@@ -1175,17 +1175,17 @@ vv.control = (function() {
     xhr.onload = function() {
       if (xhr.status !== 200) {
         if (xhr.response && xhr.response.error) {
-          vv.view.popup.show("network-error", xhr.response.error);
+          vv.view.popup.show("network", xhr.response.error);
         } else {
-          vv.view.popup.show("network-error", xhr.responseText);
+          vv.view.popup.show("network", xhr.responseText);
         }
       }
     };
     xhr.ontimeout = function() {
-      vv.view.popup.show("network-timeout");
+      vv.view.popup.show("network", "timeout");
       abort_all_requests();
     };
-    xhr.onerror = function() { vv.view.popup.show("network-error", "Error"); };
+    xhr.onerror = function() { vv.view.popup.show("network", "Error"); };
     xhr.open("POST", path, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.send(JSON.stringify(obj));
@@ -1296,7 +1296,7 @@ vv.control = (function() {
   var listennotify = function(cause) {
     abort_all_requests({stop: true});
     if (cause) {
-      vv.view.popup.show(cause);
+      vv.view.popup.show("network", cause);
     }
     notify_last_connection = (new Date()).getTime();
     connected = false;
@@ -1311,9 +1311,7 @@ vv.control = (function() {
     ws = new WebSocket(uri);
     ws.onopen = function() {
       if (notify_err_cnt > 0) {
-        vv.view.popup.hide("network-closed");
-        vv.view.popup.hide("network-does-not-respond");
-        vv.view.popup.hide("network-timeout-retry");
+        vv.view.popup.hide("network");
       }
       connected = true;
       notify_last_update = (new Date()).getTime();
@@ -1345,7 +1343,7 @@ vv.control = (function() {
     };
     ws.onclose = function() {
       if (notify_err_cnt > 0) {
-        vv.view.popup.show("network-closed");
+        vv.view.popup.show("network", "closed");
       }
       notify_last_update = (new Date()).getTime();
       notify_err_cnt++;
@@ -1358,13 +1356,11 @@ vv.control = (function() {
       var now = (new Date()).getTime();
       if (connected && now - 10000 > notify_last_update) {
         notify_err_cnt++;
-        setTimeout(function() { listennotify("network-does-not-respond"); });
-      }
-      if (!connected && now - 2000 > notify_last_connection) {
+        setTimeout(function() { listennotify("doesNotRespond"); });
+      } else if (!connected && now - 2000 > notify_last_connection) {
         notify_err_cnt++;
-        setTimeout(function() { listennotify("network-timeout-retry"); });
+        setTimeout(function() { listennotify("timeoutRetry"); });
       }
-
       pub.raiseEvent("poll");
       setTimeout(polling, 1000);
     };
@@ -2367,8 +2363,9 @@ vv.view.popup = (function() {
       return;
     }
     if (description) {
-      obj.getElementsByClassName("popup-description")[0].textContent =
-          description;
+      var desc = obj.getElementsByClassName("popup-description")[0];
+      var textContent = desc.dataset[description] || description;
+      desc.textContent = textContent;
     }
     obj.classList.remove("hide");
     obj.classList.add("show");
