@@ -1987,19 +1987,7 @@ vv.view.list = (function() {
 })();
 vv.view.system = (function() {
   var pub = {};
-  var mkshow = function(p, e) {
-    return function() {
-      document.getElementById(p).classList.add("on");
-      document.getElementById(e).classList.add("on");
-    };
-  };
-  var mkhide = function(p, e) {
-    return function() {
-      document.getElementById(p).classList.remove("on");
-      document.getElementById(e).classList.remove("on");
-    };
-  };
-  var preferences = (function() {
+  /* var preferences = */ (function() {
     var update_animation = function() {
       if (vv.storage.preferences.appearance.animation) {
         document.body.classList.add("animation");
@@ -2112,12 +2100,9 @@ vv.view.system = (function() {
           .addEventListener(
               "click", function() { vv.control.rescan_library(); });
     });
-    return {
-      show: mkshow("system-preferences", "system-nav-preferences"),
-      hide: mkhide("system-preferences", "system-nav-preferences")
-    };
   })();
   var stats = (function() {
+    var pub = {};
     var zfill2 = function(i) {
       if (i < 100) {
         return ("00" + i).slice(-2);
@@ -2131,7 +2116,7 @@ vv.view.system = (function() {
       return zfill2(uh) + ":" + zfill2(um) + ":" + zfill2(us);
     };
 
-    var update = function() {
+    var update_stats = function() {
       document.getElementById("stat-albums").textContent =
           vv.storage.stats.albums;
       document.getElementById("stat-artists").textContent =
@@ -2176,21 +2161,16 @@ vv.view.system = (function() {
     });
     vv.control.addEventListener("stats", function() {
       if (document.getElementById("system-stats").classList.contains("on")) {
-        update();
+        update_stats();
       }
     });
-    var show = mkshow("system-stats", "system-nav-stats");
-    var show_update = function() {
-      update();
+    pub.update = function() {
+      update_stats();
       update_time();
-      show();
     };
-    return {
-      show: show_update,
-      hide: mkhide("system-stats", "system-nav-stats")
-    };
+    return pub;
   })();
-  var info = (function() {
+  /* var info = */ (function() {
     vv.control.addEventListener("version", function() {
       if (vv.storage.version.vv) {
         document.getElementById("version").textContent = vv.storage.version.vv;
@@ -2198,41 +2178,39 @@ vv.view.system = (function() {
             vv.storage.version.go;
       }
     });
-    return {
-      show: mkshow("system-info", "system-nav-info"),
-      hide: mkhide("system-info", "system-nav-info")
-    };
+    vv.control.addEventListener("start", function() {
+      document.getElementById("user-agent").textContent = navigator.userAgent;
+    });
   })();
-  var init = function() {
-    preferences.show();
-    document.getElementById("system-nav-preferences")
-        .addEventListener("click", function() {
-          stats.hide();
-          info.hide();
-          preferences.show();
-        });
-    document.getElementById("system-nav-stats")
-        .addEventListener("click", function() {
-          preferences.hide();
-          info.hide();
-          stats.show();
-        });
-    document.getElementById("system-nav-info")
-        .addEventListener("click", function() {
-          preferences.hide();
-          stats.hide();
-          info.show();
-        });
-    document.getElementById("user-agent").textContent = navigator.userAgent;
+  vv.control.addEventListener("start", function() {
+    var navs = document.getElementsByClassName("system-nav-item");
+    var showChild = function(e) {
+      for (var i = 0, imax = navs.length; i < imax; i++) {
+        if (navs[i] === e.currentTarget) {
+          if (navs[i].id === "system-nav-stats") {
+            stats.update();
+          }
+          navs[i].classList.add("on");
+          document.getElementById(navs[i].dataset.target).classList.add("on");
+        } else {
+          navs[i].classList.remove("on");
+          console.log(navs[i].dataset.target);
+          document.getElementById(navs[i].dataset.target)
+              .classList.remove("on");
+        }
+      }
+    };
+    for (var i = 0, imax = navs.length; i < imax; i++) {
+      navs[i].addEventListener("click", showChild);
+    }
     document.getElementById("modal-system-close")
         .addEventListener("click", vv.view.modal.hide);
-  };
+  });
   pub.show = function() {
     document.getElementById("modal-background").classList.remove("hide");
     document.getElementById("modal-outer").classList.remove("hide");
     document.getElementById("modal-system").classList.remove("hide");
   };
-  vv.control.addEventListener("start", init);
   return pub;
 })();
 

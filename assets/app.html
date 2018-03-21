@@ -215,12 +215,12 @@
       </svg>
     </button>
     <nav id="system-nav" class="system-nav">
-      <button class="system-nav-item" id="system-nav-preferences" type="button">{{ or .Preferences "Preferences" }}</button>
-      <button class="system-nav-item" id="system-nav-stats" type="button">{{ or .Stats "Stats" }}</button>
-      <button class="system-nav-item" id="system-nav-info" type="button">{{ or .Information "Information" }}</button>
+      <button class="system-nav-item on" id="system-nav-preferences" data-target="system-preferences" type="button">{{ or .Preferences "Preferences" }}</button>
+      <button class="system-nav-item" id="system-nav-stats" data-target="system-stats" type="button">{{ or .Stats "Stats" }}</button>
+      <button class="system-nav-item" id="system-nav-info" data-target="system-info" type="button">{{ or .Information "Information" }}</button>
     </nav>
 
-    <article id="system-preferences" class="scrollable system-article">
+    <article id="system-preferences" class="scrollable system-article on">
       <h1 class="system-article-sub-header">{{ or .System "System" }}</h1>
       <article class="system-article-sub">
         <ul class="system-settings">
