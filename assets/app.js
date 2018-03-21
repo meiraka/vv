@@ -2026,6 +2026,7 @@ vv.view.system = (function() {
       while (ul.lastChild) {
         ul.removeChild(ul.lastChild);
       }
+      var newul = document.createDocumentFragment();
       for (var i = 0, imax = vv.storage.outputs.length; i < imax; i++) {
         var o = vv.storage.outputs[i];
         var li = document.createElement("li");
@@ -2047,8 +2048,9 @@ vv.view.system = (function() {
         });
         li.appendChild(desc);
         li.appendChild(ch);
-        ul.appendChild(li);
+        newul.appendChild(li);
       }
+      ul.appendChild(newul);
     };
     vv.control.addEventListener("outputs", update_devices);
     vv.control.addEventListener("control", function() {
