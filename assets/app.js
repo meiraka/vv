@@ -2528,6 +2528,10 @@ vv.view.modal.song = (function() {
 
 // keyboard events
 (function() {
+  var stopAndPrevent = function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+  };
   vv.control.addEventListener("start", function() {
     document.addEventListener("keydown", function(e) {
       if (!document.getElementById("modal-background")
@@ -2537,7 +2541,6 @@ vv.view.modal.song = (function() {
         }
         return;
       }
-      var buble = false;
       var mod = 0;
       mod |= e.shiftKey << 3;
       mod |= e.altKey << 2;
@@ -2545,20 +2548,16 @@ vv.view.modal.song = (function() {
       mod |= e.metaKey;
       if (mod === 0 && (e.key === " " || e.key === "Spacebar")) {
         vv.control.play_pause();
-        e.stopPropagation();
-        e.preventDefault();
+        stopAndPrevent(e);
       } else if (mod === 10 && e.keyCode === 37) {
         vv.control.prev();
-        e.stopPropagation();
-        e.preventDefault();
+        stopAndPrevent(e);
       } else if (mod === 10 && e.keyCode === 39) {
         vv.control.next();
-        e.stopPropagation();
-        e.preventDefault();
+        stopAndPrevent(e);
       } else if (mod === 0 && e.keyCode === 13) {
         if (!vv.view.list.hidden() && vv.view.list.activate()) {
-          e.stopPropagation();
-          e.preventDefault();
+          stopAndPrevent(e);
         }
       } else if (
           (mod === 0 && e.keyCode === 8) || (mod === 1 && e.keyCode === 37)) {
@@ -2570,19 +2569,16 @@ vv.view.modal.song = (function() {
           vv.model.list.up();
         }
         vv.view.list.show();
-        e.stopPropagation();
-        e.preventDefault();
+        stopAndPrevent(e);
       } else if (mod === 0 && e.keyCode === 37) {
         if (!vv.view.list.hidden()) {
           vv.view.list.left();
-          e.stopPropagation();
-          e.preventDefault();
+          stopAndPrevent(e);
         }
       } else if (mod === 0 && e.keyCode === 38) {
         if (!vv.view.list.hidden()) {
           vv.view.list.up();
-          e.stopPropagation();
-          e.preventDefault();
+          stopAndPrevent(e);
         }
       } else if (mod === 1 && e.keyCode === 39) {
         if (vv.model.list.rootname() !== "root") {
@@ -2591,26 +2587,20 @@ vv.view.modal.song = (function() {
           }
         }
         vv.view.main.show();
-        e.stopPropagation();
+        stopAndPrevent(e);
       } else if (mod === 0 && e.keyCode === 39) {
         if (!vv.view.list.hidden()) {
           vv.view.list.right();
-          e.stopPropagation();
-          e.preventDefault();
+          stopAndPrevent(e);
         }
       } else if (mod === 0 && e.keyCode === 40) {
         if (!vv.view.list.hidden()) {
           vv.view.list.down();
-          e.stopPropagation();
-          e.preventDefault();
+          stopAndPrevent(e);
         }
       } else if ((mod & 7) === 0 && e.key === "?") {
         vv.view.modal.help.show();
-      } else {
-        buble = true;
-      }
-      if (!buble) {
-        e.stopPropagation();
+        stopAndPrevent(e);
       }
     });
   });
