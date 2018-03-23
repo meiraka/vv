@@ -2370,8 +2370,9 @@ vv.view.popup = (function() {
     obj.classList.remove("hide");
     obj.classList.add("show");
     obj.timestamp = (new Date()).getTime();
+    obj.ttl = obj.timestamp + 4000;
     setTimeout(function() {
-      if ((new Date()).getTime() - obj.timestamp > 4000) {
+      if ((new Date()).getTime() - obj.ttl > 0) {
         obj.classList.remove("show");
         obj.classList.add("hide");
       }
@@ -2380,8 +2381,20 @@ vv.view.popup = (function() {
   pub.hide = function(target) {
     var obj = document.getElementById("popup-" + target);
     if (obj) {
-      obj.classList.remove("show");
-      obj.classList.add("hide");
+      var now = (new Date()).getTime();
+      if (now - obj.timestamp < 600) {
+        obj.ttl = obj.timestamp + 500;
+        setTimeout(function() {
+          if ((new Date()).getTime() - obj.ttl > 0) {
+            obj.classList.remove("show");
+            obj.classList.add("hide");
+          }
+        }, 600);
+      } else {
+        obj.ttl = now;
+        obj.classList.remove("show");
+        obj.classList.add("hide");
+      }
     }
   };
   return pub;
