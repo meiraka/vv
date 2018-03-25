@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const staticVersion = "v0.5.4+"
+const staticVersion = "v0.5.5+"
 
 var version string
 
