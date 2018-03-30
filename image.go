@@ -2,14 +2,14 @@ package main
 
 import (
 	"bytes"
-	"github.com/nfnt/resize"
 	_ "golang.org/x/image/bmp"
+	"golang.org/x/image/draw"
 	"image"
 	"image/color"
-	"image/draw"
 	_ "image/gif"
 	"image/jpeg"
 	"image/png"
+	"math"
 )
 
 func expandImage(data []byte, width, height int) ([]byte, error) {
@@ -36,12 +36,24 @@ func expandImage(data []byte, width, height int) ([]byte, error) {
 }
 
 func resizeImage(data []byte, width, height int) ([]byte, error) {
-	r := bytes.NewReader(data)
-	img, _, err := image.Decode(r)
+	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
-	out := resize.Thumbnail(uint(width), uint(height), img, resize.Bicubic)
+	info, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	imgRatio := float64(info.Width) / float64(info.Height)
+	outRatio := float64(width) / float64(height)
+	if imgRatio > outRatio {
+		height = int(math.Round(float64(height*info.Height) / float64(info.Width)))
+	} else {
+		width = int(math.Round(float64(width*info.Width) / float64(info.Height)))
+	}
+	rect := image.Rect(0, 0, width, height)
+	out := image.NewRGBA(rect)
+	draw.CatmullRom.Scale(out, rect, img, img.Bounds(), draw.Over, nil)
 	outwriter := new(bytes.Buffer)
 	opt := jpeg.Options{Quality: 100}
 	jpeg.Encode(outwriter, out, &opt)
