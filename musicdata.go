@@ -147,9 +147,31 @@ func songAddAll(sp []map[string]string, key string, add []string) []map[string]s
 func (s Song) SortKeys(keys []string) []map[string]string {
 	sp := []map[string]string{{"all": ""}}
 	for _, key := range keys {
-		sp = songAddAll(sp, key, s.Tag(key))
+		sp = songAddAll(sp, key, s.Tags(key))
 	}
 	return sp
+}
+
+// Tags returns "-" separated tags values in song.
+// returns nil if not found.
+func (s Song) Tags(tags string) []string {
+	keys := strings.Split(tags, "-")
+	var ret []string
+	for _, key := range keys {
+		t := s.Tag(key)
+		if ret == nil {
+			ret = t
+		} else if t != nil {
+			newret := []string{}
+			for _, old := range ret {
+				for _, new := range t {
+					newret = append(newret, old+"-"+new)
+				}
+			}
+			ret = newret
+		}
+	}
+	return ret
 }
 
 // Tag returns tag values in song.

@@ -33,6 +33,26 @@ func TestSong(t *testing.T) {
 	}
 }
 
+func TestSongTags(t *testing.T) {
+	testsets := []struct {
+		song   Song
+		input  string
+		expect []string
+	}{
+		{song: Song{"Artist": {"baz"}, "Album": {"foobar"}}, input: "Date", expect: nil},
+		{song: Song{"Artist": {"baz"}, "Album": {"foobar"}}, input: "Date-Artist", expect: []string{"baz"}},
+		{song: Song{"Artist": {"baz"}, "Album": {"foobar"}}, input: "Artist-Date", expect: []string{"baz"}},
+		{song: Song{"Artist": {"baz"}, "Album": {"foobar"}}, input: "Artist-Date-Album", expect: []string{"baz-foobar"}},
+		{song: Song{"Artist": {"baz", "qux"}, "Album": {"foo", "bar"}}, input: "Artist-Album", expect: []string{"baz-foo", "baz-bar", "qux-foo", "qux-bar"}},
+	}
+	for _, tt := range testsets {
+		actual := tt.song.Tags(tt.input)
+		if !reflect.DeepEqual(tt.expect, actual) {
+			t.Errorf("unexpected return for %s. expect %s, actual %s", tt.input, tt.expect, actual)
+		}
+	}
+}
+
 func TestSongTag(t *testing.T) {
 	testsets := []struct {
 		song   Song

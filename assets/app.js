@@ -48,7 +48,7 @@ vv.song = (function() {
     }
     return other;
   };
-  pub.getOrElseMulti = function(song, key, other) {
+  var getTagOrElseMulti = function(song, key, other) {
     if (key in song) {
       return song[key];
     } else if (key === "AlbumSort") {
@@ -63,6 +63,25 @@ vv.song = (function() {
       return tag(song, ["Album"], other);
     }
     return other;
+  };
+  pub.getOrElseMulti = function(song, key, other) {
+    var ret = [];
+    var keys = key.split("-");
+    for (var i = 0, imax = keys.length; i < imax; i++) {
+      var t = getTagOrElseMulti(song, keys[i], other);
+      if (!ret.length) {
+        ret = t;
+      } else if (t.length !== 0) {
+        var newret = [];
+        for (var j = 0, jmax = ret.length; j < jmax; j++) {
+          for (var k = 0, kmax = t.length; k < kmax; k++) {
+            newret.push(ret[j] + "-" + t[k]);
+          }
+        }
+        ret = newret;
+      }
+    }
+    return ret;
   };
   var getOrElse = function(song, key, other) {
     var ret = pub.getOrElseMulti(song, key, null);
@@ -549,10 +568,9 @@ vv.model.list = (function() {
     },
     Album: {
       sort: [
-        "AlbumArtist", "AlbumArtist", "Date", "Album", "DiscNumber",
-        "TrackNumber", "Title", "file"
+        "AlbumArtist-Date-Album", "DiscNumber", "TrackNumber", "Title", "file"
       ],
-      tree: [["Album", "album"], ["Title", "song"]]
+      tree: [["AlbumArtist-Date-Album", "album"], ["Title", "song"]]
     },
     Artist: {
       sort: [
