@@ -766,7 +766,7 @@ vv.model.list = (function() {
   pub.absaddr = function(first, second) {
     vv.storage.tree.splice(0, vv.storage.tree.length);
     vv.storage.tree.push(["root", first]);
-    vv.storage.tree.push([first, second]);
+    vv.storage.tree.push([pub.TREE[first].tree[0][0], second]);
     focus = {};
     child = null;
     update_list();
@@ -2210,7 +2210,6 @@ vv.view.system = (function() {
           document.getElementById(navs[i].dataset.target).classList.add("on");
         } else {
           navs[i].classList.remove("on");
-          console.log(navs[i].dataset.target);
           document.getElementById(navs[i].dataset.target)
               .classList.remove("on");
         }
@@ -2511,20 +2510,32 @@ vv.view.modal.song = (function() {
         emptyvalue.classList.add("modal-song-box-item-value-empty");
         newdoc.appendChild(emptyvalue);
       } else {
+        var root = vv.model.list.TREE[key];
+        var targetValues = [];
+        if (root && root.tree) {
+          var target = root.tree[0][0];
+          if (target.split("-").indexOf(key) !== -1) {
+            targetValues = vv.song.getOrElseMulti(song, target, values);
+          }
+        }
         for (var j = 0, jmax = values.length; j < jmax; j++) {
           var value = document.createElement("span");
           value.classList.add("modal-song-box-item-value");
-          value.dataset.root = key;
-          value.dataset.value = values[j];
           value.textContent = values[j];
-          var root = vv.model.list.TREE[key];
-          if (root && root.tree && root.tree[0][0] === key) {
-            value.classList.add("modal-song-box-item-value-clickable");
-            value.addEventListener("click", function(e) {
-              var d = e.currentTarget.dataset;
-              vv.model.list.absaddr(d.root, d.value);
-              vv.view.list.show();
-            });
+          if (targetValues.length) {
+            value.dataset.root = key;
+            for (var k = 0, kmax = targetValues.length; k < kmax; k++) {
+              if (targetValues[k].includes(values[j])) {
+                value.dataset.value = targetValues[k];
+                value.classList.add("modal-song-box-item-value-clickable");
+                value.addEventListener("click", function(e) {
+                  var d = e.currentTarget.dataset;
+                  vv.model.list.absaddr(d.root, d.value);
+                  vv.view.list.show();
+                });
+                break;
+              }
+            }
           } else {
             value.classList.add("modal-song-box-item-value-unclickable");
           }
