@@ -453,9 +453,14 @@ func (p *Music) updateLibrary(mpc mpdClient) error {
 	copy(librarySort, library)
 	p.library.set(library, time.Now().UTC())
 	p.librarySort.set(librarySort, time.Now().UTC())
+
+	if p.updatePlaylistSort() {
+		p.notify("playlist")
+	}
 	return p.notify("library")
 }
 
+/*updatePlaylist update playlist data and playlist sorted status.*/
 func (p *Music) updatePlaylist(mpc mpdClient) error {
 	playlistTags, err := mpc.PlaylistInfoTags(-1, -1)
 	if err != nil {
@@ -464,32 +469,57 @@ func (p *Music) updatePlaylist(mpc mpdClient) error {
 	p.mutex.Lock()
 	playlist := MakeSongs(playlistTags, p.musicDirectory, "cover.*", p.coverCache)
 	p.mutex.Unlock()
-	l, _ := p.librarySort.get()
+	playlistSort := make([]Song, len(playlist))
+	copy(playlistSort, playlist)
+	p.playlist.set(playlist, time.Now().UTC())
+	p.playlistSort.set(playlistSort, time.Now().UTC())
+
+	p.updatePlaylistSort()
+	return p.notify("playlist")
+}
+
+/*updatePlaylistSort compares library and playlist to update sort status.
+  return true if status is updated.
+*/
+func (p *Music) updatePlaylistSort() bool {
+	isSorted := p.checkPlaylistIsSorted()
 	p.playlistSortLock.Lock()
-	if len(l) != 0 && p.playlistSortkeys != nil && p.playlistFilters != nil {
+	defer p.playlistSortLock.Unlock()
+	if isSorted != p.playlistSorted {
+		p.playlistSorted = isSorted
+		p.playlistSortUpdate = time.Now().UTC()
+		return true
+	}
+	return false
+}
+
+/*checkPlaylistIsSorted returns true if playlist is sorted.*/
+func (p *Music) checkPlaylistIsSorted() bool {
+	ret := false
+	p.playlistSortLock.Lock()
+	defer p.playlistSortLock.Unlock()
+	if p.playlistSortkeys == nil || p.playlistFilters == nil {
+		return ret
+	}
+	p.playlistSort.lock(func(playlist []Song, _ time.Time) error {
 		p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
 			library, _ := SortSongs(masterLibrary, p.playlistSortkeys, p.playlistFilters, playlistLength, 0)
-			p.playlistSorted = true
+			ret = true
 			if len(library) != len(playlist) {
-				p.playlistSorted = false
+				ret = false
 			} else {
 				for i := range library {
 					if library[i]["file"][0] != playlist[i]["file"][0] {
-						p.playlistSorted = false
+						ret = false
 						break
 					}
 				}
 			}
 			return nil
 		})
-		p.playlistSortUpdate = time.Now().UTC()
-	}
-	playlistSort := make([]Song, len(playlist))
-	copy(playlistSort, playlist)
-	p.playlist.set(playlist, time.Now().UTC())
-	p.playlistSort.set(playlistSort, time.Now().UTC())
-	p.playlistSortLock.Unlock()
-	return p.notify("playlist")
+		return nil
+	})
+	return ret
 }
 
 func (p *Music) updateOutputs(mpc mpdClient) error {

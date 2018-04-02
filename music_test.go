@@ -612,6 +612,80 @@ func TestMusicOutputs(t *testing.T) {
 	}
 }
 
+func TestUpdatePlaylistSort(t *testing.T) {
+	_, _, _ = initMock(nil, nil)
+	p, _ := Dial("tcp", "localhost:6600", "", "./")
+	defer p.Close()
+	testsets := []struct {
+		desc         string
+		sorted       bool
+		keys         []string
+		filters      [][]string
+		playlist     []Song
+		library      []Song
+		expect       bool
+		expectSorted bool
+	}{
+		{
+			desc:   "unsorted",
+			expect: false,
+		},
+		{
+			desc:         "sorted",
+			sorted:       false,
+			keys:         []string{"Artist"},
+			filters:      [][]string{{"Artist", "foo"}},
+			playlist:     []Song{{"Artist": {"bar"}, "file": {"bar.mp3"}}, {"Artist": {"foo"}, "file": {"foo.mp3"}}},
+			library:      []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			expect:       true,
+			expectSorted: true,
+		},
+		{
+			desc:         "already sorted",
+			sorted:       true,
+			keys:         []string{"Artist"},
+			filters:      [][]string{{"Artist", "foo"}},
+			playlist:     []Song{{"Artist": {"bar"}, "file": {"bar.mp3"}}, {"Artist": {"foo"}, "file": {"foo.mp3"}}},
+			library:      []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			expect:       false,
+			expectSorted: true,
+		},
+		{
+			desc:         "list length miss match",
+			sorted:       true,
+			keys:         []string{"Artist"},
+			filters:      [][]string{{"Artist", "foo"}},
+			playlist:     []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}},
+			library:      []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			expect:       true,
+			expectSorted: false,
+		},
+		{
+			desc:         "failed to compare list",
+			sorted:       true,
+			keys:         []string{"Artist"},
+			filters:      [][]string{{"Artist", "foo"}},
+			playlist:     []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			library:      []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			expect:       true,
+			expectSorted: false,
+		},
+	}
+	for _, tt := range testsets {
+		p.playlistSorted = tt.sorted
+		p.playlistSortkeys = tt.keys
+		p.playlistFilters = tt.filters
+		p.playlistSort.set(tt.playlist, time.Now().UTC())
+		p.librarySort.set(tt.library, time.Now().UTC())
+		if p.updatePlaylistSort() != tt.expect {
+			t.Errorf("[%s] unxpected return value. expect: %t, actual: %t", tt.desc, tt.expect, !tt.expect)
+		}
+		if p.playlistSorted != tt.expectSorted {
+			t.Errorf("[%s] unxpected sort result. expect: %t, actual: %t", tt.desc, tt.expectSorted, !tt.expectSorted)
+		}
+	}
+}
+
 type mockMpc struct {
 	DialCalled             int
 	NewWatcherCalled       int
