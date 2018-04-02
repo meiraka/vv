@@ -667,9 +667,8 @@ vv.model.list = (function() {
       return true;
     }
     var cache = list_child_cache[vv.storage.tree.length - 1];
-    var leef = vv.storage.tree[vv.storage.tree.length - 1];
-    if ((typeof cache.leef !== "undefined") && cache.leef[0] === leef[0] &&
-        cache.leef[1] === leef[1]) {
+    var pwd = vv.storage.tree.join();
+    if (cache.pwd === pwd) {
       list_cache = cache.data;
       return false;
     }
@@ -677,7 +676,7 @@ vv.model.list = (function() {
     if (list_cache.songs.length === 0) {
       pub.up();
     } else {
-      list_child_cache[vv.storage.tree.length - 1].leef = leef;
+      list_child_cache[vv.storage.tree.length - 1].pwd = pwd;
       list_child_cache[vv.storage.tree.length - 1].data = list_cache;
     }
     return true;
