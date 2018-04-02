@@ -766,11 +766,7 @@ vv.model.list = (function() {
   pub.absaddr = function(first, second) {
     vv.storage.tree.splice(0, vv.storage.tree.length);
     vv.storage.tree.push(["root", first]);
-    vv.storage.tree.push([pub.TREE[first].tree[0][0], second]);
-    focus = {};
-    child = null;
-    update_list();
-    raiseEvent("changed");
+    pub.down(second);
   };
   var absFallback = function(song) {
     if (pub.rootname() !== "root" && song.file) {
