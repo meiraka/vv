@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/meiraka/gompd/mpd"
 	"strconv"
 	"sync"
@@ -48,13 +47,13 @@ type Music struct {
 	playlistFilters    [][]string
 	playlistSortUpdate time.Time
 	outputs            sliceMapStorage
-	notification       pubsub
+	notification       PubSub
 }
 
 /*Close mpd connection.*/
 func (p *Music) Close() error {
 	p.daemonStop <- true
-	p.notification.ensureStop()
+	p.notification.EnsureStop()
 	return nil
 }
 
@@ -205,13 +204,13 @@ func (p *Music) Stats() (mpd.Attrs, time.Time) {
 
 // Subscribe server events.
 func (p *Music) Subscribe(c chan string) {
-	p.notification.subscribe(c)
+	p.notification.Subscribe(c)
 	p.updateSubscribers()
 }
 
 // Unsubscribe server events.
 func (p *Music) Unsubscribe(c chan string) {
-	p.notification.unsubscribe(c)
+	p.notification.Unsubscribe(c)
 	p.updateSubscribers()
 }
 
@@ -226,7 +225,7 @@ func (p *Music) updateSubscribers() {
 	for k, v := range stats {
 		newStats[k] = v
 	}
-	newStats["subscribers"] = strconv.Itoa(p.notification.count())
+	newStats["subscribers"] = strconv.Itoa(p.notification.Count())
 	newTime := time.Now().UTC()
 	uptime, err := strconv.Atoi(newStats["uptime"])
 	if err != nil {
@@ -241,7 +240,7 @@ func (p *Music) updateSubscribers() {
 }
 
 func (p *Music) notify(n string) error {
-	return p.notification.notify(n)
+	return p.notification.Notify(n)
 }
 
 type musicMessage struct {
@@ -437,7 +436,7 @@ func (p *Music) updateStats(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
-	stats["subscribers"] = strconv.Itoa(p.notification.count())
+	stats["subscribers"] = strconv.Itoa(p.notification.Count())
 	p.stats.set(stats, time.Now().UTC())
 	return p.notify("stats")
 }
@@ -667,97 +666,4 @@ func (s *statusStorage) get() (Status, time.Time) {
 	s.m.Lock()
 	defer s.m.Unlock()
 	return s.storage, s.modified
-}
-
-type pubsub struct {
-	m               sync.Mutex
-	subscribeChan   chan chan string
-	unsubscribeChan chan chan string
-	countChan       chan chan int
-	notifyChan      chan pubsubNotify
-	stopChan        chan struct{}
-}
-
-type pubsubNotify struct {
-	message string
-	errChan chan error
-}
-
-func (p *pubsub) ensureStart() {
-	p.m.Lock()
-	defer p.m.Unlock()
-	if p.subscribeChan == nil {
-		p.subscribeChan = make(chan chan string)
-		p.unsubscribeChan = make(chan chan string)
-		p.countChan = make(chan chan int)
-		p.notifyChan = make(chan pubsubNotify)
-		p.stopChan = make(chan struct{})
-		go p.run()
-	}
-}
-
-func (p *pubsub) ensureStop() {
-	p.ensureStart()
-	p.stopChan <- struct{}{}
-}
-
-func (p *pubsub) run() {
-	subscribers := []chan string{}
-loop:
-	for {
-		select {
-		case c := <-p.subscribeChan:
-			subscribers = append(subscribers, c)
-		case c := <-p.unsubscribeChan:
-			newSubscribers := []chan string{}
-			for _, o := range subscribers {
-				if o != c {
-					newSubscribers = append(newSubscribers, o)
-				}
-			}
-			subscribers = newSubscribers
-		case pn := <-p.notifyChan:
-			errcnt := 0
-			for _, c := range subscribers {
-				select {
-				case c <- pn.message:
-				default:
-					errcnt++
-				}
-			}
-			if errcnt > 0 {
-				pn.errChan <- fmt.Errorf("failed to send %s notify, %d", pn.message, errcnt)
-			} else {
-				pn.errChan <- nil
-			}
-		case c := <-p.countChan:
-			c <- len(subscribers)
-		case <-p.stopChan:
-			break loop
-		}
-	}
-}
-
-func (p *pubsub) subscribe(c chan string) {
-	p.ensureStart()
-	p.subscribeChan <- c
-}
-
-func (p *pubsub) unsubscribe(c chan string) {
-	p.ensureStart()
-	p.unsubscribeChan <- c
-}
-
-func (p *pubsub) notify(s string) error {
-	p.ensureStart()
-	message := pubsubNotify{s, make(chan error)}
-	p.notifyChan <- message
-	return <-message.errChan
-}
-
-func (p *pubsub) count() int {
-	p.ensureStart()
-	ci := make(chan int)
-	p.countChan <- ci
-	return <-ci
 }
