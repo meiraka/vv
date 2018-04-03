@@ -535,8 +535,8 @@ func TestMusicCurrent(t *testing.T) {
 		},
 		// update current/status/comments
 		{
-			mpd.Tags{"file": {"p"}}, nil, 2,
-			MakeSong(mpd.Tags{"file": {"p"}}, p.musicDirectory, "cover.*", p.coverCache),
+			mpd.Tags{"file": {"p"}, "Id": {"1"}}, nil, 2,
+			MakeSong(mpd.Tags{"file": {"p"}, "Id": {"1"}}, p.musicDirectory, "cover.*", p.coverCache),
 			mpd.Attrs{}, nil, 2,
 			MakeStatus(mpd.Attrs{}),
 		},

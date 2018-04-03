@@ -408,8 +408,12 @@ func (p *Music) updateCurrentSong(mpc mpdClient) error {
 	if _, found := tags["file"]; !found {
 		return nil
 	}
+	if _, found := tags["Id"]; !found {
+		return nil
+	}
 	current, _ := p.current.get()
-	if len(current["file"]) == 0 || current["file"][0] != tags["file"][0] {
+	if len(current["file"]) == 0 || current["file"][0] != tags["file"][0] ||
+		len(current["Id"]) == 0 || current["Id"][0] != tags["Id"][0] {
 		p.mutex.Lock()
 		song := MakeSong(tags, p.musicDirectory, "cover.*", p.coverCache)
 		p.mutex.Unlock()
