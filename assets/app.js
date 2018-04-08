@@ -11,15 +11,6 @@ var vv = {
       {main: {}, list: {}, system: {}, popup: {}, modal: {help: {}, song: {}}},
   control: {}
 };
-vv.env = (function() {
-  var pub = {};
-  if (navigator.userAgent.indexOf("Presto/2") > 1) {
-    pub.translateX = function(x) { return "translate(" + x + ",0)"; };
-  } else {
-    pub.translateX = function(x) { return "translate3d(" + x + ",0,0)"; };
-  }
-  return pub;
-})();
 vv.obj = (function() {
   var pub = {};
   pub.getOrElse = function(m, k, v) { return k in m ? m[k] : v; };
@@ -447,13 +438,6 @@ vv.storage = (function() {
       auto_hide_scrollbar: true
     }
   };
-  // Presto Opera
-  if (navigator.userAgent.indexOf("Presto/2") > 1) {
-    pub.preferences.appearance.color_threshold = 256;
-    pub.preferences.appearance.background_image_blur = "0";
-    pub.preferences.appearance.circled_image = false;
-    pub.preferences.volume.show = false;
-  }
   pub.save = {};
   pub.save.current = function() {
     try {
@@ -533,10 +517,6 @@ vv.storage = (function() {
       pub.loaded = true;
       raiseEvent("onload");
       // private browsing
-    }
-    // Presto Opera
-    if (navigator.userAgent.indexOf("Presto/2") > 1) {
-      pub.preferences.appearance.animation = false;
     }
     // Mobile
     if (navigator.userAgent.indexOf("Mobile") > 1) {
@@ -965,7 +945,7 @@ vv.control = (function() {
         leftElement.classList.add("swiped");
       }
       if (!resetFunc) {
-        e.currentTarget.style.transform = vv.env.translateX(0);
+        e.currentTarget.style.transform = "translate3d(0,0,0)";
       }
       setTimeout(function() {
         element.classList.remove("swiped");
@@ -1005,11 +985,12 @@ vv.control = (function() {
         cancel(e);
       } else if (diff_x_l > 3) {
         e.currentTarget.classList.add("swipe");
-        e.currentTarget.style.transform = vv.env.translateX(diff_x * -1 + "px");
+        e.currentTarget.style.transform =
+            "translate3d(" + diff_x * -1 + "px,0,0)";
         if (leftElement) {
           leftElement.classList.add("swipe");
-          leftElement.style.transform = vv.env.translateX(
-              (diff_x * -1 - e.currentTarget.offsetWidth) + "px");
+          leftElement.style.transform = "translate3d(" +
+              (diff_x * -1 - e.currentTarget.offsetWidth) + "px,0,0)";
         }
       }
     };
@@ -1649,11 +1630,11 @@ vv.view.list = (function() {
     var lists = document.getElementsByClassName("list");
     for (var listindex = 0; listindex < lists.length; listindex++) {
       if (listindex < index) {
-        lists[listindex].style.transform = vv.env.translateX("-100%");
+        lists[listindex].style.transform = "translate3d(-100%,0,0)";
       } else if (listindex === index) {
-        lists[listindex].style.transform = vv.env.translateX("0");
+        lists[listindex].style.transform = "translate3d(0,0,0)";
       } else {
-        lists[listindex].style.transform = vv.env.translateX("100%");
+        lists[listindex].style.transform = "translate3d(100%,0,0)";
       }
     }
   };
@@ -2074,11 +2055,6 @@ vv.view.system = (function() {
       vv.control.addEventListener("preferences", update_animation);
       update_animation();
 
-      // Presto Opera
-      if (navigator.userAgent.indexOf("Presto/2") > 1) {
-        document.getElementById("config-appearance-animation")
-            .classList.add("hide");
-      }
       // Mobile
       if (navigator.userAgent.indexOf("Mobile") > 1) {
         document.getElementById("config-appearance-auto-hide-scrollbar")

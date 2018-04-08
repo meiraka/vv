@@ -94,10 +94,7 @@ header {
 
 .background-image {
   background-position: center;
-  margin: 0;
-  height: 100%;
-  width: 100%;
-  margin: calc(-64px);
+  margin: -64px;
   height: calc(100% + 128px);
   width: calc(100% + 128px);
 }
@@ -1087,8 +1084,7 @@ button:hover {
 
 .light .slideswitch {
   background-color: rgba(64, 64, 64, 0);
-  border: solid 1.5px #404040;
-  border: solid calc(3px) #404040;
+  border: solid 3px #404040;
 }
 
 .light .slideswitch:checked {
@@ -1097,8 +1093,7 @@ button:hover {
 
 .dark .slideswitch {
   background-color: rgba(224, 224, 224, 0);
-  border: solid 1.5px #e0e0e0;
-  border: solid calc(3px) #e0e0e0;
+  border: solid 3px #e0e0e0;
 }
 
 .dark .slideswitch:checked {
@@ -1727,13 +1722,11 @@ footer {
 
 @media (min-width: 600px) {
   .modal-song-box-main {
-    width: 70%;
     width: calc(100% - 120px);
   }
 
   .modal-song-box-sub {
-    width: 30%;
-    width: calc(120px);
+    width: 120px;
   }
 }
 
