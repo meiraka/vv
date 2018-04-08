@@ -1,8 +1,6 @@
 "use strict";
 const vv = {
-  env: {},
   consts: {playlistLength: 9999},
-  obj: {},
   song: {},
   songs: {},
   storage: {},
@@ -11,23 +9,6 @@ const vv = {
       {main: {}, list: {}, system: {}, popup: {}, modal: {help: {}, song: {}}},
   control: {}
 };
-vv.obj = (function() {
-  const pub = {};
-  pub.getOrElse = function(m, k, v) { return k in m ? m[k] : v; };
-  pub.copy = function(t) {
-    if (Object.prototype.toString.call(t) === "[object Array]") {
-      const ret = [];
-      for (let i = 0, imax = t.length; i < imax; i++) {
-        ret[i] = t[i];
-      }
-      return ret;
-    }
-    const ret = {};
-    Object.keys(t).forEach(function(k) { ret[k] = t[k]; });
-    return ret;
-  };
-  return pub;
-})();
 vv.song = (function() {
   const pub = {};
   const tag = function(song, keys, other) {
@@ -98,7 +79,7 @@ vv.song = (function() {
     return getOrElse(song, key, "[no " + key + "]");
   };
   pub.sortkeys = function(song, keys, memo) {
-    let songs = [vv.obj.copy(song)];
+    let songs = [Object.assign({}, song)];
     songs[0].sortkey = "";
     songs[0].keys = [];
     for (const key of keys) {
@@ -122,8 +103,8 @@ vv.song = (function() {
         let newsongs = [];
         for (const song of songs) {
           for (const value of values) {
-            const newsong = vv.obj.copy(song);
-            newsong.keys = vv.obj.copy(song.keys);
+            const newsong = Object.assign({}, song);
+            newsong.keys = Object.assign([], song.keys);
             newsong.sortkey += value;
             if (writememo) {
               newsong.keys.push([key, value]);
@@ -1185,9 +1166,10 @@ vv.control = (function() {
     xhr.send(JSON.stringify(obj));
   };
 
+  const getOrElse = function(m, k, v) { return k in m ? m[k] : v; };
   const fetch = function(target, store) {
     get_request(
-        target, vv.obj.getOrElse(vv.storage.last_modified, store, ""),
+        target, getOrElse(vv.storage.last_modified, store, ""),
         function(ret, modified, date) {
           if (!ret.error) {
             if (Object.prototype.toString.call(ret.data) ===
@@ -1225,7 +1207,7 @@ vv.control = (function() {
   };
 
   pub.play_pause = function() {
-    const state = vv.obj.getOrElse(vv.storage.control, "state", "stopped");
+    const state = getOrElse(vv.storage.control, "state", "stopped");
     const action = state === "play" ? "pause" : "play";
     post_request("/api/music/control", {state: action});
     vv.storage.control.state = action;
