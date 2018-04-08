@@ -1709,11 +1709,13 @@ vv.view.list = (function() {
 
     const scroll = document.getElementById("list" + index);
     if (focus) {
-      const pos = focus.offsetTop;
-      const t = scroll.scrollTop;
-      if (t >= pos || pos >= t + scroll.clientHeight) {
-        scroll.scrollTop = pos;
-      }
+      window.requestAnimationFrame(function() {
+        const pos = focus.offsetTop;
+        const t = scroll.scrollTop;
+        if (t >= pos || pos >= t + scroll.clientHeight) {
+          scroll.scrollTop = pos;
+        }
+      });
     } else {
       scroll.scrollTop = 0;
     }
