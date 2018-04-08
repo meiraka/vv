@@ -145,8 +145,8 @@ vv.song = (function() {
     if (style === "song") {
       if (song.file) {
         let tooltip = vv.song.get(song, "Title") + "\n";
-        const keys = [
-          "Length", "Artist", "Album", "Track", "Genre", "Performer"];
+        const keys =
+            ["Length", "Artist", "Album", "Track", "Genre", "Performer"];
         for (const key of keys) {
           tooltip += key + ": " + vv.song.get(song, key) + "\n";
         }
@@ -162,7 +162,8 @@ vv.song = (function() {
       svg.setAttribute("width", "22");
       svg.setAttribute("height", "22");
       svg.setAttribute("viewBox", "0 0 100 100");
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const path =
+          document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.classList.add("fill");
       path.setAttribute("d", "M 25,20 80,50 25,80 z");
       svg.appendChild(path);
@@ -243,8 +244,7 @@ vv.songs = (function() {
   pub.sort = function(songs, keys, memo) {
     const newsongs = [];
     for (const song of songs) {
-      Array.prototype.push.apply(
-          newsongs, vv.song.sortkeys(song, keys, memo));
+      Array.prototype.push.apply(newsongs, vv.song.sortkeys(song, keys, memo));
     }
     const sorted = newsongs.sort(function(a, b) {
       if (a.sortkey < b.sortkey) {
@@ -673,9 +673,7 @@ vv.model.list = (function() {
     }
     return r;
   };
-  pub.filters = function(pos) {
-    return library[pub.rootname()][pos].keys;
-  };
+  pub.filters = function(pos) { return library[pub.rootname()][pos].keys; };
   pub.focused = function() { return [focus, child]; };
   pub.sortkeys = function() {
     const r = pub.rootname();
@@ -1711,8 +1709,8 @@ vv.view.list = (function() {
   const clearAllLists = function() {
     const lists = document.getElementsByClassName("list");
     for (let treeindex = 0; treeindex < vv.storage.tree.length; treeindex++) {
-      const oldul = lists[treeindex + 1].getElementsByClassName(
-        "list-items")[0];
+      const oldul =
+          lists[treeindex + 1].getElementsByClassName("list-items")[0];
       while (oldul.lastChild) {
         oldul.removeChild(oldul.lastChild);
       }
@@ -1763,13 +1761,14 @@ vv.view.list = (function() {
         const p = vv.model.list.parent();
         if (p) {
           const li = vv.song.element(
-            document.createElement("li"), p.song, p.key, p.style);
+              document.createElement("li"), p.song, p.key, p.style);
           li.classList.add("list-header");
           newul.appendChild(li);
         }
       }
-      const li = vv.song.element(document.createElement("li"),
-          songs[i], key, style, ul.classList.contains("grid"));
+      const li = vv.song.element(
+          document.createElement("li"), songs[i], key, style,
+          ul.classList.contains("grid"));
       li.classList.add("selectable");
       vv.control.click(li, function(e) {
         if (e.currentTarget.classList.contains("playing")) {
@@ -1801,8 +1800,8 @@ vv.view.list = (function() {
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
     let updated = false;
-    for (const selectable of document.getElementById(
-      "list-items" + index).getElementsByClassName("selectable")) {
+    for (const selectable of document.getElementById("list-items" + index)
+             .getElementsByClassName("selectable")) {
       const p = selectable.offsetTop;
       if (scroll.scrollTop < p && p < scroll.scrollTop + scroll.clientHeight &&
           !updated) {
@@ -1919,7 +1918,7 @@ vv.view.list = (function() {
   pub.activate = function() {
     const index = vv.storage.tree.length;
     const es = document.getElementById("list-items" + index)
-                 .getElementsByClassName("selected");
+                   .getElementsByClassName("selected");
     if (es.length !== 0) {
       const e = {};
       e.currentTarget = es[0];
@@ -2090,8 +2089,8 @@ vv.view.system = (function() {
           strtimedelta(parseInt(vv.storage.stats.playtime, 10));
       document.getElementById("stat-tracks").textContent =
           vv.storage.stats.songs;
-      const db_update = new Date(
-        parseInt(vv.storage.stats.db_update, 10) * 1000);
+      const db_update =
+          new Date(parseInt(vv.storage.stats.db_update, 10) * 1000);
       const options = {
         hour: "numeric",
         minute: "numeric",
@@ -2158,8 +2157,7 @@ vv.view.system = (function() {
           document.getElementById(nav.dataset.target).classList.add("on");
         } else {
           nav.classList.remove("on");
-          document.getElementById(nav.dataset.target)
-              .classList.remove("on");
+          document.getElementById(nav.dataset.target).classList.remove("on");
         }
       }
     };
