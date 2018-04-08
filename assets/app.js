@@ -73,11 +73,9 @@ vv.song = (function() {
     return pub.getOrElseMulti(song, key, [other])[0];
   };
   pub.getOne = function(song, key) {
-    return getOneOrElse(song, key, "[no " + key + "]");
+    return getOneOrElse(song, key, `[no ${key}]`);
   };
-  pub.get = function(song, key) {
-    return getOrElse(song, key, "[no " + key + "]");
-  };
+  pub.get = function(song, key) { return getOrElse(song, key, `[no ${key}]`); };
   pub.sortkeys = function(song, keys, memo) {
     let songs = [Object.assign({}, song)];
     songs[0].sortkey = "";
@@ -89,7 +87,7 @@ vv.song = (function() {
         for (const song of songs) {
           song.sortkey += " ";
           if (writememo) {
-            song.keys.push([key, "[no " + key + "]"]);
+            song.keys.push([key, `[no ${key}]`]);
           }
         }
       } else if (values.length === 1) {
@@ -148,7 +146,7 @@ vv.song = (function() {
         const keys =
             ["Length", "Artist", "Album", "Track", "Genre", "Performer"];
         for (const key of keys) {
-          tooltip += key + ": " + vv.song.get(song, key) + "\n";
+          tooltip += `${key}: ${vv.song.get(song, key)}\n`;
         }
         e.setAttribute("title", tooltip);
       }
@@ -203,13 +201,13 @@ vv.song = (function() {
         if (largeImage) {
           imgsize = 150 * p;
         }
-        cover.src = "/api/images/music_directory/" + song.cover + "?width=" +
-            imgsize + "&height=" + imgsize;
+        cover.src = "/api/images/music_directory/" +
+            `${song.cover}?width=${imgsize}&height=${imgsize}`;
       } else {
         cover.src = "/assets/nocover.svg";
       }
-      cover.alt = 'Cover art: ' + vv.song.get(song, "Album") + ' by ' +
-          vv.song.get(song, "AlbumArtist");
+      cover.alt = `Cover art: ${vv.song.get(song, "Album")} ` +
+          `by ${vv.song.get(song, "AlbumArtist")}`;
       coverbox.appendChild(cover);
       e.appendChild(coverbox);
 
@@ -769,7 +767,7 @@ vv.model.list = (function() {
       }
     }
     if (!root) {
-      vv.view.popup.show("fixme", "modal: unknown sort keys: " + keys);
+      vv.view.popup.show("fixme", `modal: unknown sort keys: ${keys}`);
       return;
     }
     let songs = library[root];
@@ -964,12 +962,11 @@ vv.control = (function() {
         cancel(e);
       } else if (diff_x_l > 3) {
         e.currentTarget.classList.add("swipe");
-        e.currentTarget.style.transform =
-            "translate3d(" + diff_x * -1 + "px,0,0)";
+        e.currentTarget.style.transform = `translate3d(${diff_x * -1}px,0,0)`;
         if (leftElement) {
           leftElement.classList.add("swipe");
-          leftElement.style.transform = "translate3d(" +
-              (diff_x * -1 - e.currentTarget.offsetWidth) + "px,0,0)";
+          leftElement.style.transform =
+              `translate3d(${diff_x * -1 - e.currentTarget.offsetWidth}px,0,0)`;
         }
       }
     };
@@ -1250,7 +1247,7 @@ vv.control = (function() {
   };
 
   pub.output = function(id, on) {
-    post_request("/api/music/outputs/" + id, {outputenabled: on});
+    post_request(`/api/music/outputs/${id}`, {outputenabled: on});
   };
 
   const update_all = function() {
@@ -1274,10 +1271,8 @@ vv.control = (function() {
     }
     notify_last_connection = (new Date()).getTime();
     connected = false;
-    let uri = "ws://" + location.host + "/api/music/notify";
-    if (document.location.protocol === "https:") {
-      uri = "wss://" + location.host + "/api/music/notify";
-    }
+    const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
+    const uri = `${wsp}//${location.host}/api/music/notify`;
     if (ws !== null) {
       ws.onclose = function() {};
       ws.close();
@@ -1436,20 +1431,18 @@ vv.control = (function() {
       let cover = "/assets/nocover.svg";
       let coverForCalc = "/assets/nocover.svg";
       if (vv.storage.current !== null && vv.storage.current.cover) {
-        cover = "/music_directory/" + vv.storage.current.cover[0];
-        const p = window.devicePixelRatio;
-        const imgsize = parseInt(70 * p, 10);
-        coverForCalc = "/api/images/music_directory/" +
-            vv.storage.current.cover[0] + "?width=" + imgsize + "&height=" +
-            imgsize;
+        cover = `/music_directory/${vv.storage.current.cover[0]}`;
+        const imgsize = parseInt(70 * window.devicePixelRatio, 10);
+        coverForCalc =
+            `/api/images/${cover}?width=${imgsize}&height=${imgsize}`;
       }
-      const newimage = "url(\"" + cover + "\")";
+      const newimage = `url("${cover}")`;
       if (e.style.backgroundImage !== newimage) {
         calc_color(coverForCalc);
         e.style.backgroundImage = newimage;
       }
-      e.style.filter = "blur(" +
-          vv.storage.preferences.appearance.background_image_blur + "px)";
+      e.style.filter =
+          `blur(${vv.storage.preferences.appearance.background_image_blur}px)`;
     } else {
       e.classList.add("hide");
       document.getElementById("background-image").classList.add("hide");
@@ -1505,7 +1498,7 @@ vv.view.main = (function() {
         vv.storage.current.Artist;
     if (vv.storage.current.cover) {
       document.getElementById("main-cover-img").style.backgroundImage =
-          "url(\"/music_directory/" + vv.storage.current.cover[0] + "\")";
+          `url("/music_directory/${vv.storage.current.cover[0]}")`;
     } else {
       document.getElementById("main-cover-img").style.backgroundImage = "";
     }
@@ -1549,9 +1542,9 @@ vv.view.main = (function() {
       c.setAttribute(
           "d",
           "M 100,10 L 100,10 A 90,90 0 0,1 100,190 L 100,190 A 90,90 0 0,1 " +
-              x + "," + y);
+              `${x},${y}`);
     } else {
-      c.setAttribute("d", "M 100,10 L 100,10 A 90,90 0 0,1 " + x + "," + y);
+      c.setAttribute("d", `M 100,10 L 100,10 A 90,90 0 0,1 ${x},${y}`);
     }
   };
   const init = function() {
@@ -2075,7 +2068,7 @@ vv.view.system = (function() {
       const uh = parseInt(i / (60 * 60), 10);
       const um = parseInt((i - uh * 60 * 60) / 60, 10);
       const us = parseInt(i - uh * 60 * 60 - um * 60, 10);
-      return zfill2(uh) + ":" + zfill2(um) + ":" + zfill2(us);
+      return `${zfill2(uh)}:${zfill2(um)}:${zfill2(us)}`;
     };
 
     const update_stats = function() {
@@ -2322,7 +2315,7 @@ vv.view.popup = (function() {
   pub.show = function(target, description) {
     const obj = document.getElementById("popup-" + target);
     if (!obj) {
-      vv.view.popup.show("fixme", "popup-" + target + " is not found in html");
+      vv.view.popup.show("fixme", `popup-${target} is not found in html`);
       return;
     }
     if (description) {
@@ -2488,8 +2481,8 @@ vv.view.modal.song = (function() {
     const cover = document.getElementById("modal-song-box-cover");
     if (song.cover) {
       const imgsize = window.devicePixelRatio * 112;
-      cover.src = "/api/images/music_directory/" + song.cover + "?width=" +
-          imgsize + "&height=" + imgsize;
+      cover.src = "/api/images/music_directory/" +
+          `${song.cover}?width=${imgsize}&height=${imgsize}`;
     } else {
       cover.src = "/assets/nocover.svg";
     }
