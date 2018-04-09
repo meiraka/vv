@@ -115,125 +115,6 @@ vv.song = (function() {
     }
     return songs;
   };
-  pub.element = function(e, song, key, style, largeImage) {
-    e.classList.remove("plain");
-    e.classList.remove("song");
-    e.classList.remove("album");
-    e.classList.remove("playing");
-    e.classList.add(style);
-    e.classList.add("note-line");
-    e.dataset.key = vv.song.getOne(song, key);
-    if (song.file) {
-      e.dataset.file = song.file[0];
-      e.dataset.pos = song.pos;
-      e.setAttribute("contextmenu", "conext-" + style + song.file[0]);
-      const menu = document.createElement("menu");
-      menu.setAttribute("type", "context");
-      menu.classList.add("contextmenu");
-      menu.id = "conext-" + style + song.file[0];
-      const menuitem = document.createElement("menuitem");
-      menuitem.setAttribute("label", "Song Infomation");
-      menuitem.addEventListener("click", function(e) {
-        vv.view.modal.song.show(song);
-        e.stopPropagation();
-      });
-      menu.appendChild(menuitem);
-      e.appendChild(menu);
-    }
-    if (style === "song") {
-      if (song.file) {
-        let tooltip = vv.song.get(song, "Title") + "\n";
-        const keys =
-            ["Length", "Artist", "Album", "Track", "Genre", "Performer"];
-        for (const key of keys) {
-          tooltip += `${key}: ${vv.song.get(song, key)}\n`;
-        }
-        e.setAttribute("title", tooltip);
-      }
-      const track = document.createElement("span");
-      track.classList.add("song-track");
-      track.textContent = vv.song.get(song, "TrackNumber");
-      e.appendChild(track);
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.classList.add("song-playingicon");
-      svg.classList.add("reversible-icon");
-      svg.setAttribute("width", "22");
-      svg.setAttribute("height", "22");
-      svg.setAttribute("viewBox", "0 0 100 100");
-      const path =
-          document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.classList.add("fill");
-      path.setAttribute("d", "M 25,20 80,50 25,80 z");
-      svg.appendChild(path);
-      e.appendChild(svg);
-      const title = document.createElement("span");
-      title.classList.add("song-title");
-      title.textContent = vv.song.get(song, "Title");
-      e.appendChild(title);
-      const artist = document.createElement("span");
-      artist.classList.add("song-artist");
-      artist.textContent = vv.song.get(song, "Artist");
-      if (vv.song.get(song, "Artist") !== vv.song.get(song, "AlbumArtist")) {
-        artist.classList.add("low-prio");
-      }
-      e.appendChild(artist);
-      const elapsed = document.createElement("span");
-      elapsed.classList.add("song-elapsed");
-      elapsed.setAttribute("aria-hidden", "true");
-      e.appendChild(elapsed);
-      const length_separator = document.createElement("span");
-      length_separator.classList.add("song-lengthseparator");
-      length_separator.setAttribute("aria-hidden", "true");
-      length_separator.textContent = "/";
-      e.appendChild(length_separator);
-      const length = document.createElement("span");
-      length.classList.add("song-length");
-      length.textContent = vv.song.get(song, "Length");
-      e.appendChild(length);
-    } else if (style === "album") {
-      const coverbox = document.createElement("div");
-      coverbox.classList.add("album-coverbox");
-      const p = window.devicePixelRatio;
-      const cover = document.createElement("img");
-      cover.classList.add("album-cover");
-      let imgsize = parseInt(70 * p, 10);
-      if (song.cover) {
-        if (largeImage) {
-          imgsize = 150 * p;
-        }
-        cover.src = "/api/images/music_directory/" +
-            `${song.cover}?width=${imgsize}&height=${imgsize}`;
-      } else {
-        cover.src = "/assets/nocover.svg";
-      }
-      cover.alt = `Cover art: ${vv.song.get(song, "Album")} ` +
-          `by ${vv.song.get(song, "AlbumArtist")}`;
-      coverbox.appendChild(cover);
-      e.appendChild(coverbox);
-
-      const detail = document.createElement("div");
-      detail.classList.add("album-detail");
-      const date = document.createElement("span");
-      date.classList.add("album-detail-date");
-      date.textContent = vv.song.get(song, "Date");
-      detail.appendChild(date);
-      const album = document.createElement("span");
-      album.classList.add("album-detail-album");
-      album.textContent = vv.song.get(song, "Album");
-      detail.appendChild(album);
-      const albumartist = document.createElement("span");
-      albumartist.classList.add("album-detail-albumartist");
-      albumartist.textContent = vv.song.get(song, "AlbumArtist");
-      detail.appendChild(albumartist);
-      e.appendChild(detail);
-    } else {
-      const plain = document.createElement("span");
-      plain.classList.add("plain-key");
-      plain.textContent = vv.song.getOne(song, key);
-      e.appendChild(plain);
-    }
-    return e;
-  };
 
   return pub;
 })();
@@ -1710,6 +1591,79 @@ vv.view.list = (function() {
       lists[treeindex + 1].dataset.pwd = "";
     }
   };
+
+  const element = function(song, key, style, largeImage, header) {
+    const c = document.querySelector(`#list-${style}-template`).content;
+    const e = c.querySelector("li");
+    e.dataset.key = vv.song.getOne(song, key);
+    if (header) {
+      e.classList.add("list-header");
+      e.classList.remove("selectable");
+    } else {
+      e.classList.add("selectable");
+      e.classList.remove("list-header");
+    }
+    if (song.file) {
+      e.dataset.file = song.file[0];
+      e.dataset.pos = song.pos;
+    } else {
+      e.dataset.file = "";
+      e.dataset.pos = "";
+    }
+    for (const n of e.querySelectorAll("span")) {
+      if (!n.dataset) {
+        continue;
+      }
+      const target = n.dataset.textContent;
+      if (target === "key") {
+        n.textContent = vv.song.getOne(song, key);
+      } else if (target) {
+        n.textContent = vv.song.get(song, target);
+      }
+    }
+    if (style === "song") {
+      if (song.file) {
+        const tooltip = [
+          "Length", "Artist", "Album", "Track", "Genre", "Performer"
+        ].map(key => `${key}: ${vv.song.get(song, key)}`);
+        tooltip.unshift(vv.song.get(song, "Title"));
+        e.setAttribute("title", tooltip.join("\n"));
+      } else {
+        e.removeAttribute("title");
+      }
+    } else if (style === "album") {
+      const cover = c.querySelector(".album-cover");
+      if (song.cover) {
+        const base = largeImage ? 150 : 70;
+        const imgsize = parseInt(base * window.devicePixelRatio, 10);
+        cover.src = "/api/images/music_directory/" +
+            `${song.cover}?width=${imgsize}&height=${imgsize}`;
+      } else {
+        cover.src = "/assets/nocover.svg";
+      }
+      cover.alt = `Cover art: ${vv.song.get(song, "Album")} ` +
+          `by ${vv.song.get(song, "AlbumArtist")}`;
+    }
+    return document.importNode(c, true);
+  };
+
+  const listHandler = function(e) {
+    if (e.currentTarget.classList.contains("playing")) {
+      if (vv.storage.current === null) {
+        return;
+      }
+      vv.model.list.abs(vv.storage.current);
+      vv.view.main.show();
+      return;
+    }
+    const value = e.currentTarget.dataset.key;
+    const pos = e.currentTarget.dataset.pos;
+    if (e.currentTarget.classList.contains("song")) {
+      vv.control.play(parseInt(pos, 10));
+    } else {
+      vv.model.list.down(value);
+    }
+  };
   const update = function() {
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
@@ -1723,7 +1677,6 @@ vv.view.list = (function() {
     const ls = vv.model.list.list();
     const key = ls.key;
     const songs = ls.songs;
-    const isdir = ls.isdir;
     const style = ls.style;
     const newul = document.createDocumentFragment();
     const lists = document.getElementsByClassName("list");
@@ -1749,37 +1702,15 @@ vv.view.list = (function() {
     ul.classList.remove("plainlist");
     ul.classList.add(style + "list");
     preferences_update();
+    const p = vv.model.list.parent();
     for (let i = 0, imax = songs.length; i < imax; i++) {
-      if (i === 0) {
-        const p = vv.model.list.parent();
-        if (p) {
-          const li = vv.song.element(
-              document.createElement("li"), p.song, p.key, p.style);
-          li.classList.add("list-header");
-          newul.appendChild(li);
-        }
+      if (i === 0 && p) {
+        const li = element(p.song, p.key, p.style, false, true);
+        newul.appendChild(li);
       }
-      const li = vv.song.element(
-          document.createElement("li"), songs[i], key, style,
-          ul.classList.contains("grid"));
-      li.classList.add("selectable");
-      vv.control.click(li, function(e) {
-        if (e.currentTarget.classList.contains("playing")) {
-          if (vv.storage.current === null) {
-            return;
-          }
-          vv.model.list.abs(vv.storage.current);
-          vv.view.main.show();
-          return;
-        }
-        const value = e.currentTarget.dataset.key;
-        const pos = e.currentTarget.dataset.pos;
-        if (isdir) {
-          vv.model.list.down(value);
-        } else {
-          vv.control.play(parseInt(pos, 10));
-        }
-      }, false);
+      const li =
+          element(songs[i], key, style, ul.classList.contains("grid"), false);
+      vv.control.click(li.querySelector("li"), listHandler, false);
       newul.appendChild(li);
     }
     ul.appendChild(newul);

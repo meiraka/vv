@@ -78,6 +78,34 @@
     <article id="list5" class="full list scrollable">
       <ol id="list-items5" class="list-items"></ol>
     </article>
+    <template id="list-album-template">
+      <li class="album note-line">
+        <div class="album-coverbox">
+          <img class="album-cover" src="/assets/nocover.svg">
+        </div>
+        <div class="album-detail">
+          <span class="album-detail-date" data-text-content="Date"></span>
+          <span class="album-detail-album" data-text-content="Album"></span>
+          <span class="album-detail-albumartist" data-text-content="AlbumArtist"></span>
+        </div>
+      </li>
+    </template>
+    <template id="list-song-template">
+      <li class="song note-line">
+        <span class="song-track" data-text-content="TrackNumber"></span>
+        <svg class="song-playingicon reversible-icon" width="22" height="22" viewBox="0 0 100 100"><path class="fill" d="M 25,20 80,50 25,80 z"></path></svg>
+        <span class="song-title" data-text-content="Title"></span>
+        <span class="song-artist" data-text-content="Artist"></span>
+        <span class="song-elapsed" aria-hidden="true">
+        </span><span class="song-lengthseparator" aria-hidden="true">/</span>
+        <span class="song-length" data-text-content="Length"></span>
+      </li>
+    </template>
+    <template id="list-plain-template">
+      <li class="plain note-line">
+        <span class="plain-key" data-text-content="key"></span>
+      </li>
+    </template>
   </section>
   <section id="main" class="full main">
     <div id="main-cover" class="main-cover">
