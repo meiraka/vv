@@ -769,20 +769,14 @@ vv.control = (function() {
     let y = 0;
     let diff_x = 0;
     let diff_y = 0;
-    let diff_x_l = 0;
-    let diff_y_l = 0;
     let swipe = false;
     const start = function(e) {
       if (e.buttons && e.buttons !== 1) {
         return;
       }
-      if (e.touches) {
-        x = e.touches[0].screenX;
-        y = e.touches[0].screenY;
-      } else {
-        x = e.screenX;
-        y = e.screenY;
-      }
+      const t = e.touches ? e.touches[0] : e;
+      x = t.screenX;
+      y = t.screenY;
       starttime = (new Date()).getTime();
       swipe = true;
     };
@@ -793,8 +787,6 @@ vv.control = (function() {
       y = 0;
       diff_x = 0;
       diff_y = 0;
-      diff_x_l = 0;
-      diff_y_l = 0;
       swipe = false;
       e.currentTarget.classList.remove("swipe");
       e.currentTarget.classList.add("swiped");
@@ -821,27 +813,17 @@ vv.control = (function() {
       }
     };
     const move = function(e) {
-      if (e.buttons === 0 || (e.buttons && e.buttons !== 1)) {
+      if (e.buttons === 0 || (e.buttons && e.buttons !== 1) || !swipe) {
         cancel(e);
         return;
       }
-      if (!swipe) {
-        cancel(e);
-        return;
-      }
-      if (e.touches) {
-        diff_x = x - e.touches[0].screenX;
-        diff_y = y - e.touches[0].screenY;
-      } else {
-        diff_x = x - e.screenX;
-        diff_y = y - e.screenY;
-      }
+      const t = e.touches ? e.touches[0] : e;
+      diff_x = x - t.screenX;
+      diff_y = y - t.screenY;
       now = (new Date()).getTime();
-      diff_x_l = diff_x > 0 ? diff_x : diff_x * -1;
-      diff_y_l = diff_y > 0 ? diff_y : diff_y * -1;
-      if (now - starttime < 200 && diff_y_l > diff_x_l) {
+      if (now - starttime < 200 && Math.abs(diff_y) > Math.abs(diff_x)) {
         cancel(e);
-      } else if (diff_x_l > 3) {
+      } else if (Math.abs(diff_x) > 3) {
         e.currentTarget.classList.add("swipe");
         e.currentTarget.style.transform = `translate3d(${diff_x * -1}px,0,0)`;
         if (leftElement) {
@@ -852,19 +834,14 @@ vv.control = (function() {
       }
     };
     const end = function(e) {
-      if (e.buttons && e.buttons !== 1) {
-        cancel(e);
-        return;
-      }
-      if (!swipe) {
+      if ((e.buttons && e.buttons !== 1) || !swipe) {
         cancel(e);
         return;
       }
       const p = e.currentTarget.clientWidth / diff_x;
-      if (p > -4 && p < 0) {
-        finalize(e);
-        f(e);
-      } else if (now - starttime < 200 && diff_y_l < diff_x_l && diff_x < 0) {
+      if ((p > -4 && p < 0) ||
+          (now - starttime < 200 && Math.abs(diff_y) < Math.abs(diff_x) &&
+           diff_x < 0)) {
         finalize(e);
         f(e);
       } else {
@@ -890,41 +867,19 @@ vv.control = (function() {
       if (e.buttons && e.buttons !== 1) {
         return;
       }
-      if (e.touches) {
-        e.currentTarget.x = e.touches[0].screenX;
-        e.currentTarget.y = e.touches[0].screenY;
-      } else {
-        e.currentTarget.x = e.screenX;
-        e.currentTarget.y = e.screenY;
-      }
+      const t = e.touches ? e.touches[0] : e;
+      e.currentTarget.x = t.screenX;
+      e.currentTarget.y = t.screenY;
       e.currentTarget.touch = true;
       e.currentTarget.classList.add("active");
     };
     const move = function(e) {
-      if (e.buttons && e.buttons !== 1) {
+      if (e.buttons && e.buttons !== 1 || !e.currentTarget.touch) {
         return;
       }
-      if (!e.currentTarget.touch) {
-        return;
-      }
-      let change = false;
-      let diff;
-      if (e.touches) {
-        diff = e.currentTarget.x - e.touches[0].screenX;
-        change = diff < -5 || diff > 5;
-        if (!change) {
-          diff = e.currentTarget.y - e.touches[0].screenY;
-          change = diff < -5 || diff > 5;
-        }
-      } else {
-        diff = e.currentTarget.x - e.screenX;
-        change = diff < -5 || diff > 5;
-        if (!change) {
-          diff = e.currentTarget.y - e.screenY;
-          change = diff < -5 || diff > 5;
-        }
-      }
-      if (change) {
+      const t = e.touches ? e.touches[0] : e;
+      if (Math.abs(e.currentTarget.x - t.screenX) >= 5 ||
+          Math.abs(e.currentTarget.y - t.screenY) >= 5) {
         e.currentTarget.touch = false;
         e.currentTarget.classList.remove("active");
       }
