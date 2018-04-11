@@ -1,6 +1,7 @@
 "use strict";
 const vv = {
   consts: {playlistLength: 9999},
+  pubsub: {},
   song: {},
   songs: {},
   storage: {},
@@ -8,6 +9,30 @@ const vv = {
   view:
       {main: {}, list: {}, system: {}, popup: {}, modal: {help: {}, song: {}}},
   control: {}
+};
+vv.pubsub = {
+  add(listener, ev, func) {
+    if (!(ev in listener)) {
+      listener[ev] = [];
+    }
+    listener[ev].push(func);
+  },
+  rm(listener, ev, func) {
+    for (let i = 0, imax = listener[ev].length; i < imax; i++) {
+      if (listener[ev][i] === func) {
+        listener[ev].splice(i, 1);
+        return;
+      }
+    }
+  },
+  raise(listener, ev) {
+    if (!(ev in listener)) {
+      return;
+    }
+    for (const f of listener[ev]) {
+      f();
+    }
+  }
 };
 vv.song = (function() {
   const pub = {};
@@ -275,15 +300,8 @@ vv.storage = (function() {
   };
 
   const listener = {onload: []};
-  pub.addEventListener = function(ev, func) { listener[ev].push(func); };
-  const raiseEvent = function(ev) {
-    if (!(ev in listener)) {
-      return;
-    }
-    for (const l of listener[ev]) {
-      l();
-    }
-  };
+  pub.addEventListener = function(e, f) { vv.pubsub.add(listener, e, f); };
+  const raiseEvent = function(e) { vv.pubsub.raise(listener, e); };
   pub.preferences = {
     volume: {show: true, max: "100"},
     playback: {view_follow: true},
@@ -444,23 +462,9 @@ vv.model.list = (function() {
   let child = null;
   let list_cache = {};
   const listener = {changed: [], update: []};
-  pub.addEventListener = function(ev, func) { listener[ev].push(func); };
-  pub.removeEventListener = function(ev, func) {
-    for (let i = 0, imax = listener[ev].length; i < imax; i++) {
-      if (listener[ev][i] === func) {
-        listener[ev].splice(i, 1);
-        return;
-      }
-    }
-  };
-  const raiseEvent = function(ev) {
-    if (!(ev in listener)) {
-      return;
-    }
-    for (const f of listener[ev]) {
-      f();
-    }
-  };
+  pub.addEventListener = function(e, f) { vv.pubsub.add(listener, e, f); };
+  pub.removeEventListener = function(e, f) { vv.pubsub.rm(listener, e, f); };
+  const raiseEvent = function(e) { vv.pubsub.raise(listener, e); };
   const mkmemo = function(key) {
     const ret = [];
     for (const leef of pub.TREE[key].tree) {
@@ -738,28 +742,9 @@ vv.model.list = (function() {
 vv.control = (function() {
   const pub = {};
   const listener = {};
-  pub.addEventListener = function(ev, func) {
-    if (!(ev in listener)) {
-      listener[ev] = [];
-    }
-    listener[ev].push(func);
-  };
-  pub.removeEventListener = function(ev, func) {
-    for (let i = 0, imax = listener[ev].length; i < imax; i++) {
-      if (listener[ev][i] === func) {
-        listener[ev].splice(i, 1);
-        return;
-      }
-    }
-  };
-  pub.raiseEvent = function(ev) {
-    if (!(ev in listener)) {
-      return;
-    }
-    for (const f of listener[ev]) {
-      f();
-    }
-  };
+  pub.addEventListener = function(e, f) { vv.pubsub.add(listener, e, f); };
+  pub.removeEventListener = function(e, f) { vv.pubsub.rm(listener, e, f); };
+  pub.raiseEvent = function(e) { vv.pubsub.raise(listener, e); };
 
   pub.swipe = function(element, f, resetFunc, leftElement) {
     element.swipe_target = f;
