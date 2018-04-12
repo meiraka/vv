@@ -2374,12 +2374,65 @@ vv.view.modal.song = (function() {
 })();
 
 // keyboard events
-(function() {
-  const stopAndPrevent = function(e) {
-    e.stopPropagation();
-    e.preventDefault();
+{
+  const shift = 1 << 3;
+  // const alt = 1 << 2;
+  const ctrl = 1 << 1;
+  const meta = 1;
+  const none = 0;
+  const any = t => {
+    return () => {
+      t();
+      return true;
+    };
   };
+  const inList = t => {
+    return () => {
+      if (!vv.view.list.hidden()) {
+        t();
+        return true;
+      }
+      return false;
+    };
+  };
+
   vv.control.addEventListener("start", function() {
+    const back = () => {
+      if (vv.view.list.hidden()) {
+        if (vv.storage.current !== null) {
+          vv.model.list.abs(vv.storage.current);
+        }
+      } else {
+        vv.model.list.up();
+      }
+      vv.view.list.show();
+    };
+    const keymap = {
+      [none]: {
+        Enter() { return !vv.view.list.hidden() && vv.view.list.activate(); },
+        Backspace: any(back),
+        ArrowLeft: inList(vv.view.list.left),
+        ArrowUp: inList(vv.view.list.up),
+        ArrowRight: inList(vv.view.list.right),
+        ArrowDown: inList(vv.view.list.down),
+        [" "]: any(vv.control.play_pause),
+        ["?"]: any(vv.view.modal.help.show)
+      },
+      [shift]: {["?"]: any(vv.view.modal.help.show)},
+      [meta]: {
+        ArrowLeft: any(back),
+        ArrowRight: any(() => {
+          if (vv.model.list.rootname() !== "root") {
+            if (vv.storage.current !== null) {
+              vv.model.list.abs(vv.storage.current);
+            }
+          }
+          vv.view.main.show();
+        })
+      },
+      [shift | ctrl]:
+          {ArrowLeft: any(vv.control.prev), ArrowRight: any(vv.control.next)}
+    };
     document.addEventListener("keydown", function(e) {
       if (!document.getElementById("modal-background")
                .classList.contains("hide")) {
@@ -2388,69 +2441,15 @@ vv.view.modal.song = (function() {
         }
         return;
       }
-      let mod = 0;
-      mod |= e.shiftKey << 3;
-      mod |= e.altKey << 2;
-      mod |= e.ctrlKey << 1;
-      mod |= e.metaKey;
-      if (mod === 0 && (e.key === " " || e.key === "Spacebar")) {
-        vv.control.play_pause();
-        stopAndPrevent(e);
-      } else if (mod === 10 && e.keyCode === 37) {
-        vv.control.prev();
-        stopAndPrevent(e);
-      } else if (mod === 10 && e.keyCode === 39) {
-        vv.control.next();
-        stopAndPrevent(e);
-      } else if (mod === 0 && e.keyCode === 13) {
-        if (!vv.view.list.hidden() && vv.view.list.activate()) {
-          stopAndPrevent(e);
+      const mod = e.shiftKey << 3 | e.altKey << 2 | e.ctrlKey << 1 | e.metaKey;
+      if (mod in keymap && e.key in keymap[mod]) {
+        if (keymap[mod][e.key]()) {
+          e.stopPropagation();
+          e.preventDefault();
         }
-      } else if (
-          (mod === 0 && e.keyCode === 8) || (mod === 1 && e.keyCode === 37)) {
-        if (vv.view.list.hidden()) {
-          if (vv.storage.current !== null) {
-            vv.model.list.abs(vv.storage.current);
-          }
-        } else {
-          vv.model.list.up();
-        }
-        vv.view.list.show();
-        stopAndPrevent(e);
-      } else if (mod === 0 && e.keyCode === 37) {
-        if (!vv.view.list.hidden()) {
-          vv.view.list.left();
-          stopAndPrevent(e);
-        }
-      } else if (mod === 0 && e.keyCode === 38) {
-        if (!vv.view.list.hidden()) {
-          vv.view.list.up();
-          stopAndPrevent(e);
-        }
-      } else if (mod === 1 && e.keyCode === 39) {
-        if (vv.model.list.rootname() !== "root") {
-          if (vv.storage.current !== null) {
-            vv.model.list.abs(vv.storage.current);
-          }
-        }
-        vv.view.main.show();
-        stopAndPrevent(e);
-      } else if (mod === 0 && e.keyCode === 39) {
-        if (!vv.view.list.hidden()) {
-          vv.view.list.right();
-          stopAndPrevent(e);
-        }
-      } else if (mod === 0 && e.keyCode === 40) {
-        if (!vv.view.list.hidden()) {
-          vv.view.list.down();
-          stopAndPrevent(e);
-        }
-      } else if ((mod & 7) === 0 && e.key === "?") {
-        vv.view.modal.help.show();
-        stopAndPrevent(e);
       }
     });
   });
-})();
+}
 
 vv.control.start();
