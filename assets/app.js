@@ -1102,13 +1102,13 @@ vv.control = (() => {
           fetch("/api/music/library", "library");
         } else if (e.data === "status") {
           fetch("/api/music/control", "control");
-        } else if (e.data === "current") {
+        } else if (e.data === "playlist/current") {
           fetch("/api/music/playlist/current", "current");
         } else if (e.data === "outputs") {
           fetch("/api/music/outputs", "outputs");
         } else if (e.data === "stats") {
           fetch("/api/music/stats", "stats");
-        } else if (e.data === "playlist") {
+        } else if (e.data === "playlist/sort") {
           fetch("/api/music/playlist/sort", "sorted");
         }
         const new_notify_last_update = (new Date()).getTime();

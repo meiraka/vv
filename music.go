@@ -180,8 +180,6 @@ func (p *Music) sortPlaylist(mpc mpdClient, keys []string, filters [][]string, p
 			if err != nil {
 				return err
 			}
-		} else {
-			p.notify("playlist")
 		}
 		for i := range library {
 			if i == newpos {
@@ -417,7 +415,7 @@ func (p *Music) updateCurrentSong(mpc mpdClient) error {
 		song := MakeSong(tags, p.musicDirectory, "cover.*", p.coverCache)
 		p.mutex.Unlock()
 		p.current.set(song, time.Now().UTC())
-		return p.notify("current")
+		return p.notify("playlist/current")
 	}
 	return nil
 }
@@ -457,9 +455,7 @@ func (p *Music) updateLibrary(mpc mpdClient) error {
 	p.library.set(library, time.Now().UTC())
 	p.librarySort.set(librarySort, time.Now().UTC())
 
-	if p.updatePlaylistSort() {
-		p.notify("playlist")
-	}
+	p.updatePlaylistSort()
 	return p.notify("library")
 }
 
@@ -482,18 +478,17 @@ func (p *Music) updatePlaylist(mpc mpdClient) error {
 }
 
 /*updatePlaylistSort compares library and playlist to update sort status.
-  return true if status is updated.
+  send playlist/sort notify if status is updated.
 */
-func (p *Music) updatePlaylistSort() bool {
+func (p *Music) updatePlaylistSort() {
 	isSorted := p.checkPlaylistIsSorted()
 	p.playlistSortLock.Lock()
 	defer p.playlistSortLock.Unlock()
 	if isSorted != p.playlistSorted {
 		p.playlistSorted = isSorted
 		p.playlistSortUpdate = time.Now().UTC()
-		return true
+		p.notify("playlist/sort")
 	}
-	return false
 }
 
 /*checkPlaylistIsSorted returns true if playlist is sorted.*/

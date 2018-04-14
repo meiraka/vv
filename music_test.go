@@ -548,7 +548,7 @@ func TestMusicCurrent(t *testing.T) {
 		m.StatusRet2 = c.StatusRet2
 		p.updateCurrentSong(m)
 		if c.CurrentSongRet2 == nil {
-			if event := <-e; event != "current" {
+			if event := <-e; event != "playlist/current" {
 				t.Errorf("unexpected event. expect: current, actual: %s", event)
 			}
 		}
@@ -617,58 +617,58 @@ func TestUpdatePlaylistSort(t *testing.T) {
 	p, _ := Dial("tcp", "localhost:6600", "", "./")
 	defer p.Close()
 	testsets := []struct {
-		desc         string
-		sorted       bool
-		keys         []string
-		filters      [][]string
-		playlist     []Song
-		library      []Song
-		expect       bool
-		expectSorted bool
+		desc           string
+		sorted         bool
+		keys           []string
+		filters        [][]string
+		playlist       []Song
+		library        []Song
+		notify         bool
+		playlistSorted bool
 	}{
 		{
 			desc:   "unsorted",
-			expect: false,
+			notify: false,
 		},
 		{
-			desc:         "sorted",
-			sorted:       false,
-			keys:         []string{"Artist"},
-			filters:      [][]string{{"Artist", "foo"}},
-			playlist:     []Song{{"Artist": {"bar"}, "file": {"bar.mp3"}}, {"Artist": {"foo"}, "file": {"foo.mp3"}}},
-			library:      []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
-			expect:       true,
-			expectSorted: true,
+			desc:           "sorted",
+			sorted:         false,
+			keys:           []string{"Artist"},
+			filters:        [][]string{{"Artist", "foo"}},
+			playlist:       []Song{{"Artist": {"bar"}, "file": {"bar.mp3"}}, {"Artist": {"foo"}, "file": {"foo.mp3"}}},
+			library:        []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			notify:         true,
+			playlistSorted: true,
 		},
 		{
-			desc:         "already sorted",
-			sorted:       true,
-			keys:         []string{"Artist"},
-			filters:      [][]string{{"Artist", "foo"}},
-			playlist:     []Song{{"Artist": {"bar"}, "file": {"bar.mp3"}}, {"Artist": {"foo"}, "file": {"foo.mp3"}}},
-			library:      []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
-			expect:       false,
-			expectSorted: true,
+			desc:           "already sorted",
+			sorted:         true,
+			keys:           []string{"Artist"},
+			filters:        [][]string{{"Artist", "foo"}},
+			playlist:       []Song{{"Artist": {"bar"}, "file": {"bar.mp3"}}, {"Artist": {"foo"}, "file": {"foo.mp3"}}},
+			library:        []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			notify:         false,
+			playlistSorted: true,
 		},
 		{
-			desc:         "list length miss match",
-			sorted:       true,
-			keys:         []string{"Artist"},
-			filters:      [][]string{{"Artist", "foo"}},
-			playlist:     []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}},
-			library:      []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
-			expect:       true,
-			expectSorted: false,
+			desc:           "list length miss match",
+			sorted:         true,
+			keys:           []string{"Artist"},
+			filters:        [][]string{{"Artist", "foo"}},
+			playlist:       []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}},
+			library:        []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			notify:         true,
+			playlistSorted: false,
 		},
 		{
-			desc:         "failed to compare list",
-			sorted:       true,
-			keys:         []string{"Artist"},
-			filters:      [][]string{{"Artist", "foo"}},
-			playlist:     []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
-			library:      []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
-			expect:       true,
-			expectSorted: false,
+			desc:           "failed to compare list",
+			sorted:         true,
+			keys:           []string{"Artist"},
+			filters:        [][]string{{"Artist", "foo"}},
+			playlist:       []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			library:        []Song{{"Artist": {"foo"}, "file": {"foo.mp3"}}, {"Artist": {"bar"}, "file": {"bar.mp3"}}},
+			notify:         true,
+			playlistSorted: false,
 		},
 	}
 	for _, tt := range testsets {
@@ -677,11 +677,23 @@ func TestUpdatePlaylistSort(t *testing.T) {
 		p.playlistFilters = tt.filters
 		p.playlistSort.set(tt.playlist, time.Now().UTC())
 		p.librarySort.set(tt.library, time.Now().UTC())
-		if p.updatePlaylistSort() != tt.expect {
-			t.Errorf("[%s] unxpected return value. expect: %t, actual: %t", tt.desc, tt.expect, !tt.expect)
+		notify := make(chan string, 1)
+		p.Subscribe(notify)
+		defer p.Unsubscribe(notify)
+		defer close(notify)
+		// recv notify by p.Subscribe
+		if v := <-notify; v != "stats" {
+			t.Errorf("[%s] unxpected notify value. expect: stats, actual: %s", tt.desc, v)
 		}
-		if p.playlistSorted != tt.expectSorted {
-			t.Errorf("[%s] unxpected sort result. expect: %t, actual: %t", tt.desc, tt.expectSorted, !tt.expectSorted)
+		p.updatePlaylistSort()
+		if tt.notify {
+			// recv playlist/sort by p.updatePlaylistSort if notify
+			if v := <-notify; v != "playlist/sort" {
+				t.Errorf("[%s] unxpected notify value. expect: playlist/sort, actual: %s", tt.desc, v)
+			}
+		}
+		if p.playlistSorted != tt.playlistSorted {
+			t.Errorf("[%s] unxpected sort result. expect: %t, actual: %t", tt.desc, tt.playlistSorted, !tt.playlistSorted)
 		}
 	}
 }
