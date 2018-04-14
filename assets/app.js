@@ -142,9 +142,8 @@ vv.song = (() => {
 
   return pub;
 })();
-vv.songs = (() => {
-  const pub = {};
-  pub.sort = (songs, keys, memo) => {
+vv.songs = {
+  sort(songs, keys, memo) {
     const newsongs = [];
     for (const song of songs) {
       Array.prototype.push.apply(newsongs, vv.song.sortkeys(song, keys, memo));
@@ -159,8 +158,8 @@ vv.songs = (() => {
       sorted[j].pos = [j];
     }
     return sorted;
-  };
-  pub.uniq = (songs, key) => {
+  },
+  uniq(songs, key) {
     return songs.filter((song, i, self) => {
       if (i === 0) {
         return true;
@@ -170,8 +169,8 @@ vv.songs = (() => {
       }
       return true;
     });
-  };
-  pub.filter = (songs, filters) => {
+  },
+  filter(songs, filters) {
     return songs.filter(song => {
       for (const key in filters) {
         if (filters.hasOwnProperty(key)) {
@@ -182,8 +181,8 @@ vv.songs = (() => {
       }
       return true;
     });
-  };
-  pub.weakFilter = (songs, filters, max) => {
+  },
+  weakFilter(songs, filters, max) {
     if (songs.length <= max) {
       return songs;
     }
@@ -207,9 +206,8 @@ vv.songs = (() => {
       return ret;
     }
     return songs;
-  };
-  return pub;
-})();
+  }
+};
 vv.storage = (() => {
   const idbUpdateTables = e => {
     const db = e.target.result;
