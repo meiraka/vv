@@ -1047,7 +1047,7 @@ vv.control = (() => {
   };
 
   pub.play = pos => {
-    post_request("/api/music/songs/sort", {
+    post_request("/api/music/playlist/sort", {
       keys: vv.model.list.sortkeys(),
       filters: vv.model.list.filters(pos),
       play: pos
@@ -1061,10 +1061,10 @@ vv.control = (() => {
   };
 
   const update_all = () => {
-    fetch("/api/music/songs/sort", "sorted");
+    fetch("/api/music/playlist/sort", "sorted");
     fetch("/api/version", "version");
     fetch("/api/music/outputs", "outputs");
-    fetch("/api/music/songs/current", "current");
+    fetch("/api/music/playlist/current", "current");
     fetch("/api/music/control", "control");
     fetch("/api/music/library", "library");
   };
@@ -1103,13 +1103,13 @@ vv.control = (() => {
         } else if (e.data === "status") {
           fetch("/api/music/control", "control");
         } else if (e.data === "current") {
-          fetch("/api/music/songs/current", "current");
+          fetch("/api/music/playlist/current", "current");
         } else if (e.data === "outputs") {
           fetch("/api/music/outputs", "outputs");
         } else if (e.data === "stats") {
           fetch("/api/music/stats", "stats");
         } else if (e.data === "playlist") {
-          fetch("/api/music/songs/sort", "sorted");
+          fetch("/api/music/playlist/sort", "sorted");
         }
         const new_notify_last_update = (new Date()).getTime();
         if (new_notify_last_update - notify_last_update > 10000) {

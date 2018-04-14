@@ -83,10 +83,10 @@ func (s *Server) makeHandle() http.Handler {
 	h.HandleFunc("/api/music/notify", s.apiMusicNotify)
 	h.HandleFunc("/api/music/outputs", s.apiMusicOutputs)
 	h.HandleFunc("/api/music/outputs/", s.apiMusicOutputs)
-	h.HandleFunc("/api/music/songs", s.apiMusicSongs)
-	h.HandleFunc("/api/music/songs/", s.apiMusicSongsOne)
-	h.HandleFunc("/api/music/songs/current", s.apiMusicSongsCurrent)
-	h.HandleFunc("/api/music/songs/sort", s.apiMusicSongsSort)
+	h.HandleFunc("/api/music/playlist", s.apiMusicPlaylist)
+	h.HandleFunc("/api/music/playlist/", s.apiMusicPlaylistOne)
+	h.HandleFunc("/api/music/playlist/current", s.apiMusicPlaylistCurrent)
+	h.HandleFunc("/api/music/playlist/sort", s.apiMusicPlaylistSort)
 	h.HandleFunc("/api/music/stats", s.apiMusicStats)
 	h.HandleFunc("/api/version", s.apiVersion)
 	h.HandleFunc("/assets/startup/", s.assetsStartup)
@@ -320,7 +320,7 @@ func (s *Server) apiMusicOutputs(w http.ResponseWriter, r *http.Request) {
 	writeInterfaceIfModified(w, r, d, l, nil)
 }
 
-func (s *Server) apiMusicSongs(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiMusicPlaylist(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		d, l := s.Music.Playlist()
@@ -328,7 +328,7 @@ func (s *Server) apiMusicSongs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) apiMusicSongsSort(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiMusicPlaylistSort(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		s, k, f, l := s.Music.PlaylistIsSorted()
@@ -360,17 +360,17 @@ func (s *Server) apiMusicSongsSort(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) apiMusicSongsOne(w http.ResponseWriter, r *http.Request) {
-	p := strings.Replace(r.URL.Path, "/api/music/songs/", "", -1)
+func (s *Server) apiMusicPlaylistOne(w http.ResponseWriter, r *http.Request) {
+	p := strings.Replace(r.URL.Path, "/api/music/playlist/", "", -1)
 	if p == "" {
-		s.apiMusicSongs(w, r)
+		s.apiMusicPlaylist(w, r)
 		return
 	}
 	d, l := s.Music.Playlist()
 	writeSongInList(w, r, p, d, l)
 }
 
-func (s *Server) apiMusicSongsCurrent(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiMusicPlaylistCurrent(w http.ResponseWriter, r *http.Request) {
 	d, l := s.Music.Current()
 	writeInterfaceIfModified(w, r, d, l, nil)
 }

@@ -348,7 +348,7 @@ func TestApiMusicOutputs(t *testing.T) {
 	})
 }
 
-func TestApiMusicSongsOne(t *testing.T) {
+func TestApiMusicPlaylistOne(t *testing.T) {
 	m := new(MockMusic)
 	s := Server{Music: m}
 	handler := s.makeHandle()
@@ -382,7 +382,7 @@ func TestApiMusicSongsOne(t *testing.T) {
 			{desc: "404 not found(not int)", ret: 404, path: "/foobar"},
 		}
 		for _, tt := range testsets {
-			req, _ := http.NewRequest("GET", ts.URL+"/api/music/songs"+tt.path, nil)
+			req, _ := http.NewRequest("GET", ts.URL+"/api/music/playlist"+tt.path, nil)
 			req.Header.Set("If-Modified-Since", tt.ifModifiedSince.Format(http.TimeFormat))
 			client := new(http.Client)
 			res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
@@ -419,7 +419,7 @@ func TestApiMusicSongsOne(t *testing.T) {
 		}
 		for _, tt := range testsets {
 			j := strings.NewReader(tt.input)
-			res, err := http.Post(ts.URL+"/api/music/songs/sort", "application/json", j)
+			res, err := http.Post(ts.URL+"/api/music/playlist/sort", "application/json", j)
 			if err != nil {
 				t.Errorf("[%s] unexpected error %s", tt.desc, err.Error())
 			}
