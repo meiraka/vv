@@ -77,7 +77,7 @@ func (s *Server) makeHandle() http.Handler {
 	s.rootCachesInit()
 	h := http.NewServeMux()
 	h.HandleFunc("/api/images/", s.apiImages)
-	h.HandleFunc("/api/music/control", s.apiMusicControl)
+	h.HandleFunc("/api/music/status", s.apiMusicStatus)
 	h.HandleFunc("/api/music/library", s.apiMusicLibrary)
 	h.HandleFunc("/api/music/library/", s.apiMusicLibraryOne)
 	h.HandleFunc("/api/music/notify", s.apiMusicNotify)
@@ -162,7 +162,7 @@ func (s *Server) apiImages(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (s *Server) apiMusicControl(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiMusicStatus(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		decoder := json.NewDecoder(r.Body)

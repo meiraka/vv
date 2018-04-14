@@ -56,7 +56,7 @@ func TestApiMusicControl(t *testing.T) {
 		s := Server{Music: m}
 		handler := s.makeHandle()
 		ts := httptest.NewServer(handler)
-		url := ts.URL + "/api/music/control"
+		url := ts.URL + "/api/music/status"
 		defer ts.Close()
 		expect := MakeStatus(mpd.Attrs{})
 		m.StatusRet1 = expect
@@ -122,7 +122,7 @@ func TestApiMusicControl(t *testing.T) {
 			s := Server{Music: m}
 			handler := s.makeHandle()
 			ts := httptest.NewServer(handler)
-			url := ts.URL + "/api/music/control"
+			url := ts.URL + "/api/music/status"
 			defer ts.Close()
 			j := strings.NewReader(tt.input)
 			res, err := http.Post(url, "application/json", j)
