@@ -34,9 +34,9 @@ vv.pubsub = {
     }
   }
 };
-vv.song = (function() {
+vv.song = (() => {
   const pub = {};
-  const tag = function(song, keys, other) {
+  const tag = (song, keys, other) => {
     for (const key of keys) {
       if (key in song) {
         return song[key];
@@ -44,7 +44,7 @@ vv.song = (function() {
     }
     return other;
   };
-  const getTagOrElseMulti = function(song, key, other) {
+  const getTagOrElseMulti = (song, key, other) => {
     if (key in song) {
       return song[key];
     } else if (key === "AlbumSort") {
@@ -60,7 +60,7 @@ vv.song = (function() {
     }
     return other;
   };
-  pub.getOrElseMulti = function(song, key, other) {
+  pub.getOrElseMulti = (song, key, other) => {
     let ret = [];
     const keys = key.split("-");
     for (const key of keys) {
@@ -79,14 +79,14 @@ vv.song = (function() {
     }
     return ret;
   };
-  const getOrElse = function(song, key, other) {
+  const getOrElse = (song, key, other) => {
     const ret = pub.getOrElseMulti(song, key, null);
     if (!ret) {
       return other;
     }
     return ret.join();
   };
-  const getOneOrElse = function(song, key, other) {
+  const getOneOrElse = (song, key, other) => {
     if (!song.keys) {
       return pub.getOrElseMulti(song, key, [other])[0];
     }
@@ -97,11 +97,10 @@ vv.song = (function() {
     }
     return pub.getOrElseMulti(song, key, [other])[0];
   };
-  pub.getOne = function(song, key) {
-    return getOneOrElse(song, key, `[no ${key}]`);
-  };
-  pub.get = function(song, key) { return getOrElse(song, key, `[no ${key}]`); };
-  pub.sortkeys = function(song, keys, memo) {
+  pub.getOne =
+      (song, key) => { return getOneOrElse(song, key, `[no ${key}]`); };
+  pub.get = (song, key) => { return getOrElse(song, key, `[no ${key}]`); };
+  pub.sortkeys = (song, keys, memo) => {
     let songs = [Object.assign({}, song)];
     songs[0].sortkey = "";
     songs[0].keys = [];
@@ -143,14 +142,14 @@ vv.song = (function() {
 
   return pub;
 })();
-vv.songs = (function() {
+vv.songs = (() => {
   const pub = {};
-  pub.sort = function(songs, keys, memo) {
+  pub.sort = (songs, keys, memo) => {
     const newsongs = [];
     for (const song of songs) {
       Array.prototype.push.apply(newsongs, vv.song.sortkeys(song, keys, memo));
     }
-    const sorted = newsongs.sort(function(a, b) {
+    const sorted = newsongs.sort((a, b) => {
       if (a.sortkey < b.sortkey) {
         return -1;
       }
@@ -161,8 +160,8 @@ vv.songs = (function() {
     }
     return sorted;
   };
-  pub.uniq = function(songs, key) {
-    return songs.filter(function(song, i, self) {
+  pub.uniq = (songs, key) => {
+    return songs.filter((song, i, self) => {
       if (i === 0) {
         return true;
       } else if (
@@ -172,8 +171,8 @@ vv.songs = (function() {
       return true;
     });
   };
-  pub.filter = function(songs, filters) {
-    return songs.filter(function(song) {
+  pub.filter = (songs, filters) => {
+    return songs.filter(song => {
       for (const key in filters) {
         if (filters.hasOwnProperty(key)) {
           if (vv.song.getOne(song, key) !== filters[key]) {
@@ -184,7 +183,7 @@ vv.songs = (function() {
       return true;
     });
   };
-  pub.weakFilter = function(songs, filters, max) {
+  pub.weakFilter = (songs, filters, max) => {
     if (songs.length <= max) {
       return songs;
     }
@@ -211,15 +210,15 @@ vv.songs = (function() {
   };
   return pub;
 })();
-vv.storage = (function() {
-  const idbUpdateTables = function(e) {
+vv.storage = (() => {
+  const idbUpdateTables = e => {
     const db = e.target.result;
     const st = db.createObjectStore("cache", {keyPath: "id"});
-    const close = function() { db.close(); };
+    const close = () => { db.close(); };
     st.onsuccess = close;
     st.onerror = close;
   };
-  const cacheLoad = function(key, callback) {
+  const cacheLoad = (key, callback) => {
     if (!window.indexedDB) {
       const ls = localStorage[key + "_last_modified"];
       const data = localStorage[key];
@@ -231,14 +230,14 @@ vv.storage = (function() {
       return;
     }
     const req = window.indexedDB.open("storage", 1);
-    req.onerror = function() {};
+    req.onerror = () => {};
     req.onupgradeneeded = idbUpdateTables;
-    req.onsuccess = function(e) {
+    req.onsuccess = e => {
       const db = e.target.result;
       const t = db.transaction("cache", "readonly");
       const so = t.objectStore("cache");
       const req = so.get(key);
-      req.onsuccess = function(e) {
+      req.onsuccess = e => {
         const ret = e.target.result;
         if (ret && ret.value && ret.date) {
           callback(e.target.result.value, e.target.result.date);
@@ -247,14 +246,14 @@ vv.storage = (function() {
         }
         db.close();
       };
-      req.onerror = function() {
+      req.onerror = () => {
         callback();
         db.close();
       };
     };
   };
 
-  const cacheSave = function(key, value, date) {
+  const cacheSave = (key, value, date) => {
     if (!window.indexedDB) {
       const ls = localStorage[key + "_last_modified"];
       if (ls && ls === date) {
@@ -265,22 +264,22 @@ vv.storage = (function() {
       return;
     }
     const req = window.indexedDB.open("storage", 1);
-    req.onerror = function() {};
+    req.onerror = () => {};
     req.onupgradeneeded = idbUpdateTables;
-    req.onsuccess = function(e) {
+    req.onsuccess = e => {
       const db = e.target.result;
       const t = db.transaction("cache", "readwrite");
       const so = t.objectStore("cache");
       const req = so.get(key);
-      req.onerror = function() { db.close(); };
-      req.onsuccess = function(e) {
+      req.onerror = () => { db.close(); };
+      req.onsuccess = e => {
         const ret = e.target.result;
         if (ret && ret.date && ret.date === date) {
           return;
         }
         const req = so.put({id: key, value: value, date: date});
-        req.onerror = function() { db.close(); };
-        req.onsuccess = function() { db.close(); };
+        req.onerror = () => { db.close(); };
+        req.onsuccess = () => { db.close(); };
       };
     };
   };
@@ -300,8 +299,8 @@ vv.storage = (function() {
   };
 
   const listener = {onload: []};
-  pub.addEventListener = function(e, f) { vv.pubsub.add(listener, e, f); };
-  const raiseEvent = function(e) { vv.pubsub.raise(listener, e); };
+  pub.addEventListener = (e, f) => { vv.pubsub.add(listener, e, f); };
+  const raiseEvent = e => { vv.pubsub.raise(listener, e); };
   pub.preferences = {
     volume: {show: true, max: "100"},
     playback: {view_follow: true},
@@ -316,39 +315,39 @@ vv.storage = (function() {
     }
   };
   pub.save = {};
-  pub.save.current = function() {
+  pub.save.current = () => {
     try {
       localStorage.current = JSON.stringify(pub.current);
       localStorage.current_last_modified = pub.last_modified.current;
     } catch (e) {
     }
   };
-  pub.save.root = function() {
+  pub.save.root = () => {
     try {
       localStorage.root = pub.root;
     } catch (e) {
     }
   };
-  pub.save.preferences = function() {
+  pub.save.preferences = () => {
     try {
       localStorage.preferences = JSON.stringify(pub.preferences);
     } catch (e) {
     }
   };
-  pub.save.sorted = function() {
+  pub.save.sorted = () => {
     try {
       localStorage.sorted = JSON.stringify(pub.sorted);
       localStorage.sorted_last_modified = pub.last_modified.sorted;
     } catch (e) {
     }
   };
-  pub.save.library = function() {
+  pub.save.library = () => {
     try {
       cacheSave("library", pub.library, pub.last_modified.library);
     } catch (e) {
     }
   };
-  pub.load = function() {
+  pub.load = () => {
     try {
       if (localStorage.root && localStorage.root.length !== 0) {
         pub.root = localStorage.root;
@@ -382,7 +381,7 @@ vv.storage = (function() {
         pub.sorted = sorted;
         pub.last_modified.sorted = localStorage.sorted_last_modified;
       }
-      cacheLoad("library", function(data, date) {
+      cacheLoad("library", (data, date) => {
         if (data && date) {
           pub.library = data;
           pub.last_modified.library = date;
@@ -404,7 +403,7 @@ vv.storage = (function() {
   return pub;
 })();
 
-vv.model.list = (function() {
+vv.model.list = (() => {
   const pub = {};
   const library = {
     AlbumArtist: [],
@@ -462,10 +461,10 @@ vv.model.list = (function() {
   let child = null;
   let list_cache = {};
   const listener = {changed: [], update: []};
-  pub.addEventListener = function(e, f) { vv.pubsub.add(listener, e, f); };
-  pub.removeEventListener = function(e, f) { vv.pubsub.rm(listener, e, f); };
-  const raiseEvent = function(e) { vv.pubsub.raise(listener, e); };
-  const mkmemo = function(key) {
+  pub.addEventListener = (e, f) => { vv.pubsub.add(listener, e, f); };
+  pub.removeEventListener = (e, f) => { vv.pubsub.rm(listener, e, f); };
+  const raiseEvent = e => { vv.pubsub.raise(listener, e); };
+  const mkmemo = key => {
     const ret = [];
     for (const leef of pub.TREE[key].tree) {
       ret.push(leef[0]);
@@ -473,7 +472,7 @@ vv.model.list = (function() {
     return ret;
   };
   const list_child_cache = [{}, {}, {}, {}, {}, {}];
-  const list_child = function() {
+  const list_child = () => {
     const root = pub.rootname();
     if (library[root].length === 0) {
       library[root] =
@@ -495,7 +494,7 @@ vv.model.list = (function() {
     ret.isdir = vv.storage.tree.length !== pub.TREE[root].tree.length;
     return ret;
   };
-  const list_root = function() {
+  const list_root = () => {
     const ret = [];
     for (const key in pub.TREE) {
       if (pub.TREE.hasOwnProperty(key)) {
@@ -504,7 +503,7 @@ vv.model.list = (function() {
     }
     return {key: "root", songs: ret, style: "plain", isdir: true};
   };
-  const update_list = function() {
+  const update_list = () => {
     if (pub.rootname() === "root") {
       list_cache = list_root();
       return true;
@@ -524,7 +523,7 @@ vv.model.list = (function() {
     }
     return true;
   };
-  const updateData = function(data) {
+  const updateData = data => {
     for (let i = 0, imax = list_child_cache.length; i < imax; i++) {
       list_child_cache[i] = {};
     }
@@ -539,13 +538,13 @@ vv.model.list = (function() {
     }
   };
 
-  pub.update = function(data) {
+  pub.update = data => {
     updateData(data);
     update_list();
     raiseEvent("update");
   };
 
-  pub.rootname = function() {
+  pub.rootname = () => {
     let r = "root";
     if (vv.storage.tree.length !== 0) {
       r = vv.storage.tree[0][1];
@@ -556,16 +555,16 @@ vv.model.list = (function() {
     }
     return r;
   };
-  pub.filters = function(pos) { return library[pub.rootname()][pos].keys; };
-  pub.focused = function() { return [focus, child]; };
-  pub.sortkeys = function() {
+  pub.filters = pos => { return library[pub.rootname()][pos].keys; };
+  pub.focused = () => { return [focus, child]; };
+  pub.sortkeys = () => {
     const r = pub.rootname();
     if (r === "root") {
       return [];
     }
     return pub.TREE[r].sort;
   };
-  pub.up = function() {
+  pub.up = () => {
     const songs = pub.list().songs;
     if (songs[0]) {
       focus = songs[0];
@@ -586,7 +585,7 @@ vv.model.list = (function() {
     }
   };
   pub.TREE = pub.TREE;
-  pub.down = function(value) {
+  pub.down = value => {
     const r = pub.rootname();
     let key = "root";
     if (r !== "root") {
@@ -604,12 +603,12 @@ vv.model.list = (function() {
       raiseEvent("changed");
     }
   };
-  pub.absaddr = function(first, second) {
+  pub.absaddr = (first, second) => {
     vv.storage.tree.splice(0, vv.storage.tree.length);
     vv.storage.tree.push(["root", first]);
     pub.down(second);
   };
-  const absFallback = function(song) {
+  const absFallback = song => {
     if (pub.rootname() !== "root" && song.file) {
       const r = vv.storage.tree[0];
       vv.storage.tree.length = 0;
@@ -639,7 +638,7 @@ vv.model.list = (function() {
     }
     raiseEvent("changed");
   };
-  const absSorted = function(song) {
+  const absSorted = song => {
     let root = "";
     const pos = parseInt(song.Pos[0], 10);
     const keys = vv.storage.sorted.keys.join();
@@ -685,20 +684,20 @@ vv.model.list = (function() {
       absFallback(song);
     }
   };
-  pub.abs = function(song) {
+  pub.abs = song => {
     if (vv.storage.sorted && vv.storage.sorted.sorted) {
       absSorted(song);
     } else {
       absFallback(song);
     }
   };
-  pub.list = function() {
+  pub.list = () => {
     if (!list_cache.songs || !list_cache.songs.length === 0) {
       update_list();
     }
     return list_cache;
   };
-  pub.parent = function() {
+  pub.parent = () => {
     const root = pub.rootname();
     if (root === "root") {
       return;
@@ -711,7 +710,7 @@ vv.model.list = (function() {
     }
     return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
   };
-  pub.grandparent = function() {
+  pub.grandparent = () => {
     const root = pub.rootname();
     if (root === "root") {
       return;
@@ -735,18 +734,18 @@ vv.model.list = (function() {
     updateData(vv.storage.library);
   } else {
     vv.storage.addEventListener(
-        "onload", function() { updateData(vv.storage.library); });
+        "onload", () => { updateData(vv.storage.library); });
   }
   return pub;
 })();
-vv.control = (function() {
+vv.control = (() => {
   const pub = {};
   const listener = {};
-  pub.addEventListener = function(e, f) { vv.pubsub.add(listener, e, f); };
-  pub.removeEventListener = function(e, f) { vv.pubsub.rm(listener, e, f); };
-  pub.raiseEvent = function(e) { vv.pubsub.raise(listener, e); };
+  pub.addEventListener = (e, f) => { vv.pubsub.add(listener, e, f); };
+  pub.removeEventListener = (e, f) => { vv.pubsub.rm(listener, e, f); };
+  pub.raiseEvent = e => { vv.pubsub.raise(listener, e); };
 
-  pub.swipe = function(element, f, resetFunc, leftElement) {
+  pub.swipe = (element, f, resetFunc, leftElement) => {
     element.swipe_target = f;
     let starttime = 0;
     let now = 0;
@@ -755,7 +754,7 @@ vv.control = (function() {
     let diff_x = 0;
     let diff_y = 0;
     let swipe = false;
-    const start = function(e) {
+    const start = e => {
       if (e.buttons && e.buttons !== 1) {
         return;
       }
@@ -765,7 +764,7 @@ vv.control = (function() {
       starttime = (new Date()).getTime();
       swipe = true;
     };
-    const finalize = function(e) {
+    const finalize = e => {
       starttime = 0;
       now = 0;
       x = 0;
@@ -782,14 +781,14 @@ vv.control = (function() {
       if (!resetFunc) {
         e.currentTarget.style.transform = "translate3d(0,0,0)";
       }
-      setTimeout(function() {
+      setTimeout(() => {
         element.classList.remove("swiped");
         if (leftElement) {
           leftElement.classList.remove("swiped");
         }
       });
     };
-    const cancel = function(e) {
+    const cancel = e => {
       if (swipe) {
         finalize(e);
         if (resetFunc) {
@@ -797,7 +796,7 @@ vv.control = (function() {
         }
       }
     };
-    const move = function(e) {
+    const move = e => {
       if (e.buttons === 0 || (e.buttons && e.buttons !== 1) || !swipe) {
         cancel(e);
         return;
@@ -818,7 +817,7 @@ vv.control = (function() {
         }
       }
     };
-    const end = function(e) {
+    const end = e => {
       if ((e.buttons && e.buttons !== 1) || !swipe) {
         cancel(e);
         return;
@@ -844,11 +843,11 @@ vv.control = (function() {
     }
   };
 
-  pub.click = function(element, f) {
+  pub.click = (element, f) => {
     element.click_target = f;
-    const enter = function(e) { e.currentTarget.classList.add("hover"); };
-    const leave = function(e) { e.currentTarget.classList.remove("hover"); };
-    const start = function(e) {
+    const enter = e => { e.currentTarget.classList.add("hover"); };
+    const leave = e => { e.currentTarget.classList.remove("hover"); };
+    const start = e => {
       if (e.buttons && e.buttons !== 1) {
         return;
       }
@@ -858,7 +857,7 @@ vv.control = (function() {
       e.currentTarget.touch = true;
       e.currentTarget.classList.add("active");
     };
-    const move = function(e) {
+    const move = e => {
       if (e.buttons && e.buttons !== 1 || !e.currentTarget.touch) {
         return;
       }
@@ -869,7 +868,7 @@ vv.control = (function() {
         e.currentTarget.classList.remove("active");
       }
     };
-    const end = function(e) {
+    const end = e => {
       if (e.buttons && e.buttons !== 1) {
         return;
       }
@@ -892,21 +891,21 @@ vv.control = (function() {
   };
 
   const requests = {};
-  const abort_all_requests = function(options) {
+  const abort_all_requests = options => {
     options = options || {};
     for (const key in requests) {
       if (requests.hasOwnProperty(key)) {
         if (options.stop) {
-          requests[key].onabort = function() {};
+          requests[key].onabort = () => {};
         }
         requests[key].abort();
       }
     }
   };
-  const get_request = function(path, ifmodified, callback, timeout) {
+  const get_request = (path, ifmodified, callback, timeout) => {
     const key = "GET " + path;
     if (requests[key]) {
-      requests[key].onabort = function() {};  // disable retry
+      requests[key].onabort = () => {};  // disable retry
       requests[key].abort();
     }
     const xhr = new XMLHttpRequest();
@@ -916,7 +915,7 @@ vv.control = (function() {
     }
     xhr.responseType = "json";
     xhr.timeout = timeout;
-    xhr.onload = function() {
+    xhr.onload = () => {
       if (xhr.status === 200 || xhr.status === 304) {
         if (xhr.status === 200 && callback) {
           callback(
@@ -930,21 +929,19 @@ vv.control = (function() {
         vv.view.popup.show("network", xhr.statusText);
       }
     };
-    xhr.onabort = function() {
+    xhr.onabort = () => {
       if (timeout < 50000) {
-        setTimeout(function() {
-          get_request(path, ifmodified, callback, timeout * 2);
-        });
+        setTimeout(
+            () => { get_request(path, ifmodified, callback, timeout * 2); });
       }
     };
-    xhr.onerror = function() { vv.view.popup.show("network", "Error"); };
-    xhr.ontimeout = function() {
+    xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
+    xhr.ontimeout = () => {
       if (timeout < 50000) {
         vv.view.popup.show("network", "timeoutRetry");
         abort_all_requests();
-        setTimeout(function() {
-          get_request(path, ifmodified, callback, timeout * 2);
-        });
+        setTimeout(
+            () => { get_request(path, ifmodified, callback, timeout * 2); });
       } else {
         vv.view.popup.show("network", "timeout");
       }
@@ -954,7 +951,7 @@ vv.control = (function() {
     xhr.send();
   };
 
-  const post_request = function(path, obj) {
+  const post_request = (path, obj) => {
     const key = "POST " + path;
     if (requests[key]) {
       requests[key].abort();
@@ -963,7 +960,7 @@ vv.control = (function() {
     requests[key] = xhr;
     xhr.responseType = "json";
     xhr.timeout = 1000;
-    xhr.onload = function() {
+    xhr.onload = () => {
       if (xhr.status !== 200) {
         if (xhr.response && xhr.response.error) {
           vv.view.popup.show("network", xhr.response.error);
@@ -972,21 +969,21 @@ vv.control = (function() {
         }
       }
     };
-    xhr.ontimeout = function() {
+    xhr.ontimeout = () => {
       vv.view.popup.show("network", "timeout");
       abort_all_requests();
     };
-    xhr.onerror = function() { vv.view.popup.show("network", "Error"); };
+    xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
     xhr.open("POST", path, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.send(JSON.stringify(obj));
   };
 
-  const getOrElse = function(m, k, v) { return k in m ? m[k] : v; };
-  const fetch = function(target, store) {
+  const getOrElse = (m, k, v) => { return k in m ? m[k] : v; };
+  const fetch = (target, store) => {
     get_request(
         target, getOrElse(vv.storage.last_modified, store, ""),
-        function(ret, modified, date) {
+        (ret, modified, date) => {
           if (!ret.error) {
             if (Object.prototype.toString.call(ret.data) ===
                     "[object Object]" &&
@@ -1012,17 +1009,15 @@ vv.control = (function() {
         });
   };
 
-  pub.rescan_library = function() {
+  pub.rescan_library = () => {
     post_request("/api/music/library", {action: "rescan"});
     vv.storage.control.update_library = true;
     pub.raiseEvent("control");
   };
 
-  pub.prev = function() {
-    post_request("/api/music/control", {state: "prev"});
-  };
+  pub.prev = () => { post_request("/api/music/control", {state: "prev"}); };
 
-  pub.play_pause = function() {
+  pub.play_pause = () => {
     const state = getOrElse(vv.storage.control, "state", "stopped");
     const action = state === "play" ? "pause" : "play";
     post_request("/api/music/control", {state: action});
@@ -1030,11 +1025,9 @@ vv.control = (function() {
     pub.raiseEvent("control");
   };
 
-  pub.next = function() {
-    post_request("/api/music/control", {state: "next"});
-  };
+  pub.next = () => { post_request("/api/music/control", {state: "next"}); };
 
-  pub.toggle_repeat = function() {
+  pub.toggle_repeat = () => {
     if (vv.storage.control.single) {
       post_request("/api/music/control", {repeat: false, single: false});
       vv.storage.control.single = false;
@@ -1049,13 +1042,13 @@ vv.control = (function() {
     pub.raiseEvent("control");
   };
 
-  pub.toggle_random = function() {
+  pub.toggle_random = () => {
     post_request("/api/music/control", {random: !vv.storage.control.random});
     vv.storage.control.random = !vv.storage.control.random;
     pub.raiseEvent("control");
   };
 
-  pub.play = function(pos) {
+  pub.play = pos => {
     post_request("/api/music/songs/sort", {
       keys: vv.model.list.sortkeys(),
       filters: vv.model.list.filters(pos),
@@ -1063,15 +1056,13 @@ vv.control = (function() {
     });
   };
 
-  pub.volume = function(num) {
-    post_request("/api/music/control", {volume: num});
-  };
+  pub.volume = num => { post_request("/api/music/control", {volume: num}); };
 
-  pub.output = function(id, on) {
+  pub.output = (id, on) => {
     post_request(`/api/music/outputs/${id}`, {outputenabled: on});
   };
 
-  const update_all = function() {
+  const update_all = () => {
     fetch("/api/music/songs/sort", "sorted");
     fetch("/api/version", "version");
     fetch("/api/music/outputs", "outputs");
@@ -1085,7 +1076,7 @@ vv.control = (function() {
   let connected = false;
   let notify_err_cnt = 0;
   let ws = null;
-  const listennotify = function(cause) {
+  const listennotify = cause => {
     abort_all_requests({stop: true});
     if (cause) {
       vv.view.popup.show("network", cause);
@@ -1095,11 +1086,11 @@ vv.control = (function() {
     const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
     const uri = `${wsp}//${location.host}/api/music/notify`;
     if (ws !== null) {
-      ws.onclose = function() {};
+      ws.onclose = () => {};
       ws.close();
     }
     ws = new WebSocket(uri);
-    ws.onopen = function() {
+    ws.onopen = () => {
       if (notify_err_cnt > 0) {
         vv.view.popup.hide("network");
       }
@@ -1107,7 +1098,7 @@ vv.control = (function() {
       notify_last_update = (new Date()).getTime();
       update_all();
     };
-    ws.onmessage = function(e) {
+    ws.onmessage = e => {
       if (e && e.data) {
         if (e.data === "library") {
           fetch("/api/music/library", "library");
@@ -1131,7 +1122,7 @@ vv.control = (function() {
         notify_err_cnt = 0;
       }
     };
-    ws.onclose = function() {
+    ws.onclose = () => {
       if (notify_err_cnt > 0) {
         vv.view.popup.show("network", "closed");
       }
@@ -1141,20 +1132,20 @@ vv.control = (function() {
     };
   };
 
-  const init = function() {
-    const polling = function() {
+  const init = () => {
+    const polling = () => {
       const now = (new Date()).getTime();
       if (connected && now - 10000 > notify_last_update) {
         notify_err_cnt++;
-        setTimeout(function() { listennotify("doesNotRespond"); });
+        setTimeout(() => { listennotify("doesNotRespond"); });
       } else if (!connected && now - 2000 > notify_last_connection) {
         notify_err_cnt++;
-        setTimeout(function() { listennotify("timeoutRetry"); });
+        setTimeout(() => { listennotify("timeoutRetry"); });
       }
       pub.raiseEvent("poll");
       setTimeout(polling, 1000);
     };
-    const start = function() {
+    const start = () => {
       pub.raiseEvent("start");
       vv.view.list.show();
       pub.raiseEvent("current");
@@ -1168,7 +1159,7 @@ vv.control = (function() {
     }
   };
 
-  pub.start = function() {
+  pub.start = () => {
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", init);
     } else {
@@ -1176,7 +1167,7 @@ vv.control = (function() {
     }
   };
 
-  const focus = function() {
+  const focus = () => {
     vv.storage.save.current();
     if (vv.storage.preferences.playback.view_follow &&
         vv.storage.current !== null) {
@@ -1185,21 +1176,21 @@ vv.control = (function() {
   };
 
   let unsorted = !vv.storage.sorted;
-  const focusremove = function(key, remove) {
-    const n = function() {
+  const focusremove = (key, remove) => {
+    const n = () => {
       if (unsorted && vv.storage.sorted && vv.storage.current !== null) {
         if (vv.storage.sorted && vv.storage.preferences.playback.view_follow) {
           vv.model.list.abs(vv.storage.current);
         }
         unsorted = false;
       }
-      setTimeout(function() { remove(key, n); });
+      setTimeout(() => { remove(key, n); });
     };
     return n;
   };
   pub.addEventListener("current", focus);
   pub.addEventListener(
-      "library", function() { vv.model.list.update(vv.storage.library); });
+      "library", () => { vv.model.list.update(vv.storage.library); });
   if (unsorted) {
     pub.addEventListener(
         "current", focusremove("current", pub.removeEventListener));
@@ -1213,9 +1204,9 @@ vv.control = (function() {
 })();
 
 // background
-(function() {
+(() => {
   let color = 128;
-  const update_theme = function() {
+  const update_theme = () => {
     if (color < vv.storage.preferences.appearance.color_threshold) {
       document.body.classList.add("dark");
       document.body.classList.remove("light");
@@ -1224,9 +1215,9 @@ vv.control = (function() {
       document.body.classList.remove("dark");
     }
   };
-  const calc_color = function(path) {
+  const calc_color = path => {
     const img = new Image();
-    img.onload = function() {
+    img.onload = () => {
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
       context.drawImage(img, 0, 0, 5, 5);
@@ -1244,7 +1235,7 @@ vv.control = (function() {
     };
     img.src = path;
   };
-  const update = function() {
+  const update = () => {
     const e = document.getElementById("background-image");
     if (vv.storage.preferences.appearance.background_image) {
       e.classList.remove("hide");
@@ -1276,9 +1267,9 @@ vv.control = (function() {
   vv.control.addEventListener("start", update);
 })();
 
-vv.view.main = (function() {
+vv.view.main = (() => {
   const pub = {};
-  const load_volume_preferences = function() {
+  const load_volume_preferences = () => {
     const c = document.getElementById("control-volume");
     c.max = parseInt(vv.storage.preferences.volume.max, 10);
     if (vv.storage.preferences.volume.show) {
@@ -1287,7 +1278,7 @@ vv.view.main = (function() {
       c.classList.add("hide");
     }
   };
-  vv.control.addEventListener("control", function() {
+  vv.control.addEventListener("control", () => {
     const c = document.getElementById("control-volume");
     c.value = vv.storage.control.volume;
     if (vv.storage.control.volume < 0) {
@@ -1297,11 +1288,11 @@ vv.view.main = (function() {
     }
   });
   vv.control.addEventListener("preferences", load_volume_preferences);
-  pub.show = function() {
+  pub.show = () => {
     document.body.classList.add("view-main");
     document.body.classList.remove("view-list");
   };
-  pub.hidden = function() {
+  pub.hidden = () => {
     const e = document.body;
     if (window.matchMedia("(orientation: portrait)").matches) {
       return !e.classList.contains("view-main");
@@ -1309,7 +1300,7 @@ vv.view.main = (function() {
     return !(
         e.classList.contains("view-list") || e.classList.contains("view-main"));
   };
-  pub.update = function() {
+  pub.update = () => {
     if (vv.storage.current === null) {
       return;
     }
@@ -1324,7 +1315,7 @@ vv.view.main = (function() {
       document.getElementById("main-cover-img").style.backgroundImage = "";
     }
   };
-  const update_style = function() {
+  const update_style = () => {
     const e = document.getElementById("main-cover");
     if (vv.storage.preferences.appearance.circled_image) {
       e.classList.add("circled");
@@ -1338,7 +1329,7 @@ vv.view.main = (function() {
     }
   };
   vv.control.addEventListener("preferences", update_style);
-  const update_elapsed = function() {
+  const update_elapsed = () => {
     if (vv.storage.current === null) {
       return;
     }
@@ -1368,19 +1359,18 @@ vv.view.main = (function() {
       c.setAttribute("d", `M 100,10 L 100,10 A 90,90 0 0,1 ${x},${y}`);
     }
   };
-  const init = function() {
-    document.getElementById("control-volume")
-        .addEventListener("change", function(e) {
-          vv.control.volume(parseInt(e.currentTarget.value, 10));
-        });
-    document.getElementById("main-cover").addEventListener("click", function() {
+  const init = () => {
+    document.getElementById("control-volume").addEventListener("change", e => {
+      vv.control.volume(parseInt(e.currentTarget.value, 10));
+    });
+    document.getElementById("main-cover").addEventListener("click", () => {
       if (vv.storage.current !== null) {
         vv.view.modal.song.show(vv.storage.current);
       }
     });
     load_volume_preferences();
     update_style();
-    vv.control.swipe(document.getElementById("main"), function() {
+    vv.control.swipe(document.getElementById("main"), () => {
       if (vv.storage.current === null) {
         return;
       }
@@ -1393,13 +1383,13 @@ vv.view.main = (function() {
   vv.control.addEventListener("start", init);
   return pub;
 })();
-vv.view.list = (function() {
+vv.view.list = (() => {
   const pub = {};
-  pub.show = function() {
+  pub.show = () => {
     document.body.classList.add("view-list");
     document.body.classList.remove("view-main");
   };
-  pub.hidden = function() {
+  pub.hidden = () => {
     const e = document.body;
     if (window.matchMedia("(orientation: portrait)").matches) {
       return !e.classList.contains("view-list");
@@ -1407,7 +1397,7 @@ vv.view.list = (function() {
     return !(
         e.classList.contains("view-list") || e.classList.contains("view-main"));
   };
-  const preferences_update = function() {
+  const preferences_update = () => {
     const index = vv.storage.tree.length;
     const ul = document.getElementById("list-items" + index);
     if (vv.storage.preferences.appearance.gridview_album) {
@@ -1418,7 +1408,7 @@ vv.view.list = (function() {
       ul.classList.remove("grid");
     }
   };
-  const updatepos = function() {
+  const updatepos = () => {
     const index = vv.storage.tree.length;
     const lists = document.getElementsByClassName("list");
     for (let listindex = 0; listindex < lists.length; listindex++) {
@@ -1432,7 +1422,7 @@ vv.view.list = (function() {
     }
   };
 
-  const updateFocus = function() {
+  const updateFocus = () => {
     const index = vv.storage.tree.length;
     const ul = document.getElementById("list-items" + index);
     let focus = null;
@@ -1503,7 +1493,7 @@ vv.view.list = (function() {
 
     const scroll = document.getElementById("list" + index);
     if (focus) {
-      window.requestAnimationFrame(function() {
+      window.requestAnimationFrame(() => {
         const pos = focus.offsetTop;
         const t = scroll.scrollTop;
         if (t >= pos || pos >= t + scroll.clientHeight) {
@@ -1520,7 +1510,7 @@ vv.view.list = (function() {
       document.getElementById("header-main").classList.remove("playing");
     }
   };
-  const clearAllLists = function() {
+  const clearAllLists = () => {
     const lists = document.getElementsByClassName("list");
     for (let treeindex = 0; treeindex < vv.storage.tree.length; treeindex++) {
       const oldul =
@@ -1532,7 +1522,7 @@ vv.view.list = (function() {
     }
   };
 
-  const element = function(song, key, style, largeImage, header) {
+  const element = (song, key, style, largeImage, header) => {
     const c = document.querySelector(`#list-${style}-template`).content;
     const e = c.querySelector("li");
     e.dataset.key = vv.song.getOne(song, key);
@@ -1587,7 +1577,7 @@ vv.view.list = (function() {
     return document.importNode(c, true);
   };
 
-  const listHandler = function(e) {
+  const listHandler = e => {
     if (e.currentTarget.classList.contains("playing")) {
       if (vv.storage.current === null) {
         return;
@@ -1604,7 +1594,7 @@ vv.view.list = (function() {
       vv.model.list.down(value);
     }
   };
-  const update = function() {
+  const update = () => {
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
     const pwd = vv.storage.tree.join();
@@ -1656,11 +1646,11 @@ vv.view.list = (function() {
     ul.appendChild(newul);
     updateFocus();
   };
-  const updateForce = function() {
+  const updateForce = () => {
     clearAllLists();
     update();
   };
-  const select_near_item = function() {
+  const select_near_item = () => {
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
     let updated = false;
@@ -1676,7 +1666,7 @@ vv.view.list = (function() {
       }
     }
   };
-  const select_focused_or = function(target) {
+  const select_focused_or = target => {
     const style = vv.model.list.list().style;
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
@@ -1774,12 +1764,12 @@ vv.view.list = (function() {
       }
     }
   };
-  pub.up = function() { select_focused_or("up"); };
-  pub.left = function() { select_focused_or("left"); };
-  pub.right = function() { select_focused_or("right"); };
-  pub.down = function() { select_focused_or("down"); };
+  pub.up = () => { select_focused_or("up"); };
+  pub.left = () => { select_focused_or("left"); };
+  pub.right = () => { select_focused_or("right"); };
+  pub.down = () => { select_focused_or("down"); };
 
-  pub.activate = function() {
+  pub.activate = () => {
     const index = vv.storage.tree.length;
     const es = document.getElementById("list-items" + index)
                    .getElementsByClassName("selected");
@@ -1796,7 +1786,7 @@ vv.view.list = (function() {
   vv.control.addEventListener("preferences", preferences_update);
   vv.model.list.addEventListener("update", updateForce);
   vv.model.list.addEventListener("changed", update);
-  vv.control.addEventListener("start", function() {
+  vv.control.addEventListener("start", () => {
     vv.control.swipe(
         document.getElementById("list1"), vv.model.list.up, updatepos,
         document.getElementById("list0"));
@@ -1815,17 +1805,17 @@ vv.view.list = (function() {
   });
   return pub;
 })();
-vv.view.system = (function() {
+vv.view.system = (() => {
   const pub = {};
-  /* const preferences = */ (function() {
-    const update_animation = function() {
+  /* const preferences = */ (() => {
+    const update_animation = () => {
       if (vv.storage.preferences.appearance.animation) {
         document.body.classList.add("animation");
       } else {
         document.body.classList.remove("animation");
       }
     };
-    const initconfig = function(id) {
+    const initconfig = id => {
       const obj = document.getElementById(id);
       const s = id.indexOf("-");
       const mainkey = id.slice(0, s);
@@ -1833,25 +1823,25 @@ vv.view.system = (function() {
       let getter = null;
       if (obj.type === "checkbox") {
         obj.checked = vv.storage.preferences[mainkey][subkey];
-        getter = function() { return obj.checked; };
+        getter = () => { return obj.checked; };
       } else if (obj.tagName.toLowerCase() === "select") {
         obj.value = String(vv.storage.preferences[mainkey][subkey]);
-        getter = function() { return obj.value; };
+        getter = () => { return obj.value; };
       } else if (obj.type === "range") {
         obj.value = String(vv.storage.preferences[mainkey][subkey]);
-        getter = function() { return parseInt(obj.value, 10); };
-        obj.addEventListener("input", function() {
+        getter = () => { return parseInt(obj.value, 10); };
+        obj.addEventListener("input", () => {
           vv.storage.preferences[mainkey][subkey] = obj.value;
           vv.control.raiseEvent("preferences");
         });
       }
-      obj.addEventListener("change", function() {
+      obj.addEventListener("change", () => {
         vv.storage.preferences[mainkey][subkey] = getter();
         vv.storage.save.preferences();
         vv.control.raiseEvent("preferences");
       });
     };
-    const update_devices = function() {
+    const update_devices = () => {
       const ul = document.getElementById("devices");
       while (ul.lastChild) {
         ul.removeChild(ul.lastChild);
@@ -1871,7 +1861,7 @@ vv.view.system = (function() {
         ch.setAttribute("id", "device_" + o.outputname);
         ch.setAttribute("deviceid", o.outputid);
         ch.checked = o.outputenabled === "1";
-        ch.addEventListener("change", function(e) {
+        ch.addEventListener("change", e => {
           vv.control.output(
               parseInt(e.currentTarget.getAttribute("deviceid"), 10),
               e.currentTarget.checked);
@@ -1883,7 +1873,7 @@ vv.view.system = (function() {
       ul.appendChild(newul);
     };
     vv.control.addEventListener("outputs", update_devices);
-    vv.control.addEventListener("control", function() {
+    vv.control.addEventListener("control", () => {
       const e = document.getElementById("library-rescan");
       if (vv.storage.control.update_library && !e.disabled) {
         e.disabled = true;
@@ -1891,7 +1881,7 @@ vv.view.system = (function() {
         e.disabled = false;
       }
     });
-    vv.control.addEventListener("start", function() {
+    vv.control.addEventListener("start", () => {
       vv.control.addEventListener("preferences", update_animation);
       update_animation();
 
@@ -1901,7 +1891,7 @@ vv.view.system = (function() {
             .classList.add("hide");
       }
 
-      vv.control.addEventListener("control", function() {
+      vv.control.addEventListener("control", () => {
         if (vv.storage.control.volume < 0) {
           document.getElementById("volume-header").classList.add("hide");
           document.getElementById("volume-all").classList.add("hide");
@@ -1921,29 +1911,29 @@ vv.view.system = (function() {
       initconfig("playback-view-follow");
       initconfig("volume-show");
       initconfig("volume-max");
-      document.getElementById("system-reload")
-          .addEventListener("click", function() { location.reload(); });
+      document.getElementById("system-reload").addEventListener("click", () => {
+        location.reload();
+      });
       document.getElementById("library-rescan")
-          .addEventListener(
-              "click", function() { vv.control.rescan_library(); });
+          .addEventListener("click", () => { vv.control.rescan_library(); });
     });
   })();
-  const stats = (function() {
+  const stats = (() => {
     const pub = {};
-    const zfill2 = function(i) {
+    const zfill2 = i => {
       if (i < 100) {
         return ("00" + i).slice(-2);
       }
       return i;
     };
-    const strtimedelta = function(i) {
+    const strtimedelta = i => {
       const uh = parseInt(i / (60 * 60), 10);
       const um = parseInt((i - uh * 60 * 60) / 60, 10);
       const us = parseInt(i - uh * 60 * 60 - um * 60, 10);
       return `${zfill2(uh)}:${zfill2(um)}:${zfill2(us)}`;
     };
 
-    const update_stats = function() {
+    const update_stats = () => {
       document.getElementById("stat-albums").textContent =
           vv.storage.stats.albums;
       document.getElementById("stat-artists").textContent =
@@ -1970,7 +1960,7 @@ vv.view.system = (function() {
       document.getElementById("stat-websockets").textContent =
           vv.storage.stats.subscribers;
     };
-    const update_time = function() {
+    const update_time = () => {
       const diff = parseInt(
           ((new Date()).getTime() - vv.storage.last_modified_ms.stats) / 1000,
           10);
@@ -1982,37 +1972,37 @@ vv.view.system = (function() {
       }
       document.getElementById("stat-uptime").textContent = strtimedelta(uptime);
     };
-    vv.control.addEventListener("poll", function() {
+    vv.control.addEventListener("poll", () => {
       if (document.getElementById("system-stats").classList.contains("on")) {
         update_time();
       }
     });
-    vv.control.addEventListener("stats", function() {
+    vv.control.addEventListener("stats", () => {
       if (document.getElementById("system-stats").classList.contains("on")) {
         update_stats();
       }
     });
-    pub.update = function() {
+    pub.update = () => {
       update_stats();
       update_time();
     };
     return pub;
   })();
-  /* const info = */ (function() {
-    vv.control.addEventListener("version", function() {
+  /* const info = */ (() => {
+    vv.control.addEventListener("version", () => {
       if (vv.storage.version.vv) {
         document.getElementById("version").textContent = vv.storage.version.vv;
         document.getElementById("go-version").textContent =
             vv.storage.version.go;
       }
     });
-    vv.control.addEventListener("start", function() {
+    vv.control.addEventListener("start", () => {
       document.getElementById("user-agent").textContent = navigator.userAgent;
     });
   })();
-  vv.control.addEventListener("start", function() {
+  vv.control.addEventListener("start", () => {
     const navs = document.getElementsByClassName("system-nav-item");
-    const showChild = function(e) {
+    const showChild = e => {
       for (const nav of navs) {
         if (nav === e.currentTarget) {
           if (nav.id === "system-nav-stats") {
@@ -2032,7 +2022,7 @@ vv.view.system = (function() {
     document.getElementById("modal-system-close")
         .addEventListener("click", vv.view.modal.hide);
   });
-  pub.show = function() {
+  pub.show = () => {
     document.getElementById("modal-background").classList.remove("hide");
     document.getElementById("modal-outer").classList.remove("hide");
     document.getElementById("modal-system").classList.remove("hide");
@@ -2041,8 +2031,8 @@ vv.view.system = (function() {
 })();
 
 // header
-(function() {
-  const update = function() {
+(() => {
+  const update = () => {
     const e = document.getElementById("header-back-label");
     const b = document.getElementById("header-back");
     const m = document.getElementById("header-main");
@@ -2074,33 +2064,30 @@ vv.view.system = (function() {
       }
     }
   };
-  vv.control.addEventListener("start", function() {
-    document.getElementById("header-back")
-        .addEventListener("click", function(e) {
-          if (vv.view.list.hidden()) {
-            if (vv.storage.current !== null) {
-              vv.model.list.abs(vv.storage.current);
-            }
-          } else {
-            vv.model.list.up();
-          }
-          vv.view.list.show();
-          e.stopPropagation();
-        });
-    document.getElementById("header-main")
-        .addEventListener("click", function(e) {
-          e.stopPropagation();
-          if (vv.storage.current !== null) {
-            vv.model.list.abs(vv.storage.current);
-          }
-          vv.view.main.show();
-          e.stopPropagation();
-        });
-    document.getElementById("header-system")
-        .addEventListener("click", function(e) {
-          vv.view.system.show();
-          e.stopPropagation();
-        });
+  vv.control.addEventListener("start", () => {
+    document.getElementById("header-back").addEventListener("click", e => {
+      if (vv.view.list.hidden()) {
+        if (vv.storage.current !== null) {
+          vv.model.list.abs(vv.storage.current);
+        }
+      } else {
+        vv.model.list.up();
+      }
+      vv.view.list.show();
+      e.stopPropagation();
+    });
+    document.getElementById("header-main").addEventListener("click", e => {
+      e.stopPropagation();
+      if (vv.storage.current !== null) {
+        vv.model.list.abs(vv.storage.current);
+      }
+      vv.view.main.show();
+      e.stopPropagation();
+    });
+    document.getElementById("header-system").addEventListener("click", e => {
+      vv.view.system.show();
+      e.stopPropagation();
+    });
     update();
     vv.model.list.addEventListener("changed", update);
     vv.model.list.addEventListener("update", update);
@@ -2108,35 +2095,31 @@ vv.view.system = (function() {
 })();
 
 // footer
-(function() {
-  vv.control.addEventListener("start", function() {
-    document.getElementById("control-prev")
-        .addEventListener("click", function(e) {
-          vv.control.prev();
-          e.stopPropagation();
-        });
+(() => {
+  vv.control.addEventListener("start", () => {
+    document.getElementById("control-prev").addEventListener("click", e => {
+      vv.control.prev();
+      e.stopPropagation();
+    });
     document.getElementById("control-toggleplay")
-        .addEventListener("click", function(e) {
+        .addEventListener("click", e => {
           vv.control.play_pause();
           e.stopPropagation();
         });
-    document.getElementById("control-next")
-        .addEventListener("click", function(e) {
-          vv.control.next();
-          e.stopPropagation();
-        });
-    document.getElementById("control-repeat")
-        .addEventListener("click", function(e) {
-          vv.control.toggle_repeat();
-          e.stopPropagation();
-        });
-    document.getElementById("control-random")
-        .addEventListener("click", function(e) {
-          vv.control.toggle_random();
-          e.stopPropagation();
-        });
+    document.getElementById("control-next").addEventListener("click", e => {
+      vv.control.next();
+      e.stopPropagation();
+    });
+    document.getElementById("control-repeat").addEventListener("click", e => {
+      vv.control.toggle_repeat();
+      e.stopPropagation();
+    });
+    document.getElementById("control-random").addEventListener("click", e => {
+      vv.control.toggle_random();
+      e.stopPropagation();
+    });
   });
-  vv.control.addEventListener("control", function() {
+  vv.control.addEventListener("control", () => {
     const toggleplay = document.getElementById("control-toggleplay");
     if (vv.storage.control.state === "play") {
       toggleplay.setAttribute("aria-label", toggleplay.dataset.ariaLabelPause);
@@ -2182,9 +2165,9 @@ vv.view.system = (function() {
   });
 })();
 
-vv.view.popup = (function() {
+vv.view.popup = (() => {
   const pub = {};
-  pub.show = function(target, description) {
+  pub.show = (target, description) => {
     const obj = document.getElementById("popup-" + target);
     if (!obj) {
       vv.view.popup.show("fixme", `popup-${target} is not found in html`);
@@ -2199,20 +2182,20 @@ vv.view.popup = (function() {
     obj.classList.add("show");
     obj.timestamp = (new Date()).getTime();
     obj.ttl = obj.timestamp + 4000;
-    setTimeout(function() {
+    setTimeout(() => {
       if ((new Date()).getTime() - obj.ttl > 0) {
         obj.classList.remove("show");
         obj.classList.add("hide");
       }
     }, 5000);
   };
-  pub.hide = function(target) {
+  pub.hide = target => {
     const obj = document.getElementById("popup-" + target);
     if (obj) {
       const now = (new Date()).getTime();
       if (now - obj.timestamp < 600) {
         obj.ttl = obj.timestamp + 500;
-        setTimeout(function() {
+        setTimeout(() => {
           if ((new Date()).getTime() - obj.ttl > 0) {
             obj.classList.remove("show");
             obj.classList.add("hide");
@@ -2229,8 +2212,8 @@ vv.view.popup = (function() {
 })();
 
 // elapsed circle/time updater
-(function() {
-  const update = function() {
+(() => {
+  const update = () => {
     const data = vv.storage.control;
     if ("state" in data) {
       const elapsed = parseInt(data.song_elapsed * 1000, 10);
@@ -2242,7 +2225,7 @@ vv.view.popup = (function() {
       const min = parseInt(current / 60, 10);
       const sec = current % 60;
       const label = min + ":" + ("0" + sec).slice(-2);
-      [].forEach.call(document.getElementsByClassName("elapsed"), function(x) {
+      [].forEach.call(document.getElementsByClassName("elapsed"), x => {
         if (x.textContent !== label) {
           x.textContent = label;
         }
@@ -2253,9 +2236,9 @@ vv.view.popup = (function() {
   vv.control.addEventListener("poll", update);
 })();
 
-(function() {
+(() => {
   const pub = {};
-  pub.hide = function() {
+  pub.hide = () => {
     document.getElementById("modal-background").classList.add("hide");
     document.getElementById("modal-outer").classList.add("hide");
     const ws = document.getElementsByClassName("modal-window");
@@ -2263,20 +2246,20 @@ vv.view.popup = (function() {
       w.classList.add("hide");
     }
   };
-  vv.control.addEventListener("start", function() {
+  vv.control.addEventListener("start", () => {
     document.getElementById("modal-background")
         .addEventListener("click", pub.hide);
     document.getElementById("modal-outer").addEventListener("click", pub.hide);
     const ws = document.getElementsByClassName("modal-window");
     for (const w of ws) {
-      w.addEventListener("click", function(e) { e.stopPropagation(); });
+      w.addEventListener("click", e => { e.stopPropagation(); });
     }
   });
   vv.view.modal.hide = pub.hide;
 })();
-vv.view.modal.help = (function() {
+vv.view.modal.help = (() => {
   const pub = {};
-  pub.show = function() {
+  pub.show = () => {
     const b = document.getElementById("modal-background");
     if (!b.classList.contains("hide")) {
       return;
@@ -2285,20 +2268,20 @@ vv.view.modal.help = (function() {
     document.getElementById("modal-outer").classList.remove("hide");
     document.getElementById("modal-help").classList.remove("hide");
   };
-  pub.hide = function() {
+  pub.hide = () => {
     document.getElementById("modal-background").classList.add("hide");
     document.getElementById("modal-outer").classList.add("hide");
     document.getElementById("modal-help").classList.add("hide");
   };
-  vv.control.addEventListener("start", function() {
+  vv.control.addEventListener("start", () => {
     document.getElementById("modal-help-close")
         .addEventListener("click", pub.hide);
   });
   return pub;
 })();
-vv.view.modal.song = (function() {
+vv.view.modal.song = (() => {
   const pub = {};
-  pub.show = function(song) {
+  pub.show = song => {
     const mustkeys = [
       "Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer",
       "Disc", "Track", "Composer", "Length"
@@ -2334,7 +2317,7 @@ vv.view.modal.song = (function() {
               if (targetValue.includes(value)) {
                 obj.dataset.value = targetValue;
                 obj.classList.add("modal-song-box-item-value-clickable");
-                obj.addEventListener("click", function(e) {
+                obj.addEventListener("click", e => {
                   const d = e.currentTarget.dataset;
                   vv.model.list.absaddr(d.root, d.value);
                   vv.view.list.show();
@@ -2362,12 +2345,12 @@ vv.view.modal.song = (function() {
     document.getElementById("modal-outer").classList.remove("hide");
     document.getElementById("modal-song").classList.remove("hide");
   };
-  pub.hide = function() {
+  pub.hide = () => {
     document.getElementById("modal-background").classList.add("hide");
     document.getElementById("modal-outer").classList.add("hide");
     document.getElementById("modal-song").classList.add("hide");
   };
-  vv.control.addEventListener("start", function() {
+  vv.control.addEventListener("start", () => {
     document.getElementById("modal-song-close")
         .addEventListener("click", pub.hide);
   });
@@ -2397,7 +2380,7 @@ vv.view.modal.song = (function() {
     };
   };
 
-  vv.control.addEventListener("start", function() {
+  vv.control.addEventListener("start", () => {
     const back = () => {
       if (vv.view.list.hidden()) {
         if (vv.storage.current !== null) {
@@ -2434,7 +2417,7 @@ vv.view.modal.song = (function() {
       [shift | ctrl]:
           {ArrowLeft: any(vv.control.prev), ArrowRight: any(vv.control.next)}
     };
-    document.addEventListener("keydown", function(e) {
+    document.addEventListener("keydown", e => {
       if (!document.getElementById("modal-background")
                .classList.contains("hide")) {
         if (e.key === "Escape" || e.key === "Esc") {
