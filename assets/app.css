@@ -503,7 +503,6 @@ button:hover {
   height: 70px;
   border-radius: 2px;
   object-fit: contain;
-  -o-object-fit: contain;
 }
 
 .album-detail-album {
@@ -536,7 +535,6 @@ button:hover {
   width: 150px;
   height: 150px;
   object-fit: contain;
-  -o-object-fit: contain;
 }
 
 .albumlist.grid .album-detail {
@@ -1063,7 +1061,6 @@ button:hover {
   height: 30px;
   width: calc(100px);
   border-width: 0;
-  -o-transform: scale(2);
   border-radius: 30px;
   transition: background-color 0.2s 0s ease, width 0.2s 0s ease;
 }
@@ -1810,7 +1807,6 @@ footer {
   padding: 2px;
   margin: 2px;
   object-fit: contain;
-  -o-object-fit: contain;
 }
 
 .modal-song-box-item-value-clickable {
