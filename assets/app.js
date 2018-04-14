@@ -1370,8 +1370,8 @@ vv.view.main = (function() {
   };
   const init = function() {
     document.getElementById("control-volume")
-        .addEventListener("change", function() {
-          vv.control.volume(parseInt(this.value, 10));
+        .addEventListener("change", function(e) {
+          vv.control.volume(parseInt(e.currentTarget.value, 10));
         });
     document.getElementById("main-cover").addEventListener("click", function() {
       if (vv.storage.current !== null) {
@@ -1871,9 +1871,10 @@ vv.view.system = (function() {
         ch.setAttribute("id", "device_" + o.outputname);
         ch.setAttribute("deviceid", o.outputid);
         ch.checked = o.outputenabled === "1";
-        ch.addEventListener("change", function() {
+        ch.addEventListener("change", function(e) {
           vv.control.output(
-              parseInt(this.getAttribute("deviceid"), 10), this.checked);
+              parseInt(e.currentTarget.getAttribute("deviceid"), 10),
+              e.currentTarget.checked);
         });
         li.appendChild(desc);
         li.appendChild(ch);
