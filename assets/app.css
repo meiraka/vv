@@ -105,6 +105,18 @@ footer {
   z-index: 1;
 }
 
+.lists {
+  display: block;
+  transition: transform 0.4s 0s ease;
+}
+
+.main {
+  display: flex;
+  left: -50%;
+  position: relative;
+  transition: transform 0.4s 0s ease;
+}
+
 @media (orientation: portrait) {
   main {
     width: 200%;
@@ -112,18 +124,6 @@ footer {
 
   .full {
     width: 100%;
-  }
-
-  .main {
-    display: flex;
-    position: relative;
-    left: -50%;
-    transition: transform 0.4s 0s ease;
-  }
-
-  .lists {
-    display: block;
-    transition: transform 0.4s 0s ease;
   }
 
   .main.swipe,
@@ -136,16 +136,13 @@ footer {
     transition: transform 0.4s 0s ease-out;
   }
 
-  .view-main .main {
+  .view-main .main,
+  .view-list .lists {
     transform: translate3d(0, 0, 0);
   }
 
   .view-main .lists {
     transform: translate3d(-100%, 0, 0);
-  }
-
-  .view-list .lists {
-    transform: translate3d(0, 0, 0);
   }
 
   .view-list .main {
@@ -163,11 +160,11 @@ footer {
   }
 
   .main {
-    display: flex;
+    transform: translate3d(100%, 0, 0);
   }
 
   .lists {
-    display: block;
+    transform: translate3d(0, 0, 0);
   }
 
   footer {
