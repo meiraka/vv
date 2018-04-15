@@ -1197,7 +1197,7 @@ vv.control = (() => {
 })();
 
 // background
-(() => {
+{
   let color = 128;
   const update_theme = () => {
     if (color < vv.storage.preferences.appearance.color_threshold) {
@@ -1258,7 +1258,7 @@ vv.control = (() => {
   vv.control.addEventListener("preferences", update);
   vv.control.addEventListener("preferences", update_theme);
   vv.control.addEventListener("start", update);
-})();
+}
 
 vv.view.main = (() => {
   const pub = {};
@@ -2023,7 +2023,7 @@ vv.view.system = (() => {
 })();
 
 // header
-(() => {
+{
   const update = () => {
     const e = document.getElementById("header-back-label");
     const b = document.getElementById("header-back");
@@ -2084,78 +2084,75 @@ vv.view.system = (() => {
     vv.model.list.addEventListener("changed", update);
     vv.model.list.addEventListener("update", update);
   });
-})();
+}
 
 // footer
-(() => {
-  vv.control.addEventListener("start", () => {
-    document.getElementById("control-prev").addEventListener("click", e => {
-      vv.control.prev();
-      e.stopPropagation();
-    });
-    document.getElementById("control-toggleplay")
-        .addEventListener("click", e => {
-          vv.control.play_pause();
-          e.stopPropagation();
-        });
-    document.getElementById("control-next").addEventListener("click", e => {
-      vv.control.next();
-      e.stopPropagation();
-    });
-    document.getElementById("control-repeat").addEventListener("click", e => {
-      vv.control.toggle_repeat();
-      e.stopPropagation();
-    });
-    document.getElementById("control-random").addEventListener("click", e => {
-      vv.control.toggle_random();
-      e.stopPropagation();
-    });
+vv.control.addEventListener("start", () => {
+  document.getElementById("control-prev").addEventListener("click", e => {
+    vv.control.prev();
+    e.stopPropagation();
   });
-  vv.control.addEventListener("control", () => {
-    const toggleplay = document.getElementById("control-toggleplay");
-    if (vv.storage.control.state === "play") {
-      toggleplay.setAttribute("aria-label", toggleplay.dataset.ariaLabelPause);
-      toggleplay.classList.add("pause");
-      toggleplay.classList.remove("play");
-    } else {
-      toggleplay.setAttribute("aria-label", toggleplay.dataset.ariaLabelPlay);
-      toggleplay.classList.add("play");
-      toggleplay.classList.remove("pause");
-    }
-    const repeat = document.getElementById("control-repeat");
-    if (vv.storage.control.single) {
-      repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOn);
-      repeat.classList.add("single-on");
-      repeat.classList.remove("single-off");
-    } else {
-      repeat.classList.add("single-off");
-      repeat.classList.remove("single-on");
-    }
-    if (vv.storage.control.repeat) {
-      if (!vv.storage.control.single) {
-        repeat.setAttribute("aria-label", repeat.dataset.ariaLabelSingleOff);
-      }
-      repeat.classList.add("on");
-      repeat.classList.remove("off");
-    } else {
-      if (!vv.storage.control.single) {
-        repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOff);
-      }
-      repeat.classList.add("off");
-      repeat.classList.remove("on");
-    }
-    const random = document.getElementById("control-random");
-    if (vv.storage.control.random) {
-      random.setAttribute("aria-label", random.dataset.ariaLabelOn);
-      random.classList.add("on");
-      random.classList.remove("off");
-    } else {
-      random.setAttribute("aria-label", random.dataset.ariaLabelOff);
-      random.classList.add("off");
-      random.classList.remove("on");
-    }
+  document.getElementById("control-toggleplay").addEventListener("click", e => {
+    vv.control.play_pause();
+    e.stopPropagation();
   });
-})();
+  document.getElementById("control-next").addEventListener("click", e => {
+    vv.control.next();
+    e.stopPropagation();
+  });
+  document.getElementById("control-repeat").addEventListener("click", e => {
+    vv.control.toggle_repeat();
+    e.stopPropagation();
+  });
+  document.getElementById("control-random").addEventListener("click", e => {
+    vv.control.toggle_random();
+    e.stopPropagation();
+  });
+});
+vv.control.addEventListener("control", () => {
+  const toggleplay = document.getElementById("control-toggleplay");
+  if (vv.storage.control.state === "play") {
+    toggleplay.setAttribute("aria-label", toggleplay.dataset.ariaLabelPause);
+    toggleplay.classList.add("pause");
+    toggleplay.classList.remove("play");
+  } else {
+    toggleplay.setAttribute("aria-label", toggleplay.dataset.ariaLabelPlay);
+    toggleplay.classList.add("play");
+    toggleplay.classList.remove("pause");
+  }
+  const repeat = document.getElementById("control-repeat");
+  if (vv.storage.control.single) {
+    repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOn);
+    repeat.classList.add("single-on");
+    repeat.classList.remove("single-off");
+  } else {
+    repeat.classList.add("single-off");
+    repeat.classList.remove("single-on");
+  }
+  if (vv.storage.control.repeat) {
+    if (!vv.storage.control.single) {
+      repeat.setAttribute("aria-label", repeat.dataset.ariaLabelSingleOff);
+    }
+    repeat.classList.add("on");
+    repeat.classList.remove("off");
+  } else {
+    if (!vv.storage.control.single) {
+      repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOff);
+    }
+    repeat.classList.add("off");
+    repeat.classList.remove("on");
+  }
+  const random = document.getElementById("control-random");
+  if (vv.storage.control.random) {
+    random.setAttribute("aria-label", random.dataset.ariaLabelOn);
+    random.classList.add("on");
+    random.classList.remove("off");
+  } else {
+    random.setAttribute("aria-label", random.dataset.ariaLabelOff);
+    random.classList.add("off");
+    random.classList.remove("on");
+  }
+});
 
 vv.view.popup = {
   show(target, description) {
@@ -2202,7 +2199,7 @@ vv.view.popup = {
 };
 
 // elapsed circle/time updater
-(() => {
+{
   const update = () => {
     const data = vv.storage.control;
     if ("state" in data) {
@@ -2224,29 +2221,27 @@ vv.view.popup = {
   };
   vv.control.addEventListener("control", update);
   vv.control.addEventListener("poll", update);
-})();
+}
 
-(() => {
-  const pub = {};
-  pub.hide = () => {
-    document.getElementById("modal-background").classList.add("hide");
-    document.getElementById("modal-outer").classList.add("hide");
-    const ws = document.getElementsByClassName("modal-window");
-    for (const w of ws) {
-      w.classList.add("hide");
-    }
-  };
-  vv.control.addEventListener("start", () => {
-    document.getElementById("modal-background")
-        .addEventListener("click", pub.hide);
-    document.getElementById("modal-outer").addEventListener("click", pub.hide);
-    const ws = document.getElementsByClassName("modal-window");
-    for (const w of ws) {
-      w.addEventListener("click", e => { e.stopPropagation(); });
-    }
-  });
-  vv.view.modal.hide = pub.hide;
-})();
+vv.view.modal.hide = () => {
+  document.getElementById("modal-background").classList.add("hide");
+  document.getElementById("modal-outer").classList.add("hide");
+  const ws = document.getElementsByClassName("modal-window");
+  for (const w of ws) {
+    w.classList.add("hide");
+  }
+};
+vv.control.addEventListener("start", () => {
+  document.getElementById("modal-background")
+      .addEventListener("click", vv.view.modal.hide);
+  document.getElementById("modal-outer")
+      .addEventListener("click", vv.view.modal.hide);
+  const ws = document.getElementsByClassName("modal-window");
+  for (const w of ws) {
+    w.addEventListener("click", e => { e.stopPropagation(); });
+  }
+});
+
 vv.view.modal.help = (() => {
   const pub = {};
   pub.show = () => {
@@ -2369,44 +2364,43 @@ vv.view.modal.song = (() => {
       return false;
     };
   };
-
-  vv.control.addEventListener("start", () => {
-    const back = () => {
-      if (vv.view.list.hidden()) {
-        if (vv.storage.current !== null) {
-          vv.model.list.abs(vv.storage.current);
-        }
-      } else {
-        vv.model.list.up();
+  const back = () => {
+    if (vv.view.list.hidden()) {
+      if (vv.storage.current !== null) {
+        vv.model.list.abs(vv.storage.current);
       }
-      vv.view.list.show();
-    };
-    const keymap = {
-      [none]: {
-        Enter() { return !vv.view.list.hidden() && vv.view.list.activate(); },
-        Backspace: any(back),
-        ArrowLeft: inList(vv.view.list.left),
-        ArrowUp: inList(vv.view.list.up),
-        ArrowRight: inList(vv.view.list.right),
-        ArrowDown: inList(vv.view.list.down),
-        [" "]: any(vv.control.play_pause),
-        ["?"]: any(vv.view.modal.help.show)
-      },
-      [shift]: {["?"]: any(vv.view.modal.help.show)},
-      [meta]: {
-        ArrowLeft: any(back),
-        ArrowRight: any(() => {
-          if (vv.model.list.rootname() !== "root") {
-            if (vv.storage.current !== null) {
-              vv.model.list.abs(vv.storage.current);
-            }
+    } else {
+      vv.model.list.up();
+    }
+    vv.view.list.show();
+  };
+  const keymap = {
+    [none]: {
+      Enter() { return !vv.view.list.hidden() && vv.view.list.activate(); },
+      Backspace: any(back),
+      ArrowLeft: inList(vv.view.list.left),
+      ArrowUp: inList(vv.view.list.up),
+      ArrowRight: inList(vv.view.list.right),
+      ArrowDown: inList(vv.view.list.down),
+      [" "]: any(vv.control.play_pause),
+      ["?"]: any(vv.view.modal.help.show)
+    },
+    [shift]: {["?"]: any(vv.view.modal.help.show)},
+    [meta]: {
+      ArrowLeft: any(back),
+      ArrowRight: any(() => {
+        if (vv.model.list.rootname() !== "root") {
+          if (vv.storage.current !== null) {
+            vv.model.list.abs(vv.storage.current);
           }
-          vv.view.main.show();
-        })
-      },
-      [shift | ctrl]:
-          {ArrowLeft: any(vv.control.prev), ArrowRight: any(vv.control.next)}
-    };
+        }
+        vv.view.main.show();
+      })
+    },
+    [shift | ctrl]:
+        {ArrowLeft: any(vv.control.prev), ArrowRight: any(vv.control.next)}
+  };
+  vv.control.addEventListener("start", () => {
     document.addEventListener("keydown", e => {
       if (!document.getElementById("modal-background")
                .classList.contains("hide")) {
