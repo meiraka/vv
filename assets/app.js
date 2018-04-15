@@ -34,37 +34,36 @@ vv.pubsub = {
     }
   }
 };
-vv.song = (() => {
-  const pub = {};
-  const tag = (song, keys, other) => {
+vv.song = {
+  tag(song, keys, other) {
     for (const key of keys) {
       if (key in song) {
         return song[key];
       }
     }
     return other;
-  };
-  const getTagOrElseMulti = (song, key, other) => {
+  },
+  getTagOrElseMulti(song, key, other) {
     if (key in song) {
       return song[key];
     } else if (key === "AlbumSort") {
-      return tag(song, ["Album"], other);
+      return vv.song.tag(song, ["Album"], other);
     } else if (key === "ArtistSort") {
-      return tag(song, ["Artist"], other);
+      return vv.song.tag(song, ["Artist"], other);
     } else if (key === "AlbumArtist") {
-      return tag(song, ["Artist"], other);
+      return vv.song.tag(song, ["Artist"], other);
     } else if (key === "AlbumArtistSort") {
-      return tag(song, ["AlbumArtist", "Artist"], other);
+      return vv.song.tag(song, ["AlbumArtist", "Artist"], other);
     } else if (key === "AlbumSort") {
-      return tag(song, ["Album"], other);
+      return vv.song.tag(song, ["Album"], other);
     }
     return other;
-  };
-  pub.getOrElseMulti = (song, key, other) => {
+  },
+  getOrElseMulti(song, key, other) {
     let ret = [];
     const keys = key.split("-");
     for (const key of keys) {
-      const t = getTagOrElseMulti(song, key, other);
+      const t = vv.song.getTagOrElseMulti(song, key, other);
       if (!ret.length) {
         ret = t;
       } else if (t.length !== 0) {
@@ -78,35 +77,34 @@ vv.song = (() => {
       }
     }
     return ret;
-  };
-  const getOrElse = (song, key, other) => {
-    const ret = pub.getOrElseMulti(song, key, null);
+  },
+  getOrElse(song, key, other) {
+    const ret = vv.song.getOrElseMulti(song, key, null);
     if (!ret) {
       return other;
     }
     return ret.join();
-  };
-  const getOneOrElse = (song, key, other) => {
+  },
+  getOne(song, key) {
+    const other = `[no ${key}]`;
     if (!song.keys) {
-      return pub.getOrElseMulti(song, key, [other])[0];
+      return vv.song.getOrElseMulti(song, key, [other])[0];
     }
     for (const kv of song.keys) {
       if (kv[0] === key) {
         return kv[1];
       }
     }
-    return pub.getOrElseMulti(song, key, [other])[0];
-  };
-  pub.getOne =
-      (song, key) => { return getOneOrElse(song, key, `[no ${key}]`); };
-  pub.get = (song, key) => { return getOrElse(song, key, `[no ${key}]`); };
-  pub.sortkeys = (song, keys, memo) => {
+    return vv.song.getOrElseMulti(song, key, [other])[0];
+  },
+  get(song, key) { return vv.song.getOrElse(song, key, `[no ${key}]`); },
+  sortkeys(song, keys, memo) {
     let songs = [Object.assign({}, song)];
     songs[0].sortkey = "";
     songs[0].keys = [];
     for (const key of keys) {
       const writememo = memo.indexOf(key) !== -1;
-      const values = pub.getOrElseMulti(song, key, []);
+      const values = vv.song.getOrElseMulti(song, key, []);
       if (values.length === 0) {
         for (const song of songs) {
           song.sortkey += " ";
@@ -138,10 +136,8 @@ vv.song = (() => {
       }
     }
     return songs;
-  };
-
-  return pub;
-})();
+  }
+};
 vv.songs = {
   sort(songs, keys, memo) {
     const newsongs = [];
@@ -208,15 +204,40 @@ vv.songs = {
     return songs;
   }
 };
-vv.storage = (() => {
-  const idbUpdateTables = e => {
+vv.storage = {
+  _listener: {},
+  loaded: false,
+  root: "root",
+  tree: [],
+  current: null,
+  control: {},
+  library: [],
+  outputs: [],
+  stats: {},
+  last_modified: {},
+  last_modified_ms: {},
+  version: {},
+  preferences: {
+    volume: {show: true, max: "100"},
+    playback: {view_follow: true},
+    appearance: {
+      color_threshold: 128,
+      animation: true,
+      background_image: true,
+      background_image_blur: 32,
+      circled_image: true,
+      gridview_album: true,
+      auto_hide_scrollbar: true
+    }
+  },
+  _idbUpdateTables(e) {
     const db = e.target.result;
     const st = db.createObjectStore("cache", {keyPath: "id"});
     const close = () => { db.close(); };
     st.onsuccess = close;
     st.onerror = close;
-  };
-  const cacheLoad = (key, callback) => {
+  },
+  _cacheLoad(key, callback) {
     if (!window.indexedDB) {
       const ls = localStorage[key + "_last_modified"];
       const data = localStorage[key];
@@ -229,7 +250,7 @@ vv.storage = (() => {
     }
     const req = window.indexedDB.open("storage", 1);
     req.onerror = () => {};
-    req.onupgradeneeded = idbUpdateTables;
+    req.onupgradeneeded = vv.storage._idbUpdateTables;
     req.onsuccess = e => {
       const db = e.target.result;
       const t = db.transaction("cache", "readonly");
@@ -249,9 +270,8 @@ vv.storage = (() => {
         db.close();
       };
     };
-  };
-
-  const cacheSave = (key, value, date) => {
+  },
+  _cacheSave(key, value, date) {
     if (!window.indexedDB) {
       const ls = localStorage[key + "_last_modified"];
       if (ls && ls === date) {
@@ -263,7 +283,7 @@ vv.storage = (() => {
     }
     const req = window.indexedDB.open("storage", 1);
     req.onerror = () => {};
-    req.onupgradeneeded = idbUpdateTables;
+    req.onupgradeneeded = vv.storage._idbUpdateTables;
     req.onsuccess = e => {
       const db = e.target.result;
       const t = db.transaction("cache", "readwrite");
@@ -280,77 +300,49 @@ vv.storage = (() => {
         req.onsuccess = () => { db.close(); };
       };
     };
-  };
-
-  const pub = {
-    loaded: false,
-    root: "root",
-    tree: [],
-    current: null,
-    control: {},
-    library: [],
-    outputs: [],
-    stats: {},
-    last_modified: {},
-    last_modified_ms: {},
-    version: {}
-  };
-
-  const listener = {onload: []};
-  pub.addEventListener = (e, f) => { vv.pubsub.add(listener, e, f); };
-  const raiseEvent = e => { vv.pubsub.raise(listener, e); };
-  pub.preferences = {
-    volume: {show: true, max: "100"},
-    playback: {view_follow: true},
-    appearance: {
-      color_threshold: 128,
-      animation: true,
-      background_image: true,
-      background_image_blur: 32,
-      circled_image: true,
-      gridview_album: true,
-      auto_hide_scrollbar: true
+  },
+  addEventListener(e, f) { vv.pubsub.add(vv.storage._listener, e, f); },
+  save: {
+    current() {
+      try {
+        localStorage.current = JSON.stringify(vv.storage.current);
+        localStorage.current_last_modified = vv.storage.last_modified.current;
+      } catch (e) {
+      }
+    },
+    root() {
+      try {
+        localStorage.root = vv.storage.root;
+      } catch (e) {
+      }
+    },
+    preferences() {
+      try {
+        localStorage.preferences = JSON.stringify(vv.storage.preferences);
+      } catch (e) {
+      }
+    },
+    sorted() {
+      try {
+        localStorage.sorted = JSON.stringify(vv.storage.sorted);
+        localStorage.sorted_last_modified = vv.storage.last_modified.sorted;
+      } catch (e) {
+      }
+    },
+    library() {
+      try {
+        vv.storage._cacheSave(
+            "library", vv.storage.library, vv.storage.last_modified.library);
+      } catch (e) {
+      }
     }
-  };
-  pub.save = {};
-  pub.save.current = () => {
-    try {
-      localStorage.current = JSON.stringify(pub.current);
-      localStorage.current_last_modified = pub.last_modified.current;
-    } catch (e) {
-    }
-  };
-  pub.save.root = () => {
-    try {
-      localStorage.root = pub.root;
-    } catch (e) {
-    }
-  };
-  pub.save.preferences = () => {
-    try {
-      localStorage.preferences = JSON.stringify(pub.preferences);
-    } catch (e) {
-    }
-  };
-  pub.save.sorted = () => {
-    try {
-      localStorage.sorted = JSON.stringify(pub.sorted);
-      localStorage.sorted_last_modified = pub.last_modified.sorted;
-    } catch (e) {
-    }
-  };
-  pub.save.library = () => {
-    try {
-      cacheSave("library", pub.library, pub.last_modified.library);
-    } catch (e) {
-    }
-  };
-  pub.load = () => {
+  },
+  load() {
     try {
       if (localStorage.root && localStorage.root.length !== 0) {
-        pub.root = localStorage.root;
-        if (pub.root !== "root") {
-          pub.tree.push(["root", pub.root]);
+        vv.storage.root = localStorage.root;
+        if (vv.storage.root !== "root") {
+          vv.storage.tree.push(["root", vv.storage.root]);
         }
       }
       if (localStorage.preferences) {
@@ -359,8 +351,8 @@ vv.storage = (() => {
           if (c.hasOwnProperty(i)) {
             for (const j in c[i]) {
               if (c[i].hasOwnProperty(j)) {
-                if (pub.preferences[i]) {
-                  pub.preferences[i][j] = c[i][j];
+                if (vv.storage.preferences[i]) {
+                  vv.storage.preferences[i][j] = c[i][j];
                 }
               }
             }
@@ -370,40 +362,40 @@ vv.storage = (() => {
       if (localStorage.current && localStorage.current_last_modified) {
         const current = JSON.parse(localStorage.current);
         if (Object.prototype.toString.call(current.file) === "[object Array]") {
-          pub.current = current;
-          pub.last_modified.current = localStorage.current_last_modified;
+          vv.storage.current = current;
+          vv.storage.last_modified.current = localStorage.current_last_modified;
         }
       }
       if (localStorage.sorted && localStorage.sorted_last_modified) {
         const sorted = JSON.parse(localStorage.sorted);
-        pub.sorted = sorted;
-        pub.last_modified.sorted = localStorage.sorted_last_modified;
+        vv.storage.sorted = sorted;
+        vv.storage.last_modified.sorted = localStorage.sorted_last_modified;
       }
-      cacheLoad("library", (data, date) => {
+      vv.storage._cacheLoad("library", (data, date) => {
         if (data && date) {
-          pub.library = data;
-          pub.last_modified.library = date;
+          vv.storage.library = data;
+          vv.storage.last_modified.library = date;
         }
-        pub.loaded = true;
-        raiseEvent("onload");
+        vv.storage.loaded = true;
+        vv.pubsub.raise(vv.storage._listener, "onload");
       });
     } catch (e) {
-      pub.loaded = true;
-      raiseEvent("onload");
+      vv.storage.loaded = true;
+      vv.pubsub.raise(vv.storage._listener, "onload");
       // private browsing
     }
     // Mobile
     if (navigator.userAgent.indexOf("Mobile") > 1) {
-      pub.preferences.appearance.auto_hide_scrollbar = false;
+      vv.storage.preferences.appearance.auto_hide_scrollbar = false;
     }
-  };
-  pub.load();
-  return pub;
-})();
+  }
+};
+vv.storage.load();
 
-vv.model.list = (() => {
-  const pub = {};
-  const library = {
+vv.model.list = {
+  focus: {},
+  child: null,
+  library: {
     AlbumArtist: [],
     Album: [],
     Artist: [],
@@ -411,8 +403,8 @@ vv.model.list = (() => {
     Date: [],
     Composer: [],
     Performer: []
-  };
-  pub.TREE = Object.freeze({
+  },
+  TREE: {
     AlbumArtist: {
       sort: [
         "AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title",
@@ -454,27 +446,24 @@ vv.model.list = (() => {
       ],
       tree: [["Performer", "plain"], ["Album", "album"], ["Title", "song"]]
     }
-  });
-  let focus = {};
-  let child = null;
-  let list_cache = {};
-  const listener = {changed: [], update: []};
-  pub.addEventListener = (e, f) => { vv.pubsub.add(listener, e, f); };
-  pub.removeEventListener = (e, f) => { vv.pubsub.rm(listener, e, f); };
-  const raiseEvent = e => { vv.pubsub.raise(listener, e); };
-  const mkmemo = key => {
+  },
+  _listener: {},
+  addEventListener(e, f) { vv.pubsub.add(vv.model.list._listener, e, f); },
+  removeEventListener(e, f) { vv.pubsub.rm(vv.model.list._listener, e, f); },
+  _mkmemo(key) {
     const ret = [];
-    for (const leef of pub.TREE[key].tree) {
+    for (const leef of vv.model.list.TREE[key].tree) {
       ret.push(leef[0]);
     }
     return ret;
-  };
-  const list_child_cache = [{}, {}, {}, {}, {}, {}];
-  const list_child = () => {
-    const root = pub.rootname();
-    if (library[root].length === 0) {
-      library[root] =
-          vv.songs.sort(vv.storage.library, pub.TREE[root].sort, mkmemo(root));
+  },
+  _list_child_cache: [{}, {}, {}, {}, {}, {}],
+  list_child() {
+    const root = vv.model.list.rootname();
+    if (vv.model.list.library[root].length === 0) {
+      vv.model.list.library[root] = vv.songs.sort(
+          vv.storage.library, vv.model.list.TREE[root].sort,
+          vv.model.list._mkmemo(root));
     }
     const filters = {};
     for (let i = 0, imax = vv.storage.tree.length; i < imax; i++) {
@@ -484,65 +473,74 @@ vv.model.list = (() => {
       filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
     }
     const ret = {};
-    ret.key = pub.TREE[root].tree[vv.storage.tree.length - 1][0];
-    ret.songs = library[root];
+    ret.key = vv.model.list.TREE[root].tree[vv.storage.tree.length - 1][0];
+    ret.songs = vv.model.list.library[root];
     ret.songs = vv.songs.filter(ret.songs, filters);
     ret.songs = vv.songs.uniq(ret.songs, ret.key);
-    ret.style = pub.TREE[root].tree[vv.storage.tree.length - 1][1];
-    ret.isdir = vv.storage.tree.length !== pub.TREE[root].tree.length;
+    ret.style = vv.model.list.TREE[root].tree[vv.storage.tree.length - 1][1];
+    ret.isdir = vv.storage.tree.length !== vv.model.list.TREE[root].tree.length;
     return ret;
-  };
-  const list_root = () => {
+  },
+  list_root() {
     const ret = [];
-    for (const key in pub.TREE) {
-      if (pub.TREE.hasOwnProperty(key)) {
+    for (const key in vv.model.list.TREE) {
+      if (vv.model.list.TREE.hasOwnProperty(key)) {
         ret.push({root: [key]});
       }
     }
     return {key: "root", songs: ret, style: "plain", isdir: true};
-  };
-  const update_list = () => {
-    if (pub.rootname() === "root") {
-      list_cache = list_root();
+  },
+  _list_cache: {},
+  update_list() {
+    if (vv.model.list.rootname() === "root") {
+      vv.model.list._list_cache = vv.model.list.list_root();
       return true;
     }
-    const cache = list_child_cache[vv.storage.tree.length - 1];
+    const cache = vv.model.list._list_child_cache[vv.storage.tree.length - 1];
     const pwd = vv.storage.tree.join();
     if (cache.pwd === pwd) {
-      list_cache = cache.data;
+      vv.model.list._list_cache = cache.data;
       return false;
     }
-    list_cache = list_child();
-    if (list_cache.songs.length === 0) {
-      pub.up();
+    vv.model.list._list_cache = vv.model.list.list_child();
+    if (vv.model.list._list_cache.songs.length === 0) {
+      vv.model.list.up();
     } else {
-      list_child_cache[vv.storage.tree.length - 1].pwd = pwd;
-      list_child_cache[vv.storage.tree.length - 1].data = list_cache;
+      vv.model.list._list_child_cache[vv.storage.tree.length - 1].pwd = pwd;
+      vv.model.list._list_child_cache[vv.storage.tree.length - 1].data =
+          vv.model.list._list_cache;
     }
     return true;
-  };
-  const updateData = data => {
-    for (let i = 0, imax = list_child_cache.length; i < imax; i++) {
-      list_child_cache[i] = {};
+  },
+  list() {
+    if (!vv.model.list._list_cache.songs ||
+        !vv.model.list._list_cache.songs.length === 0) {
+      vv.model.list.update_list();
     }
-    for (const key in pub.TREE) {
-      if (pub.TREE.hasOwnProperty(key)) {
+    return vv.model.list._list_cache;
+  },
+  updateData(data) {
+    for (let i = 0, imax = vv.model.list._list_child_cache.length; i < imax;
+         i++) {
+      vv.model.list._list_child_cache[i] = {};
+    }
+    for (const key in vv.model.list.TREE) {
+      if (vv.model.list.TREE.hasOwnProperty(key)) {
         if (key === vv.storage.root) {
-          library[key] = vv.songs.sort(data, pub.TREE[key].sort, mkmemo(key));
+          vv.model.list.library[key] = vv.songs.sort(
+              data, vv.model.list.TREE[key].sort, vv.model.list._mkmemo(key));
         } else {
-          library[key] = [];
+          vv.model.list.library[key] = [];
         }
       }
     }
-  };
-
-  pub.update = data => {
-    updateData(data);
-    update_list();
-    raiseEvent("update");
-  };
-
-  pub.rootname = () => {
+  },
+  update(data) {
+    vv.model.list.updateData(data);
+    vv.model.list.update_list();
+    vv.pubsub.raise(vv.model.list._listener, "update");
+  },
+  rootname() {
     let r = "root";
     if (vv.storage.tree.length !== 0) {
       r = vv.storage.tree[0][1];
@@ -552,68 +550,69 @@ vv.model.list = (() => {
       vv.storage.save.root();
     }
     return r;
-  };
-  pub.filters = pos => { return library[pub.rootname()][pos].keys; };
-  pub.focused = () => { return [focus, child]; };
-  pub.sortkeys = () => {
-    const r = pub.rootname();
+  },
+  filters(pos) {
+    return vv.model.list.library[vv.model.list.rootname()][pos].keys;
+  },
+  sortkeys() {
+    const r = vv.model.list.rootname();
     if (r === "root") {
       return [];
     }
-    return pub.TREE[r].sort;
-  };
-  pub.up = () => {
-    const songs = pub.list().songs;
+    return vv.model.list.TREE[r].sort;
+  },
+  up() {
+    const songs = vv.model.list.list().songs;
     if (songs[0]) {
-      focus = songs[0];
-      if (pub.rootname() === "root") {
-        child = null;
+      vv.model.list.focus = songs[0];
+      if (vv.model.list.rootname() === "root") {
+        vv.model.list.child = null;
       } else {
-        child = vv.storage.tree[vv.storage.tree.length - 1][1];
+        vv.model.list.child = vv.storage.tree[vv.storage.tree.length - 1][1];
       }
     }
-    if (pub.rootname() !== "root") {
+    if (vv.model.list.rootname() !== "root") {
       vv.storage.tree.pop();
     }
-    update_list();
-    if (pub.list().songs.length === 1 && vv.storage.tree.length !== 0) {
-      pub.up();
+    vv.model.list.update_list();
+    if (vv.model.list.list().songs.length === 1 &&
+        vv.storage.tree.length !== 0) {
+      vv.model.list.up();
     } else {
-      raiseEvent("changed");
+      vv.pubsub.raise(vv.model.list._listener, "changed");
     }
-  };
-  pub.TREE = pub.TREE;
-  pub.down = value => {
-    const r = pub.rootname();
+  },
+  down(value) {
+    const r = vv.model.list.rootname();
     let key = "root";
     if (r !== "root") {
-      key = pub.TREE[r].tree[vv.storage.tree.length - 1][0];
+      key = vv.model.list.TREE[r].tree[vv.storage.tree.length - 1][0];
     }
     vv.storage.tree.push([key, value]);
-    focus = {};
-    child = null;
-    update_list();
-    const songs = pub.list().songs;
+    vv.model.list.focus = {};
+    vv.model.list.child = null;
+    vv.model.list.update_list();
+    const songs = vv.model.list.list().songs;
     if (songs.length === 1 &&
-        pub.TREE[r].tree.length !== vv.storage.tree.length) {
-      pub.down(vv.song.get(songs[0], pub.list().key));
+        vv.model.list.TREE[r].tree.length !== vv.storage.tree.length) {
+      vv.model.list.down(vv.song.get(songs[0], vv.model.list.list().key));
     } else {
-      raiseEvent("changed");
+      vv.pubsub.raise(vv.model.list._listener, "changed");
     }
-  };
-  pub.absaddr = (first, second) => {
+  },
+  absaddr(first, second) {
     vv.storage.tree.splice(0, vv.storage.tree.length);
     vv.storage.tree.push(["root", first]);
-    pub.down(second);
-  };
-  const absFallback = song => {
-    if (pub.rootname() !== "root" && song.file) {
+    vv.model.list.down(second);
+  },
+  absFallback(song) {
+    if (vv.model.list.rootname() !== "root" && song.file) {
       const r = vv.storage.tree[0];
       vv.storage.tree.length = 0;
       vv.storage.tree.splice(0, vv.storage.tree.length);
       vv.storage.tree.push(r);
       const root = vv.storage.tree[0][1];
-      const selected = pub.TREE[root].tree;
+      const selected = vv.model.list.TREE[root].tree;
       for (let i = 0, imax = selected.length; i < imax; i++) {
         if (i === selected.length - 1) {
           break;
@@ -621,28 +620,28 @@ vv.model.list = (() => {
         const key = selected[i][0];
         vv.storage.tree.push([key, vv.song.getOne(song, key)]);
       }
-      update_list();
-      const songs = pub.list().songs;
+      vv.model.list.update_list();
+      const songs = vv.model.list.list().songs;
       for (const candidate of songs) {
         if (candidate.file && candidate.file[0] === song.file[0]) {
-          focus = candidate;
-          child = null;
+          vv.model.list.focus = candidate;
+          vv.model.list.child = null;
           break;
         }
       }
     } else {
       vv.storage.tree.splice(0, vv.storage.tree.length);
-      update_list();
+      vv.model.list.update_list();
     }
-    raiseEvent("changed");
-  };
-  const absSorted = song => {
+    vv.pubsub.raise(vv.model.list._listener, "changed");
+  },
+  absSorted(song) {
     let root = "";
     const pos = parseInt(song.Pos[0], 10);
     const keys = vv.storage.sorted.keys.join();
-    for (const key in pub.TREE) {
-      if (pub.TREE.hasOwnProperty(key)) {
-        if (pub.TREE[key].sort.join() === keys) {
+    for (const key in vv.model.list.TREE) {
+      if (vv.model.list.TREE.hasOwnProperty(key)) {
+        if (vv.model.list.TREE[key].sort.join() === keys) {
           root = key;
           break;
         }
@@ -652,11 +651,12 @@ vv.model.list = (() => {
       vv.view.popup.show("fixme", `modal: unknown sort keys: ${keys}`);
       return;
     }
-    let songs = library[root];
+    let songs = vv.model.list.library[root];
     if (!songs || songs.length === 0) {
-      library[root] =
-          vv.songs.sort(vv.storage.library, pub.TREE[root].sort, mkmemo(root));
-      songs = library[root];
+      vv.model.list.library[root] = vv.songs.sort(
+          vv.storage.library, vv.model.list.TREE[root].sort,
+          vv.model.list._mkmemo(root));
+      songs = vv.model.list.library[root];
       if (songs.length === 0) {
         return;
       }
@@ -669,54 +669,50 @@ vv.model.list = (() => {
       return;
     }
     if (songs[pos].file[0] === song.file[0]) {
-      focus = songs[pos];
-      child = null;
+      vv.model.list.focus = songs[pos];
+      vv.model.list.child = null;
       vv.storage.tree.length = 0;
       vv.storage.tree.push(["root", root]);
-      for (let i = 0; i < focus.keys.length - 1; i++) {
-        vv.storage.tree.push(focus.keys[i]);
+      for (let i = 0; i < vv.model.list.focus.keys.length - 1; i++) {
+        vv.storage.tree.push(vv.model.list.focus.keys[i]);
       }
-      update_list();
-      raiseEvent("changed");
+      vv.model.list.update_list();
+      vv.pubsub.raise(vv.model.list._listener, "changed");
     } else {
-      absFallback(song);
+      vv.model.list.absFallback(song);
     }
-  };
-  pub.abs = song => {
+  },
+  abs(song) {
     if (vv.storage.sorted && vv.storage.sorted.sorted) {
-      absSorted(song);
+      vv.model.list.absSorted(song);
     } else {
-      absFallback(song);
+      vv.model.list.absFallback(song);
     }
-  };
-  pub.list = () => {
-    if (!list_cache.songs || !list_cache.songs.length === 0) {
-      update_list();
-    }
-    return list_cache;
-  };
-  pub.parent = () => {
-    const root = pub.rootname();
+  },
+  parent() {
+    const root = vv.model.list.rootname();
     if (root === "root") {
       return;
     }
-    const v = pub.list().songs;
+    const v = vv.model.list.list().songs;
     if (vv.storage.tree.length > 1) {
-      const key = pub.TREE[root].tree[vv.storage.tree.length - 2][0];
-      const style = pub.TREE[root].tree[vv.storage.tree.length - 2][1];
+      const key = vv.model.list.TREE[root].tree[vv.storage.tree.length - 2][0];
+      const style =
+          vv.model.list.TREE[root].tree[vv.storage.tree.length - 2][1];
       return {key: key, song: v[0], style: style, isdir: true};
     }
     return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
-  };
-  pub.grandparent = () => {
-    const root = pub.rootname();
+  },
+  grandparent() {
+    const root = vv.model.list.rootname();
     if (root === "root") {
       return;
     }
-    const v = pub.list().songs;
+    const v = vv.model.list.list().songs;
     if (vv.storage.tree.length > 2) {
-      const key = pub.TREE[root].tree[vv.storage.tree.length - 3][0];
-      const style = pub.TREE[root].tree[vv.storage.tree.length - 3][1];
+      const key = vv.model.list.TREE[root].tree[vv.storage.tree.length - 3][0];
+      const style =
+          vv.model.list.TREE[root].tree[vv.storage.tree.length - 3][1];
       return {key: key, song: v[0], style: style, isdir: true};
     } else if (vv.storage.tree.length === 2) {
       return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
@@ -727,15 +723,14 @@ vv.model.list = (() => {
       style: "plain",
       isdir: true
     };
-  };
-  if (vv.storage.loaded) {
-    updateData(vv.storage.library);
-  } else {
-    vv.storage.addEventListener(
-        "onload", () => { updateData(vv.storage.library); });
   }
-  return pub;
-})();
+};
+if (vv.storage.loaded) {
+  vv.model.list.updateData(vv.storage.library);
+} else {
+  vv.storage.addEventListener(
+      "onload", () => { vv.model.list.updateData(vv.storage.library); });
+}
 vv.control = (() => {
   const pub = {};
   const listener = {};
@@ -1426,9 +1421,8 @@ vv.view.list = (() => {
     let focus = null;
     let viewNowPlaying = false;
     const rootname = vv.model.list.rootname();
-    const f = vv.model.list.focused();
-    const focusSong = f[0];
-    const focusParent = f[1];
+    const focusSong = vv.model.list.focus;
+    const focusParent = vv.model.list.child;
     for (const listitem of ul.children) {
       if (listitem.classList.contains("list-header")) {
         continue;
@@ -2163,9 +2157,8 @@ vv.view.system = (() => {
   });
 })();
 
-vv.view.popup = (() => {
-  const pub = {};
-  pub.show = (target, description) => {
+vv.view.popup = {
+  show(target, description) {
     const obj = document.getElementById("popup-" + target);
     if (!obj) {
       vv.view.popup.show("fixme", `popup-${target} is not found in html`);
@@ -2186,8 +2179,8 @@ vv.view.popup = (() => {
         obj.classList.add("hide");
       }
     }, 5000);
-  };
-  pub.hide = target => {
+  },
+  hide(target) {
     const obj = document.getElementById("popup-" + target);
     if (obj) {
       const now = (new Date()).getTime();
@@ -2205,9 +2198,8 @@ vv.view.popup = (() => {
         obj.classList.add("hide");
       }
     }
-  };
-  return pub;
-})();
+  }
+};
 
 // elapsed circle/time updater
 (() => {
