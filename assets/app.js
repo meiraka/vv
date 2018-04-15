@@ -738,7 +738,7 @@ vv.control = (() => {
   pub.removeEventListener = (e, f) => { vv.pubsub.rm(listener, e, f); };
   pub.raiseEvent = e => { vv.pubsub.raise(listener, e); };
 
-  pub.swipe = (element, f, resetFunc, leftElement) => {
+  pub.swipe = (element, f, resetFunc, leftElement, landscape) => {
     element.swipe_target = f;
     let starttime = 0;
     let now = 0;
@@ -748,7 +748,8 @@ vv.control = (() => {
     let diff_y = 0;
     let swipe = false;
     const start = e => {
-      if (e.buttons && e.buttons !== 1) {
+      if ((e.buttons && e.buttons !== 1) ||
+          (landscape && window.innerHeight < window.innerWidth)) {
         return;
       }
       const t = e.touches ? e.touches[0] : e;
@@ -772,7 +773,10 @@ vv.control = (() => {
         leftElement.classList.add("swiped");
       }
       if (!resetFunc) {
-        e.currentTarget.style.transform = "translate3d(0,0,0)";
+        e.currentTarget.style.transform = "";
+        if (leftElement) {
+          leftElement.style.transform = "";
+        }
       }
       setTimeout(() => {
         element.classList.remove("swiped");
@@ -790,7 +794,8 @@ vv.control = (() => {
       }
     };
     const move = e => {
-      if (e.buttons === 0 || (e.buttons && e.buttons !== 1) || !swipe) {
+      if (e.buttons === 0 || (e.buttons && e.buttons !== 1) || !swipe ||
+          (landscape && window.innerHeight < window.innerWidth)) {
         cancel(e);
         return;
       }
@@ -811,7 +816,8 @@ vv.control = (() => {
       }
     };
     const end = e => {
-      if ((e.buttons && e.buttons !== 1) || !swipe) {
+      if ((e.buttons && e.buttons !== 1) || !swipe ||
+          (landscape && window.innerHeight < window.innerWidth)) {
         cancel(e);
         return;
       }
@@ -1356,7 +1362,7 @@ vv.view.main = (() => {
     document.getElementById("control-volume").addEventListener("change", e => {
       vv.control.volume(parseInt(e.currentTarget.value, 10));
     });
-    document.getElementById("main-cover").addEventListener("click", () => {
+    vv.control.click(document.getElementById("main-cover"), () => {
       if (vv.storage.current !== null) {
         vv.view.modal.song.show(vv.storage.current);
       }
@@ -1369,7 +1375,7 @@ vv.view.main = (() => {
       }
       vv.model.list.abs(vv.storage.current);
       vv.view.list.show();
-    });
+    }, null, document.getElementById("lists"), true);
   };
   vv.control.addEventListener("current", pub.update);
   vv.control.addEventListener("poll", update_elapsed);
