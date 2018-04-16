@@ -997,6 +997,7 @@ button:hover {
   -webkit-appearance: none;
   height: 30px;
   outline: none;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   background-color: transparent;
 }
 
@@ -1089,6 +1090,7 @@ button:hover {
   border-width: 0;
   border-radius: 30px;
   transition: background-color 0.2s 0s ease, width 0.2s 0s ease;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
@@ -1413,6 +1415,7 @@ footer {
   appearance: none;
   border-radius: 50px;
   flex: 1 1 auto;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   background-color: transparent;
 }
 
