@@ -1369,13 +1369,9 @@ vv.view.main = (() => {
     });
     load_volume_preferences();
     update_style();
-    vv.control.swipe(document.getElementById("main"), () => {
-      if (vv.storage.current === null) {
-        return;
-      }
-      vv.model.list.abs(vv.storage.current);
-      vv.view.list.show();
-    }, null, document.getElementById("lists"), true);
+    vv.control.swipe(
+        document.getElementById("main"), vv.view.list.show, null,
+        document.getElementById("lists"), true);
   };
   vv.control.addEventListener("current", pub.update);
   vv.control.addEventListener("poll", update_elapsed);
