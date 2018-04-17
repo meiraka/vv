@@ -7,7 +7,7 @@ const vv = {
   storage: {},
   model: {list: {}},
   view:
-      {main: {}, list: {}, system: {}, popup: {}, modal: {help: {}, song: {}}},
+      {main: {}, list: {}, system: {}, popup: {}, modal: {}},
   control: {}
 };
 vv.pubsub = {
@@ -1362,7 +1362,7 @@ vv.view.main = (() => {
     });
     vv.control.click(document.getElementById("main-cover"), () => {
       if (vv.storage.current !== null) {
-        vv.view.modal.song.show(vv.storage.current);
+        vv.view.modal.song(vv.storage.current);
       }
     });
     load_volume_preferences();
@@ -2011,8 +2011,6 @@ vv.view.system = (() => {
     for (const nav of navs) {
       nav.addEventListener("click", showChild);
     }
-    document.getElementById("modal-system-close")
-        .addEventListener("click", vv.view.modal.hide);
   });
   pub.show = () => {
     document.getElementById("modal-background").classList.remove("hide");
@@ -2223,26 +2221,27 @@ vv.view.popup = {
   vv.control.addEventListener("poll", update);
 }
 
-vv.view.modal.hide = () => {
-  document.getElementById("modal-background").classList.add("hide");
-  document.getElementById("modal-outer").classList.add("hide");
-  for (const w of document.getElementsByClassName("modal-window")) {
-    w.classList.add("hide");
-  }
-};
-vv.control.addEventListener("start", () => {
-  document.getElementById("modal-background")
-      .addEventListener("click", vv.view.modal.hide);
-  document.getElementById("modal-outer")
-      .addEventListener("click", vv.view.modal.hide);
-  for (const w of document.getElementsByClassName("modal-window")) {
-    w.addEventListener("click", e => { e.stopPropagation(); });
-  }
-});
-
-vv.view.modal.help = (() => {
-  const pub = {};
-  pub.show = () => {
+vv.view.modal = {
+  hide() {
+    document.getElementById("modal-background").classList.add("hide");
+    document.getElementById("modal-outer").classList.add("hide");
+    for (const w of document.getElementsByClassName("modal-window")) {
+      w.classList.add("hide");
+    }
+  },
+  onStart() {
+    document.getElementById("modal-background")
+        .addEventListener("click", vv.view.modal.hide);
+    document.getElementById("modal-outer")
+        .addEventListener("click", vv.view.modal.hide);
+    for (const w of document.getElementsByClassName("modal-window")) {
+      w.addEventListener("click", e => { e.stopPropagation(); });
+    }
+    for (const w of document.getElementsByClassName("modal-window-close")) {
+      w.addEventListener("click", vv.view.modal.hide);
+    }
+  },
+  help() {
     const b = document.getElementById("modal-background");
     if (!b.classList.contains("hide")) {
       return;
@@ -2250,21 +2249,8 @@ vv.view.modal.help = (() => {
     b.classList.remove("hide");
     document.getElementById("modal-outer").classList.remove("hide");
     document.getElementById("modal-help").classList.remove("hide");
-  };
-  pub.hide = () => {
-    document.getElementById("modal-background").classList.add("hide");
-    document.getElementById("modal-outer").classList.add("hide");
-    document.getElementById("modal-help").classList.add("hide");
-  };
-  vv.control.addEventListener("start", () => {
-    document.getElementById("modal-help-close")
-        .addEventListener("click", pub.hide);
-  });
-  return pub;
-})();
-vv.view.modal.song = (() => {
-  const pub = {};
-  pub.show = song => {
+  },
+  song(song) {
     const mustkeys = [
       "Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer",
       "Disc", "Track", "Composer", "Length"
@@ -2327,18 +2313,9 @@ vv.view.modal.song = (() => {
     document.getElementById("modal-background").classList.remove("hide");
     document.getElementById("modal-outer").classList.remove("hide");
     document.getElementById("modal-song").classList.remove("hide");
-  };
-  pub.hide = () => {
-    document.getElementById("modal-background").classList.add("hide");
-    document.getElementById("modal-outer").classList.add("hide");
-    document.getElementById("modal-song").classList.add("hide");
-  };
-  vv.control.addEventListener("start", () => {
-    document.getElementById("modal-song-close")
-        .addEventListener("click", pub.hide);
-  });
-  return pub;
-})();
+  }
+};
+vv.control.addEventListener("start", vv.view.modal.onStart);
 
 // keyboard events
 {
@@ -2381,9 +2358,9 @@ vv.view.modal.song = (() => {
       ArrowRight: inList(vv.view.list.right),
       ArrowDown: inList(vv.view.list.down),
       [" "]: any(vv.control.play_pause),
-      ["?"]: any(vv.view.modal.help.show)
+      ["?"]: any(vv.view.modal.help)
     },
-    [shift]: {["?"]: any(vv.view.modal.help.show)},
+    [shift]: {["?"]: any(vv.view.modal.help)},
     [meta]: {
       ArrowLeft: any(back),
       ArrowRight: any(() => {
