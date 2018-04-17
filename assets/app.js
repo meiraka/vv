@@ -6,8 +6,7 @@ const vv = {
   songs: {},
   storage: {},
   model: {list: {}},
-  view:
-      {main: {}, list: {}, system: {}, popup: {}, modal: {}},
+  view: {main: {}, list: {}, system: {}, popup: {}, modal: {}},
   control: {}
 };
 vv.pubsub = {
@@ -1264,9 +1263,8 @@ vv.control = (() => {
   vv.control.addEventListener("start", update);
 }
 
-vv.view.main = (() => {
-  const pub = {};
-  const load_volume_preferences = () => {
+vv.view.main = {
+  _load_volume_preferences() {
     const c = document.getElementById("control-volume");
     c.max = parseInt(vv.storage.preferences.volume.max, 10);
     if (vv.storage.preferences.volume.show) {
@@ -1274,8 +1272,21 @@ vv.view.main = (() => {
     } else {
       c.classList.add("hide");
     }
-  };
-  vv.control.addEventListener("control", () => {
+  },
+  _update_style() {
+    const e = document.getElementById("main-cover");
+    if (vv.storage.preferences.appearance.circled_image) {
+      e.classList.add("circled");
+    } else {
+      e.classList.remove("circled");
+    }
+    if (vv.storage.preferences.appearance.auto_hide_scrollbar) {
+      document.body.classList.add("auto-hide-scrollbar");
+    } else {
+      document.body.classList.remove("auto-hide-scrollbar");
+    }
+  },
+  onControl() {
     const c = document.getElementById("control-volume");
     c.value = vv.storage.control.volume;
     if (vv.storage.control.volume < 0) {
@@ -1283,21 +1294,23 @@ vv.view.main = (() => {
     } else {
       c.classList.remove("disabled");
     }
-  });
-  vv.control.addEventListener("preferences", load_volume_preferences);
-  pub.show = () => {
+  },
+  onPreferences() {
+    vv.view.main._load_volume_preferences();
+    vv.view.main._update_style();
+  },
+  show() {
     document.body.classList.add("view-main");
     document.body.classList.remove("view-list");
-  };
-  pub.hidden = () => {
-    const e = document.body;
+  },
+  hidden() {
+    const c = document.body.classList;
     if (window.matchMedia("(orientation: portrait)").matches) {
-      return !e.classList.contains("view-main");
+      return !c.contains("view-main");
     }
-    return !(
-        e.classList.contains("view-list") || e.classList.contains("view-main"));
-  };
-  pub.update = () => {
+    return !(c.contains("view-list") || c.contains("view-main"));
+  },
+  update() {
     if (vv.storage.current === null) {
       return;
     }
@@ -1311,26 +1324,13 @@ vv.view.main = (() => {
     } else {
       document.getElementById("main-cover-img").style.backgroundImage = "";
     }
-  };
-  const update_style = () => {
-    const e = document.getElementById("main-cover");
-    if (vv.storage.preferences.appearance.circled_image) {
-      e.classList.add("circled");
-    } else {
-      e.classList.remove("circled");
-    }
-    if (vv.storage.preferences.appearance.auto_hide_scrollbar) {
-      document.body.classList.add("auto-hide-scrollbar");
-    } else {
-      document.body.classList.remove("auto-hide-scrollbar");
-    }
-  };
-  vv.control.addEventListener("preferences", update_style);
-  const update_elapsed = () => {
+  },
+  onCurrent() { vv.view.main.update(); },
+  onPoll() {
     if (vv.storage.current === null) {
       return;
     }
-    if (pub.hidden() ||
+    if (vv.view.main.hidden() ||
         document.getElementById("main-cover-circle")
             .classList.contains("hide")) {
       return;
@@ -1355,8 +1355,8 @@ vv.view.main = (() => {
     } else {
       c.setAttribute("d", `M 100,10 L 100,10 A 90,90 0 0,1 ${x},${y}`);
     }
-  };
-  const init = () => {
+  },
+  onStart() {
     document.getElementById("control-volume").addEventListener("change", e => {
       vv.control.volume(parseInt(e.currentTarget.value, 10));
     });
@@ -1365,17 +1365,19 @@ vv.view.main = (() => {
         vv.view.modal.song(vv.storage.current);
       }
     });
-    load_volume_preferences();
-    update_style();
+    vv.view.main._load_volume_preferences();
+    vv.view.main._update_style();
     vv.control.swipe(
         document.getElementById("main"), vv.view.list.show, null,
         document.getElementById("lists"), true);
-  };
-  vv.control.addEventListener("current", pub.update);
-  vv.control.addEventListener("poll", update_elapsed);
-  vv.control.addEventListener("start", init);
-  return pub;
-})();
+  }
+};
+vv.control.addEventListener("poll", vv.view.main.onPoll);
+vv.control.addEventListener("start", vv.view.main.onStart);
+vv.control.addEventListener("current", vv.view.main.onCurrent);
+vv.control.addEventListener("control", vv.view.main.onControl);
+vv.control.addEventListener("preferences", vv.view.main.onPreferences);
+
 vv.view.list = (() => {
   const pub = {};
   pub.show = () => {
