@@ -1378,21 +1378,19 @@ vv.control.addEventListener("current", vv.view.main.onCurrent);
 vv.control.addEventListener("control", vv.view.main.onControl);
 vv.control.addEventListener("preferences", vv.view.main.onPreferences);
 
-vv.view.list = (() => {
-  const pub = {};
-  pub.show = () => {
+vv.view.list = {
+  show() {
     document.body.classList.add("view-list");
     document.body.classList.remove("view-main");
-  };
-  pub.hidden = () => {
-    const e = document.body;
+  },
+  hidden() {
+    const c = document.body.classList;
     if (window.matchMedia("(orientation: portrait)").matches) {
-      return !e.classList.contains("view-list");
+      return !c.contains("view-list");
     }
-    return !(
-        e.classList.contains("view-list") || e.classList.contains("view-main"));
-  };
-  const preferences_update = () => {
+    return !(c.contains("view-list") || c.contains("view-main"));
+  },
+  _preferences_update() {
     const index = vv.storage.tree.length;
     const ul = document.getElementById("list-items" + index);
     if (vv.storage.preferences.appearance.gridview_album) {
@@ -1402,8 +1400,8 @@ vv.view.list = (() => {
       ul.classList.add("nogrid");
       ul.classList.remove("grid");
     }
-  };
-  const updatepos = () => {
+  },
+  _updatepos() {
     const index = vv.storage.tree.length;
     const lists = document.getElementsByClassName("list");
     for (let listindex = 0; listindex < lists.length; listindex++) {
@@ -1415,9 +1413,8 @@ vv.view.list = (() => {
         lists[listindex].style.transform = "translate3d(100%,0,0)";
       }
     }
-  };
-
-  const updateFocus = () => {
+  },
+  _updateFocus() {
     const index = vv.storage.tree.length;
     const ul = document.getElementById("list-items" + index);
     let focus = null;
@@ -1503,8 +1500,8 @@ vv.view.list = (() => {
     } else {
       document.getElementById("header-main").classList.remove("playing");
     }
-  };
-  const clearAllLists = () => {
+  },
+  _clearAllLists() {
     const lists = document.getElementsByClassName("list");
     for (let treeindex = 0; treeindex < vv.storage.tree.length; treeindex++) {
       const oldul =
@@ -1514,9 +1511,8 @@ vv.view.list = (() => {
       }
       lists[treeindex + 1].dataset.pwd = "";
     }
-  };
-
-  const element = (song, key, style, largeImage, header) => {
+  },
+  _element(song, key, style, largeImage, header) {
     const c = document.querySelector(`#list-${style}-template`).content;
     const e = c.querySelector("li");
     e.dataset.key = vv.song.getOne(song, key);
@@ -1569,9 +1565,8 @@ vv.view.list = (() => {
           `by ${vv.song.get(song, "AlbumArtist")}`;
     }
     return document.importNode(c, true);
-  };
-
-  const listHandler = e => {
+  },
+  _listHandler(e) {
     if (e.currentTarget.classList.contains("playing")) {
       if (vv.storage.current === null) {
         return;
@@ -1587,14 +1582,14 @@ vv.view.list = (() => {
     } else {
       vv.model.list.down(value);
     }
-  };
-  const update = () => {
+  },
+  _update() {
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
     const pwd = vv.storage.tree.join();
     if (scroll.dataset.pwd === pwd) {
-      updatepos();
-      updateFocus();
+      vv.view.list._updatepos();
+      vv.view.list._updateFocus();
       return;
     }
     scroll.dataset.pwd = pwd;
@@ -1616,7 +1611,7 @@ vv.view.list = (() => {
         lists[treeindex + 1].dataset.pwd = "";
       }
     }
-    updatepos();
+    vv.view.list._updatepos();
     const ul = document.getElementById("list-items" + index);
     while (ul.lastChild) {
       ul.removeChild(ul.lastChild);
@@ -1625,26 +1620,27 @@ vv.view.list = (() => {
     ul.classList.remove("albumlist");
     ul.classList.remove("plainlist");
     ul.classList.add(style + "list");
-    preferences_update();
+    vv.view.list._preferences_update();
     const p = vv.model.list.parent();
     for (let i = 0, imax = songs.length; i < imax; i++) {
       if (i === 0 && p) {
-        const li = element(p.song, p.key, p.style, false, true);
+        const li = vv.view.list._element(p.song, p.key, p.style, false, true);
         newul.appendChild(li);
       }
-      const li =
-          element(songs[i], key, style, ul.classList.contains("grid"), false);
-      vv.control.click(li.querySelector("li"), listHandler, false);
+      const li = vv.view.list._element(
+          songs[i], key, style, ul.classList.contains("grid"), false);
+      vv.control.click(
+          li.querySelector("li"), vv.view.list._listHandler, false);
       newul.appendChild(li);
     }
     ul.appendChild(newul);
-    updateFocus();
-  };
-  const updateForce = () => {
-    clearAllLists();
-    update();
-  };
-  const select_near_item = () => {
+    vv.view.list._updateFocus();
+  },
+  _updateForce() {
+    vv.view.list._clearAllLists();
+    vv.view.list._update();
+  },
+  _select_near_item() {
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
     let updated = false;
@@ -1659,8 +1655,8 @@ vv.view.list = (() => {
         selectable.classList.remove("selected");
       }
     }
-  };
-  const select_focused_or = target => {
+  },
+  _select_focused_or(target) {
     const style = vv.model.list.list().style;
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
@@ -1686,12 +1682,12 @@ vv.view.list = (() => {
     if (s.length > 0) {
       p = s[0].offsetTop;
       if (p < t || t + h < p + s[0].offsetHeight) {
-        select_near_item();
+        vv.view.list._select_near_item();
         return;
       }
     }
     if (s.length === 0 && f.length === 0) {
-      select_near_item();
+      vv.view.list._select_near_item();
       return;
     }
     if (s.length > 0) {
@@ -1757,13 +1753,12 @@ vv.view.list = (() => {
         }
       }
     }
-  };
-  pub.up = () => { select_focused_or("up"); };
-  pub.left = () => { select_focused_or("left"); };
-  pub.right = () => { select_focused_or("right"); };
-  pub.down = () => { select_focused_or("down"); };
-
-  pub.activate = () => {
+  },
+  up() { vv.view.list._select_focused_or("up"); },
+  left() { vv.view.list._select_focused_or("left"); },
+  right() { vv.view.list._select_focused_or("right"); },
+  down() { vv.view.list._select_focused_or("down"); },
+  activate() {
     const index = vv.storage.tree.length;
     const es = document.getElementById("list-items" + index)
                    .getElementsByClassName("selected");
@@ -1774,31 +1769,31 @@ vv.view.list = (() => {
       return true;
     }
     return false;
-  };
+  },
+  onStart() {
+    vv.control.swipe(
+        document.getElementById("list1"), vv.model.list.up,
+        vv.view.list._updatepos, document.getElementById("list0"));
+    vv.control.swipe(
+        document.getElementById("list2"), vv.model.list.up,
+        vv.view.list._updatepos, document.getElementById("list1"));
+    vv.control.swipe(
+        document.getElementById("list3"), vv.model.list.up,
+        vv.view.list._updatepos, document.getElementById("list2"));
+    vv.control.swipe(
+        document.getElementById("list4"), vv.model.list.up,
+        vv.view.list._updatepos, document.getElementById("list3"));
+    vv.control.swipe(
+        document.getElementById("list5"), vv.model.list.up,
+        vv.view.list._updatepos, document.getElementById("list4"));
+  }
+};
+vv.control.addEventListener("current", vv.view.list._update);
+vv.control.addEventListener("preferences", vv.view.list._preferences_update);
+vv.model.list.addEventListener("update", vv.view.list._updateForce);
+vv.model.list.addEventListener("changed", vv.view.list._update);
+vv.control.addEventListener("start", vv.view.list.onStart);
 
-  vv.control.addEventListener("current", update);
-  vv.control.addEventListener("preferences", preferences_update);
-  vv.model.list.addEventListener("update", updateForce);
-  vv.model.list.addEventListener("changed", update);
-  vv.control.addEventListener("start", () => {
-    vv.control.swipe(
-        document.getElementById("list1"), vv.model.list.up, updatepos,
-        document.getElementById("list0"));
-    vv.control.swipe(
-        document.getElementById("list2"), vv.model.list.up, updatepos,
-        document.getElementById("list1"));
-    vv.control.swipe(
-        document.getElementById("list3"), vv.model.list.up, updatepos,
-        document.getElementById("list2"));
-    vv.control.swipe(
-        document.getElementById("list4"), vv.model.list.up, updatepos,
-        document.getElementById("list3"));
-    vv.control.swipe(
-        document.getElementById("list5"), vv.model.list.up, updatepos,
-        document.getElementById("list4"));
-  });
-  return pub;
-})();
 vv.view.system = (() => {
   const pub = {};
   /* const preferences = */ (() => {
