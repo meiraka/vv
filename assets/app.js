@@ -59,10 +59,9 @@ vv.song = {
     }
     return other;
   },
-  getOrElseMulti(song, key, other) {
+  getOrElseMulti(song, keys, other) {
     let ret = [];
-    const keys = key.split("-");
-    for (const key of keys) {
+    for (const key of keys.split("-")) {
       const t = vv.song.getTagOrElseMulti(song, key, other);
       if (!ret.length) {
         ret = t;
@@ -621,8 +620,7 @@ vv.model.list = {
         vv.storage.tree.push([key, vv.song.getOne(song, key)]);
       }
       vv.model.list.update_list();
-      const songs = vv.model.list.list().songs;
-      for (const candidate of songs) {
+      for (const candidate of vv.model.list.list().songs) {
         if (candidate.file && candidate.file[0] === song.file[0]) {
           vv.model.list.focus = candidate;
           vv.model.list.child = null;
@@ -1221,8 +1219,8 @@ vv.control = (() => {
       const context = canvas.getContext("2d");
       context.drawImage(img, 0, 0, 5, 5);
       try {
-        const d = context.getImageData(0, 0, 5, 5).data;
         let newcolor = 0;
+        const d = context.getImageData(0, 0, 5, 5).data;
         for (const c of d) {
           newcolor += c;
         }
@@ -2228,8 +2226,7 @@ vv.view.popup = {
 vv.view.modal.hide = () => {
   document.getElementById("modal-background").classList.add("hide");
   document.getElementById("modal-outer").classList.add("hide");
-  const ws = document.getElementsByClassName("modal-window");
-  for (const w of ws) {
+  for (const w of document.getElementsByClassName("modal-window")) {
     w.classList.add("hide");
   }
 };
@@ -2238,8 +2235,7 @@ vv.control.addEventListener("start", () => {
       .addEventListener("click", vv.view.modal.hide);
   document.getElementById("modal-outer")
       .addEventListener("click", vv.view.modal.hide);
-  const ws = document.getElementsByClassName("modal-window");
-  for (const w of ws) {
+  for (const w of document.getElementsByClassName("modal-window")) {
     w.addEventListener("click", e => { e.stopPropagation(); });
   }
 });
