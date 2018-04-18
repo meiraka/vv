@@ -1756,7 +1756,11 @@ vv.view.list = {
     }
     return false;
   },
+  onCurrent() { vv.view.list._update(); },
+  onPreferences() { vv.view.list._preferences_update(); },
   onStart() {
+    vv.model.list.addEventListener("update", vv.view.list._updateForce);
+    vv.model.list.addEventListener("changed", vv.view.list._update);
     vv.control.swipe(
         document.getElementById("list1"), vv.model.list.up,
         vv.view.list._updatepos, document.getElementById("list0"));
@@ -1774,10 +1778,8 @@ vv.view.list = {
         vv.view.list._updatepos, document.getElementById("list4"));
   }
 };
-vv.control.addEventListener("current", vv.view.list._update);
-vv.control.addEventListener("preferences", vv.view.list._preferences_update);
-vv.model.list.addEventListener("update", vv.view.list._updateForce);
-vv.model.list.addEventListener("changed", vv.view.list._update);
+vv.control.addEventListener("current", vv.view.list.onCurrent);
+vv.control.addEventListener("preferences", vv.view.list.onPreferences);
 vv.control.addEventListener("start", vv.view.list.onStart);
 
 vv.view.system = {
