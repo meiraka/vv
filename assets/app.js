@@ -1794,208 +1794,125 @@ vv.model.list.addEventListener("update", vv.view.list._updateForce);
 vv.model.list.addEventListener("changed", vv.view.list._update);
 vv.control.addEventListener("start", vv.view.list.onStart);
 
-vv.view.system = (() => {
-  const pub = {};
-  /* const preferences = */ (() => {
-    const update_animation = () => {
-      if (vv.storage.preferences.appearance.animation) {
-        document.body.classList.add("animation");
-      } else {
-        document.body.classList.remove("animation");
-      }
-    };
-    const initconfig = id => {
-      const obj = document.getElementById(id);
-      const s = id.indexOf("-");
-      const mainkey = id.slice(0, s);
-      const subkey = id.slice(s + 1).replace(/-/g, "_");
-      let getter = null;
-      if (obj.type === "checkbox") {
-        obj.checked = vv.storage.preferences[mainkey][subkey];
-        getter = () => { return obj.checked; };
-      } else if (obj.tagName.toLowerCase() === "select") {
-        obj.value = String(vv.storage.preferences[mainkey][subkey]);
-        getter = () => { return obj.value; };
-      } else if (obj.type === "range") {
-        obj.value = String(vv.storage.preferences[mainkey][subkey]);
-        getter = () => { return parseInt(obj.value, 10); };
-        obj.addEventListener("input", () => {
-          vv.storage.preferences[mainkey][subkey] = obj.value;
-          vv.control.raiseEvent("preferences");
-        });
-      }
-      obj.addEventListener("change", () => {
-        vv.storage.preferences[mainkey][subkey] = getter();
-        vv.storage.save.preferences();
+vv.view.system = {
+  _initconfig(id) {
+    const obj = document.getElementById(id);
+    const s = id.indexOf("-");
+    const mainkey = id.slice(0, s);
+    const subkey = id.slice(s + 1).replace(/-/g, "_");
+    let getter = null;
+    if (obj.type === "checkbox") {
+      obj.checked = vv.storage.preferences[mainkey][subkey];
+      getter = () => { return obj.checked; };
+    } else if (obj.tagName.toLowerCase() === "select") {
+      obj.value = String(vv.storage.preferences[mainkey][subkey]);
+      getter = () => { return obj.value; };
+    } else if (obj.type === "range") {
+      obj.value = String(vv.storage.preferences[mainkey][subkey]);
+      getter = () => { return parseInt(obj.value, 10); };
+      obj.addEventListener("input", () => {
+        vv.storage.preferences[mainkey][subkey] = obj.value;
         vv.control.raiseEvent("preferences");
       });
-    };
-    const update_devices = () => {
-      const ul = document.getElementById("devices");
-      while (ul.lastChild) {
-        ul.removeChild(ul.lastChild);
-      }
-      const newul = document.createDocumentFragment();
-      for (const o of vv.storage.outputs) {
-        const li = document.createElement("li");
-        li.classList.add("note-line");
-        li.classList.add("system-setting");
-        const desc = document.createElement("div");
-        desc.classList.add("system-setting-desc");
-        desc.textContent = o.outputname;
-        const ch = document.createElement("input");
-        ch.classList.add("slideswitch");
-        ch.setAttribute("aria-label", o.outputname);
-        ch.setAttribute("type", "checkbox");
-        ch.setAttribute("id", "device_" + o.outputname);
-        ch.setAttribute("deviceid", o.outputid);
-        ch.checked = o.outputenabled === "1";
-        ch.addEventListener("change", e => {
-          vv.control.output(
-              parseInt(e.currentTarget.getAttribute("deviceid"), 10),
-              e.currentTarget.checked);
-        });
-        li.appendChild(desc);
-        li.appendChild(ch);
-        newul.appendChild(li);
-      }
-      ul.appendChild(newul);
-    };
-    vv.control.addEventListener("outputs", update_devices);
+    }
+    obj.addEventListener("change", () => {
+      vv.storage.preferences[mainkey][subkey] = getter();
+      vv.storage.save.preferences();
+      vv.control.raiseEvent("preferences");
+    });
+  },
+  onPreferences() {
+    if (vv.storage.preferences.appearance.animation) {
+      document.body.classList.add("animation");
+    } else {
+      document.body.classList.remove("animation");
+    }
+  },
+  onOutputs() {
+    const ul = document.getElementById("devices");
+    while (ul.lastChild) {
+      ul.removeChild(ul.lastChild);
+    }
+    const newul = document.createDocumentFragment();
+    for (const o of vv.storage.outputs) {
+      const li = document.createElement("li");
+      li.classList.add("note-line");
+      li.classList.add("system-setting");
+      const desc = document.createElement("div");
+      desc.classList.add("system-setting-desc");
+      desc.textContent = o.outputname;
+      const ch = document.createElement("input");
+      ch.classList.add("slideswitch");
+      ch.setAttribute("aria-label", o.outputname);
+      ch.setAttribute("type", "checkbox");
+      ch.setAttribute("id", "device_" + o.outputname);
+      ch.setAttribute("deviceid", o.outputid);
+      ch.checked = o.outputenabled === "1";
+      ch.addEventListener("change", e => {
+        vv.control.output(
+            parseInt(e.currentTarget.getAttribute("deviceid"), 10),
+            e.currentTarget.checked);
+      });
+      li.appendChild(desc);
+      li.appendChild(ch);
+      newul.appendChild(li);
+    }
+    ul.appendChild(newul);
+  },
+  onControl() {
+    const e = document.getElementById("library-rescan");
+    if (vv.storage.control.update_library && !e.disabled) {
+      e.disabled = true;
+    } else if (!vv.storage.control.update_library && e.disabled) {
+      e.disabled = false;
+    }
+  },
+  onStart() {
+    // preferences
+    vv.view.system.onPreferences();
+
+    // Mobile
+    if (navigator.userAgent.indexOf("Mobile") > 1) {
+      document.getElementById("config-appearance-auto-hide-scrollbar")
+          .classList.add("hide");
+    }
+
     vv.control.addEventListener("control", () => {
-      const e = document.getElementById("library-rescan");
-      if (vv.storage.control.update_library && !e.disabled) {
-        e.disabled = true;
-      } else if (!vv.storage.control.update_library && e.disabled) {
-        e.disabled = false;
+      if (vv.storage.control.volume < 0) {
+        document.getElementById("volume-header").classList.add("hide");
+        document.getElementById("volume-all").classList.add("hide");
+      } else {
+        document.getElementById("volume-header").classList.remove("hide");
+        document.getElementById("volume-all").classList.remove("hide");
       }
     });
-    vv.control.addEventListener("start", () => {
-      vv.control.addEventListener("preferences", update_animation);
-      update_animation();
 
-      // Mobile
-      if (navigator.userAgent.indexOf("Mobile") > 1) {
-        document.getElementById("config-appearance-auto-hide-scrollbar")
-            .classList.add("hide");
-      }
+    vv.view.system._initconfig("appearance-color-threshold");
+    vv.view.system._initconfig("appearance-animation");
+    vv.view.system._initconfig("appearance-background-image");
+    vv.view.system._initconfig("appearance-background-image-blur");
+    vv.view.system._initconfig("appearance-circled-image");
+    vv.view.system._initconfig("appearance-gridview-album");
+    vv.view.system._initconfig("appearance-auto-hide-scrollbar");
+    vv.view.system._initconfig("playback-view-follow");
+    vv.view.system._initconfig("volume-show");
+    vv.view.system._initconfig("volume-max");
+    document.getElementById("system-reload").addEventListener("click", () => {
+      location.reload();
+    });
+    document.getElementById("library-rescan").addEventListener("click", () => {
+      vv.control.rescan_library();
+    });
+    // info
+    document.getElementById("user-agent").textContent = navigator.userAgent;
 
-      vv.control.addEventListener("control", () => {
-        if (vv.storage.control.volume < 0) {
-          document.getElementById("volume-header").classList.add("hide");
-          document.getElementById("volume-all").classList.add("hide");
-        } else {
-          document.getElementById("volume-header").classList.remove("hide");
-          document.getElementById("volume-all").classList.remove("hide");
-        }
-      });
-
-      initconfig("appearance-color-threshold");
-      initconfig("appearance-animation");
-      initconfig("appearance-background-image");
-      initconfig("appearance-background-image-blur");
-      initconfig("appearance-circled-image");
-      initconfig("appearance-gridview-album");
-      initconfig("appearance-auto-hide-scrollbar");
-      initconfig("playback-view-follow");
-      initconfig("volume-show");
-      initconfig("volume-max");
-      document.getElementById("system-reload").addEventListener("click", () => {
-        location.reload();
-      });
-      document.getElementById("library-rescan")
-          .addEventListener("click", () => { vv.control.rescan_library(); });
-    });
-  })();
-  const stats = (() => {
-    const pub = {};
-    const zfill2 = i => {
-      if (i < 100) {
-        return ("00" + i).slice(-2);
-      }
-      return i;
-    };
-    const strtimedelta = i => {
-      const uh = parseInt(i / (60 * 60), 10);
-      const um = parseInt((i - uh * 60 * 60) / 60, 10);
-      const us = parseInt(i - uh * 60 * 60 - um * 60, 10);
-      return `${zfill2(uh)}:${zfill2(um)}:${zfill2(us)}`;
-    };
-
-    const update_stats = () => {
-      document.getElementById("stat-albums").textContent =
-          vv.storage.stats.albums;
-      document.getElementById("stat-artists").textContent =
-          vv.storage.stats.artists;
-      document.getElementById("stat-db-playtime").textContent =
-          strtimedelta(parseInt(vv.storage.stats.db_playtime, 10));
-      document.getElementById("stat-playtime").textContent =
-          strtimedelta(parseInt(vv.storage.stats.playtime, 10));
-      document.getElementById("stat-tracks").textContent =
-          vv.storage.stats.songs;
-      const db_update =
-          new Date(parseInt(vv.storage.stats.db_update, 10) * 1000);
-      const options = {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        weekday: "short"
-      };
-      document.getElementById("stat-db-update").textContent =
-          db_update.toLocaleString(document.documentElement.lang, options);
-      document.getElementById("stat-websockets").textContent =
-          vv.storage.stats.subscribers;
-    };
-    const update_time = () => {
-      const diff = parseInt(
-          ((new Date()).getTime() - vv.storage.last_modified_ms.stats) / 1000,
-          10);
-      const uptime = parseInt(vv.storage.stats.uptime, 10) + diff;
-      if (vv.storage.control.state === "play") {
-        const playtime = parseInt(vv.storage.stats.playtime, 10) + diff;
-        document.getElementById("stat-playtime").textContent =
-            strtimedelta(playtime);
-      }
-      document.getElementById("stat-uptime").textContent = strtimedelta(uptime);
-    };
-    vv.control.addEventListener("poll", () => {
-      if (document.getElementById("system-stats").classList.contains("on")) {
-        update_time();
-      }
-    });
-    vv.control.addEventListener("stats", () => {
-      if (document.getElementById("system-stats").classList.contains("on")) {
-        update_stats();
-      }
-    });
-    pub.update = () => {
-      update_stats();
-      update_time();
-    };
-    return pub;
-  })();
-  /* const info = */ (() => {
-    vv.control.addEventListener("version", () => {
-      if (vv.storage.version.vv) {
-        document.getElementById("version").textContent = vv.storage.version.vv;
-        document.getElementById("go-version").textContent =
-            vv.storage.version.go;
-      }
-    });
-    vv.control.addEventListener("start", () => {
-      document.getElementById("user-agent").textContent = navigator.userAgent;
-    });
-  })();
-  vv.control.addEventListener("start", () => {
     const navs = document.getElementsByClassName("system-nav-item");
     const showChild = e => {
       for (const nav of navs) {
         if (nav === e.currentTarget) {
           if (nav.id === "system-nav-stats") {
-            stats.update();
+            vv.view.system._update_time();
+            vv.view.system._update_stats();
           }
           nav.classList.add("on");
           document.getElementById(nav.dataset.target).classList.add("on");
@@ -2008,14 +1925,88 @@ vv.view.system = (() => {
     for (const nav of navs) {
       nav.addEventListener("click", showChild);
     }
-  });
-  pub.show = () => {
+  },
+  _zfill2(i) {
+    if (i < 100) {
+      return ("00" + i).slice(-2);
+    }
+    return i;
+  },
+  _strtimedelta(i) {
+    const zfill2 = vv.view.system._zfill2;
+    const uh = parseInt(i / (60 * 60), 10);
+    const um = parseInt((i - uh * 60 * 60) / 60, 10);
+    const us = parseInt(i - uh * 60 * 60 - um * 60, 10);
+    return `${zfill2(uh)}:${zfill2(um)}:${zfill2(us)}`;
+  },
+  _update_stats() {
+    document.getElementById("stat-albums").textContent =
+        vv.storage.stats.albums;
+    document.getElementById("stat-artists").textContent =
+        vv.storage.stats.artists;
+    document.getElementById("stat-db-playtime").textContent =
+        vv.view.system._strtimedelta(
+            parseInt(vv.storage.stats.db_playtime, 10));
+    document.getElementById("stat-playtime").textContent =
+        vv.view.system._strtimedelta(parseInt(vv.storage.stats.playtime, 10));
+    document.getElementById("stat-tracks").textContent = vv.storage.stats.songs;
+    const db_update = new Date(parseInt(vv.storage.stats.db_update, 10) * 1000);
+    const options = {
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      weekday: "short"
+    };
+    document.getElementById("stat-db-update").textContent =
+        db_update.toLocaleString(document.documentElement.lang, options);
+    document.getElementById("stat-websockets").textContent =
+        vv.storage.stats.subscribers;
+  },
+  _update_time() {
+    const diff = parseInt(
+        ((new Date()).getTime() - vv.storage.last_modified_ms.stats) / 1000,
+        10);
+    const uptime = parseInt(vv.storage.stats.uptime, 10) + diff;
+    if (vv.storage.control.state === "play") {
+      const playtime = parseInt(vv.storage.stats.playtime, 10) + diff;
+      document.getElementById("stat-playtime").textContent =
+          vv.view.system._strtimedelta(playtime);
+    }
+    document.getElementById("stat-uptime").textContent =
+        vv.view.system._strtimedelta(uptime);
+  },
+  onPoll() {
+    if (document.getElementById("system-stats").classList.contains("on")) {
+      vv.view.system._update_time();
+    }
+  },
+  onStats() {
+    if (document.getElementById("system-stats").classList.contains("on")) {
+      vv.view.system._update_stats();
+    }
+  },
+  onVersion() {
+    if (vv.storage.version.vv) {
+      document.getElementById("version").textContent = vv.storage.version.vv;
+      document.getElementById("go-version").textContent = vv.storage.version.go;
+    }
+  },
+  show() {
     document.getElementById("modal-background").classList.remove("hide");
     document.getElementById("modal-outer").classList.remove("hide");
     document.getElementById("modal-system").classList.remove("hide");
-  };
-  return pub;
-})();
+  }
+};
+vv.control.addEventListener("start", vv.view.system.onStart);
+vv.control.addEventListener("version", vv.view.system.onVersion);
+vv.control.addEventListener("poll", vv.view.system.onPoll);
+vv.control.addEventListener("control", vv.view.system.onControl);
+vv.control.addEventListener("status", vv.view.system.onStats);
+vv.control.addEventListener("preferences", vv.view.system.onPreferences);
+vv.control.addEventListener("outputs", vv.view.system.onOutputs);
 
 // header
 {
