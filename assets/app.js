@@ -1442,6 +1442,9 @@ vv.view.list = {
       if (treeFocused && elapsed.length !== 0 && vv.storage.current !== null &&
           vv.storage.current.file[0] === listitem.dataset.file) {
         viewNowPlaying = true;
+        if (focusSong && !focusSong.file) {
+          listitem.classList.add("selected");
+        }
         if (listitem.classList.contains("playing")) {
           continue;
         }
