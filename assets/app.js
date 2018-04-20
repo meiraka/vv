@@ -7,7 +7,8 @@ const vv = {
   storage: {},
   model: {list: {}},
   view: {main: {}, list: {}, system: {}, popup: {}, modal: {}, footer: {}},
-  control: {}
+  control: {},
+  request: {}
 };
 vv.pubsub = {
   add(listener, ev, func) {
@@ -728,14 +729,102 @@ if (vv.storage.loaded) {
   vv.storage.addEventListener(
       "onload", () => { vv.model.list.updateData(vv.storage.library); });
 }
-vv.control = (() => {
-  const pub = {};
-  const listener = {};
-  pub.addEventListener = (e, f) => { vv.pubsub.add(listener, e, f); };
-  pub.removeEventListener = (e, f) => { vv.pubsub.rm(listener, e, f); };
-  pub.raiseEvent = e => { vv.pubsub.raise(listener, e); };
-
-  pub.swipe = (element, f, resetFunc, leftElement, landscape) => {
+vv.request = {
+  _requests: {},
+  abortAll(options) {
+    options = options || {};
+    for (const key in vv.request._requests) {
+      if (vv.request._requests.hasOwnProperty(key)) {
+        if (options.stop) {
+          vv.request._requests[key].onabort = () => {};
+        }
+        vv.request._requests[key].abort();
+      }
+    }
+  },
+  get(path, ifmodified, callback, timeout) {
+    const key = "GET " + path;
+    if (vv.request._requests[key]) {
+      vv.request._requests[key].onabort = () => {};  // disable retry
+      vv.request._requests[key].abort();
+    }
+    const xhr = new XMLHttpRequest();
+    vv.request._requests[key] = xhr;
+    if (!timeout) {
+      timeout = 1000;
+    }
+    xhr.responseType = "json";
+    xhr.timeout = timeout;
+    xhr.onload = () => {
+      if (xhr.status === 200 || xhr.status === 304) {
+        if (xhr.status === 200 && callback) {
+          callback(
+              xhr.response, xhr.getResponseHeader("Last-Modified"),
+              xhr.getResponseHeader("Date"));
+        }
+        return;
+      }
+      // error handling
+      if (xhr.status !== 0) {
+        vv.view.popup.show("network", xhr.statusText);
+      }
+    };
+    xhr.onabort = () => {
+      if (timeout < 50000) {
+        setTimeout(
+            () => { vv.request.get(path, ifmodified, callback, timeout * 2); });
+      }
+    };
+    xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
+    xhr.ontimeout = () => {
+      if (timeout < 50000) {
+        vv.view.popup.show("network", "timeoutRetry");
+        vv.request.abortAll();
+        setTimeout(
+            () => { vv.request.get(path, ifmodified, callback, timeout * 2); });
+      } else {
+        vv.view.popup.show("network", "timeout");
+      }
+    };
+    xhr.open("GET", path, true);
+    xhr.setRequestHeader("If-Modified-Since", ifmodified);
+    xhr.send();
+  },
+  post(path, obj) {
+    const key = "POST " + path;
+    if (vv.request._requests[key]) {
+      vv.request._requests[key].abort();
+    }
+    const xhr = new XMLHttpRequest();
+    vv.request._requests[key] = xhr;
+    xhr.responseType = "json";
+    xhr.timeout = 1000;
+    xhr.onload = () => {
+      if (xhr.status !== 200) {
+        if (xhr.response && xhr.response.error) {
+          vv.view.popup.show("network", xhr.response.error);
+        } else {
+          vv.view.popup.show("network", xhr.responseText);
+        }
+      }
+    };
+    xhr.ontimeout = () => {
+      vv.view.popup.show("network", "timeout");
+      vv.request.abortAll();
+    };
+    xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
+    xhr.open("POST", path, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send(JSON.stringify(obj));
+  }
+};
+vv.control = {
+  _getOrElse(m, k, v) { return k in m ? m[k] : v; },
+  _listener: {},
+  addEventListener(e, f) { vv.pubsub.add(vv.control._listener, e, f); },
+  removeEventListener(e, f) { vv.pubsub.rm(vv.control._listener, e, f); },
+  raiseEvent(e) { vv.pubsub.raise(vv.control._listener, e); },
+  swipe(element, f, resetFunc, leftElement, landscape) {
     element.swipe_target = f;
     let starttime = 0;
     let now = 0;
@@ -837,9 +926,8 @@ vv.control = (() => {
       element.addEventListener("mousemove", move, {passive: true});
       element.addEventListener("mouseup", end, {passive: true});
     }
-  };
-
-  pub.click = (element, f) => {
+  },
+  click(element, f) {
     element.click_target = f;
     const enter = e => { e.currentTarget.classList.add("hover"); };
     const leave = e => { e.currentTarget.classList.remove("hover"); };
@@ -884,101 +972,54 @@ vv.control = (() => {
       element.addEventListener("mouseenter", enter, {passive: true});
       element.addEventListener("mouseleave", leave, {passive: true});
     }
-  };
-
-  const requests = {};
-  const abort_all_requests = options => {
-    options = options || {};
-    for (const key in requests) {
-      if (requests.hasOwnProperty(key)) {
-        if (options.stop) {
-          requests[key].onabort = () => {};
-        }
-        requests[key].abort();
-      }
+  },
+  rescan_library() {
+    vv.request.post("/api/music/library", {action: "rescan"});
+    vv.storage.control.update_library = true;
+    vv.control.raiseEvent("control");
+  },
+  prev() { vv.request.post("/api/music/status", {state: "prev"}); },
+  play_pause() {
+    const state = vv.control._getOrElse(vv.storage.control, "state", "stopped");
+    const action = state === "play" ? "pause" : "play";
+    vv.request.post("/api/music/status", {state: action});
+    vv.storage.control.state = action;
+    vv.control.raiseEvent("control");
+  },
+  next() { vv.request.post("/api/music/status", {state: "next"}); },
+  toggle_repeat() {
+    if (vv.storage.control.single) {
+      vv.request.post("/api/music/status", {repeat: false, single: false});
+      vv.storage.control.single = false;
+      vv.storage.control.repeat = false;
+    } else if (vv.storage.control.repeat) {
+      vv.request.post("/api/music/status", {single: true});
+      vv.storage.control.single = true;
+    } else {
+      vv.request.post("/api/music/status", {repeat: true});
+      vv.storage.control.repeat = true;
     }
-  };
-  const get_request = (path, ifmodified, callback, timeout) => {
-    const key = "GET " + path;
-    if (requests[key]) {
-      requests[key].onabort = () => {};  // disable retry
-      requests[key].abort();
-    }
-    const xhr = new XMLHttpRequest();
-    requests[key] = xhr;
-    if (!timeout) {
-      timeout = 1000;
-    }
-    xhr.responseType = "json";
-    xhr.timeout = timeout;
-    xhr.onload = () => {
-      if (xhr.status === 200 || xhr.status === 304) {
-        if (xhr.status === 200 && callback) {
-          callback(
-              xhr.response, xhr.getResponseHeader("Last-Modified"),
-              xhr.getResponseHeader("Date"));
-        }
-        return;
-      }
-      // error handling
-      if (xhr.status !== 0) {
-        vv.view.popup.show("network", xhr.statusText);
-      }
-    };
-    xhr.onabort = () => {
-      if (timeout < 50000) {
-        setTimeout(
-            () => { get_request(path, ifmodified, callback, timeout * 2); });
-      }
-    };
-    xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
-    xhr.ontimeout = () => {
-      if (timeout < 50000) {
-        vv.view.popup.show("network", "timeoutRetry");
-        abort_all_requests();
-        setTimeout(
-            () => { get_request(path, ifmodified, callback, timeout * 2); });
-      } else {
-        vv.view.popup.show("network", "timeout");
-      }
-    };
-    xhr.open("GET", path, true);
-    xhr.setRequestHeader("If-Modified-Since", ifmodified);
-    xhr.send();
-  };
-
-  const post_request = (path, obj) => {
-    const key = "POST " + path;
-    if (requests[key]) {
-      requests[key].abort();
-    }
-    const xhr = new XMLHttpRequest();
-    requests[key] = xhr;
-    xhr.responseType = "json";
-    xhr.timeout = 1000;
-    xhr.onload = () => {
-      if (xhr.status !== 200) {
-        if (xhr.response && xhr.response.error) {
-          vv.view.popup.show("network", xhr.response.error);
-        } else {
-          vv.view.popup.show("network", xhr.responseText);
-        }
-      }
-    };
-    xhr.ontimeout = () => {
-      vv.view.popup.show("network", "timeout");
-      abort_all_requests();
-    };
-    xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
-    xhr.open("POST", path, true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(JSON.stringify(obj));
-  };
-
-  const getOrElse = (m, k, v) => { return k in m ? m[k] : v; };
-  const fetch = (target, store) => {
-    get_request(
-        target, getOrElse(vv.storage.last_modified, store, ""),
+    vv.control.raiseEvent("control");
+  },
+  toggle_random() {
+    vv.request.post("/api/music/status", {random: !vv.storage.control.random});
+    vv.storage.control.random = !vv.storage.control.random;
+    vv.control.raiseEvent("control");
+  },
+  play(pos) {
+    vv.request.post("/api/music/playlist/sort", {
+      keys: vv.model.list.sortkeys(),
+      filters: vv.model.list.filters(pos),
+      play: pos
+    });
+  },
+  volume(num) { vv.request.post("/api/music/status", {volume: num}); },
+  output(id, on) {
+    vv.request.post(`/api/music/outputs/${id}`, {outputenabled: on});
+  },
+  _fetch(target, store) {
+    vv.request.get(
+        target, vv.control._getOrElse(vv.storage.last_modified, store, ""),
         (ret, modified, date) => {
           if (!ret.error) {
             if (Object.prototype.toString.call(ret.data) ===
@@ -1000,152 +1041,99 @@ vv.control = (() => {
             } else if (store === "sorted") {
               vv.storage.save.sorted();
             }
-            pub.raiseEvent(store);
+            vv.control.raiseEvent(store);
           }
         });
-  };
-
-  pub.rescan_library = () => {
-    post_request("/api/music/library", {action: "rescan"});
-    vv.storage.control.update_library = true;
-    pub.raiseEvent("control");
-  };
-
-  pub.prev = () => { post_request("/api/music/status", {state: "prev"}); };
-
-  pub.play_pause = () => {
-    const state = getOrElse(vv.storage.control, "state", "stopped");
-    const action = state === "play" ? "pause" : "play";
-    post_request("/api/music/status", {state: action});
-    vv.storage.control.state = action;
-    pub.raiseEvent("control");
-  };
-
-  pub.next = () => { post_request("/api/music/status", {state: "next"}); };
-
-  pub.toggle_repeat = () => {
-    if (vv.storage.control.single) {
-      post_request("/api/music/status", {repeat: false, single: false});
-      vv.storage.control.single = false;
-      vv.storage.control.repeat = false;
-    } else if (vv.storage.control.repeat) {
-      post_request("/api/music/status", {single: true});
-      vv.storage.control.single = true;
-    } else {
-      post_request("/api/music/status", {repeat: true});
-      vv.storage.control.repeat = true;
-    }
-    pub.raiseEvent("control");
-  };
-
-  pub.toggle_random = () => {
-    post_request("/api/music/status", {random: !vv.storage.control.random});
-    vv.storage.control.random = !vv.storage.control.random;
-    pub.raiseEvent("control");
-  };
-
-  pub.play = pos => {
-    post_request("/api/music/playlist/sort", {
-      keys: vv.model.list.sortkeys(),
-      filters: vv.model.list.filters(pos),
-      play: pos
-    });
-  };
-
-  pub.volume = num => { post_request("/api/music/status", {volume: num}); };
-
-  pub.output = (id, on) => {
-    post_request(`/api/music/outputs/${id}`, {outputenabled: on});
-  };
-
-  const update_all = () => {
-    fetch("/api/music/playlist/sort", "sorted");
-    fetch("/api/version", "version");
-    fetch("/api/music/outputs", "outputs");
-    fetch("/api/music/playlist/current", "current");
-    fetch("/api/music/status", "control");
-    fetch("/api/music/library", "library");
-  };
-
-  let notify_last_update = (new Date()).getTime();
-  let notify_last_connection = (new Date()).getTime();
-  let connected = false;
-  let notify_err_cnt = 0;
-  let ws = null;
-  const listennotify = cause => {
-    abort_all_requests({stop: true});
+  },
+  _fetchAll() {
+    vv.control._fetch("/api/music/playlist/sort", "sorted");
+    vv.control._fetch("/api/version", "version");
+    vv.control._fetch("/api/music/outputs", "outputs");
+    vv.control._fetch("/api/music/playlist/current", "current");
+    vv.control._fetch("/api/music/status", "control");
+    vv.control._fetch("/api/music/library", "library");
+  },
+  _notify_last_update: (new Date()).getTime(),
+  _notify_last_connection: (new Date()).getTime(),
+  _connected: false,
+  _notify_err_cnt: 0,
+  _ws: null,
+  _listennotify(cause) {
+    vv.request.abortAll({stop: true});
     if (cause) {
       vv.view.popup.show("network", cause);
     }
-    notify_last_connection = (new Date()).getTime();
-    connected = false;
+    vv.control._notify_last_connection = (new Date()).getTime();
+    vv.control._connected = false;
     const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
     const uri = `${wsp}//${location.host}/api/music/notify`;
-    if (ws !== null) {
-      ws.onclose = () => {};
-      ws.close();
+    if (vv.control._ws !== null) {
+      vv.control._ws.onclose = () => {};
+      vv.control._ws.close();
     }
-    ws = new WebSocket(uri);
-    ws.onopen = () => {
-      if (notify_err_cnt > 0) {
+    vv.control._ws = new WebSocket(uri);
+    vv.control._ws.onopen = () => {
+      if (vv.control._notify_err_cnt > 0) {
         vv.view.popup.hide("network");
       }
-      connected = true;
-      notify_last_update = (new Date()).getTime();
-      update_all();
+      vv.control._connected = true;
+      vv.control._notify_last_update = (new Date()).getTime();
+      vv.control._fetchAll();
     };
-    ws.onmessage = e => {
+    vv.control._ws.onmessage = e => {
       if (e && e.data) {
         if (e.data === "library") {
-          fetch("/api/music/library", "library");
+          vv.control._fetch("/api/music/library", "library");
         } else if (e.data === "status") {
-          fetch("/api/music/status", "control");
+          vv.control._fetch("/api/music/status", "control");
         } else if (e.data === "playlist/current") {
-          fetch("/api/music/playlist/current", "current");
+          vv.control._fetch("/api/music/playlist/current", "current");
         } else if (e.data === "outputs") {
-          fetch("/api/music/outputs", "outputs");
+          vv.control._fetch("/api/music/outputs", "outputs");
         } else if (e.data === "stats") {
-          fetch("/api/music/stats", "stats");
+          vv.control._fetch("/api/music/stats", "stats");
         } else if (e.data === "playlist/sort") {
-          fetch("/api/music/playlist/sort", "sorted");
+          vv.control._fetch("/api/music/playlist/sort", "sorted");
         }
         const new_notify_last_update = (new Date()).getTime();
-        if (new_notify_last_update - notify_last_update > 10000) {
+        if (new_notify_last_update - vv.control._notify_last_update > 10000) {
           // recover lost notification
-          setTimeout(listennotify);
+          setTimeout(vv.control._listennotify);
         }
-        notify_last_update = new_notify_last_update;
-        notify_err_cnt = 0;
+        vv.control._notify_last_update = new_notify_last_update;
+        vv.control._notify_err_cnt = 0;
       }
     };
-    ws.onclose = () => {
-      if (notify_err_cnt > 0) {
+    vv.control._ws.onclose = () => {
+      if (vv.control._notify_err_cnt > 0) {
         vv.view.popup.show("network", "closed");
       }
-      notify_last_update = (new Date()).getTime();
-      notify_err_cnt++;
-      setTimeout(listennotify, 1000);
+      vv.control._notify_last_update = (new Date()).getTime();
+      vv.control._notify_err_cnt++;
+      setTimeout(vv.control._listennotify, 1000);
     };
-  };
-
-  const init = () => {
+  },
+  _init() {
     const polling = () => {
       const now = (new Date()).getTime();
-      if (connected && now - 10000 > notify_last_update) {
-        notify_err_cnt++;
-        setTimeout(() => { listennotify("doesNotRespond"); });
-      } else if (!connected && now - 2000 > notify_last_connection) {
-        notify_err_cnt++;
-        setTimeout(() => { listennotify("timeoutRetry"); });
+      if (vv.control._connected &&
+          now - 10000 > vv.control._notify_last_update) {
+        vv.control._notify_err_cnt++;
+        setTimeout(() => { vv.control._listennotify("doesNotRespond"); });
+      } else if (
+          !vv.control._connected &&
+          now - 2000 > vv.control._notify_last_connection) {
+        vv.control._notify_err_cnt++;
+        setTimeout(() => { vv.control._listennotify("timeoutRetry"); });
       }
-      pub.raiseEvent("poll");
+      vv.control.raiseEvent("poll");
       setTimeout(polling, 1000);
     };
     const start = () => {
-      pub.raiseEvent("start");
+      vv.control.raiseEvent("start");
       vv.view.list.show();
-      pub.raiseEvent("current");
-      listennotify();
+      vv.control.raiseEvent("current");
+      vv.control._listennotify();
       polling();
     };
     if (vv.storage.loaded) {
@@ -1153,51 +1141,51 @@ vv.control = (() => {
     } else {
       vv.storage.addEventListener("onload", start);
     }
-  };
-
-  pub.start = () => {
+  },
+  start() {
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", init);
+      document.addEventListener("DOMContentLoaded", vv.control._init);
     } else {
-      init();
+      vv.control._init();
     }
-  };
-
-  const focus = () => {
-    vv.storage.save.current();
-    if (vv.storage.preferences.playback.view_follow &&
-        vv.storage.current !== null) {
-      vv.model.list.abs(vv.storage.current);
-    }
-  };
-
-  let unsorted = !vv.storage.sorted;
-  const focusremove = (key, remove) => {
-    const n = () => {
-      if (unsorted && vv.storage.sorted && vv.storage.current !== null) {
-        if (vv.storage.sorted && vv.storage.preferences.playback.view_follow) {
-          vv.model.list.abs(vv.storage.current);
-        }
-        unsorted = false;
+  },
+  load() {
+    const focus = () => {
+      vv.storage.save.current();
+      if (vv.storage.preferences.playback.view_follow &&
+          vv.storage.current !== null) {
+        vv.model.list.abs(vv.storage.current);
       }
-      setTimeout(() => { remove(key, n); });
     };
-    return n;
-  };
-  pub.addEventListener("current", focus);
-  pub.addEventListener(
-      "library", () => { vv.model.list.update(vv.storage.library); });
-  if (unsorted) {
-    pub.addEventListener(
-        "current", focusremove("current", pub.removeEventListener));
-    pub.addEventListener(
-        "sorted", focusremove("sorted", pub.removeEventListener));
-    vv.model.list.addEventListener(
-        "update", focusremove("update", vv.model.list.removeEventListener));
-  }
 
-  return pub;
-})();
+    let unsorted = !vv.storage.sorted;
+    const focusremove = (key, remove) => {
+      const n = () => {
+        if (unsorted && vv.storage.sorted && vv.storage.current !== null) {
+          if (vv.storage.sorted &&
+              vv.storage.preferences.playback.view_follow) {
+            vv.model.list.abs(vv.storage.current);
+          }
+          unsorted = false;
+        }
+        setTimeout(() => { remove(key, n); });
+      };
+      return n;
+    };
+    vv.control.addEventListener("current", focus);
+    vv.control.addEventListener(
+        "library", () => { vv.model.list.update(vv.storage.library); });
+    if (unsorted) {
+      vv.control.addEventListener(
+          "current", focusremove("current", vv.control.removeEventListener));
+      vv.control.addEventListener(
+          "sorted", focusremove("sorted", vv.control.removeEventListener));
+      vv.model.list.addEventListener(
+          "update", focusremove("update", vv.model.list.removeEventListener));
+    }
+  }
+};
+vv.control.load();
 
 // background
 {
