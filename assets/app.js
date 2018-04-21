@@ -721,14 +721,17 @@ vv.model.list = {
       style: "plain",
       isdir: true
     };
+  },
+  load() {
+    if (vv.storage.loaded) {
+      vv.model.list.updateData(vv.storage.library);
+    } else {
+      vv.storage.addEventListener(
+          "onload", () => { vv.model.list.updateData(vv.storage.library); });
+    }
   }
 };
-if (vv.storage.loaded) {
-  vv.model.list.updateData(vv.storage.library);
-} else {
-  vv.storage.addEventListener(
-      "onload", () => { vv.model.list.updateData(vv.storage.library); });
-}
+vv.model.list.load();
 vv.request = {
   _requests: {},
   abortAll(options) {
