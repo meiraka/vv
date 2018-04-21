@@ -5,7 +5,7 @@ const vv = {
   song: {},
   songs: {},
   storage: {},
-  model: {list: {}},
+  library: {},
   view: {main: {}, list: {}, system: {}, popup: {}, modal: {}, footer: {}},
   control: {},
   request: {}
@@ -391,10 +391,10 @@ vv.storage = {
 };
 vv.storage.load();
 
-vv.model.list = {
+vv.library = {
   focus: {},
   child: null,
-  library: {
+  _roots: {
     AlbumArtist: [],
     Album: [],
     Artist: [],
@@ -447,22 +447,22 @@ vv.model.list = {
     }
   },
   _listener: {},
-  addEventListener(e, f) { vv.pubsub.add(vv.model.list._listener, e, f); },
-  removeEventListener(e, f) { vv.pubsub.rm(vv.model.list._listener, e, f); },
+  addEventListener(e, f) { vv.pubsub.add(vv.library._listener, e, f); },
+  removeEventListener(e, f) { vv.pubsub.rm(vv.library._listener, e, f); },
   _mkmemo(key) {
     const ret = [];
-    for (const leef of vv.model.list.TREE[key].tree) {
+    for (const leef of vv.library.TREE[key].tree) {
       ret.push(leef[0]);
     }
     return ret;
   },
   _list_child_cache: [{}, {}, {}, {}, {}, {}],
   list_child() {
-    const root = vv.model.list.rootname();
-    if (vv.model.list.library[root].length === 0) {
-      vv.model.list.library[root] = vv.songs.sort(
-          vv.storage.library, vv.model.list.TREE[root].sort,
-          vv.model.list._mkmemo(root));
+    const root = vv.library.rootname();
+    if (vv.library._roots[root].length === 0) {
+      vv.library._roots[root] = vv.songs.sort(
+          vv.storage.library, vv.library.TREE[root].sort,
+          vv.library._mkmemo(root));
     }
     const filters = {};
     for (let i = 0, imax = vv.storage.tree.length; i < imax; i++) {
@@ -472,18 +472,18 @@ vv.model.list = {
       filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
     }
     const ret = {};
-    ret.key = vv.model.list.TREE[root].tree[vv.storage.tree.length - 1][0];
-    ret.songs = vv.model.list.library[root];
+    ret.key = vv.library.TREE[root].tree[vv.storage.tree.length - 1][0];
+    ret.songs = vv.library._roots[root];
     ret.songs = vv.songs.filter(ret.songs, filters);
     ret.songs = vv.songs.uniq(ret.songs, ret.key);
-    ret.style = vv.model.list.TREE[root].tree[vv.storage.tree.length - 1][1];
-    ret.isdir = vv.storage.tree.length !== vv.model.list.TREE[root].tree.length;
+    ret.style = vv.library.TREE[root].tree[vv.storage.tree.length - 1][1];
+    ret.isdir = vv.storage.tree.length !== vv.library.TREE[root].tree.length;
     return ret;
   },
   list_root() {
     const ret = [];
-    for (const key in vv.model.list.TREE) {
-      if (vv.model.list.TREE.hasOwnProperty(key)) {
+    for (const key in vv.library.TREE) {
+      if (vv.library.TREE.hasOwnProperty(key)) {
         ret.push({root: [key]});
       }
     }
@@ -491,53 +491,52 @@ vv.model.list = {
   },
   _list_cache: {},
   update_list() {
-    if (vv.model.list.rootname() === "root") {
-      vv.model.list._list_cache = vv.model.list.list_root();
+    if (vv.library.rootname() === "root") {
+      vv.library._list_cache = vv.library.list_root();
       return true;
     }
-    const cache = vv.model.list._list_child_cache[vv.storage.tree.length - 1];
+    const cache = vv.library._list_child_cache[vv.storage.tree.length - 1];
     const pwd = vv.storage.tree.join();
     if (cache.pwd === pwd) {
-      vv.model.list._list_cache = cache.data;
+      vv.library._list_cache = cache.data;
       return false;
     }
-    vv.model.list._list_cache = vv.model.list.list_child();
-    if (vv.model.list._list_cache.songs.length === 0) {
-      vv.model.list.up();
+    vv.library._list_cache = vv.library.list_child();
+    if (vv.library._list_cache.songs.length === 0) {
+      vv.library.up();
     } else {
-      vv.model.list._list_child_cache[vv.storage.tree.length - 1].pwd = pwd;
-      vv.model.list._list_child_cache[vv.storage.tree.length - 1].data =
-          vv.model.list._list_cache;
+      vv.library._list_child_cache[vv.storage.tree.length - 1].pwd = pwd;
+      vv.library._list_child_cache[vv.storage.tree.length - 1].data =
+          vv.library._list_cache;
     }
     return true;
   },
   list() {
-    if (!vv.model.list._list_cache.songs ||
-        !vv.model.list._list_cache.songs.length === 0) {
-      vv.model.list.update_list();
+    if (!vv.library._list_cache.songs ||
+        !vv.library._list_cache.songs.length === 0) {
+      vv.library.update_list();
     }
-    return vv.model.list._list_cache;
+    return vv.library._list_cache;
   },
   updateData(data) {
-    for (let i = 0, imax = vv.model.list._list_child_cache.length; i < imax;
-         i++) {
-      vv.model.list._list_child_cache[i] = {};
+    for (let i = 0, imax = vv.library._list_child_cache.length; i < imax; i++) {
+      vv.library._list_child_cache[i] = {};
     }
-    for (const key in vv.model.list.TREE) {
-      if (vv.model.list.TREE.hasOwnProperty(key)) {
+    for (const key in vv.library.TREE) {
+      if (vv.library.TREE.hasOwnProperty(key)) {
         if (key === vv.storage.root) {
-          vv.model.list.library[key] = vv.songs.sort(
-              data, vv.model.list.TREE[key].sort, vv.model.list._mkmemo(key));
+          vv.library._roots[key] = vv.songs.sort(
+              data, vv.library.TREE[key].sort, vv.library._mkmemo(key));
         } else {
-          vv.model.list.library[key] = [];
+          vv.library._roots[key] = [];
         }
       }
     }
   },
   update(data) {
-    vv.model.list.updateData(data);
-    vv.model.list.update_list();
-    vv.pubsub.raise(vv.model.list._listener, "update");
+    vv.library.updateData(data);
+    vv.library.update_list();
+    vv.pubsub.raise(vv.library._listener, "update");
   },
   rootname() {
     let r = "root";
@@ -550,68 +549,65 @@ vv.model.list = {
     }
     return r;
   },
-  filters(pos) {
-    return vv.model.list.library[vv.model.list.rootname()][pos].keys;
-  },
+  filters(pos) { return vv.library._roots[vv.library.rootname()][pos].keys; },
   sortkeys() {
-    const r = vv.model.list.rootname();
+    const r = vv.library.rootname();
     if (r === "root") {
       return [];
     }
-    return vv.model.list.TREE[r].sort;
+    return vv.library.TREE[r].sort;
   },
   up() {
-    const songs = vv.model.list.list().songs;
+    const songs = vv.library.list().songs;
     if (songs[0]) {
-      vv.model.list.focus = songs[0];
-      if (vv.model.list.rootname() === "root") {
-        vv.model.list.child = null;
+      vv.library.focus = songs[0];
+      if (vv.library.rootname() === "root") {
+        vv.library.child = null;
       } else {
-        vv.model.list.child = vv.storage.tree[vv.storage.tree.length - 1][1];
+        vv.library.child = vv.storage.tree[vv.storage.tree.length - 1][1];
       }
     }
-    if (vv.model.list.rootname() !== "root") {
+    if (vv.library.rootname() !== "root") {
       vv.storage.tree.pop();
     }
-    vv.model.list.update_list();
-    if (vv.model.list.list().songs.length === 1 &&
-        vv.storage.tree.length !== 0) {
-      vv.model.list.up();
+    vv.library.update_list();
+    if (vv.library.list().songs.length === 1 && vv.storage.tree.length !== 0) {
+      vv.library.up();
     } else {
-      vv.pubsub.raise(vv.model.list._listener, "changed");
+      vv.pubsub.raise(vv.library._listener, "changed");
     }
   },
   down(value) {
-    const r = vv.model.list.rootname();
+    const r = vv.library.rootname();
     let key = "root";
     if (r !== "root") {
-      key = vv.model.list.TREE[r].tree[vv.storage.tree.length - 1][0];
+      key = vv.library.TREE[r].tree[vv.storage.tree.length - 1][0];
     }
     vv.storage.tree.push([key, value]);
-    vv.model.list.focus = {};
-    vv.model.list.child = null;
-    vv.model.list.update_list();
-    const songs = vv.model.list.list().songs;
+    vv.library.focus = {};
+    vv.library.child = null;
+    vv.library.update_list();
+    const songs = vv.library.list().songs;
     if (songs.length === 1 &&
-        vv.model.list.TREE[r].tree.length !== vv.storage.tree.length) {
-      vv.model.list.down(vv.song.get(songs[0], vv.model.list.list().key));
+        vv.library.TREE[r].tree.length !== vv.storage.tree.length) {
+      vv.library.down(vv.song.get(songs[0], vv.library.list().key));
     } else {
-      vv.pubsub.raise(vv.model.list._listener, "changed");
+      vv.pubsub.raise(vv.library._listener, "changed");
     }
   },
   absaddr(first, second) {
     vv.storage.tree.splice(0, vv.storage.tree.length);
     vv.storage.tree.push(["root", first]);
-    vv.model.list.down(second);
+    vv.library.down(second);
   },
   absFallback(song) {
-    if (vv.model.list.rootname() !== "root" && song.file) {
+    if (vv.library.rootname() !== "root" && song.file) {
       const r = vv.storage.tree[0];
       vv.storage.tree.length = 0;
       vv.storage.tree.splice(0, vv.storage.tree.length);
       vv.storage.tree.push(r);
       const root = vv.storage.tree[0][1];
-      const selected = vv.model.list.TREE[root].tree;
+      const selected = vv.library.TREE[root].tree;
       for (let i = 0, imax = selected.length; i < imax; i++) {
         if (i === selected.length - 1) {
           break;
@@ -619,27 +615,27 @@ vv.model.list = {
         const key = selected[i][0];
         vv.storage.tree.push([key, vv.song.getOne(song, key)]);
       }
-      vv.model.list.update_list();
-      for (const candidate of vv.model.list.list().songs) {
+      vv.library.update_list();
+      for (const candidate of vv.library.list().songs) {
         if (candidate.file && candidate.file[0] === song.file[0]) {
-          vv.model.list.focus = candidate;
-          vv.model.list.child = null;
+          vv.library.focus = candidate;
+          vv.library.child = null;
           break;
         }
       }
     } else {
       vv.storage.tree.splice(0, vv.storage.tree.length);
-      vv.model.list.update_list();
+      vv.library.update_list();
     }
-    vv.pubsub.raise(vv.model.list._listener, "changed");
+    vv.pubsub.raise(vv.library._listener, "changed");
   },
   absSorted(song) {
     let root = "";
     const pos = parseInt(song.Pos[0], 10);
     const keys = vv.storage.sorted.keys.join();
-    for (const key in vv.model.list.TREE) {
-      if (vv.model.list.TREE.hasOwnProperty(key)) {
-        if (vv.model.list.TREE[key].sort.join() === keys) {
+    for (const key in vv.library.TREE) {
+      if (vv.library.TREE.hasOwnProperty(key)) {
+        if (vv.library.TREE[key].sort.join() === keys) {
           root = key;
           break;
         }
@@ -649,12 +645,12 @@ vv.model.list = {
       vv.view.popup.show("fixme", `modal: unknown sort keys: ${keys}`);
       return;
     }
-    let songs = vv.model.list.library[root];
+    let songs = vv.library._roots[root];
     if (!songs || songs.length === 0) {
-      vv.model.list.library[root] = vv.songs.sort(
-          vv.storage.library, vv.model.list.TREE[root].sort,
-          vv.model.list._mkmemo(root));
-      songs = vv.model.list.library[root];
+      vv.library._roots[root] = vv.songs.sort(
+          vv.storage.library, vv.library.TREE[root].sort,
+          vv.library._mkmemo(root));
+      songs = vv.library._roots[root];
       if (songs.length === 0) {
         return;
       }
@@ -667,50 +663,48 @@ vv.model.list = {
       return;
     }
     if (songs[pos].file[0] === song.file[0]) {
-      vv.model.list.focus = songs[pos];
-      vv.model.list.child = null;
+      vv.library.focus = songs[pos];
+      vv.library.child = null;
       vv.storage.tree.length = 0;
       vv.storage.tree.push(["root", root]);
-      for (let i = 0; i < vv.model.list.focus.keys.length - 1; i++) {
-        vv.storage.tree.push(vv.model.list.focus.keys[i]);
+      for (let i = 0; i < vv.library.focus.keys.length - 1; i++) {
+        vv.storage.tree.push(vv.library.focus.keys[i]);
       }
-      vv.model.list.update_list();
-      vv.pubsub.raise(vv.model.list._listener, "changed");
+      vv.library.update_list();
+      vv.pubsub.raise(vv.library._listener, "changed");
     } else {
-      vv.model.list.absFallback(song);
+      vv.library.absFallback(song);
     }
   },
   abs(song) {
     if (vv.storage.sorted && vv.storage.sorted.sorted) {
-      vv.model.list.absSorted(song);
+      vv.library.absSorted(song);
     } else {
-      vv.model.list.absFallback(song);
+      vv.library.absFallback(song);
     }
   },
   parent() {
-    const root = vv.model.list.rootname();
+    const root = vv.library.rootname();
     if (root === "root") {
       return;
     }
-    const v = vv.model.list.list().songs;
+    const v = vv.library.list().songs;
     if (vv.storage.tree.length > 1) {
-      const key = vv.model.list.TREE[root].tree[vv.storage.tree.length - 2][0];
-      const style =
-          vv.model.list.TREE[root].tree[vv.storage.tree.length - 2][1];
+      const key = vv.library.TREE[root].tree[vv.storage.tree.length - 2][0];
+      const style = vv.library.TREE[root].tree[vv.storage.tree.length - 2][1];
       return {key: key, song: v[0], style: style, isdir: true};
     }
     return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
   },
   grandparent() {
-    const root = vv.model.list.rootname();
+    const root = vv.library.rootname();
     if (root === "root") {
       return;
     }
-    const v = vv.model.list.list().songs;
+    const v = vv.library.list().songs;
     if (vv.storage.tree.length > 2) {
-      const key = vv.model.list.TREE[root].tree[vv.storage.tree.length - 3][0];
-      const style =
-          vv.model.list.TREE[root].tree[vv.storage.tree.length - 3][1];
+      const key = vv.library.TREE[root].tree[vv.storage.tree.length - 3][0];
+      const style = vv.library.TREE[root].tree[vv.storage.tree.length - 3][1];
       return {key: key, song: v[0], style: style, isdir: true};
     } else if (vv.storage.tree.length === 2) {
       return {key: "top", song: {top: [root]}, style: "plain", isdir: true};
@@ -724,14 +718,14 @@ vv.model.list = {
   },
   load() {
     if (vv.storage.loaded) {
-      vv.model.list.updateData(vv.storage.library);
+      vv.library.updateData(vv.storage.library);
     } else {
       vv.storage.addEventListener(
-          "onload", () => { vv.model.list.updateData(vv.storage.library); });
+          "onload", () => { vv.library.updateData(vv.storage.library); });
     }
   }
 };
-vv.model.list.load();
+vv.library.load();
 vv.request = {
   _requests: {},
   abortAll(options) {
@@ -1011,8 +1005,8 @@ vv.control = {
   },
   play(pos) {
     vv.request.post("/api/music/playlist/sort", {
-      keys: vv.model.list.sortkeys(),
-      filters: vv.model.list.filters(pos),
+      keys: vv.library.sortkeys(),
+      filters: vv.library.filters(pos),
       play: pos
     });
   },
@@ -1157,7 +1151,7 @@ vv.control = {
       vv.storage.save.current();
       if (vv.storage.preferences.playback.view_follow &&
           vv.storage.current !== null) {
-        vv.model.list.abs(vv.storage.current);
+        vv.library.abs(vv.storage.current);
       }
     };
 
@@ -1167,7 +1161,7 @@ vv.control = {
         if (unsorted && vv.storage.sorted && vv.storage.current !== null) {
           if (vv.storage.sorted &&
               vv.storage.preferences.playback.view_follow) {
-            vv.model.list.abs(vv.storage.current);
+            vv.library.abs(vv.storage.current);
           }
           unsorted = false;
         }
@@ -1177,14 +1171,14 @@ vv.control = {
     };
     vv.control.addEventListener("current", focus);
     vv.control.addEventListener(
-        "library", () => { vv.model.list.update(vv.storage.library); });
+        "library", () => { vv.library.update(vv.storage.library); });
     if (unsorted) {
       vv.control.addEventListener(
           "current", focusremove("current", vv.control.removeEventListener));
       vv.control.addEventListener(
           "sorted", focusremove("sorted", vv.control.removeEventListener));
-      vv.model.list.addEventListener(
-          "update", focusremove("update", vv.model.list.removeEventListener));
+      vv.library.addEventListener(
+          "update", focusremove("update", vv.library.removeEventListener));
     }
   }
 };
@@ -1396,9 +1390,9 @@ vv.view.list = {
     const ul = document.getElementById("list-items" + index);
     let focus = null;
     let viewNowPlaying = false;
-    const rootname = vv.model.list.rootname();
-    const focusSong = vv.model.list.focus;
-    const focusParent = vv.model.list.child;
+    const rootname = vv.library.rootname();
+    const focusSong = vv.library.focus;
+    const focusParent = vv.library.child;
     for (const listitem of ul.children) {
       if (listitem.classList.contains("list-header")) {
         continue;
@@ -1424,7 +1418,7 @@ vv.view.list = {
           treeFocused = false;
         } else if (
             vv.storage.sorted.keys.join() !==
-            vv.model.list.TREE[rootname].sort.join()) {
+            vv.library.TREE[rootname].sort.join()) {
           treeFocused = false;
         }
       }
@@ -1551,7 +1545,7 @@ vv.view.list = {
       if (vv.storage.current === null) {
         return;
       }
-      vv.model.list.abs(vv.storage.current);
+      vv.library.abs(vv.storage.current);
       vv.view.main.show();
       return;
     }
@@ -1560,7 +1554,7 @@ vv.view.list = {
     if (e.currentTarget.classList.contains("song")) {
       vv.control.play(parseInt(pos, 10));
     } else {
-      vv.model.list.down(value);
+      vv.library.down(value);
     }
   },
   _update() {
@@ -1573,7 +1567,7 @@ vv.view.list = {
       return;
     }
     scroll.dataset.pwd = pwd;
-    const ls = vv.model.list.list();
+    const ls = vv.library.list();
     const key = ls.key;
     const songs = ls.songs;
     const style = ls.style;
@@ -1601,7 +1595,7 @@ vv.view.list = {
     ul.classList.remove("plainlist");
     ul.classList.add(style + "list");
     vv.view.list._preferences_update();
-    const p = vv.model.list.parent();
+    const p = vv.library.parent();
     for (let i = 0, imax = songs.length; i < imax; i++) {
       if (i === 0 && p) {
         const li = vv.view.list._element(p.song, p.key, p.style, false, true);
@@ -1637,7 +1631,7 @@ vv.view.list = {
     }
   },
   _select_focused_or(target) {
-    const style = vv.model.list.list().style;
+    const style = vv.library.list().style;
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
     const l = document.getElementById("list-items" + index);
@@ -1753,22 +1747,22 @@ vv.view.list = {
   onCurrent() { vv.view.list._update(); },
   onPreferences() { vv.view.list._preferences_update(); },
   onStart() {
-    vv.model.list.addEventListener("update", vv.view.list._updateForce);
-    vv.model.list.addEventListener("changed", vv.view.list._update);
+    vv.library.addEventListener("update", vv.view.list._updateForce);
+    vv.library.addEventListener("changed", vv.view.list._update);
     vv.control.swipe(
-        document.getElementById("list1"), vv.model.list.up,
+        document.getElementById("list1"), vv.library.up,
         vv.view.list._updatepos, document.getElementById("list0"));
     vv.control.swipe(
-        document.getElementById("list2"), vv.model.list.up,
+        document.getElementById("list2"), vv.library.up,
         vv.view.list._updatepos, document.getElementById("list1"));
     vv.control.swipe(
-        document.getElementById("list3"), vv.model.list.up,
+        document.getElementById("list3"), vv.library.up,
         vv.view.list._updatepos, document.getElementById("list2"));
     vv.control.swipe(
-        document.getElementById("list4"), vv.model.list.up,
+        document.getElementById("list4"), vv.library.up,
         vv.view.list._updatepos, document.getElementById("list3"));
     vv.control.swipe(
-        document.getElementById("list5"), vv.model.list.up,
+        document.getElementById("list5"), vv.library.up,
         vv.view.list._updatepos, document.getElementById("list4"));
   }
 };
@@ -1996,15 +1990,15 @@ vv.control.addEventListener("outputs", vv.view.system.onOutputs);
     const e = document.getElementById("header-back-label");
     const b = document.getElementById("header-back");
     const m = document.getElementById("header-main");
-    if (vv.model.list.rootname() === "root") {
+    if (vv.library.rootname() === "root") {
       b.classList.add("root");
       m.classList.add("root");
     } else {
       b.classList.remove("root");
       m.classList.remove("root");
-      const songs = vv.model.list.list().songs;
+      const songs = vv.library.list().songs;
       if (songs[0]) {
-        const p = vv.model.list.grandparent();
+        const p = vv.library.grandparent();
         if (p) {
           e.textContent = vv.song.getOne(p.song, p.key);
           if (p.song.keys) {
@@ -2028,10 +2022,10 @@ vv.control.addEventListener("outputs", vv.view.system.onOutputs);
     document.getElementById("header-back").addEventListener("click", e => {
       if (vv.view.list.hidden()) {
         if (vv.storage.current !== null) {
-          vv.model.list.abs(vv.storage.current);
+          vv.library.abs(vv.storage.current);
         }
       } else {
-        vv.model.list.up();
+        vv.library.up();
       }
       vv.view.list.show();
       e.stopPropagation();
@@ -2039,7 +2033,7 @@ vv.control.addEventListener("outputs", vv.view.system.onOutputs);
     document.getElementById("header-main").addEventListener("click", e => {
       e.stopPropagation();
       if (vv.storage.current !== null) {
-        vv.model.list.abs(vv.storage.current);
+        vv.library.abs(vv.storage.current);
       }
       vv.view.main.show();
       e.stopPropagation();
@@ -2049,8 +2043,8 @@ vv.control.addEventListener("outputs", vv.view.system.onOutputs);
       e.stopPropagation();
     });
     update();
-    vv.model.list.addEventListener("changed", update);
-    vv.model.list.addEventListener("update", update);
+    vv.library.addEventListener("changed", update);
+    vv.library.addEventListener("update", update);
   });
 }
 
@@ -2252,7 +2246,7 @@ vv.view.modal = {
         emptyvalue.classList.add("modal-song-box-item-value-empty");
         newdoc.appendChild(emptyvalue);
       } else {
-        const root = vv.model.list.TREE[key];
+        const root = vv.library.TREE[key];
         let targetValues = [];
         if (root && root.tree) {
           const target = root.tree[0][0];
@@ -2272,7 +2266,7 @@ vv.view.modal = {
                 obj.classList.add("modal-song-box-item-value-clickable");
                 obj.addEventListener("click", e => {
                   const d = e.currentTarget.dataset;
-                  vv.model.list.absaddr(d.root, d.value);
+                  vv.library.absaddr(d.root, d.value);
                   vv.view.list.show();
                 });
                 break;
@@ -2326,10 +2320,10 @@ vv.control.addEventListener("start", vv.view.modal.onStart);
   const back = () => {
     if (vv.view.list.hidden()) {
       if (vv.storage.current !== null) {
-        vv.model.list.abs(vv.storage.current);
+        vv.library.abs(vv.storage.current);
       }
     } else {
-      vv.model.list.up();
+      vv.library.up();
     }
     vv.view.list.show();
   };
@@ -2348,9 +2342,9 @@ vv.control.addEventListener("start", vv.view.modal.onStart);
     [meta]: {
       ArrowLeft: any(back),
       ArrowRight: any(() => {
-        if (vv.model.list.rootname() !== "root") {
+        if (vv.library.rootname() !== "root") {
           if (vv.storage.current !== null) {
-            vv.model.list.abs(vv.storage.current);
+            vv.library.abs(vv.storage.current);
           }
         }
         vv.view.main.show();
