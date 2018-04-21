@@ -89,7 +89,6 @@ func (s *Server) makeHandle() http.Handler {
 	h.HandleFunc("/api/music/playlist/sort", s.apiMusicPlaylistSort)
 	h.HandleFunc("/api/music/stats", s.apiMusicStats)
 	h.HandleFunc("/api/version", s.apiVersion)
-	h.HandleFunc("/assets/startup/", s.assetsStartup)
 	h.HandleFunc("/", s.root)
 	fs := http.StripPrefix(musicDirectoryPrefix, http.FileServer(http.Dir(s.MusicDirectory)))
 	h.HandleFunc(musicDirectoryPrefix, func(w http.ResponseWriter, r *http.Request) {
@@ -396,38 +395,6 @@ func (s *Server) apiVersion(w http.ResponseWriter, r *http.Request) {
 	goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	d := map[string]string{"vv": vvVersion + vvPostfix, "go": goVersion}
 	writeInterface(w, d, s.StartTime, nil)
-}
-
-func (s *Server) assetsStartup(w http.ResponseWriter, r *http.Request) {
-	if !strings.HasPrefix(r.URL.Path, "/assets/startup/") {
-		http.NotFound(w, r)
-		return
-	}
-	fname := strings.TrimPrefix(r.URL.Path, "/assets/startup/")
-	fnames := strings.Split(fname, "x")
-	if len(fnames) != 2 {
-		http.NotFound(w, r)
-		return
-	}
-	width, err := strconv.Atoi(fnames[0])
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	height, err := strconv.Atoi(fnames[1])
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	data := mustAsset("assets/app.png")
-	newdata, err := expandImage(data, width, height)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Header().Add("Content-Type", "image/png")
-	w.Write(newdata)
 }
 
 func (s *Server) root(w http.ResponseWriter, r *http.Request) {

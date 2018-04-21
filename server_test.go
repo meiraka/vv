@@ -528,33 +528,6 @@ func TestApiVersion(t *testing.T) {
 	}
 }
 
-func TestAssetsStartup(t *testing.T) {
-	m := new(MockMusic)
-	var testsets = []struct {
-		desc string
-		path string
-		ret  int
-	}{
-		{desc: "200 ok", ret: 200, path: "/assets/startup/320x240"},
-		{desc: "404 not found", ret: 404, path: "/assets/startup/320x240x2"},
-		{desc: "404 not found", ret: 404, path: "/assets/startup/320.0x240"},
-		{desc: "404 not found", ret: 404, path: "/assets/startup/320x240.0"},
-	}
-	for _, tt := range testsets {
-		s := Server{Music: m}
-		handler := s.makeHandle()
-		ts := httptest.NewServer(handler)
-		defer ts.Close()
-		req, _ := http.NewRequest("GET", ts.URL+tt.path, nil)
-		client := new(http.Client)
-		res := checkRequestError(t, func() (*http.Response, error) { return client.Do(req) })
-		if res.StatusCode != tt.ret {
-			t.Errorf("[%s] unexpected status %d", tt.desc, res.StatusCode)
-		}
-		defer res.Body.Close()
-	}
-}
-
 func TestAssets(t *testing.T) {
 	assets := []string{"/", "/assets/app.css", "/assets/app.js"}
 	testsets := []struct {
