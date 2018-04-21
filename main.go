@@ -18,12 +18,9 @@ func setupFlag(name string) {
 	viper.SetConfigName(name)
 	viper.AddConfigPath("/etc/xdg/vv")
 	viper.AddConfigPath("$HOME/.config/vv")
-	pflag.String("mpd.host", "", "[DEPRECATED] mpd server hostname to connect")
-	pflag.String("mpd.port", "", "[DEPRECATED] mpd server TCP port to connect")
 	pflag.String("mpd.network", "tcp", "mpd server network to connect")
 	pflag.String("mpd.addr", "localhost:6600", "mpd server address to connect")
 	pflag.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
-	pflag.String("server.port", "", "[DEPRECATED] this app serving TCP port")
 	pflag.String("server.addr", ":8080", "this app serving address")
 	pflag.Bool("server.keepalive", true, "use HTTP keep-alive")
 	pflag.BoolP("debug", "d", false, "use local assets if exists")
@@ -72,11 +69,6 @@ func main() {
 	}
 	network := viper.GetString("mpd.network")
 	addr := viper.GetString("mpd.addr")
-	if viper.GetString("mpd.host") != "" && viper.GetString("mpd.port") != "" {
-		log.Println("[warn]", "mpd.host and mpd.port are deprecated option. use mpd.addr")
-		network = "tcp"
-		addr = viper.GetString("mpd.host") + ":" + viper.GetString("mpd.port")
-	}
 	music, err := Dial(network, addr, "", musicDirectory)
 	defer music.Close()
 	if err != nil {
@@ -84,10 +76,6 @@ func main() {
 		os.Exit(1)
 	}
 	serverAddr := viper.GetString("server.addr")
-	if viper.GetString("server.port") != "" {
-		log.Println("[warn]", "server.port is deprecated option. use server.addr")
-		serverAddr = ":" + viper.GetString("server.port")
-	}
 	s := Server{
 		Music:          music,
 		MusicDirectory: musicDirectory,
