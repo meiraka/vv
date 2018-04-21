@@ -6,7 +6,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Music">
-<link rel="stylesheet" type="text/css" href="/assets/app.css">
+<style>
+html {
+  background-color: #ffffff;
+}
+.unload {
+  display: none;
+}
+</style>
+<link rel="preload" as="style" href="assets/app.css" type="text/css" media="all" onload="this.rel='stylesheet'">
 <link rel="manifest" href="/assets/manifest.json">
 <meta name="theme-color" content="#ffffff"/>
 <meta name="Description" content="Music Player Daemon Client">

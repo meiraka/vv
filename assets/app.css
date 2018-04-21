@@ -55,10 +55,6 @@ body {
   padding: constant(safe-area-inset-top) constant(safe-area-inset-right) constant(safe-area-inset-bottom) constant(safe-area-inset-left);
 }
 
-body.unload > * {
-  display: none;
-}
-
 main {
   display: flex;
   flex-flow: row nowrap;
@@ -209,12 +205,6 @@ body.light {
 body.dark {
   color: #d0d0d0;
   background-color: #000000;
-}
-
-html,
-body.unload {
-  color: rgba(0, 0, 0, 0);
-  background-color: #ffffff;
 }
 
 kbd {
