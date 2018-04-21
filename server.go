@@ -584,7 +584,7 @@ func writeError(w http.ResponseWriter, err error) {
 	b, jsonerr := json.Marshal(v)
 	if jsonerr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "{\"error\": \"failed to create json\"}")
+		fmt.Fprint(w, "{\"error\": \"failed to create json\"}")
 		return
 	}
 	if err != nil {
@@ -594,7 +594,7 @@ func writeError(w http.ResponseWriter, err error) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
-	fmt.Fprintf(w, string(b))
+	w.Write(b)
 	return
 }
 
@@ -620,7 +620,7 @@ func writeInterface(w http.ResponseWriter, d interface{}, l time.Time, err error
 		return
 	}
 	w.Header().Add("Content-Length", strconv.Itoa(len(b)))
-	fmt.Fprintf(w, string(b))
+	w.Write(b)
 	return
 }
 
@@ -656,7 +656,7 @@ func writeInterfaceIfCached(w http.ResponseWriter, r *http.Request, d interface{
 	newgzdata, err := makeGZip(b)
 	if err != nil {
 		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
-		fmt.Fprintf(w, string(b))
+		w.Write(b)
 		return
 	}
 	w.Header().Add("Content-Encoding", "gzip")
