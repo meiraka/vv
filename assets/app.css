@@ -300,16 +300,16 @@ svg path {
   background-color: rgba(208, 208, 208, 0.6);
 }
 
-.note-line {
+.list-item {
   margin-top: 1px;
   transition: border-bottom 0.2s 0s ease;
 }
 
-.light .note-line {
+.light .list-item {
   border-bottom: dashed 1px #404040;
 }
 
-.dark .note-line {
+.dark .list-item {
   border-bottom: dashed 1px #e0e0e0;
 }
 

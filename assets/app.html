@@ -85,7 +85,7 @@ html {
       <ol id="list-items5" class="list-items"></ol>
     </article>
     <template id="list-album-template">
-      <li class="album note-line">
+      <li class="album list-item">
         <div class="album-coverbox">
           <img class="album-cover" src="/assets/nocover.svg">
         </div>
@@ -97,7 +97,7 @@ html {
       </li>
     </template>
     <template id="list-song-template">
-      <li class="song note-line">
+      <li class="song list-item">
         <span class="song-track" data-text-content="TrackNumber"></span>
         <svg class="song-playingicon reversible-icon" width="22" height="22" viewBox="0 0 100 100"><path class="fill" d="M 25,20 80,50 25,80 z"></path></svg>
         <span class="song-title" data-text-content="Title"></span>
@@ -108,7 +108,7 @@ html {
       </li>
     </template>
     <template id="list-plain-template">
-      <li class="plain note-line">
+      <li class="plain list-item">
         <span class="plain-key" data-text-content="key"></span>
       </li>
     </template>
@@ -247,23 +247,23 @@ html {
       <h1 class="system-article-sub-header">{{ or .System "System" }}</h1>
       <article class="system-article-sub">
         <ul class="system-settings">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <button id=system-reload class="system-setting-value button-simple" type="button">{{ or .ReloadApplication "Reload Application" }}</button>
         </ul>
       </article>
       <h1 class="system-article-sub-header">{{ or .Appearance "Appearance" }}</h1>
       <article class="system-article-sub">
         <ul class="system-settings">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc" id="appearance-color-threshold-label">{{ or .ColorThreshold "Color threshold" }}</div>
             <div class="system-setting-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label"></div>
-          <li class="note-line system-setting" id="config-appearance-animation">
+          <li class="list-item system-setting" id="config-appearance-animation">
             <div class="system-setting-desc" id="appearance-animation-label">{{ or .Animation "Animation" }}</div>
             <input type="checkbox" id="appearance-animation" class="slideswitch" aria-labelledby="appearance-animation-label">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc" id="appearance-background-image-label">{{ or .BackgroundImage "Background image" }}</div>
             <input type="checkbox" id="appearance-background-image" class="slideswitch" aria-labelledby="appearance-background-image-label">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc" id="appearance-background-image-blur-label">{{ or .BackgroundImageBlur "Background image blur" }}</div>
             <select class="tool-select value" id="appearance-background-image-blur" aria-labelledby="appearance-background-image-blur-label">
               <option value="0">0</option>
@@ -274,13 +274,13 @@ html {
               <option value="16">16</option>
               <option value="32">32</option>
             </select>
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc" id="appearance-circled-image-label">{{ or .CircledImage "Circled image" }}</div>
             <input type="checkbox" id="appearance-circled-image" class="slideswitch" aria-labelledby="appearance-circled-image-label">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc" id="appearance-gridview-album-label">{{ or .GridviewAlbum "Gridview album" }}</div>
             <input type="checkbox" id="appearance-gridview-album" class="slideswitch" aria-labelledby="appearance-gridview-album-label">
-          <li class="note-line system-setting" id="config-appearance-auto-hide-scrollbar">
+          <li class="list-item system-setting" id="config-appearance-auto-hide-scrollbar">
             <div class="system-setting-desc" id="appearance-auto-hide-scrollbar-label">{{ or .AutoHideScrollbar "Auto hide scrollbar" }}</div>
             <input type="checkbox" id="appearance-auto-hide-scrollbar" class="slideswitch" aria-labelledby="appearance-auto-hide-scrollbar-label">
         </ul>
@@ -288,14 +288,14 @@ html {
       <h1 class="system-article-sub-header">{{ or .Library "Library" }}</h1>
       <article class="system-article-sub">
         <ul class="system-settings">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .Rescan "Rescan" }}</button>
         </ul>
       </article>
       <h1 class="system-article-sub-header">{{ or .Playback "Playback" }}</h1>
       <article class="system-article-sub">
         <ul class="system-settings">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc" id="playback-view-follow-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
             <input type="checkbox" id="playback-view-follow" class="slideswitch" aria-labelledby="playback-view-follow-label">
         </ul>
@@ -303,10 +303,10 @@ html {
       <h1 class="system-article-sub-header" id="volume-header">{{ or .Volume "Volume" }}</h1>
       <article class="system-article-sub" id="volume-all">
         <ul class="system-settings">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc" id="volume-show-label">{{ or .ShowVolumeNob "Show volume nob" }}</div>
             <input type="checkbox" id="volume-show" class="slideswitch" aria-labelledby="volume-show-label">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc" id="volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
             <select class="tool-select value" id="volume-max" aria-labelledby="volume-max-label">
               <option value="50">50</option>
@@ -322,7 +322,7 @@ html {
       <article class="system-article-sub">
         <ul class="system-settings" id="devices"></ul>
         <template id="device-template">
-          <li class="system-setting note-line">
+          <li class="system-setting list-item">
             <div class="system-setting-desc"></div>
             <input class="slideswitch" type="checkbox">
           </li>
@@ -334,21 +334,21 @@ html {
       <h1 class="system-article-sub-header">mpd</h1>
       <article class="system-article-sub">
         <ul class="system-settings">
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc">{{ or .Tracks "Tracks:" }}</div><div class="system-setting-value" id=stat-tracks></div>
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc">{{ or .Artists "Artists:" }}</div><div class="system-setting-value" id=stat-artists></div>
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc">{{ or .Albums "Albums:" }}</div><div class="system-setting-value" id=stat-albums></div>
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc">{{ or .TotalPlaytime "Total playtime:" }}</div><div class="system-setting-value" id=stat-playtime></div>
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc">{{ or .Uptime "Uptime:" }}</div><div class="system-setting-value" id=stat-uptime></div>
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><time class="system-setting-value" id=stat-db-update></time>
-          <li class="note-line system-setting">
+          <li class="list-item system-setting">
             <div class="system-setting-desc">{{ or .Websockets "Websockets:" }}</div><div class="system-setting-value" id=stat-websockets></div>
       </article>
     </article>
