@@ -1811,27 +1811,20 @@ vv.view.system = {
     }
     const newul = document.createDocumentFragment();
     for (const o of vv.storage.outputs) {
-      const li = document.createElement("li");
-      li.classList.add("note-line");
-      li.classList.add("system-setting");
-      const desc = document.createElement("div");
-      desc.classList.add("system-setting-desc");
-      desc.textContent = o.outputname;
-      const ch = document.createElement("input");
-      ch.classList.add("slideswitch");
+      const c = document.querySelector("#device-template").content;
+      const e = c.querySelector("li");
+      e.querySelector(".system-setting-desc").textContent = o.outputname;
+      const ch = e.querySelector(".slideswitch");
       ch.setAttribute("aria-label", o.outputname);
-      ch.setAttribute("type", "checkbox");
-      ch.setAttribute("id", "device_" + o.outputname);
-      ch.setAttribute("deviceid", o.outputid);
+      ch.dataset.deviceid = o.outputid;
       ch.checked = o.outputenabled === "1";
-      ch.addEventListener("change", e => {
+      const d = document.importNode(c, true);
+      d.querySelector(".slideswitch").addEventListener("change", e => {
         vv.control.output(
-            parseInt(e.currentTarget.getAttribute("deviceid"), 10),
+            parseInt(e.currentTarget.dataset.deviceid, 10),
             e.currentTarget.checked);
       });
-      li.appendChild(desc);
-      li.appendChild(ch);
-      newul.appendChild(li);
+      newul.appendChild(d);
     }
     ul.appendChild(newul);
   },

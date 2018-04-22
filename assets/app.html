@@ -321,6 +321,12 @@ html {
       <h1 class="system-article-sub-header">{{ or .Devices "Devices" }}</h1>
       <article class="system-article-sub">
         <ul class="system-settings" id="devices"></ul>
+        <template id="device-template">
+          <li class="system-setting note-line">
+            <div class="system-setting-desc"></div>
+            <input class="slideswitch" type="checkbox">
+          </li>
+        </template>
       </article>
     </article>
 
