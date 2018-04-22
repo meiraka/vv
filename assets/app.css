@@ -16,7 +16,6 @@ button::-moz-focus-inner {
 
 button {
   color: inherit;
-  /* Disable Presto Opera default value. */
   font-family: inherit;
   font-weight: inherit;
   text-align: inherit;
