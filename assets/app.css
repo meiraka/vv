@@ -948,6 +948,10 @@ button:hover {
   flex-direction: column;
 }
 
+.link {
+  padding: 2px 0 0 0;
+}
+
 .product-name {
   font-size: 18px;
 }
@@ -958,7 +962,7 @@ button:hover {
 }
 
 .product-link {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .license-link {
