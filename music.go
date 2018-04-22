@@ -81,7 +81,7 @@ func (p *Music) Output(id int, on bool) error {
 }
 
 /*Outputs return output device list.*/
-func (p *Music) Outputs() ([]mpd.Attrs, time.Time) {
+func (p *Music) Outputs() ([]map[string]string, time.Time) {
 	return p.outputs.get()
 }
 
@@ -196,7 +196,7 @@ func (p *Music) Status() (Status, time.Time) {
 }
 
 /*Stats returns mpd statistics.*/
-func (p *Music) Stats() (mpd.Attrs, time.Time) {
+func (p *Music) Stats() (map[string]string, time.Time) {
 	return p.stats.get()
 }
 
@@ -219,7 +219,7 @@ func (p *Music) Volume(v int) error {
 
 func (p *Music) updateSubscribers() {
 	stats, modified := p.stats.get()
-	newStats := mpd.Attrs{}
+	newStats := map[string]string{}
 	for k, v := range stats {
 		newStats[k] = v
 	}
@@ -525,7 +525,11 @@ func (p *Music) updateOutputs(mpc mpdClient) error {
 	if err != nil {
 		return err
 	}
-	p.outputs.set(outputs, time.Now().UTC())
+	n := make([]map[string]string, len(outputs))
+	for k, v := range outputs {
+		n[k] = map[string]string(v)
+	}
+	p.outputs.set(n, time.Now().UTC())
 	return p.notify("outputs")
 }
 
@@ -593,53 +597,44 @@ func (s *songStorage) lock(f func(Song, time.Time) error) error {
 
 type sliceMapStorage struct {
 	m        sync.Mutex
-	storage  []mpd.Attrs
+	storage  []map[string]string
 	modified time.Time
 }
 
-func (s *sliceMapStorage) set(l []mpd.Attrs, t time.Time) {
+func (s *sliceMapStorage) set(l []map[string]string, t time.Time) {
 	s.m.Lock()
 	defer s.m.Unlock()
 	s.storage = l
 	s.modified = t
 }
 
-func (s *sliceMapStorage) get() ([]mpd.Attrs, time.Time) {
+func (s *sliceMapStorage) get() ([]map[string]string, time.Time) {
 	s.m.Lock()
 	defer s.m.Unlock()
 	if s.storage == nil {
-		s.storage = []mpd.Attrs{}
+		s.storage = []map[string]string{}
 	}
 	return s.storage, s.modified
 }
 
-func (s *sliceMapStorage) lock(f func([]mpd.Attrs, time.Time) error) error {
-	s.m.Lock()
-	defer s.m.Unlock()
-	if s.storage == nil {
-		s.storage = []mpd.Attrs{}
-	}
-	return f(s.storage, s.modified)
-}
-
 type mapStorage struct {
 	m        sync.Mutex
-	storage  mpd.Attrs
+	storage  map[string]string
 	modified time.Time
 }
 
-func (s *mapStorage) set(l mpd.Attrs, t time.Time) {
+func (s *mapStorage) set(l map[string]string, t time.Time) {
 	s.m.Lock()
 	defer s.m.Unlock()
 	s.storage = l
 	s.modified = t
 }
 
-func (s *mapStorage) get() (mpd.Attrs, time.Time) {
+func (s *mapStorage) get() (map[string]string, time.Time) {
 	s.m.Lock()
 	defer s.m.Unlock()
 	if s.storage == nil {
-		s.storage = mpd.Attrs{}
+		s.storage = map[string]string{}
 	}
 	return s.storage, s.modified
 }

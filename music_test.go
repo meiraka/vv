@@ -423,27 +423,27 @@ func TestMusicStats(t *testing.T) {
 	}
 	var testsets = []struct {
 		desc   string
-		ret1   mpd.Attrs
+		ret1   map[string]string
 		ret2   error
-		expect mpd.Attrs
+		expect map[string]string
 		notify bool
 	}{
 		{
 			desc: "no cache, error",
 			ret1: nil, ret2: errors.New("hoge"),
-			expect: mpd.Attrs{"subscribers": "1"},
+			expect: map[string]string{"subscribers": "1"},
 			notify: false,
 		},
 		{
 			desc: "no error",
-			ret1: mpd.Attrs{"foo": "bar"}, ret2: nil,
-			expect: mpd.Attrs{"foo": "bar", "subscribers": "1"},
+			ret1: map[string]string{"foo": "bar"}, ret2: nil,
+			expect: map[string]string{"foo": "bar", "subscribers": "1"},
 			notify: true,
 		},
 		{
 			desc: "use cache, error",
 			ret1: nil, ret2: errors.New("hoge"),
-			expect: mpd.Attrs{"foo": "bar", "subscribers": "1"},
+			expect: map[string]string{"foo": "bar", "subscribers": "1"},
 			notify: false,
 		},
 	}
@@ -604,7 +604,7 @@ func TestMusicOutputs(t *testing.T) {
 	}
 	// Music.Library returns mpd.Client.ListOutputs result
 	outputs, _ := p.Outputs()
-	if !reflect.DeepEqual(m.ListOutputsRet1, outputs) {
+	if !reflect.DeepEqual([]map[string]string{{"foo": "bar"}}, outputs) {
 		t.Errorf("unexpected get outputs")
 	}
 	if event := <-e; event != "outputs" {

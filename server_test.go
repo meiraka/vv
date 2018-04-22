@@ -280,7 +280,7 @@ func TestApiMusicOutputs(t *testing.T) {
 	url := ts.URL + "/api/music/outputs"
 	defer ts.Close()
 	t.Run("get", func(t *testing.T) {
-		m.OutputsRet1 = []mpd.Attrs{mpd.Attrs{"foo": "bar"}}
+		m.OutputsRet1 = []map[string]string{map[string]string{"foo": "bar"}}
 		m.OutputsRet2 = time.Unix(100, 0)
 		testsets := []struct {
 			desc            string
@@ -447,15 +447,15 @@ func TestApiMusicStats(t *testing.T) {
 	handler := s.makeHandle()
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
-	m.StatsRet1 = mpd.Attrs{"foo": "bar"}
+	m.StatsRet1 = map[string]string{"foo": "bar"}
 	m.StatsRet2 = time.Unix(60, 0)
 	testsets := []struct {
 		desc            string
 		ret             int
 		ifModifiedSince time.Time
-		expect          mpd.Attrs
+		expect          map[string]string
 	}{
-		{desc: "200 ok", ret: 200, expect: mpd.Attrs{"foo": "bar"}},
+		{desc: "200 ok", ret: 200, expect: map[string]string{"foo": "bar"}},
 		{desc: "304 not modified", ret: 304, ifModifiedSince: time.Unix(60, 0)},
 	}
 	for _, tt := range testsets {
@@ -714,18 +714,18 @@ type MockMusic struct {
 	LibraryRet1          []Song
 	LibraryRet2          time.Time
 	RescanLibraryRet1    error
-	OutputsRet1          []mpd.Attrs
+	OutputsRet1          []map[string]string
 	OutputsRet2          time.Time
 	OutputArg1           int
 	OutputArg2           bool
 	OutputRet1           error
 	CurrentRet1          Song
 	CurrentRet2          time.Time
-	CommentsRet1         mpd.Attrs
+	CommentsRet1         map[string]string
 	CommentsRet2         time.Time
 	StatusRet1           Status
 	StatusRet2           time.Time
-	StatsRet1            mpd.Attrs
+	StatsRet1            map[string]string
 	StatsRet2            time.Time
 	SortPlaylistArg1     []string
 	SortPlaylistArg2     [][]string
@@ -772,7 +772,7 @@ func (p *MockMusic) Random(b bool) error {
 	p.RandomArg1 = b
 	return p.RandomErr
 }
-func (p *MockMusic) Comments() (mpd.Attrs, time.Time) {
+func (p *MockMusic) Comments() (map[string]string, time.Time) {
 	return p.CommentsRet1, p.CommentsRet2
 }
 func (p *MockMusic) Current() (Song, time.Time) {
@@ -784,7 +784,7 @@ func (p *MockMusic) Library() ([]Song, time.Time) {
 func (p *MockMusic) RescanLibrary() error {
 	return p.RescanLibraryRet1
 }
-func (p *MockMusic) Outputs() ([]mpd.Attrs, time.Time) {
+func (p *MockMusic) Outputs() ([]map[string]string, time.Time) {
 	return p.OutputsRet1, p.OutputsRet2
 }
 func (p *MockMusic) Output(id int, on bool) error {
@@ -797,7 +797,7 @@ func (p *MockMusic) Playlist() ([]Song, time.Time) {
 func (p *MockMusic) Status() (Status, time.Time) {
 	return p.StatusRet1, p.StatusRet2
 }
-func (p *MockMusic) Stats() (mpd.Attrs, time.Time) {
+func (p *MockMusic) Stats() (map[string]string, time.Time) {
 	return p.StatsRet1, p.StatsRet2
 }
 func (p *MockMusic) SortPlaylist(s []string, t [][]string, u int) error {
@@ -825,25 +825,25 @@ func checkRequestError(t *testing.T, f func() (*http.Response, error)) *http.Res
 }
 
 type jsonAttr struct {
-	Data  mpd.Attrs `json:"data"`
-	Error string    `json:"error"`
+	Data  map[string]string `json:"data"`
+	Error string            `json:"error"`
 }
 
 func decodeJSONAttr(b io.Reader) (body []byte, st jsonAttr) {
 	body, _ = ioutil.ReadAll(b)
-	st = jsonAttr{mpd.Attrs{}, ""}
+	st = jsonAttr{map[string]string{}, ""}
 	json.Unmarshal(body, &st)
 	return
 }
 
 type jsonAttrList struct {
-	Data  []mpd.Attrs `json:"data"`
-	Error string      `json:"error"`
+	Data  []map[string]string `json:"data"`
+	Error string              `json:"error"`
 }
 
 func decodeJSONAttrList(b io.Reader) (body []byte, st jsonAttrList) {
 	body, _ = ioutil.ReadAll(b)
-	st = jsonAttrList{[]mpd.Attrs{}, ""}
+	st = jsonAttrList{[]map[string]string{}, ""}
 	json.Unmarshal(body, &st)
 	return
 }

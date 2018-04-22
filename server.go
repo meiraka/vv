@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"github.com/meiraka/gompd/mpd"
 	"golang.org/x/text/language"
 	"io/ioutil"
 	"mime"
@@ -694,9 +693,9 @@ type MusicIF interface {
 	RescanLibrary() error
 	Current() (Song, time.Time)
 	Status() (Status, time.Time)
-	Stats() (mpd.Attrs, time.Time)
+	Stats() (map[string]string, time.Time)
 	Output(int, bool) error
-	Outputs() ([]mpd.Attrs, time.Time)
+	Outputs() ([]map[string]string, time.Time)
 	SortPlaylist([]string, [][]string, int) error
 	Subscribe(chan string)
 	Unsubscribe(chan string)
