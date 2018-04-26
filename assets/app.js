@@ -1186,14 +1186,36 @@ vv.control.load();
 
 // background
 {
-  let color = 128;
+  let rgbg = {r: 128, g: 128, b: 128, gray: 128};
+  const mkcolor = (rgb, magic) => {
+    return "#" +
+        (((1 << 24) + (magic(rgb.r) << 16) + (magic(rgb.g) << 8) + magic(rgb.b))
+             .toString(16)
+             .slice(1));
+  };
+  const darker = c => {
+    // Vivaldi does not recognize #000000
+    if ((c - 20) < 0) {
+      return 1;
+    }
+    return c - 20;
+  };
+  const lighter = c => {
+    if ((c + 100) > 255) {
+      return 255;
+    }
+    return c + 100;
+  };
   const update_theme = () => {
-    if (color < vv.storage.preferences.appearance.color_threshold) {
+    const color = document.querySelector("meta[name=theme-color]");
+    if (rgbg.gray < vv.storage.preferences.appearance.color_threshold) {
       document.body.classList.add("dark");
       document.body.classList.remove("light");
+      color.setAttribute("content", mkcolor(rgbg, darker));
     } else {
       document.body.classList.add("light");
       document.body.classList.remove("dark");
+      color.setAttribute("content", mkcolor(rgbg, lighter));
     }
   };
   const calc_color = path => {
@@ -1203,12 +1225,19 @@ vv.control.load();
       const context = canvas.getContext("2d");
       context.drawImage(img, 0, 0, 5, 5);
       try {
-        let newcolor = 0;
         const d = context.getImageData(0, 0, 5, 5).data;
-        for (const c of d) {
-          newcolor += c;
+        const new_rgbg = {r: 128, g: 128, b: 128, gray: 128};
+        for (let i = 0; i < d.length - 3; i += 4) {
+          new_rgbg.r += d[i];
+          new_rgbg.g += d[i + 1];
+          new_rgbg.b += d[i + 2];
+          new_rgbg.gray += (d[i] + d[i + 1] + d[i + 2]);
         }
-        color = newcolor / d.length;
+        new_rgbg.r = parseInt(new_rgbg.r * 3 / d.length, 10);
+        new_rgbg.g = parseInt(new_rgbg.g * 3 / d.length, 10);
+        new_rgbg.b = parseInt(new_rgbg.b * 3 / d.length, 10);
+        new_rgbg.gray /= d.length;
+        rgbg = new_rgbg;
         update_theme();
       } catch (e) {
         // failed to getImageData
