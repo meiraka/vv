@@ -193,7 +193,7 @@ body {
   font-size: 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Migu 1C", "Noto Sans CJK JP Regular", "Noto Sans CJK JP", Arial, sans-serif;
   font-feature-settings: 'palt' 1;
-  transition: color 0.2s 0s ease, background-color 0.2s 0s ease;
+  transition: color 0.2s 0s ease-out, background-color 0.2s 0s ease-out;
 }
 
 body.light {
@@ -226,7 +226,7 @@ kbd kbd {
 }
 
 svg path {
-  transition: stroke 0.2s 0s ease, fill 0.2s 0s ease;
+  transition: stroke 0.2s 0s ease-out, fill 0.2s 0s ease-out;
 }
 
 .light svg .fill {
@@ -258,7 +258,7 @@ svg path {
 }
 
 .background-overlay {
-  transition: background-color 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease-out;
 }
 
 .light .background-overlay {
@@ -301,7 +301,7 @@ svg path {
 
 .list-item {
   margin-top: 1px;
-  transition: border-bottom 0.2s 0s ease;
+  transition: border-bottom 0.2s 0s ease-out;
 }
 
 .light .list-item {
@@ -883,7 +883,7 @@ button:hover {
 }
 
 .system-nav-item {
-  transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease-out, color 0.2s 0s ease-out;
 }
 
 .system-article {
@@ -1001,7 +1001,7 @@ button:hover {
 .config-range::-webkit-slider-runnable-track {
   -webkit-appearance: none;
   appearance: none;
-  transition: background-color 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease-out;
   border-radius: 4px;
   height: 4px;
 }
@@ -1019,7 +1019,7 @@ button:hover {
   appearance: none;
   border-radius: 4px;
   height: 4px;
-  transition: background-color 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease-out;
 }
 
 .light .config-range::-moz-range-track {
@@ -1038,7 +1038,7 @@ button:hover {
   height: 30px;
   box-sizing: border-box;
   border-radius: 30px;
-  transition: border 0.2s 0s ease, background-color 0.2s 0s ease;
+  transition: border 0.2s 0s ease-out, background-color 0.2s 0s ease-out;
 }
 
 .light .config-range::-webkit-slider-thumb {
@@ -1058,7 +1058,7 @@ button:hover {
   height: 30px;
   box-sizing: border-box;
   border-radius: 30px;
-  transition: border 0.2s 0s ease, background-color 0.2s 0s ease;
+  transition: border 0.2s 0s ease-out, background-color 0.2s 0s ease-out;
 }
 
 .light .config-range::-moz-range-thumb {
@@ -1082,7 +1082,7 @@ button:hover {
   width: calc(100px);
   border-width: 0;
   border-radius: 30px;
-  transition: background-color 0.2s 0s ease, width 0.2s 0s ease, border 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease-out, width 0.2s 0s ease-out, border 0.2s 0s ease-out;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
@@ -1128,7 +1128,7 @@ button:hover {
   width: 56px;
   height: 30px;
   border-radius: 30px;
-  transition: background-color 0.2s 0s ease, left 0.2s 0s ease, border 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease-out, left 0.2s 0s ease-out, border 0.2s 0s ease-out;
 }
 
 .rtl .slideswitch:after {
@@ -1179,7 +1179,7 @@ button:hover {
   font-size: 18px;
   box-sizing: border-box;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-  transition: background-color 0.2s 0s ease, color 0.2s 0s ease, padding 0.2s 0s linear;
+  transition: background-color 0.2s 0s ease-out, color 0.2s 0s ease-out, padding 0.2s 0s linear;
 }
 
 .light .button-simple {
@@ -1241,7 +1241,7 @@ button:hover {
   border: none;
   border-radius: 30px;
   font-size: 18px;
-  transition: background-color 0.2s 0s ease, color 0.2s 0s ease;
+  transition: background-color 0.2s 0s ease-out, color 0.2s 0s ease-out;
 }
 
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
