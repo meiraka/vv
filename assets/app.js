@@ -578,12 +578,14 @@ vv.library = {
     }
   },
   down(value) {
-    const r = vv.library.rootname();
-    let key = "root";
-    if (r !== "root") {
-      key = vv.library.TREE[r].tree[vv.storage.tree.length - 1][0];
+    let r = vv.library.rootname();
+    if (r === "root") {
+      vv.storage.tree.push([r, value]);
+      r = value;
+    } else {
+      const key = vv.library.TREE[r].tree[vv.storage.tree.length - 1][0];
+      vv.storage.tree.push([key, value]);
     }
-    vv.storage.tree.push([key, value]);
     vv.library.focus = {};
     vv.library.child = null;
     vv.library.update_list();
