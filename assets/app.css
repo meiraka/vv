@@ -110,6 +110,7 @@ footer {
   left: -50%;
   position: relative;
   transition: transform 0.4s 0s ease;
+  overflow: hidden;
 }
 
 @media (orientation: portrait) {
