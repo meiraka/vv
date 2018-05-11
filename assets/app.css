@@ -114,11 +114,11 @@ footer {
 
 @media (orientation: portrait) {
   main {
-    width: 200%;
+    width: 200vw;
   }
 
   .full {
-    width: 100%;
+    width: 100vw;
   }
 
   .main.swipe,
@@ -151,7 +151,7 @@ footer {
 
 @media (orientation: landscape) {
   .full {
-    width: 50%;
+    width: 50vw;
   }
 
   .main {
