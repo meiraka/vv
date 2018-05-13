@@ -523,6 +523,8 @@ button:hover {
 
 .album-detail-album {
   font-size: 22px;
+  line-height: 1.0;
+  padding: 5px 0;
 }
 
 .album-detail-date {
