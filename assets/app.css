@@ -672,12 +672,16 @@ button:hover {
 
   .song-title {
     flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .playing .song-title {
+    width: calc(100% - 60px);
   }
 
   .song-artist {
     flex: 0 1 auto;
     order: 10;
-    width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
