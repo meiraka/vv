@@ -282,8 +282,8 @@ func (p *Music) initIfNot() error {
 		p.daemonStop = make(chan bool)
 		p.daemonRequest = make(chan *musicMessage)
 		p.coverCache = make(map[string]string)
-		mpc, watcher := p.connect()
-		go p.run(mpc, watcher)
+		mpc, watcher, watcherEvent := p.connect()
+		go p.run(mpc, watcher, watcherEvent)
 	}
 	return nil
 }
@@ -309,15 +309,15 @@ var musicMpdNewWatcher = musicRealMpdNewWatcher
 var musicMpdWatcherClose = musicRealMpdWatcherClose
 var musicMpdBeginCommandList = musicRealMpdBeginCommandList
 
-func (p *Music) connect() (mpdClient, *mpd.Watcher) {
+func (p *Music) connect() (mpdClient, *mpd.Watcher, chan string) {
 	mpc, err := musicMpdDial(p.network, p.addr, p.passwd)
 	if err != nil {
-		return nil, new(mpd.Watcher)
+		return nil, nil, nil
 	}
 	watcher, err := musicMpdNewWatcher(p.network, p.addr, p.passwd)
 	if err != nil {
 		mpc.Close()
-		return nil, new(mpd.Watcher)
+		return nil, nil, nil
 	}
 	fs := []func(mpdClient) error{p.updateLibrary, p.updatePlaylist, p.updateCurrentSong, p.updateStatus, p.updateStats, p.updateOutputs}
 	for i := range fs {
@@ -325,13 +325,13 @@ func (p *Music) connect() (mpdClient, *mpd.Watcher) {
 		if err != nil {
 			mpc.Close()
 			watcher.Close()
-			return nil, new(mpd.Watcher)
+			return nil, nil, nil
 		}
 	}
-	return mpc, watcher
+	return mpc, watcher, watcher.Event
 }
 
-func (p *Music) run(mpc mpdClient, watcher *mpd.Watcher) {
+func (p *Music) run(mpc mpdClient, watcher *mpd.Watcher, watcherEvent chan string) {
 	t := time.NewTicker(1 * time.Second)
 	sendErr := func(ec chan error, err error) {
 		if ec != nil {
@@ -346,7 +346,9 @@ loop:
 			if mpc != nil {
 				mpc.Close()
 			}
-			watcher.Close()
+			if watcher != nil {
+				watcher.Close()
+			}
 			break loop
 		case m := <-p.daemonRequest:
 			if mpc != nil {
@@ -354,7 +356,7 @@ loop:
 			} else {
 				sendErr(m.err, errors.New("no connection"))
 			}
-		case subsystem := <-watcher.Event:
+		case subsystem := <-watcherEvent:
 			switch subsystem {
 			case "database":
 				sendErr(p.watcherResponse, p.updateLibrary(mpc))
@@ -378,7 +380,10 @@ loop:
 				if mpc != nil {
 					mpc.Close()
 				}
-				mpc, watcher = p.connect()
+				if watcher != nil {
+					watcher.Close()
+				}
+				mpc, watcher, watcherEvent = p.connect()
 			}
 		}
 	}
