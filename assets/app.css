@@ -102,15 +102,19 @@ footer {
 
 .lists {
   display: block;
-  transition: transform 0.4s 0s ease;
+  transition: transform 0.4s 0s ease-out;
 }
 
 .main {
   display: flex;
   left: -50%;
   position: relative;
-  transition: transform 0.4s 0s ease;
+  transition: transform 0.4s 0s ease-out;
   overflow: hidden;
+}
+
+.main.swipe {
+  transition: none;
 }
 
 @media (orientation: portrait) {
@@ -420,15 +424,11 @@ svg path {
   flex-flow: column nowrap;
   width: 100%;
   height: 100%;
-  transition: transform 0.4s 0s ease;
+  transition: transform 0.4s 0s ease-out;
 }
 
 .list.swipe {
   transition: none;
-}
-
-.list.swiped {
-  transition: transform 0.4s 0s ease-out;
 }
 
 .list-items {
@@ -700,11 +700,6 @@ button:hover {
   flex-flow: column nowrap;
   align-items: center;
   justify-content: center;
-  transition: transform 0.5s 0s ease;
-}
-
-.main.swipe {
-  transition: none;
 }
 
 .main-box-text {
