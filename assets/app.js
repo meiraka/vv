@@ -1424,7 +1424,7 @@ vv.view.list = {
     const rootname = vv.library.rootname();
     const focusSong = vv.library.focus;
     const focusParent = vv.library.child;
-    for (const listitem of ul.children) {
+    for (const listitem of Array.from(ul.children)) {
       if (listitem.classList.contains("list-header")) {
         continue;
       }
@@ -1453,8 +1453,8 @@ vv.view.list = {
           treeFocused = false;
         }
       }
-      const elapsed = listitem.getElementsByClassName("song-elapsed");
-      const sep = listitem.getElementsByClassName("song-lengthseparator");
+      const elapsed = Array.from(listitem.getElementsByClassName("song-elapsed"));
+      const sep = Array.from(listitem.getElementsByClassName("song-lengthseparator"));
       if (treeFocused && elapsed.length !== 0 && vv.storage.current !== null &&
           vv.storage.current.file[0] === listitem.dataset.file) {
         viewNowPlaying = true;
@@ -1649,8 +1649,7 @@ vv.view.list = {
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
     let updated = false;
-    for (const selectable of document.getElementById("list-items" + index)
-             .getElementsByClassName("selectable")) {
+    for (const selectable of document.querySelectorAll(`#list-items${index}.selectable`)) {
       const p = selectable.offsetTop;
       if (scroll.scrollTop < p && p < scroll.scrollTop + scroll.clientHeight &&
           !updated) {
@@ -1906,7 +1905,7 @@ vv.view.system = {
     // info
     document.getElementById("user-agent").textContent = navigator.userAgent;
 
-    const navs = document.getElementsByClassName("system-nav-item");
+    const navs = Array.from(document.getElementsByClassName("system-nav-item"));
     const showChild = e => {
       for (const nav of navs) {
         if (nav === e.currentTarget) {
@@ -2227,7 +2226,7 @@ vv.view.modal = {
   hide() {
     document.getElementById("modal-background").classList.add("hide");
     document.getElementById("modal-outer").classList.add("hide");
-    for (const w of document.getElementsByClassName("modal-window")) {
+    for (const w of Array.from(document.getElementsByClassName("modal-window"))) {
       w.classList.add("hide");
     }
   },
@@ -2236,10 +2235,10 @@ vv.view.modal = {
         .addEventListener("click", vv.view.modal.hide);
     document.getElementById("modal-outer")
         .addEventListener("click", vv.view.modal.hide);
-    for (const w of document.getElementsByClassName("modal-window")) {
+    for (const w of Array.from(document.getElementsByClassName("modal-window"))) {
       w.addEventListener("click", e => { e.stopPropagation(); });
     }
-    for (const w of document.getElementsByClassName("modal-window-close")) {
+    for (const w of Array.from(document.getElementsByClassName("modal-window-close"))) {
       w.addEventListener("click", vv.view.modal.hide);
     }
   },
