@@ -7,18 +7,18 @@ import (
 	"time"
 )
 
-type Conn struct {
+type conn struct {
 	*bufio.Reader
 	conn    net.Conn
 	version string
 }
 
-func NewConn(proto, addr string, deadline time.Time) (*Conn, string, error) {
+func NewConn(proto, addr string, deadline time.Time) (*conn, string, error) {
 	c, err := net.Dial(proto, addr)
 	if err != nil {
 		return nil, "", err
 	}
-	conn := &Conn{
+	conn := &conn{
 		Reader: bufio.NewReader(c),
 		conn:   c,
 	}
@@ -31,14 +31,22 @@ func NewConn(proto, addr string, deadline time.Time) (*Conn, string, error) {
 	return conn, s[len("OK MPD ") : len(s)-1], nil
 }
 
-func (c *Conn) Close() error {
+func (c *conn) Readln() (string, error) {
+	s, err := c.ReadString('\n')
+	if err != nil {
+		return s, err
+	}
+	return s[0 : len(s)-1], nil
+}
+
+func (c *conn) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Conn) SetDeadline(t time.Time) error {
+func (c *conn) SetDeadline(t time.Time) error {
 	return c.conn.SetDeadline(t)
 }
 
-func (c *Conn) Writeln(f ...interface{}) (int, error) {
+func (c *conn) Writeln(f ...interface{}) (int, error) {
 	return fmt.Fprintln(c.conn, f...)
 }
