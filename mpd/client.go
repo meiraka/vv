@@ -215,6 +215,13 @@ func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[strin
 	return
 }
 
+// Audio output devices
+
+// Outputs shows information about all outputs.
+func (c *Client) Outputs(ctx context.Context) ([]map[string]string, error) {
+	return c.listMap(ctx, "outputid: ", "outputs")
+}
+
 func (c *Client) helthcheck() {
 	if c.dialer.HelthCheckInterval == 0 {
 		return
@@ -230,28 +237,6 @@ func (c *Client) helthcheck() {
 			cancel()
 		}
 	}()
-}
-
-func (c *Client) printok(ctx context.Context, cmd ...interface{}) (string, error) {
-	var ret string
-	err := c.conn.Exec(ctx, func(conn *conn) error {
-		if len(cmd) == 0 {
-			return nil
-		}
-		if _, err := conn.Writeln(cmd...); err != nil {
-			return err
-		}
-		for {
-			if s, err := conn.ReadString('\n'); err != nil {
-				return err
-			} else if s == "OK\n" {
-				return nil
-			} else {
-				ret = ret + s
-			}
-		}
-	})
-	return ret, err
 }
 
 func (c *Client) mapsLastKeyOk(ctx context.Context, lastKey string, cmd ...interface{}) ([]map[string]string, error) {
@@ -290,6 +275,37 @@ func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
 	return c.conn.Exec(ctx, func(conn *conn) error {
 		return conn.OK(cmd...)
 	})
+}
+
+func (c *Client) listMap(ctx context.Context, newKey string, cmd ...interface{}) (l []map[string]string, err error) {
+	err = c.conn.Exec(ctx, func(conn *conn) error {
+		if _, err := conn.Writeln(cmd...); err != nil {
+			return err
+		}
+		var m map[string]string
+		for {
+			line, err := conn.Readln()
+			if err != nil {
+				return err
+			}
+			if line == "OK" {
+				return nil
+			}
+			if strings.HasPrefix(line, newKey) {
+				m = map[string]string{}
+				l = append(l, m)
+			}
+			if m == nil {
+				return fmt.Errorf("unexpected: " + line)
+			}
+			i := strings.Index(line, ": ")
+			if i < 0 {
+				return fmt.Errorf("can't parse line: " + line)
+			}
+			m[line[0:i]] = line[i+2:]
+		}
+	})
+	return
 }
 
 type connKeeper struct {
@@ -346,9 +362,11 @@ func (c *connKeeper) get(ctx context.Context) (*conn, error) {
 
 func (c *connKeeper) returnConn(conn *conn, err error) error {
 	if err != nil {
-		conn.Close()
-		go c.connect()
-		return err
+		if err, ok := err.(*CommandError); !ok {
+			conn.Close()
+			go c.connect()
+			return err
+		}
 	}
 	c.connC <- conn
 	return err
