@@ -13,7 +13,7 @@ type conn struct {
 	version string
 }
 
-func NewConn(proto, addr string, deadline time.Time) (*conn, string, error) {
+func newConn(proto, addr string, deadline time.Time) (*conn, string, error) {
 	c, err := net.Dial(proto, addr)
 	if err != nil {
 		return nil, "", err
@@ -49,4 +49,19 @@ func (c *conn) SetDeadline(t time.Time) error {
 
 func (c *conn) Writeln(f ...interface{}) (int, error) {
 	return fmt.Fprintln(c.conn, f...)
+}
+
+func (c *conn) OK(cmd ...interface{}) error {
+	if len(cmd) == 0 {
+		return nil
+	}
+	if _, err := c.Writeln(cmd...); err != nil {
+		return err
+	}
+	if s, err := c.ReadString('\n'); err != nil {
+		return err
+	} else if s != "OK\n" {
+		return newCommandError(s[0 : len(s)-1])
+	}
+	return nil
 }

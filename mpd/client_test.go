@@ -2,10 +2,11 @@ package mpd
 
 import (
 	"context"
-	"fmt"
-	"github.com/meiraka/vv/mpd/mpdtest"
+	"reflect"
 	"testing"
 	"time"
+
+	"github.com/meiraka/vv/mpd/mpdtest"
 )
 
 var (
@@ -45,8 +46,9 @@ func TestDialPasswordError(t *testing.T) {
 	})
 	defer ts.Close()
 	c, err := testDialer.Dial("tcp", ts.URL, "2434")
-	if g, w := fmt.Sprint(err), "ACK [3@1] {password} error"; g != w {
-		t.Errorf("Dial got error %s; want %s", g, w)
+	want := &CommandError{ID: 3, Index: 1, Command: "password", Message: "error"}
+	if !reflect.DeepEqual(err, want) {
+		t.Errorf("Dial got error %v; want %v", err, want)
 	}
 	if err != nil {
 		return
