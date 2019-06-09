@@ -217,6 +217,16 @@ func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[strin
 
 // Audio output devices
 
+// DisableOutput turns an output off.
+func (c *Client) DisableOutput(ctx context.Context, id string) error {
+	return c.ok(ctx, "disableoutput", id)
+}
+
+// EnableOutput turns an output on.
+func (c *Client) EnableOutput(ctx context.Context, id string) error {
+	return c.ok(ctx, "enableoutput", id)
+}
+
 // Outputs shows information about all outputs.
 func (c *Client) Outputs(ctx context.Context) ([]map[string]string, error) {
 	return c.listMap(ctx, "outputid: ", "outputs")
