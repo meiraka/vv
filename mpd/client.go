@@ -362,7 +362,7 @@ func (c *connKeeper) get(ctx context.Context) (*conn, error) {
 
 func (c *connKeeper) returnConn(conn *conn, err error) error {
 	if err != nil {
-		if err, ok := err.(*CommandError); !ok {
+		if _, ok := err.(*CommandError); !ok {
 			conn.Close()
 			go c.connect()
 			return err
@@ -402,4 +402,11 @@ func (c *connKeeper) connectOnce() error {
 	defer c.mu.Unlock()
 	c.version = ver
 	return nil
+}
+
+// quote escaping strings values for mpd.
+func quote(s string) string {
+	return `"` + strings.Replace(
+		strings.Replace(s, "\\", "\\\\", -1),
+		`"`, `\"`, -1) + `"`
 }

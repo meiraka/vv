@@ -58,9 +58,14 @@ func (c *conn) OK(cmd ...interface{}) error {
 	if _, err := c.Writeln(cmd...); err != nil {
 		return err
 	}
+	return c.ReadEnd("OK")
+}
+
+// ReadEnd reads and checks end message of mpd response.
+func (c *conn) ReadEnd(end string) error {
 	if s, err := c.ReadString('\n'); err != nil {
 		return err
-	} else if s != "OK\n" {
+	} else if s != end+"\n" {
 		return newCommandError(s[0 : len(s)-1])
 	}
 	return nil

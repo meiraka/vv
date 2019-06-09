@@ -3,23 +3,24 @@ package mpdtest
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 )
 
+// Server is mock mpd server.
 type Server struct {
 	ln  net.Listener
 	URL string
 }
 
+// Close closes connection
 func (s *Server) Close() error {
 	return s.ln.Close()
 }
 
+// NewServer creates new mpd mock Server.
 func NewServer(firstResp string, resp map[string]string) (*Server, error) {
 	ln, err := net.Listen("tcp", ":8092")
 	if err != nil {
-		log.Println("listen", err)
 		return nil, err
 	}
 	s := &Server{
@@ -50,7 +51,6 @@ func NewServer(firstResp string, resp map[string]string) (*Server, error) {
 							cmd = ""
 							_, err := fmt.Fprintln(conn, v)
 							if err != nil {
-								log.Println("write", err)
 								return
 							}
 							break
