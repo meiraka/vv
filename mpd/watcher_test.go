@@ -12,10 +12,10 @@ func TestWatcher(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	ts, _ := mpdtest.NewServer("OK MPD 0.19", map[string]string{
-		"password 2434": "OK",
-		"idle":          "changed: player\nOK",
-		"noidle":        "OK",
-		"close":         "OK",
+		"password 2434": "OK\n",
+		"noidle":        "",
+		"idle":          "changed: player\nOK\n",
+		"close":         "OK\n",
 	})
 	defer ts.Close()
 	c, err := testDialer.NewWatcher("tcp", ts.URL, "2434")
@@ -42,9 +42,9 @@ func TestWatcherNoIdle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	ts, _ := mpdtest.NewServer("OK MPD 0.19", map[string]string{
-		"password 2434": "OK",
-		"idle\nnoidle":  "OK",
-		"close":         "OK",
+		"password 2434": "OK\n",
+		"idle\nnoidle":  "OK\n",
+		"close":         "OK\n",
 	})
 	defer ts.Close()
 	c, err := testDialer.NewWatcher("tcp", ts.URL, "2434")

@@ -19,9 +19,9 @@ var (
 
 func TestDial(t *testing.T) {
 	ts, _ := mpdtest.NewServer("OK MPD 0.19", map[string]string{
-		"password 2434": "OK",
-		"ping":          "OK",
-		"close":         "OK",
+		"password 2434": "OK\n",
+		"ping":          "OK\n",
+		"close":         "OK\n",
 	})
 	defer ts.Close()
 	c, err := testDialer.Dial("tcp", ts.URL, "2434")
@@ -40,9 +40,9 @@ func TestDial(t *testing.T) {
 
 func TestDialPasswordError(t *testing.T) {
 	ts, _ := mpdtest.NewServer("OK MPD 0.19", map[string]string{
-		"password 2434": "ACK [3@1] {password} error",
-		"ping":          "OK",
-		"close":         "OK",
+		"password 2434": "ACK [3@1] {password} error\n",
+		"ping":          "OK\n",
+		"close":         "OK\n",
 	})
 	defer ts.Close()
 	c, err := testDialer.Dial("tcp", ts.URL, "2434")

@@ -10,10 +10,10 @@ import (
 
 func TestCommandList(t *testing.T) {
 	ts, _ := mpdtest.NewServer("OK MPD 0.19", map[string]string{
-		"password 2434": "OK",
-		"ping":          "OK",
-		"command_list_ok_begin\nclear\nadd \"/foo/bar\"\ncommand_list_end": "list_OK\nlist_OK\nOK",
-		"close": "OK",
+		"password 2434": "OK\n",
+		"ping":          "OK\n",
+		"command_list_ok_begin\nclear\nadd \"/foo/bar\"\ncommand_list_end": "list_OK\nlist_OK\nOK\n",
+		"close": "OK\n",
 	})
 	defer ts.Close()
 	c, err := testDialer.Dial("tcp", ts.URL, "2434")

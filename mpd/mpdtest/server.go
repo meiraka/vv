@@ -49,7 +49,7 @@ func NewServer(firstResp string, resp map[string]string) (*Server, error) {
 					for k, v := range resp {
 						if k+"\n" == cmd {
 							cmd = ""
-							_, err := fmt.Fprintln(conn, v)
+							_, err := fmt.Fprint(conn, v)
 							if err != nil {
 								return
 							}
