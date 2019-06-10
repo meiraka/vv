@@ -67,6 +67,43 @@ func (c *Client) Version() string {
 	return c.conn.Version()
 }
 
+// Querying MPD’s status
+
+// CurrentSong displays the song info of the current song
+func (c *Client) CurrentSong(ctx context.Context) (song map[string][]string, err error) {
+	err = c.conn.Exec(ctx, func(conn *conn) error {
+		if _, err := conn.Writeln("currentsong"); err != nil {
+			return err
+		}
+		song = map[string][]string{}
+		for {
+			line, err := conn.Readln()
+			if err != nil {
+				return err
+			}
+			if line == "OK" {
+				return nil
+			}
+			i := strings.Index(line, ": ")
+			if i < 0 {
+				return fmt.Errorf("can't parse line: " + line)
+			}
+			key := line[0:i]
+			if _, found := song[key]; !found {
+				song[key] = []string{line[i+2:]}
+			} else {
+				song[key] = append(song[key], line[i+2:])
+			}
+		}
+	})
+	return
+}
+
+// Status reports the current status of the player and the volume level.
+func (c *Client) Status(ctx context.Context) (map[string]string, error) {
+	return c.mapStr(ctx, "status")
+}
+
 // Music Database Commands
 
 // CountGroup counts the number of songs by a tag(ex: artist)
@@ -285,6 +322,30 @@ func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
 	return c.conn.Exec(ctx, func(conn *conn) error {
 		return conn.OK(cmd...)
 	})
+}
+
+func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]string, err error) {
+	err = c.conn.Exec(ctx, func(conn *conn) error {
+		if _, err := conn.Writeln(cmd...); err != nil {
+			return err
+		}
+		var m map[string]string
+		for {
+			line, err := conn.Readln()
+			if err != nil {
+				return err
+			}
+			if line == "OK" {
+				return nil
+			}
+			i := strings.Index(line, ": ")
+			if i < 0 {
+				return fmt.Errorf("can't parse line: " + line)
+			}
+			m[line[0:i]] = line[i+2:]
+		}
+	})
+	return
 }
 
 func (c *Client) listMap(ctx context.Context, newKey string, cmd ...interface{}) (l []map[string]string, err error) {
