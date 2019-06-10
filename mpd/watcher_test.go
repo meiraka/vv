@@ -12,13 +12,12 @@ func TestWatcher(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	ts, _ := mpdtest.NewServer("OK MPD 0.19", map[string]string{
-		"password 2434": "OK\n",
-		"noidle":        "",
-		"idle":          "changed: player\nOK\n",
-		"close":         "OK\n",
+		"idle":   "changed: player\nOK\n",
+		"noidle": "",
+		"close":  "OK\n",
 	})
 	defer ts.Close()
-	c, err := testDialer.NewWatcher("tcp", ts.URL, "2434")
+	c, err := testDialer.NewWatcher("tcp", ts.URL, "")
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
@@ -42,12 +41,11 @@ func TestWatcherNoIdle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	ts, _ := mpdtest.NewServer("OK MPD 0.19", map[string]string{
-		"password 2434": "OK\n",
-		"idle\nnoidle":  "OK\n",
-		"close":         "OK\n",
+		"idle\nnoidle": "OK\n",
+		"close":        "OK\n",
 	})
 	defer ts.Close()
-	c, err := testDialer.NewWatcher("tcp", ts.URL, "2434")
+	c, err := testDialer.NewWatcher("tcp", ts.URL, "")
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
