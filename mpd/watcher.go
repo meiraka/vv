@@ -38,6 +38,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 				return
 			default:
 			}
+			// TODO: logging
 			_ = w.conn.Exec(ctx, func(conn *conn) error {
 				if _, err := conn.Writeln(cmd...); err != nil {
 					return err
@@ -47,7 +48,8 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 				go func() {
 					select {
 					case <-ctx.Done():
-						conn.Writeln("noidle")
+						// TODO: logging
+						_, _ = conn.Writeln("noidle")
 						return
 					case <-pctx.Done():
 						return
@@ -56,7 +58,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 				}()
 				for {
 					line, err := conn.Readln()
-					pcancel() // cancel noidle
+					pcancel()
 					if err != nil {
 						return err
 					}
@@ -67,10 +69,10 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 						}
 					} else if line != "OK" {
 						return newCommandError(line[0 : len(line)-1])
+					} else {
+						return nil
 					}
-					break
 				}
-				return nil
 			})
 		}
 
