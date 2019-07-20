@@ -25,13 +25,15 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 	}
 	c := make(chan string, 10)
 	ctx, cancel := context.WithCancel(context.Background())
+	closed := make(chan struct{})
 	w := &Watcher{
 		C:      c,
-		closed: make(chan struct{}),
+		closed: closed,
 		conn:   connK,
 		cancel: cancel,
 	}
 	go func() {
+		defer close(closed)
 		for {
 			select {
 			case <-ctx.Done():
@@ -43,22 +45,23 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 				if _, err := conn.Writeln(cmd...); err != nil {
 					return err
 				}
-				pctx, pcancel := context.WithCancel(context.Background())
-				defer pcancel()
+				readCtx, writeCancel := context.WithCancel(context.Background())
+				defer writeCancel()
 				go func() {
 					select {
 					case <-ctx.Done():
 						// TODO: logging
 						_, _ = conn.Writeln("noidle")
+						_, _ = conn.Writeln("close")
 						return
-					case <-pctx.Done():
+					case <-readCtx.Done():
 						return
 					}
 
 				}()
 				for {
 					line, err := conn.Readln()
-					pcancel()
+					writeCancel()
 					if err != nil {
 						return err
 					}
@@ -83,7 +86,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 // Watcher is the mpd idle command wather
 type Watcher struct {
 	conn   *connKeeper
-	closed chan struct{}
+	closed <-chan struct{}
 	C      <-chan string
 	cancel func()
 }
@@ -91,6 +94,15 @@ type Watcher struct {
 // Close closes connection
 func (w *Watcher) Close(ctx context.Context) error {
 	w.cancel()
-	return w.conn.Close(ctx)
+	select {
+	case <-w.closed:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	conn, err := w.conn.get(ctx)
+	if err != nil {
+		return err
+	}
+	return conn.Close()
 
 }
