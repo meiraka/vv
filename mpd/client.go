@@ -38,7 +38,7 @@ func (d Dialer) Dial(proto, addr, password string) (*Client, error) {
 		return nil, err
 	}
 	c := &Client{
-		close:  make(chan struct{}, 1),
+		closed: make(chan struct{}, 1),
 		conn:   conn,
 		dialer: &d,
 	}
@@ -52,13 +52,13 @@ type Client struct {
 	addr     string
 	password string
 	conn     *connKeeper
-	close    chan struct{}
+	closed   chan struct{}
 	dialer   *Dialer
 }
 
 // Close closes mpd connection.
 func (c *Client) Close(ctx context.Context) error {
-	close(c.close)
+	close(c.closed)
 	return c.conn.Close(ctx)
 }
 
@@ -286,7 +286,7 @@ func (c *Client) helthcheck() {
 	ticker := time.NewTicker(c.dialer.HelthCheckInterval)
 	go func() {
 		select {
-		case <-c.close:
+		case <-c.closed:
 			return
 		case <-ticker.C:
 			ctx, cancel := context.WithTimeout(context.Background(), c.dialer.HelthCheckInterval)
@@ -414,8 +414,10 @@ func (c *connKeeper) Close(ctx context.Context) error {
 		return err
 	}
 	close(c.connC)
-	defer conn.Close()
-	return conn.OK("close")
+	if _, err := conn.Writeln("close"); err != nil {
+		return err
+	}
+	return conn.Close()
 }
 
 func (c *connKeeper) Version() string {

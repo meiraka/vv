@@ -52,7 +52,6 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 					case <-ctx.Done():
 						// TODO: logging
 						_, _ = conn.Writeln("noidle")
-						_, _ = conn.Writeln("close")
 						return
 					case <-readCtx.Done():
 						return
@@ -99,10 +98,5 @@ func (w *Watcher) Close(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	conn, err := w.conn.get(ctx)
-	if err != nil {
-		return err
-	}
-	return conn.Close()
-
+	return w.conn.Close(ctx)
 }

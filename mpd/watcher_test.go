@@ -36,10 +36,10 @@ func TestWatcher(t *testing.T) {
 	if got, want := readChan(ctx, t, rc), "noidle\n"; got != want {
 		t.Errorf("got server %s; want %s", got, want)
 	}
+	wc <- "OK\n"
 	if got, want := readChan(ctx, t, rc), "close\n"; got != want {
 		t.Errorf("got server %s; want %s", got, want)
 	}
-	wc <- "OK\n"
 	if err := <-errs; err != nil {
 		t.Errorf("Close got error %v; want nil", err)
 	}

@@ -56,7 +56,7 @@ func (c *conn) OK(cmd ...interface{}) error {
 		return nil
 	}
 	if _, err := c.Writeln(cmd...); err != nil {
-		return err
+		return fmt.Errorf("write failed: %v", err)
 	}
 	return c.ReadEnd("OK")
 }
@@ -64,7 +64,7 @@ func (c *conn) OK(cmd ...interface{}) error {
 // ReadEnd reads and checks end message of mpd response.
 func (c *conn) ReadEnd(end string) error {
 	if s, err := c.ReadString('\n'); err != nil {
-		return err
+		return fmt.Errorf("read failed: %v", err)
 	} else if s != end+"\n" {
 		return newCommandError(s[0 : len(s)-1])
 	}

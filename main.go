@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/meiraka/vv/mpd"
@@ -121,6 +123,29 @@ func v2() {
 		Handler: handler,
 		Addr:    viper.GetString("server.addr"),
 	}
-	log.Fatalln(s.ListenAndServe())
+	errs := make(chan error, 1)
+	go func() {
+		errs <- s.ListenAndServe()
+	}()
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT)
+	select {
+	case <-sc:
+	case err := <-errs:
+		if err != http.ErrServerClosed {
+			log.Fatalf("server stopped with error: %v", err)
+		}
+	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.Shutdown(ctx); err != nil {
+		log.Printf("failed to stop http server: %v", err)
+	}
+	if err := cl.Close(ctx); err != nil {
+		log.Printf("failed to close mpd connection(main): %v", err)
+	}
+	if err := w.Close(ctx); err != nil {
+		log.Printf("failed to close mpd connection(event): %v", err)
+	}
 }
