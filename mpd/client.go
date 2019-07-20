@@ -167,6 +167,16 @@ func (c *Client) Pause(ctx context.Context, state bool) error {
 	return c.ok(ctx, "pause", btoa(state, "1", "0"))
 }
 
+// Play Begins playing the playlist at song number pos
+func (c *Client) Play(ctx context.Context, pos int) error {
+	return c.ok(ctx, "play", pos)
+}
+
+// Previous plays next song in the playlist.
+func (c *Client) Previous(ctx context.Context) error {
+	return c.ok(ctx, "previous")
+}
+
 // The Queue
 
 // PlaylistInfo displays a list of all songs in the playlist.
@@ -329,7 +339,7 @@ func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]s
 		if _, err := conn.Writeln(cmd...); err != nil {
 			return err
 		}
-		var m map[string]string
+		m = map[string]string{}
 		for {
 			line, err := conn.Readln()
 			if err != nil {

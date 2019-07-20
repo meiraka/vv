@@ -2,12 +2,16 @@ package main
 
 import (
 	"bufio"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"context"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/meiraka/vv/mpd"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 const staticVersion = "v0.6.2+"
@@ -24,6 +28,7 @@ func setupFlag(name string) {
 	pflag.String("server.addr", ":8080", "this app serving address")
 	pflag.Bool("server.keepalive", true, "use HTTP keep-alive")
 	pflag.BoolP("debug", "d", false, "use local assets if exists")
+	pflag.BoolP("v2", "v", false, "use next version")
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
 }
@@ -60,6 +65,14 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	if viper.GetBool("v2") {
+		v2()
+	} else {
+		v1()
+	}
+}
+
+func v1() {
 	musicDirectory := viper.GetString("mpd.music_directory")
 	if len(musicDirectory) == 0 {
 		dir, err := getMusicDirectory("/etc/mpd.conf")
@@ -85,4 +98,29 @@ func main() {
 		debug:          viper.GetBool("debug"),
 	}
 	s.Serve()
+}
+
+func v2() {
+	ctx := context.TODO()
+	network := viper.GetString("mpd.network")
+	addr := viper.GetString("mpd.addr")
+	dialer := mpd.Dialer{}
+	cl, err := dialer.Dial(network, addr, "")
+	if err != nil {
+		log.Fatalf("failed to dial mpd: %v", err)
+	}
+	w, err := dialer.NewWatcher(network, addr, "")
+	if err != nil {
+		log.Fatalf("failed to dial mpd: %v", err)
+	}
+	handler, err := NewHTTPHandler(ctx, cl, w)
+	if err != nil {
+		log.Fatalf("failed to initialize app: %v", err)
+	}
+	s := http.Server{
+		Handler: handler,
+		Addr:    viper.GetString("server.addr"),
+	}
+	log.Fatalln(s.ListenAndServe())
+
 }
