@@ -221,7 +221,7 @@ func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string,
 // ListAllInfo lists all songs and directories in uri.
 func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[string][]string, err error) {
 	err = c.conn.Exec(ctx, func(conn *conn) error {
-		if _, err := conn.Writeln("playlistinfo"); err != nil {
+		if _, err := conn.Writeln("listallinfo", uri); err != nil {
 			return err
 		}
 		var song map[string][]string

@@ -300,7 +300,7 @@ func (h *httpHandler) postStatus(alter http.Handler) http.HandlerFunc {
 			changed = true
 			switch *s.State {
 			case "play":
-				if err := h.client.Pause(ctx, true); err != nil {
+				if err := h.client.Play(ctx, -1); err != nil {
 					writeHTTPError(w, 500, err)
 					return
 				}
@@ -321,6 +321,7 @@ func (h *httpHandler) postStatus(alter http.Handler) http.HandlerFunc {
 				}
 			default:
 				writeHTTPError(w, 400, fmt.Errorf("unknown state: %s", *s.State))
+				return
 			}
 		}
 		if changed {
@@ -333,8 +334,10 @@ func (h *httpHandler) postStatus(alter http.Handler) http.HandlerFunc {
 
 func writeHTTPError(w http.ResponseWriter, status int, err error) {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+	b, _ := json.Marshal(map[string]string{"error": err.Error()})
+	w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]error{"error": err})
+	w.Write(b)
 }
 
 func (h *httpHandler) Handle() http.Handler {
@@ -361,18 +364,11 @@ func (h *httpHandler) cacheHandler(path string) http.HandlerFunc {
 		if r.Method == "HEAD" {
 			return
 		}
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
 			w.Write(gz)
 			return
 		}
 		w.Write(b)
 	}
-}
-
-func (h *httpHandler) status(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" || r.Method == "HEAD" {
-
-	}
-
 }

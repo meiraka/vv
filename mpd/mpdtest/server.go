@@ -19,13 +19,13 @@ func (s *Server) Close() error {
 
 // NewServer creates new mpd mock Server.
 func NewServer(firstResp string, resp map[string]string) (*Server, error) {
-	ln, err := net.Listen("tcp", ":8092")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return nil, err
 	}
 	s := &Server{
 		ln:  ln,
-		URL: "localhost:8092",
+		URL: ln.Addr().String(),
 	}
 	go func(ln net.Listener) {
 		for {
@@ -66,13 +66,13 @@ func NewServer(firstResp string, resp map[string]string) (*Server, error) {
 
 // NewChanServer creates new mpd mock Server for idle command.
 func NewChanServer(firstResp string) (chan string, <-chan string, *Server, error) {
-	ln, err := net.Listen("tcp", ":8092")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	s := &Server{
 		ln:  ln,
-		URL: "localhost:8092",
+		URL: ln.Addr().String(),
 	}
 	wc := make(chan string, 10)
 	rc := make(chan string, 10)
