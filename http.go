@@ -174,10 +174,11 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	}); err != nil {
 		return err
 	}
-	h.songCache.mu.RLock()
-	defer h.songCache.mu.RUnlock()
+	h.songCache.mu.Lock()
+	defer h.songCache.mu.Unlock()
+	h.songCache.current = pos
 	return h.jsonCache.Set("/api/music/playlist", &httpPlaylistInfo{
-		Current: pos,
+		Current: h.songCache.current,
 		Sort:    h.songCache.sort,
 		Filters: h.songCache.filters,
 	})
