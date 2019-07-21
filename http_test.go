@@ -70,6 +70,11 @@ func TestHTTPHandler(t *testing.T) {
 		f      func() error
 	}{
 		{
+			req:    NewTestRequest(t, "GET", ts.URL+"/api/music/playlist", nil),
+			status: 200,
+			want:   `{"current":1,"sort":null,"filters":null}`,
+		},
+		{
 			req:    NewTestRequest(t, "GET", ts.URL+"/api/music/playlist/songs", nil),
 			status: 200,
 			want:   `[{"file":["foo"]},{"file":["bar"]}]`,
@@ -87,12 +92,12 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "GET", ts.URL+"/api/music", nil),
 			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 		},
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"volume":100}`)),
 			status: 200,
-			want:   `{"volume":100,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":100,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "setvol 100\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)
@@ -108,7 +113,7 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"repeat":true}`)),
 			status: 200,
-			want:   `{"volume":-1,"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "repeat 1\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)
@@ -124,7 +129,7 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"random":true}`)),
 			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":false,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "random 1\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)
@@ -140,7 +145,7 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"single":true}`)),
 			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":true,"oneshot":false,"consume":false,"state":"pause","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "single 1\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)
@@ -156,7 +161,7 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"oneshot":true}`)),
 			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":true,"consume":false,"state":"pause","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "single oneshot\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)
@@ -172,7 +177,7 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"consume":true}`)),
 			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":true,"state":"pause","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "consume 1\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)
@@ -188,7 +193,7 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"play"}`)),
 			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "play -1\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)
@@ -204,7 +209,7 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"next"}`)),
 			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "next\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)
@@ -220,7 +225,7 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"previous"}`)),
 			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "previous\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)
@@ -236,7 +241,7 @@ func TestHTTPHandler(t *testing.T) {
 		{
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"pause"}`)),
 			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_pos":1,"song_elapsed":1.1}`,
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			f: func() error {
 				if got, want := readChan(ctx, t, mainr), "pause 1\n"; got != want {
 					return fmt.Errorf("got %s; want %s", got, want)

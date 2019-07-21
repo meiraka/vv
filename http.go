@@ -20,12 +20,13 @@ func NewHTTPHandler(ctx context.Context, c *mpd.Client, w *mpd.Watcher) (http.Ha
 	h := &httpHandler{
 		client:  c,
 		watcher: w,
-		cache: &jsonCache{
+		jsonCache: &jsonCache{
 			event:  make(chan string, 1),
 			data:   map[string][]byte{},
 			gzdata: map[string][]byte{},
 			date:   map[string]time.Time{},
 		},
+		songCache: &songCache{},
 	}
 	if err := h.updateLibrary(ctx); err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func NewHTTPHandler(ctx context.Context, c *mpd.Client, w *mpd.Watcher) (http.Ha
 		return nil, err
 	}
 	go func() {
-		defer close(h.cache.event)
+		defer close(h.jsonCache.event)
 		for e := range w.C {
 			ctx := context.Background()
 			switch e {
@@ -63,10 +64,11 @@ func NewHTTPHandler(ctx context.Context, c *mpd.Client, w *mpd.Watcher) (http.Ha
 }
 
 type httpHandler struct {
-	client   *mpd.Client
-	watcher  *mpd.Watcher
-	cache    *jsonCache
-	upgrader websocket.Upgrader
+	client    *mpd.Client
+	watcher   *mpd.Watcher
+	jsonCache *jsonCache
+	songCache *songCache
+	upgrader  websocket.Upgrader
 }
 
 type jsonCache struct {
@@ -75,6 +77,15 @@ type jsonCache struct {
 	gzdata map[string][]byte
 	date   map[string]time.Time
 	mu     sync.RWMutex
+}
+
+type songCache struct {
+	playlist []mpd.Song
+	library  []mpd.Song
+	sort     []string
+	filters  [][]string
+	current  int
+	mu       sync.RWMutex
 }
 
 func (b *jsonCache) Set(path string, i interface{}) error {
@@ -112,7 +123,7 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := h.cache.Set("/api/music/library/songs", l); err != nil {
+	if err := h.jsonCache.Set("/api/music/library/songs", l); err != nil {
 		return err
 	}
 	return nil
@@ -123,7 +134,7 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return h.cache.Set("/api/music/playlist/songs", l)
+	return h.jsonCache.Set("/api/music/playlist/songs", l)
 }
 
 func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
@@ -131,7 +142,7 @@ func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return h.cache.Set("/api/music/playlist/songs/current", l)
+	return h.jsonCache.Set("/api/music/playlist/songs/current", l)
 }
 
 func (h *httpHandler) updateStatus(ctx context.Context) error {
@@ -151,7 +162,7 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("elapsed: %v", err)
 	}
-	return h.cache.Set("/api/music", &httpMusicStatus{
+	if err := h.jsonCache.Set("/api/music", &httpMusicStatus{
 		Volume:      v,
 		Repeat:      s["repeat"] == "1",
 		Random:      s["random"] == "1",
@@ -159,8 +170,16 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 		Oneshot:     s["single"] == "oneshot",
 		Consume:     s["consume"] == "1",
 		State:       s["state"],
-		SongPos:     pos,
 		SongElapsed: elapsed,
+	}); err != nil {
+		return err
+	}
+	h.songCache.mu.RLock()
+	defer h.songCache.mu.RUnlock()
+	return h.jsonCache.Set("/api/music/playlist", &httpPlaylistInfo{
+		Current: pos,
+		Sort:    h.songCache.sort,
+		Filters: h.songCache.filters,
 	})
 }
 
@@ -172,7 +191,6 @@ type httpMusicStatus struct {
 	Oneshot     bool    `json:"oneshot"`
 	Consume     bool    `json:"consume"`
 	State       string  `json:"state"`
-	SongPos     int     `json:"song_pos"`
 	SongElapsed float64 `json:"song_elapsed"`
 }
 
@@ -191,7 +209,7 @@ func (h *httpHandler) ws(alter http.Handler) http.HandlerFunc {
 	var mu sync.Mutex
 
 	go func() {
-		for e := range h.cache.event {
+		for e := range h.jsonCache.event {
 			mu.Lock()
 			for _, c := range subs {
 				select {
@@ -239,6 +257,12 @@ func (h *httpHandler) ws(alter http.Handler) http.HandlerFunc {
 		}
 
 	}
+}
+
+type httpPlaylistInfo struct {
+	Current int        `json:"current"`
+	Sort    []string   `json:"sort"`
+	Filters [][]string `json:"filters"`
 }
 
 func (h *httpHandler) postStatus(alter http.Handler) http.HandlerFunc {
@@ -342,20 +366,21 @@ func writeHTTPError(w http.ResponseWriter, status int, err error) {
 
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
-	m.Handle("/api/music", h.ws(h.postStatus(h.cacheHandler("/api/music"))))
-	m.Handle("/api/music/playlist/songs", h.cacheHandler("/api/music/playlist/songs"))
-	m.Handle("/api/music/playlist/songs/current", h.cacheHandler("/api/music/playlist/songs/current"))
-	m.Handle("/api/music/library/songs", h.cacheHandler("/api/music/library/songs"))
+	m.Handle("/api/music", h.ws(h.postStatus(h.jsonCacheHandler("/api/music"))))
+	m.Handle("/api/music/playlist", h.jsonCacheHandler("/api/music/playlist"))
+	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
+	m.Handle("/api/music/playlist/songs/current", h.jsonCacheHandler("/api/music/playlist/songs/current"))
+	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))
 	return m
 }
 
-func (h *httpHandler) cacheHandler(path string) http.HandlerFunc {
+func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" && r.Method != "HEAD" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		b, gz, date := h.cache.Get(path)
+		b, gz, date := h.jsonCache.Get(path)
 		if !modifiedSince(r, date) {
 			w.WriteHeader(http.StatusNotModified)
 			return
