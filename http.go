@@ -15,10 +15,22 @@ import (
 	"github.com/meiraka/vv/mpd"
 )
 
+// HTTPHandlerConfig holds HTTPHandler config
+type HTTPHandlerConfig struct {
+	BackgroundTimeout time.Duration
+}
+
+func (c *HTTPHandlerConfig) backgroundTimeout() time.Duration {
+	if c.BackgroundTimeout == 0 {
+		return 30 * time.Second
+	}
+	return c.BackgroundTimeout
+}
+
 // NewHTTPHandler creates MPD http handler
-func NewHTTPHandler(ctx context.Context, c *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
+func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
 	h := &httpHandler{
-		client:  c,
+		client:  cl,
 		watcher: w,
 		jsonCache: &jsonCache{
 			event:  make(chan string, 1),
@@ -42,8 +54,9 @@ func NewHTTPHandler(ctx context.Context, c *mpd.Client, w *mpd.Watcher) (http.Ha
 	}
 	go func() {
 		defer close(h.jsonCache.event)
+		timeout := c.backgroundTimeout()
 		for e := range w.C {
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			switch e {
 			case "database":
 				h.updateLibrary(ctx)
@@ -58,6 +71,7 @@ func NewHTTPHandler(ctx context.Context, c *mpd.Client, w *mpd.Watcher) (http.Ha
 			case "update":
 				h.updateStatus(ctx)
 			}
+			cancel()
 		}
 	}()
 	return h.Handle(), nil
@@ -205,7 +219,13 @@ type httpMusicPostStatus struct {
 	State   *string `json:"state"`
 }
 
-func (h *httpHandler) ws(alter http.Handler) http.HandlerFunc {
+type httpPlaylistInfo struct {
+	Current int        `json:"current"`
+	Sort    []string   `json:"sort"`
+	Filters [][]string `json:"filters"`
+}
+
+func (h *httpHandler) statusWebSocket(alter http.Handler) http.HandlerFunc {
 	subs := make([]chan string, 0, 10)
 	var mu sync.Mutex
 
@@ -260,13 +280,7 @@ func (h *httpHandler) ws(alter http.Handler) http.HandlerFunc {
 	}
 }
 
-type httpPlaylistInfo struct {
-	Current int        `json:"current"`
-	Sort    []string   `json:"sort"`
-	Filters [][]string `json:"filters"`
-}
-
-func (h *httpHandler) postStatus(alter http.Handler) http.HandlerFunc {
+func (h *httpHandler) statusPost(alter http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			alter.ServeHTTP(w, r)
@@ -323,29 +337,22 @@ func (h *httpHandler) postStatus(alter http.Handler) http.HandlerFunc {
 		}
 		if s.State != nil {
 			changed = true
+			var err error
 			switch *s.State {
 			case "play":
-				if err := h.client.Play(ctx, -1); err != nil {
-					writeHTTPError(w, 500, err)
-					return
-				}
+				err = h.client.Play(ctx, -1)
 			case "pause":
-				if err := h.client.Pause(ctx, true); err != nil {
-					writeHTTPError(w, 500, err)
-					return
-				}
+				err = h.client.Pause(ctx, true)
 			case "next":
-				if err := h.client.Next(ctx); err != nil {
-					writeHTTPError(w, 500, err)
-					return
-				}
+				err = h.client.Next(ctx)
 			case "previous":
-				if err := h.client.Previous(ctx); err != nil {
-					writeHTTPError(w, 500, err)
-					return
-				}
+				err = h.client.Previous(ctx)
 			default:
 				writeHTTPError(w, 400, fmt.Errorf("unknown state: %s", *s.State))
+				return
+			}
+			if err != nil {
+				writeHTTPError(w, 500, err)
 				return
 			}
 		}
@@ -367,7 +374,7 @@ func writeHTTPError(w http.ResponseWriter, status int, err error) {
 
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
-	m.Handle("/api/music", h.ws(h.postStatus(h.jsonCacheHandler("/api/music"))))
+	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
 	m.Handle("/api/music/playlist", h.jsonCacheHandler("/api/music/playlist"))
 	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
 	m.Handle("/api/music/playlist/songs/current", h.jsonCacheHandler("/api/music/playlist/songs/current"))

@@ -115,7 +115,7 @@ func v2() {
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
-	handler, err := NewHTTPHandler(ctx, cl, w)
+	handler, err := HTTPHandlerConfig{}.NewHTTPHandler(ctx, cl, w)
 	if err != nil {
 		log.Fatalf("failed to initialize app: %v", err)
 	}
