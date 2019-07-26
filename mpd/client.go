@@ -405,7 +405,18 @@ func (c *connKeeper) Exec(ctx context.Context, f func(*conn) error) error {
 	if err != nil {
 		return err
 	}
-	return c.returnConn(conn, f(conn))
+	errs := make(chan error)
+	go func() {
+		errs <- f(conn)
+		close(errs)
+	}()
+	select {
+	case err = <-errs:
+	case <-ctx.Done():
+		err = ctx.Err()
+		conn.SetDeadline(time.Now())
+	}
+	return c.returnConn(conn, err)
 }
 
 func (c *connKeeper) Close(ctx context.Context) error {

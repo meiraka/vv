@@ -277,7 +277,7 @@ func (h *httpHandler) postStatus(alter http.Handler) http.HandlerFunc {
 			writeHTTPError(w, 500, err)
 			return
 		}
-		ctx := context.Background()
+		ctx := r.Context()
 		var changed bool
 		if s.Volume != nil {
 			changed = true
