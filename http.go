@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -93,15 +94,6 @@ type jsonCache struct {
 	mu     sync.RWMutex
 }
 
-type songCache struct {
-	playlist []mpd.Song
-	library  []mpd.Song
-	sort     []string
-	filters  [][]string
-	current  int
-	mu       sync.RWMutex
-}
-
 func (b *jsonCache) Set(path string, i interface{}) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -132,6 +124,23 @@ func (b *jsonCache) Get(path string) (data, gzdata []byte, l time.Time) {
 
 }
 
+type songCache struct {
+	playlist []Song
+	library  []Song
+	sort     []string
+	filters  [][]string
+	current  int
+	mu       sync.RWMutex
+}
+
+func (h *httpHandler) convSong(s []map[string][]string) []Song {
+	ret := make([]Song, len(s))
+	for i := range s {
+		ret[i] = Song(s[i])
+	}
+	return ret
+}
+
 func (h *httpHandler) updateLibrary(ctx context.Context) error {
 	l, err := h.client.ListAllInfo(ctx, "/")
 	if err != nil {
@@ -140,6 +149,10 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 	if err := h.jsonCache.Set("/api/music/library/songs", l); err != nil {
 		return err
 	}
+	h.songCache.mu.Lock()
+	h.songCache.library = h.convSong(l)
+	h.songCache.mu.Unlock()
+
 	return nil
 }
 
@@ -148,7 +161,15 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return h.jsonCache.Set("/api/music/playlist/songs", l)
+	if err := h.jsonCache.Set("/api/music/playlist/songs", l); err != nil {
+		return err
+	}
+
+	h.songCache.mu.Lock()
+	h.songCache.playlist = h.convSong(l)
+	h.songCache.mu.Unlock()
+
+	return nil
 }
 
 func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
@@ -196,6 +217,73 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 		Sort:    h.songCache.sort,
 		Filters: h.songCache.filters,
 	})
+}
+
+func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			alter.ServeHTTP(w, r)
+			return
+		}
+		var req httpPlaylistInfo
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeHTTPError(w, 400, err)
+			return
+		}
+
+		if req.Filters == nil || req.Sort == nil {
+			writeHTTPError(w, 400, errors.New("filters and sort fields are required"))
+			return
+		}
+
+		h.songCache.mu.Lock()
+		library, filters, newpos := SortSongs(h.songCache.library, req.Sort, req.Filters, 9999, req.Current)
+		playlist := h.songCache.playlist
+		var update bool
+		if len(library) != len(playlist) {
+			update = true
+		} else {
+			for i := range library {
+				n := library[i]["file"][0]
+				o := playlist[i]["file"][0]
+				if n != o {
+					update = true
+					break
+				}
+			}
+		}
+		cl := h.client.BeginCommandList()
+		cl.Clear()
+		for i := range library {
+			cl.Add(library[i]["file"][0])
+		}
+		cl.Play(newpos)
+		h.songCache.mu.Unlock()
+		if !update {
+			ctx := r.Context()
+			if err := h.client.Play(ctx, newpos); err != nil {
+				writeHTTPError(w, 500, err)
+				return
+			}
+			h.updateStatus(ctx)
+			r.Method = http.MethodGet
+			alter.ServeHTTP(w, r)
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			if err := cl.End(ctx); err != nil {
+				return
+			}
+			h.songCache.mu.Lock()
+			h.songCache.sort = req.Sort
+			h.songCache.filters = filters
+			h.songCache.mu.Unlock()
+		}()
+
+	}
 }
 
 type httpMusicStatus struct {
@@ -375,7 +463,7 @@ func writeHTTPError(w http.ResponseWriter, status int, err error) {
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
-	m.Handle("/api/music/playlist", h.jsonCacheHandler("/api/music/playlist"))
+	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
 	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
 	m.Handle("/api/music/playlist/songs/current", h.jsonCacheHandler("/api/music/playlist/songs/current"))
 	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))

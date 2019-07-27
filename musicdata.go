@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/meiraka/gompd/mpd"
 	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/meiraka/gompd/mpd"
 )
 
 func findCovers(dir, file, glob string, cache map[string]string) string {
@@ -223,12 +224,12 @@ type songSorter struct {
 }
 
 // SortSongs sorts songs by song tag list.
-func SortSongs(s []Song, keys []string, filters [][]string, max, pos int) ([]Song, int) {
+func SortSongs(s []Song, keys []string, filters [][]string, max, pos int) ([]Song, [][]string, int) {
 	flatten := sortSongs(s, keys)
 	if pos < len(flatten) && pos >= 0 {
 		flatten[pos].target = true
 	}
-	flatten = weakFilterSongs(flatten, filters, max)
+	flatten, used := weakFilterSongs(flatten, filters, max)
 	ret := make([]Song, len(flatten))
 	newpos := -1
 	for i, sorter := range flatten {
@@ -237,7 +238,7 @@ func SortSongs(s []Song, keys []string, filters [][]string, max, pos int) ([]Son
 			newpos = i
 		}
 	}
-	return ret, newpos
+	return ret, used, newpos
 }
 
 func sortSongs(s []Song, keys []string) []*songSorter {
@@ -255,15 +256,17 @@ func sortSongs(s []Song, keys []string) []*songSorter {
 
 // weakFilterSongs removes songs if not matched by filters until len(songs) over max.
 // filters example: [][]string{[]string{"Artist", "foo"}}
-func weakFilterSongs(s []*songSorter, filters [][]string, max int) []*songSorter {
+func weakFilterSongs(s []*songSorter, filters [][]string, max int) ([]*songSorter, [][]string) {
+	used := [][]string{}
 	if len(s) <= max {
-		return s
+		return s, used
 	}
 	n := s
 	for _, filter := range filters {
 		if len(n) <= max {
 			break
 		}
+		used = append(used, filter)
 		nc := make([]*songSorter, 0, len(n))
 		for _, sorter := range n {
 			if value, found := sorter.key[filter[0]]; found && value == filter[1] {
@@ -279,7 +282,7 @@ func weakFilterSongs(s []*songSorter, filters [][]string, max int) []*songSorter
 				nc[i] = n[i]
 			}
 		}
-		return nc
+		return nc, used
 	}
-	return n
+	return n, used
 }

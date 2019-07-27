@@ -2,10 +2,11 @@ package main
 
 import (
 	"errors"
-	"github.com/meiraka/gompd/mpd"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/meiraka/gompd/mpd"
 )
 
 const (
@@ -148,7 +149,7 @@ func (p *Music) SortPlaylist(keys []string, filters [][]string, pos int) (err er
 func (p *Music) sortPlaylist(mpc mpdClient, keys []string, filters [][]string, pos int) error {
 	return p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
 		update := false
-		library, newpos := SortSongs(masterLibrary, keys, filters, playlistLength, pos)
+		library, _, newpos := SortSongs(masterLibrary, keys, filters, playlistLength, pos)
 		p.playlistSort.lock(func(playlist []Song, _ time.Time) error {
 			if len(library) != len(playlist) {
 				update = true
@@ -506,7 +507,7 @@ func (p *Music) checkPlaylistIsSorted() bool {
 	}
 	p.playlistSort.lock(func(playlist []Song, _ time.Time) error {
 		p.librarySort.lock(func(masterLibrary []Song, _ time.Time) error {
-			library, _ := SortSongs(masterLibrary, p.playlistSortkeys, p.playlistFilters, playlistLength, 0)
+			library, _, _ := SortSongs(masterLibrary, p.playlistSortkeys, p.playlistFilters, playlistLength, 0)
 			ret = true
 			if len(library) != len(playlist) {
 				ret = false

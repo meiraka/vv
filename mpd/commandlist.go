@@ -36,6 +36,14 @@ func (cl *CommandList) Add(uri string) {
 	})
 }
 
+// Play begins playing the playlist at song number pos.
+func (cl *CommandList) Play(pos int) {
+	cl.commands = append(cl.commands, []interface{}{"play", pos})
+	cl.parser = append(cl.parser, func(c *conn) error {
+		return c.ReadEnd("list_OK")
+	})
+}
+
 // End executes commandlist.
 func (cl *CommandList) End(ctx context.Context) error {
 	commands := append([][]interface{}{{"command_list_ok_begin"}}, cl.commands...)

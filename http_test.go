@@ -25,6 +25,9 @@ var (
 		HelthCheckInterval:   time.Hour,
 		ReconnectionInterval: time.Second,
 	}
+	testHTTPConfig = HTTPHandlerConfig{
+		BackgroundTimeout: time.Second,
+	}
 )
 
 func TestHTTPHandler(t *testing.T) {
@@ -34,7 +37,7 @@ func TestHTTPHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
-	_, _, watchts, _ := mpdtest.NewChanServer("OK MPD 0.19")
+	watchw, watchr, watchts, _ := mpdtest.NewChanServer("OK MPD 0.19")
 	wl, err := testDialer.NewWatcher("tcp", watchts.URL, "")
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
@@ -55,9 +58,8 @@ func TestHTTPHandler(t *testing.T) {
 			}
 
 		}
-
 	}()
-	h, err := NewHTTPHandler(ctx, c, wl)
+	h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl)
 	if err != nil {
 		t.Fatalf("NewHTTPHandler got error %v; want nil", err)
 	}
@@ -258,6 +260,90 @@ func TestHTTPHandler(t *testing.T) {
 			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"foobar"}`)),
 			status: 400,
 			want:   `{"error":"unknown state: foobar"}`,
+		},
+		{
+			req:    NewTestRequest(t, "POST", ts.URL+"/api/music/playlist", strings.NewReader(`{"current":2,"sort":["file"],"filters":[["file","foo"]]}`)),
+			status: 202,
+			f: func() error {
+				if got, want := readChan(ctx, t, mainr), "command_list_ok_begin\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				if got, want := readChan(ctx, t, mainr), "clear\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				if got, want := readChan(ctx, t, mainr), "add \"bar\"\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				if got, want := readChan(ctx, t, mainr), "add \"baz\"\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				if got, want := readChan(ctx, t, mainr), "add \"foo\"\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				if got, want := readChan(ctx, t, mainr), "play 2\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				if got, want := readChan(ctx, t, mainr), "command_list_end\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				mainw <- "list_OK\n"
+				mainw <- "list_OK\n"
+				mainw <- "list_OK\n"
+				mainw <- "list_OK\n"
+				mainw <- "list_OK\n"
+				mainw <- "OK\n"
+				if got, want := readChan(ctx, t, watchr), "idle\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				watchw <- "changed: playlist\nOK\n"
+				if got, want := readChan(ctx, t, mainr), "playlistinfo\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				mainw <- "file: bar\nfile: baz\nfile: foo\nOK\n"
+
+				if got, want := readChan(ctx, t, watchr), "idle\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				watchw <- "changed: player\nOK\n"
+				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				mainw <- "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"
+				if got, want := readChan(ctx, t, mainr), "currentsong\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				mainw <- "file: foo\nOK\n"
+				return nil
+			},
+		},
+		{
+			req:    NewTestRequest(t, "POST", ts.URL+"/api/music/playlist", strings.NewReader(`{"current":1,"sort":["file"],"filters":[["file","baz"]]}`)),
+			status: 200,
+			want:   `{"current":1,"sort":["file"],"filters":[]}`,
+			f: func() error {
+				if got, want := readChan(ctx, t, mainr), "play 1\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				mainw <- "OK\n"
+				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"
+
+				if got, want := readChan(ctx, t, watchr), "idle\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				watchw <- "changed: player\nOK\n"
+				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"
+				if got, want := readChan(ctx, t, mainr), "currentsong\n"; got != want {
+					return fmt.Errorf("got %s; want %s", got, want)
+				}
+				mainw <- "file: foo\nOK\n"
+				return nil
+			},
 		},
 	}
 	for _, tt := range testsets {

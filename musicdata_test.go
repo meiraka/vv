@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/meiraka/gompd/mpd"
 	"reflect"
 	"testing"
+
+	"github.com/meiraka/gompd/mpd"
 )
 
 func TestSong(t *testing.T) {
@@ -221,7 +222,7 @@ func TestSortSongs(t *testing.T) {
 		},
 	}
 	for _, tt := range testsets {
-		actualSong, actualPos := SortSongs(songs, tt.keys, tt.filters, tt.max, tt.pos)
+		actualSong, _, actualPos := SortSongs(songs, tt.keys, tt.filters, tt.max, tt.pos)
 		if !reflect.DeepEqual(tt.expectSong, actualSong) || tt.expectPos != actualPos {
 			t.Errorf("[%s] unexpected return for SortSongs(%s, %s, %d, %d).\nexpectSong: %s expectPos: %d\nactualSong: %s actualPos: %d", tt.desc, tt.keys, tt.filters, tt.max, tt.pos, tt.expectSong, tt.expectPos, actualSong, actualPos)
 		}
