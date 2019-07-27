@@ -106,7 +106,7 @@ type jsonCache struct {
 	mu     sync.RWMutex
 }
 
-func (b *jsonCache) Set(path string, i interface{}) error {
+func (b *jsonCache) Set(path string, i interface{}, force bool) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	n, err := json.Marshal(i)
@@ -114,12 +114,11 @@ func (b *jsonCache) Set(path string, i interface{}) error {
 		return err
 	}
 	o := b.data[path]
-	if len(n) < 1000 && len(o) < 1000 && bytes.Equal(o, n) {
-		return nil
+	if force || !bytes.Equal(o, n) {
+		b.data[path] = n
+		b.date[path] = time.Now()
+		b.sendCh(path)
 	}
-	b.data[path] = n
-	b.date[path] = time.Now()
-	b.sendCh(path)
 	return nil
 }
 
@@ -167,7 +166,7 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 		return err
 	}
 	v := h.convSongs(l)
-	if err := h.jsonCache.Set("/api/music/library/songs", v); err != nil {
+	if err := h.jsonCache.Set("/api/music/library/songs", v, true); err != nil {
 		return err
 	}
 	h.songCache.mu.Lock()
@@ -183,7 +182,7 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 		return err
 	}
 	v := h.convSongs(l)
-	if err := h.jsonCache.Set("/api/music/playlist/songs", v); err != nil {
+	if err := h.jsonCache.Set("/api/music/playlist/songs", v, true); err != nil {
 		return err
 	}
 
@@ -199,7 +198,7 @@ func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return h.jsonCache.Set("/api/music/playlist/songs/current", h.convSong(l))
+	return h.jsonCache.Set("/api/music/playlist/songs/current", h.convSong(l), false)
 }
 
 func (h *httpHandler) updateStatus(ctx context.Context) error {
@@ -228,7 +227,7 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 		Consume:     s["consume"] == "1",
 		State:       s["state"],
 		SongElapsed: elapsed,
-	}); err != nil {
+	}, false); err != nil {
 		return err
 	}
 	h.songCache.mu.Lock()
@@ -238,7 +237,7 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 		Current: h.songCache.current,
 		Sort:    h.songCache.sort,
 		Filters: h.songCache.filters,
-	})
+	}, false)
 }
 
 func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
