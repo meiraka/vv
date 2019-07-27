@@ -59,7 +59,7 @@ func TestHTTPHandler(t *testing.T) {
 
 		}
 	}()
-	h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl)
+	h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl, nil)
 	if err != nil {
 		t.Fatalf("NewHTTPHandler got error %v; want nil", err)
 	}

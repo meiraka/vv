@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -28,8 +29,17 @@ func (c *HTTPHandlerConfig) backgroundTimeout() time.Duration {
 	return c.BackgroundTimeout
 }
 
+func addHTTPPrefix(m map[string][]string) map[string][]string {
+	if v, ok := m["cover"]; ok {
+		for i := range v {
+			v[i] = path.Join("/api/music/storage/", v[i])
+		}
+	}
+	return m
+}
+
 // NewHTTPHandler creates MPD http handler
-func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
+func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, t []TagAdder) (http.Handler, error) {
 	h := &httpHandler{
 		client:  cl,
 		watcher: w,
@@ -39,6 +49,7 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 			gzdata: map[string][]byte{},
 			date:   map[string]time.Time{},
 		},
+		tagger:    append(t, TagAdderFunc(addHTTPPrefix)),
 		songCache: &songCache{},
 	}
 	if err := h.updateLibrary(ctx); err != nil {
@@ -84,6 +95,7 @@ type httpHandler struct {
 	jsonCache *jsonCache
 	songCache *songCache
 	upgrader  websocket.Upgrader
+	tagger    []TagAdder
 }
 
 type jsonCache struct {
@@ -130,13 +142,20 @@ type songCache struct {
 	sort     []string
 	filters  [][]string
 	current  int
-	mu       sync.RWMutex
+	mu       sync.Mutex
 }
 
-func (h *httpHandler) convSong(s []map[string][]string) []Song {
+func (h *httpHandler) convSong(s map[string][]string) Song {
+	for i := range h.tagger {
+		s = h.tagger[i].AddTags(s)
+	}
+	return Song(s)
+}
+
+func (h *httpHandler) convSongs(s []map[string][]string) []Song {
 	ret := make([]Song, len(s))
 	for i := range s {
-		ret[i] = Song(s[i])
+		ret[i] = h.convSong(s[i])
 	}
 	return ret
 }
@@ -146,11 +165,12 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := h.jsonCache.Set("/api/music/library/songs", l); err != nil {
+	v := h.convSongs(l)
+	if err := h.jsonCache.Set("/api/music/library/songs", v); err != nil {
 		return err
 	}
 	h.songCache.mu.Lock()
-	h.songCache.library = h.convSong(l)
+	h.songCache.library = v
 	h.songCache.mu.Unlock()
 
 	return nil
@@ -161,12 +181,13 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := h.jsonCache.Set("/api/music/playlist/songs", l); err != nil {
+	v := h.convSongs(l)
+	if err := h.jsonCache.Set("/api/music/playlist/songs", v); err != nil {
 		return err
 	}
 
 	h.songCache.mu.Lock()
-	h.songCache.playlist = h.convSong(l)
+	h.songCache.playlist = v
 	h.songCache.mu.Unlock()
 
 	return nil
@@ -177,7 +198,7 @@ func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return h.jsonCache.Set("/api/music/playlist/songs/current", l)
+	return h.jsonCache.Set("/api/music/playlist/songs/current", h.convSong(l))
 }
 
 func (h *httpHandler) updateStatus(ctx context.Context) error {

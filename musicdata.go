@@ -7,9 +7,99 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/meiraka/gompd/mpd"
 )
+
+// TagAdder add tags to song.
+type TagAdder interface {
+	AddTags(map[string][]string) map[string][]string
+}
+
+// TagAdderFunc converts func to TagAdder
+type TagAdderFunc func(map[string][]string) map[string][]string
+
+// AddTags add tags to song.
+func (t TagAdderFunc) AddTags(m map[string][]string) map[string][]string {
+	return t(m)
+}
+
+// LocalCoverSearcher searches song conver art
+type LocalCoverSearcher struct {
+	dir   string
+	glob  string
+	cache map[string]string
+	mu    sync.Mutex
+}
+
+// NewLocalCoverSearcher creates LocalCoverSearcher.
+func NewLocalCoverSearcher(dir, glob string) (*LocalCoverSearcher, error) {
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, err
+	}
+	return &LocalCoverSearcher{
+		dir:   dir,
+		glob:  glob,
+		cache: map[string]string{},
+	}, nil
+}
+
+// AddTags adds cover path to m
+func (f *LocalCoverSearcher) AddTags(m map[string][]string) map[string][]string {
+	file, ok := m["file"]
+	if !ok {
+		return m
+	}
+	if len(file) != 1 {
+		return m
+	}
+	addr := path.Join(f.dir, file[0])
+	d := path.Dir(addr)
+	k := path.Join(d, f.glob)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	v, ok := f.cache[k]
+	if ok {
+		if len(v) != 0 {
+			m["cover"] = []string{v}
+		}
+		return m
+	}
+	p, err := filepath.Glob(k)
+	if err != nil || p == nil {
+		f.cache[k] = ""
+		return m
+	}
+	cover := strings.TrimPrefix(strings.TrimPrefix(p[0], f.dir), "/")
+	f.cache[k] = cover
+	m["cover"] = []string{cover}
+	return m
+}
+
+// AddTags adds tags to song for vv
+// TrackNumber, DiscNumber are used for sorting.
+// Length is used for displaing time.
+func AddTags(m map[string][]string) map[string][]string {
+	track := getIntTag(m, "Track", 0)
+	m["TrackNumber"] = []string{fmt.Sprintf("%04d", track)}
+	disc := getIntTag(m, "Disc", 1)
+	m["DiscNumber"] = []string{fmt.Sprintf("%04d", disc)}
+	t := getIntTag(m, "Time", 0)
+	m["Length"] = []string{fmt.Sprintf("%02d:%02d", t/60, t%60)}
+	return m
+}
+
+func getIntTag(m map[string][]string, k string, e int) int {
+	if d, found := m[k]; found {
+		ret, err := strconv.Atoi(d[0])
+		if err == nil {
+			return ret
+		}
+	}
+	return e
+}
 
 func findCovers(dir, file, glob string, cache map[string]string) string {
 	dir, err := filepath.Abs(dir)
