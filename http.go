@@ -109,14 +109,15 @@ type jsonCache struct {
 func (b *jsonCache) Set(path string, i interface{}) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	d, err := json.Marshal(i)
+	n, err := json.Marshal(i)
 	if err != nil {
 		return err
 	}
-	if bytes.Equal(b.data[path], d) {
+	o := b.data[path]
+	if len(n) < 1000 && len(o) < 1000 && bytes.Equal(o, n) {
 		return nil
 	}
-	b.data[path] = d
+	b.data[path] = n
 	b.date[path] = time.Now()
 	b.sendCh(path)
 	return nil
