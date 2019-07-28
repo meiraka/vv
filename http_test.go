@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -25,377 +24,260 @@ var (
 		HelthCheckInterval:   time.Hour,
 		ReconnectionInterval: time.Second,
 	}
+	testHTTPClient = &http.Client{Timeout: testTimeout}
 	testHTTPConfig = HTTPHandlerConfig{
 		BackgroundTimeout: time.Second,
 	}
+	testMPDEvent = []*mpdtest.WR{
+		{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"},
+		{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"},
+		{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
+		{Read: "currentsong\n", Write: "file: bar\nOK\n"},
+	}
 )
 
-func TestHTTPHandler(t *testing.T) {
-	mainw, mainr, maints, _ := mpdtest.NewChanServer("OK MPD 0.19")
-	defer maints.Close()
-	c, err := testDialer.Dial("tcp", maints.URL, "")
-	if err != nil {
-		t.Fatalf("Dial got error %v; want nil", err)
-	}
-	watchw, watchr, watchts, _ := mpdtest.NewChanServer("OK MPD 0.19")
-	wl, err := testDialer.NewWatcher("tcp", watchts.URL, "")
-	if err != nil {
-		t.Fatalf("Dial got error %v; want nil", err)
-	}
+func TestHTTPHandlerRequest(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	go func() {
-		for i := 0; i < 4; i++ {
-			switch <-mainr {
-			case "playlistinfo\n":
-				mainw <- "file: foo\nfile: bar\nOK\n"
-			case "listallinfo /\n":
-				mainw <- "file: foo\nfile: bar\nfile: baz\nOK\n"
-			case "status\n":
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"
-			case "currentsong\n":
-				mainw <- "file: bar\nOK\n"
-			}
-
-		}
-	}()
-	h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl, nil)
-	if err != nil {
-		t.Fatalf("NewHTTPHandler got error %v; want nil", err)
-	}
-	ts := httptest.NewServer(h)
-	defer ts.Close()
 	testsets := []struct {
-		req    *http.Request
+		Method string
+		Path   string
+		Body   string
 		status int
 		want   string
-		f      func() error
+		event  []*mpdtest.WR
 	}{
 		{
-			req:    NewTestRequest(t, "GET", ts.URL+"/api/music/playlist", nil),
+			Method: http.MethodGet,
+			Path:   "/api/music/playlist",
 			status: 200,
 			want:   `{"current":1,"sort":null,"filters":null}`,
+			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
-			req:    NewTestRequest(t, "GET", ts.URL+"/api/music/playlist/songs", nil),
+			Method: http.MethodGet,
+			Path:   "/api/music/playlist/songs",
 			status: 200,
 			want:   `[{"file":["foo"]},{"file":["bar"]}]`,
+			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
-			req:    NewTestRequest(t, "GET", ts.URL+"/api/music/library/songs", nil),
+			Method: http.MethodGet,
+			Path:   "/api/music/library/songs",
 			status: 200,
 			want:   `[{"file":["foo"]},{"file":["bar"]},{"file":["baz"]}]`,
+			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
-			req:    NewTestRequest(t, "GET", ts.URL+"/api/music/playlist/songs/current", nil),
+			Method: http.MethodGet,
+			Path:   "/api/music/playlist/songs/current",
 			status: 200,
 			want:   `{"file":["bar"]}`,
+			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
-			req:    NewTestRequest(t, "GET", ts.URL+"/api/music", nil),
+			Method: http.MethodGet,
+			Path:   "/api/music",
 			status: 200,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"volume":100}`)),
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"volume":100}`,
 			status: 200,
 			want:   `{"volume":100,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "setvol 100\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: 100\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"
-				return nil
-			},
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "setvol 100\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: 100\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "close\n"},
+			}...),
 		},
 		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"repeat":true}`)),
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"repeat":true}`,
 			status: 200,
 			want:   `{"volume":-1,"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "repeat 1\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"
-				return nil
-			},
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "repeat 1\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "close\n"},
+			}...),
 		},
 		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"random":true}`)),
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"random":true}`,
 			status: 200,
 			want:   `{"volume":-1,"repeat":false,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "random 1\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 1\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"
-				return nil
-			},
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "random 1\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 1\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "close\n"},
+			}...),
 		},
 		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"single":true}`)),
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"single":true}`,
 			status: 200,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "single 1\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 1\nconsume: 0\nstate: pause\nOK\n"
-				return nil
-			},
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "single 1\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 1\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "close\n"},
+			}...),
 		},
 		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"oneshot":true}`)),
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"oneshot":true}`,
 			status: 200,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "single oneshot\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: oneshot\nconsume: 0\nstate: pause\nOK\n"
-				return nil
-			},
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "single oneshot\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: oneshot\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "close\n"},
+			}...),
 		},
 		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"consume":true}`)),
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"consume":true}`,
 			status: 200,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "consume 1\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 1\nstate: pause\nOK\n"
-				return nil
-			},
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "consume 1\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 1\nstate: pause\nOK\n"},
+				{Read: "close\n"},
+			}...),
 		},
 		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"play"}`)),
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"state":"play"}`,
 			status: 200,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "play -1\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"
-				return nil
-			},
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "play -1\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"},
+				{Read: "close\n"},
+			}...),
 		},
 		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"next"}`)),
-			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "next\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"
-				return nil
-			},
-		},
-		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"previous"}`)),
-			status: 200,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "previous\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"
-				return nil
-			},
-		},
-		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"pause"}`)),
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"state":"pause"}`,
 			status: 200,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "pause 1\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"
-				return nil
-			},
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "pause 1\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "close\n"},
+			}...),
 		},
 		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music", strings.NewReader(`{"state":"foobar"}`)),
-			status: 400,
-			want:   `{"error":"unknown state: foobar"}`,
-		},
-		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music/playlist", strings.NewReader(`{"current":2,"sort":["file"],"filters":[["file","foo"]]}`)),
-			status: 202,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "command_list_ok_begin\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				if got, want := readChan(ctx, t, mainr), "clear\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				if got, want := readChan(ctx, t, mainr), "add \"bar\"\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				if got, want := readChan(ctx, t, mainr), "add \"baz\"\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				if got, want := readChan(ctx, t, mainr), "add \"foo\"\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				if got, want := readChan(ctx, t, mainr), "play 2\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				if got, want := readChan(ctx, t, mainr), "command_list_end\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "list_OK\n"
-				mainw <- "list_OK\n"
-				mainw <- "list_OK\n"
-				mainw <- "list_OK\n"
-				mainw <- "list_OK\n"
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, watchr), "idle\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				watchw <- "changed: playlist\nOK\n"
-				if got, want := readChan(ctx, t, mainr), "playlistinfo\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "file: bar\nfile: baz\nfile: foo\nOK\n"
-
-				if got, want := readChan(ctx, t, watchr), "idle\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				watchw <- "changed: player\nOK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"
-				if got, want := readChan(ctx, t, mainr), "currentsong\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "file: foo\nOK\n"
-				return nil
-			},
-		},
-		{
-			req:    NewTestRequest(t, "POST", ts.URL+"/api/music/playlist", strings.NewReader(`{"current":1,"sort":["file"],"filters":[["file","baz"]]}`)),
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"state":"next"}`,
 			status: 200,
-			want:   `{"current":1,"sort":["file"],"filters":[]}`,
-			f: func() error {
-				if got, want := readChan(ctx, t, mainr), "play 1\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "OK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"
-
-				if got, want := readChan(ctx, t, watchr), "idle\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				watchw <- "changed: player\nOK\n"
-				if got, want := readChan(ctx, t, mainr), "status\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"
-				if got, want := readChan(ctx, t, mainr), "currentsong\n"; got != want {
-					return fmt.Errorf("got %s; want %s", got, want)
-				}
-				mainw <- "file: foo\nOK\n"
-				return nil
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "next\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"},
+				{Read: "close\n"},
+			}...),
+		},
+		{
+			Method: http.MethodPost,
+			Path:   "/api/music",
+			Body:   `{"state":"previous"}`,
+			status: 200,
+			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "previous\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"},
+				{Read: "close\n"},
+			}...),
+		},
+		{
+			Method: http.MethodPost,
+			Path:   "/api/music/playlist",
+			Body:   `{"current":0,"sort":["file"],"filters":[]}`,
+			status: 202,
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "command_list_ok_begin\nclear\nadd \"bar\"\nadd \"baz\"\nadd \"foo\"\nplay 0\ncommand_list_end\n",
+					Write: "list_OK\nlist_OK\nlist_OK\nlist_OK\nlist_OK\nOK\n"},
+				{Read: "close\n"},
+			}...),
+		},
+		{
+			Method: http.MethodPost,
+			Path:   "/api/music/playlist",
+			Body:   `{"current":2,"sort":["file"],"filters":[["file","foo"]]}`,
+			status: 200,
+			want:   `{"current":2,"sort":["file"],"filters":[]}`,
+			event: []*mpdtest.WR{
+				{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"},
+				{Read: "playlistinfo\n", Write: "file: bar\nfile: baz\nfile: foo\nOK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "currentsong\n", Write: "file: bar\nOK\n"},
+				{Read: "play 2\n", Write: "OK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "close\n"},
 			},
 		},
 	}
 	for _, tt := range testsets {
-		t.Run(fmt.Sprintf("%s %s", tt.req.Method, tt.req.URL.Path), func(t *testing.T) {
-			errs := make(chan error, 1)
-			if tt.f != nil {
-				go func() {
-					errs <- tt.f()
-					close(errs)
-				}()
-			} else {
-				close(errs)
+		t.Run(fmt.Sprintf("%s %s %s", tt.Method, tt.Path, tt.Body), func(t *testing.T) {
+			main, err := mpdtest.NewEventServer("OK MPD 0.19", tt.event)
+			defer main.Close()
+			if err != nil {
+				t.Fatalf("failed to create mpd test server: %v", err)
 			}
-			resp, err := http.DefaultClient.Do(tt.req.WithContext(ctx))
+			sub, err := mpdtest.NewEventServer("OK MPD 0.19", []*mpdtest.WR{{Read: "idle\nnoidle\n", Write: "OK\n"}, {Read: "close\n"}})
+			defer sub.Close()
+			if err != nil {
+				t.Fatalf("failed to create mpd test server: %v", err)
+			}
+			c, err := testDialer.Dial("tcp", main.URL, "")
+			if err != nil {
+				t.Fatalf("Dial got error %v; want nil", err)
+			}
+			defer c.Close(ctx)
+			wl, err := testDialer.NewWatcher("tcp", sub.URL, "")
+			if err != nil {
+				t.Fatalf("Dial got error %v; want nil", err)
+			}
+			defer wl.Close(ctx)
+
+			h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl, nil)
+			if err != nil {
+				t.Fatalf("NewHTTPHandler got error %v; want nil", err)
+			}
+
+			ts := httptest.NewServer(h)
+			defer ts.Close()
+			req, err := http.NewRequest(tt.Method, ts.URL+tt.Path, strings.NewReader(tt.Body))
+			if err != nil {
+				t.Fatalf("failed to create http request: %v", err)
+			}
+			resp, err := testHTTPClient.Do(req)
 			if err != nil {
 				t.Fatalf("failed to request: %v", err)
-			}
-			select {
-			case err := <-errs:
-				if err != nil {
-					t.Fatalf("communication error: %v", err)
-				}
-			case <-ctx.Done():
-				t.Fatalf("communication timeout")
 			}
 			defer resp.Body.Close()
 			b, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				t.Fatalf("failed to read: %v", err)
+				t.Fatalf("failed to read response: %v", err)
 			}
-			if got := string(b); resp.StatusCode != tt.status || got != tt.want {
-				t.Errorf("got %d %s; want %d %s", resp.StatusCode, got, tt.status, tt.want)
+			if got := string(b); got != tt.want || resp.StatusCode != tt.status {
+				t.Errorf("got %d %v; want %d %v", resp.StatusCode, got, tt.status, tt.want)
 			}
+
 		})
-	}
-}
 
-func NewTestRequest(t *testing.T, method, url string, body io.Reader) *http.Request {
-	t.Helper()
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		t.Fatalf("failed to create request: %v", err)
 	}
-	return req
-}
-
-func readChan(ctx context.Context, t *testing.T, c <-chan string) (ret string) {
-	t.Helper()
-	select {
-	case ret = <-c:
-	case <-ctx.Done():
-		t.Fatalf("read timeout %v", ctx.Err())
-	}
-	return
 }

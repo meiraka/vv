@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strings"
 )
 
 // Server is mock mpd server.
@@ -55,6 +56,83 @@ func NewServer(firstResp string, resp map[string]string) (*Server, error) {
 							}
 							break
 						}
+					}
+				}
+
+			}(conn)
+		}
+	}(ln)
+	return s, nil
+}
+
+// WR represents testserver Write / Read string
+type WR struct {
+	Read  string
+	Write string
+}
+
+// Append appends new WR
+func Append(o []*WR, n ...*WR) []*WR {
+	lo := len(o)
+	ret := make([]*WR, lo+len(n))
+	for i := range o {
+		ret[i] = o[i]
+	}
+	for i := range n {
+		ret[i+lo] = n[i]
+	}
+	return ret
+}
+
+// NewEventServer creates new mpd mock Server.
+func NewEventServer(firstResp string, resp []*WR) (*Server, error) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, err
+	}
+	s := &Server{
+		ln:  ln,
+		URL: ln.Addr().String(),
+	}
+	go func(ln net.Listener) {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			if _, err := fmt.Fprintln(conn, firstResp); err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				defer conn.Close()
+				r := bufio.NewReader(conn)
+				cmd := ""
+				for {
+					nl, err := r.ReadString('\n')
+					if err != nil {
+						return
+					}
+					cmd = cmd + nl
+					if len(resp) == 0 {
+						_, err := fmt.Fprintf(conn, "ACK [5@0] {} resp length is zero: got %s", cmd[:len(cmd)-1])
+						cmd = ""
+						if err != nil {
+							return
+						}
+					} else if !strings.Contains(resp[0].Read, cmd) {
+						_, err := fmt.Fprintf(conn, "ACK [5@0] {} got %s; want %s", cmd[:len(cmd)-1], resp[0].Read)
+						cmd = ""
+						if err != nil {
+							return
+						}
+						resp = resp[1:]
+					} else if resp[0].Read == cmd {
+						cmd = ""
+						_, err := fmt.Fprint(conn, resp[0].Write)
+						if err != nil {
+							return
+						}
+						resp = resp[1:]
 					}
 				}
 

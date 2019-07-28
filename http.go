@@ -286,6 +286,10 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 				writeHTTPError(w, 500, err)
 				return
 			}
+			h.songCache.mu.Lock()
+			h.songCache.sort = req.Sort
+			h.songCache.filters = filters
+			h.songCache.mu.Unlock()
 			h.updateStatus(ctx)
 			r.Method = http.MethodGet
 			alter.ServeHTTP(w, r)
