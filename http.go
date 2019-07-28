@@ -17,6 +17,28 @@ import (
 	"github.com/meiraka/vv/mpd"
 )
 
+type httpContextKey string
+
+const (
+	httpParentStatus = httpContextKey("status")
+)
+
+// getParentStatus gets status code from http.Request witch is set by parentStatus
+func getParentStatus(r *http.Request, alter int) int {
+	if v := r.Context().Value(httpParentStatus); v != nil {
+		if i, ok := v.(int); ok {
+			return i
+		}
+	}
+	return alter
+}
+
+// parentStatus sets status code to http.Request
+func parentStatus(r *http.Request, status int) *http.Request {
+	ctx := context.WithValue(r.Context(), httpParentStatus, status)
+	return r.WithContext(ctx)
+}
+
 // HTTPHandlerConfig holds HTTPHandler config
 type HTTPHandlerConfig struct {
 	BackgroundTimeout time.Duration
@@ -29,6 +51,7 @@ func (c *HTTPHandlerConfig) backgroundTimeout() time.Duration {
 	return c.BackgroundTimeout
 }
 
+// addHTTPPrefix adds prefix path /api/music/storage to song cover path.
 func addHTTPPrefix(m map[string][]string) map[string][]string {
 	if v, ok := m["cover"]; ok {
 		for i := range v {
@@ -36,26 +59,6 @@ func addHTTPPrefix(m map[string][]string) map[string][]string {
 		}
 	}
 	return m
-}
-
-type httpContextKey string
-
-const (
-	httpParentStatus = httpContextKey("status")
-)
-
-func getParentStatus(r *http.Request, alter int) int {
-	if v := r.Context().Value(httpParentStatus); v != nil {
-		if i, ok := v.(int); ok {
-			return i
-		}
-	}
-	return alter
-}
-
-func parentStatus(r *http.Request, status int) *http.Request {
-	ctx := context.WithValue(r.Context(), httpParentStatus, status)
-	return r.WithContext(ctx)
 }
 
 // NewHTTPHandler creates MPD http handler
@@ -506,16 +509,6 @@ func writeHTTPError(w http.ResponseWriter, status int, err error) {
 	w.Write(b)
 }
 
-func (h *httpHandler) Handle() http.Handler {
-	m := http.NewServeMux()
-	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
-	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
-	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
-	m.Handle("/api/music/playlist/songs/current", h.jsonCacheHandler("/api/music/playlist/songs/current"))
-	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))
-	return m
-}
-
 func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" && r.Method != "HEAD" {
@@ -540,4 +533,14 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 		w.WriteHeader(getParentStatus(r, http.StatusOK))
 		w.Write(b)
 	}
+}
+
+func (h *httpHandler) Handle() http.Handler {
+	m := http.NewServeMux()
+	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
+	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
+	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
+	m.Handle("/api/music/playlist/songs/current", h.jsonCacheHandler("/api/music/playlist/songs/current"))
+	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))
+	return m
 }
