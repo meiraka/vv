@@ -268,12 +268,12 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 		}
 		var req httpPlaylistInfo
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeHTTPError(w, 400, err)
+			writeHTTPError(w, http.StatusBadRequest, err)
 			return
 		}
 
 		if req.Filters == nil || req.Sort == nil {
-			writeHTTPError(w, 400, errors.New("filters and sort fields are required"))
+			writeHTTPError(w, http.StatusBadRequest, errors.New("filters and sort fields are required"))
 			return
 		}
 
@@ -303,7 +303,7 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 		if !update {
 			ctx := r.Context()
 			if err := h.client.Play(ctx, newpos); err != nil {
-				writeHTTPError(w, 500, err)
+				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 			h.songCache.mu.Lock()
@@ -422,7 +422,7 @@ func (h *httpHandler) statusPost(alter http.Handler) http.HandlerFunc {
 		}
 		var s httpMusicPostStatus
 		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
-			writeHTTPError(w, 500, err)
+			writeHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 		ctx := r.Context()
@@ -430,42 +430,42 @@ func (h *httpHandler) statusPost(alter http.Handler) http.HandlerFunc {
 		if s.Volume != nil {
 			changed = true
 			if err := h.client.SetVol(ctx, *s.Volume); err != nil {
-				writeHTTPError(w, 500, err)
+				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Repeat != nil {
 			changed = true
 			if err := h.client.Repeat(ctx, *s.Repeat); err != nil {
-				writeHTTPError(w, 500, err)
+				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Random != nil {
 			changed = true
 			if err := h.client.Random(ctx, *s.Random); err != nil {
-				writeHTTPError(w, 500, err)
+				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Single != nil {
 			changed = true
 			if err := h.client.Single(ctx, *s.Single); err != nil {
-				writeHTTPError(w, 500, err)
+				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Oneshot != nil {
 			changed = true
 			if err := h.client.OneShot(ctx); err != nil {
-				writeHTTPError(w, 500, err)
+				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Consume != nil {
 			changed = true
 			if err := h.client.Consume(ctx, *s.Consume); err != nil {
-				writeHTTPError(w, 500, err)
+				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
@@ -482,11 +482,11 @@ func (h *httpHandler) statusPost(alter http.Handler) http.HandlerFunc {
 			case "previous":
 				err = h.client.Previous(ctx)
 			default:
-				writeHTTPError(w, 400, fmt.Errorf("unknown state: %s", *s.State))
+				writeHTTPError(w, http.StatusBadRequest, fmt.Errorf("unknown state: %s", *s.State))
 				return
 			}
 			if err != nil {
-				writeHTTPError(w, 500, err)
+				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
@@ -533,11 +533,11 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 		}
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
-			w.WriteHeader(getParentStatus(r, 200))
+			w.WriteHeader(getParentStatus(r, http.StatusOK))
 			w.Write(gz)
 			return
 		}
-		w.WriteHeader(getParentStatus(r, 200))
+		w.WriteHeader(getParentStatus(r, http.StatusOK))
 		w.Write(b)
 	}
 }
