@@ -41,7 +41,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 			default:
 			}
 			// TODO: logging
-			_ = w.conn.Exec(ctx, func(conn *conn) error {
+			_ = w.conn.Exec(context.Background(), func(conn *conn) error {
 				if _, err := conn.Writeln(cmd...); err != nil {
 					return err
 				}
