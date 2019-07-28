@@ -38,6 +38,26 @@ func addHTTPPrefix(m map[string][]string) map[string][]string {
 	return m
 }
 
+type httpContextKey string
+
+const (
+	httpParentStatus = httpContextKey("status")
+)
+
+func getParentStatus(r *http.Request, alter int) int {
+	if v := r.Context().Value(httpParentStatus); v != nil {
+		if i, ok := v.(int); ok {
+			return i
+		}
+	}
+	return alter
+}
+
+func parentStatus(r *http.Request, status int) *http.Request {
+	ctx := context.WithValue(r.Context(), httpParentStatus, status)
+	return r.WithContext(ctx)
+}
+
 // NewHTTPHandler creates MPD http handler
 func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, t []TagAdder) (http.Handler, error) {
 	h := &httpHandler{
@@ -295,7 +315,8 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			alter.ServeHTTP(w, r)
 			return
 		}
-		w.WriteHeader(http.StatusAccepted)
+		r.Method = http.MethodGet
+		alter.ServeHTTP(w, parentStatus(r, http.StatusAccepted))
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
@@ -512,9 +533,11 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 		}
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
+			w.WriteHeader(getParentStatus(r, 200))
 			w.Write(gz)
 			return
 		}
+		w.WriteHeader(getParentStatus(r, 200))
 		w.Write(b)
 	}
 }

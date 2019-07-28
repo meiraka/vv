@@ -50,35 +50,35 @@ func TestHTTPHandlerRequest(t *testing.T) {
 		{
 			Method: http.MethodGet,
 			Path:   "/api/music/playlist",
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"current":1,"sort":null,"filters":null}`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
 			Method: http.MethodGet,
 			Path:   "/api/music/playlist/songs",
-			status: 200,
+			status: http.StatusOK,
 			want:   `[{"file":["foo"]},{"file":["bar"]}]`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
 			Method: http.MethodGet,
 			Path:   "/api/music/library/songs",
-			status: 200,
+			status: http.StatusOK,
 			want:   `[{"file":["foo"]},{"file":["bar"]},{"file":["baz"]}]`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
 			Method: http.MethodGet,
 			Path:   "/api/music/playlist/songs/current",
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"file":["bar"]}`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
 			Method: http.MethodGet,
 			Path:   "/api/music",
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
@@ -86,7 +86,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"volume":100}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":100,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "setvol 100\n", Write: "OK\n"},
@@ -98,7 +98,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"repeat":true}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "repeat 1\n", Write: "OK\n"},
@@ -110,7 +110,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"random":true}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":false,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "random 1\n", Write: "OK\n"},
@@ -122,7 +122,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"single":true}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "single 1\n", Write: "OK\n"},
@@ -134,7 +134,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"oneshot":true}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "single oneshot\n", Write: "OK\n"},
@@ -146,7 +146,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"consume":true}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "consume 1\n", Write: "OK\n"},
@@ -158,7 +158,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"state":"play"}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "play -1\n", Write: "OK\n"},
@@ -170,7 +170,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"state":"pause"}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "pause 1\n", Write: "OK\n"},
@@ -182,7 +182,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"state":"next"}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "next\n", Write: "OK\n"},
@@ -194,7 +194,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music",
 			Body:   `{"state":"previous"}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"play","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "previous\n", Write: "OK\n"},
@@ -206,7 +206,8 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music/playlist",
 			Body:   `{"current":0,"sort":["file"],"filters":[]}`,
-			status: 202,
+			want:   `{"current":1,"sort":null,"filters":null}`,
+			status: http.StatusAccepted,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "command_list_ok_begin\nclear\nadd \"bar\"\nadd \"baz\"\nadd \"foo\"\nplay 0\ncommand_list_end\n",
 					Write: "list_OK\nlist_OK\nlist_OK\nlist_OK\nlist_OK\nOK\n"},
@@ -217,7 +218,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music/playlist",
 			Body:   `{"current":2,"sort":["file"],"filters":[["file","foo"]]}`,
-			status: 200,
+			status: http.StatusOK,
 			want:   `{"current":2,"sort":["file"],"filters":[]}`,
 			event: []*mpdtest.WR{
 				{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"},
