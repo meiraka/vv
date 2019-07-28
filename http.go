@@ -231,7 +231,7 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	}
 	v, err := strconv.Atoi(s["volume"])
 	if err != nil {
-		return fmt.Errorf("vol: %v", err)
+		v = -1
 	}
 	pos, err := strconv.Atoi(s["song"])
 	if err != nil {
@@ -256,10 +256,16 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	h.songCache.mu.Lock()
 	defer h.songCache.mu.Unlock()
 	h.songCache.current = pos
-	return h.jsonCache.Set("/api/music/playlist", &httpPlaylistInfo{
+	if err := h.jsonCache.Set("/api/music/playlist", &httpPlaylistInfo{
 		Current: h.songCache.current,
 		Sort:    h.songCache.sort,
 		Filters: h.songCache.filters,
+	}, false); err != nil {
+		return err
+	}
+	_, updating := s["updating_db"]
+	return h.jsonCache.Set("/api/music/library", &httpLibraryInfo{
+		Updating: updating,
 	}, false)
 }
 
@@ -335,6 +341,32 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 	}
 }
 
+func (h *httpHandler) libraryPost(alter http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			alter.ServeHTTP(w, r)
+			return
+		}
+		var req httpLibraryInfo
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+			return
+		}
+		if !req.Updating {
+			writeHTTPError(w, http.StatusBadRequest, errors.New("requires updating=true"))
+			return
+		}
+		ctx := r.Context()
+		if _, err := h.client.Update(ctx, ""); err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+			return
+		}
+		h.updateStatus(ctx)
+		r.Method = http.MethodGet
+		alter.ServeHTTP(w, r)
+	}
+}
+
 type httpMusicStatus struct {
 	Volume      int     `json:"volume"`
 	Repeat      bool    `json:"repeat"`
@@ -360,6 +392,10 @@ type httpPlaylistInfo struct {
 	Current int        `json:"current"`
 	Sort    []string   `json:"sort"`
 	Filters [][]string `json:"filters"`
+}
+
+type httpLibraryInfo struct {
+	Updating bool `json:"updating"`
 }
 
 func (h *httpHandler) statusWebSocket(alter http.Handler) http.HandlerFunc {
@@ -541,6 +577,7 @@ func (h *httpHandler) Handle() http.Handler {
 	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
 	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
 	m.Handle("/api/music/playlist/songs/current", h.jsonCacheHandler("/api/music/playlist/songs/current"))
+	m.Handle("/api/music/library", h.libraryPost(h.jsonCacheHandler("/api/music/library")))
 	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))
 	return m
 }

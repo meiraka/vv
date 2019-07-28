@@ -63,6 +63,13 @@ func TestHTTPHandlerRequest(t *testing.T) {
 		},
 		{
 			Method: http.MethodGet,
+			Path:   "/api/music/library",
+			status: http.StatusOK,
+			want:   `{"updating":false}`,
+			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
+		},
+		{
+			Method: http.MethodGet,
 			Path:   "/api/music/library/songs",
 			status: http.StatusOK,
 			want:   `[{"file":["foo"]},{"file":["bar"]},{"file":["baz"]}]`,
@@ -229,6 +236,18 @@ func TestHTTPHandlerRequest(t *testing.T) {
 				{Read: "status\n", Write: "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 				{Read: "close\n"},
 			},
+		},
+		{
+			Method: http.MethodPost,
+			Path:   "/api/music/library",
+			Body:   `{"updating":true}`,
+			status: http.StatusOK,
+			want:   `{"updating":true}`,
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "update \n", Write: "updating_db: 2\nOK\n"},
+				{Read: "status\n", Write: "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nupdating_db: 2\nOK\n"},
+				{Read: "close\n"},
+			}...),
 		},
 	}
 	for _, tt := range testsets {

@@ -262,6 +262,11 @@ func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[strin
 	return
 }
 
+// Update updates the music database.
+func (c *Client) Update(ctx context.Context, uri string) (map[string]string, error) {
+	return c.mapStr(ctx, "update", uri)
+}
+
 // Audio output devices
 
 // DisableOutput turns an output off.
