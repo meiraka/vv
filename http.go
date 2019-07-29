@@ -2,10 +2,14 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"mime"
 	"net/http"
 	"path"
 	"strconv"
@@ -236,7 +240,8 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	}
 	elapsed, err := strconv.ParseFloat(s["elapsed"], 64)
 	if err != nil {
-		return fmt.Errorf("elapsed: %v", err)
+		elapsed = 0
+		// return fmt.Errorf("elapsed: %v", err)
 	}
 	if err := h.jsonCache.Set("/api/music", &httpMusicStatus{
 		Volume:      v,
@@ -585,8 +590,47 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 	}
 }
 
+func (h *httpHandler) assetsHandler(rpath string, gz []byte) http.HandlerFunc {
+	r, err := gzip.NewReader(bytes.NewReader(gz))
+	if err != nil {
+		log.Fatalf("failed to create gzip.NewReader for static %s: %v", rpath, err)
+	}
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		log.Fatalf("failed to read static %s: %v", rpath, err)
+	}
+	m := mime.TypeByExtension(path.Ext(rpath))
+	date := time.Now()
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" && r.Method != "HEAD" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if !modifiedSince(r, date) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.Header().Add("Content-Type", "application/json; charset=utf-8")
+		if r.Method == "HEAD" {
+			return
+		}
+		if m != "" {
+			w.Header().Add("Content-Type", m)
+		}
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
+			w.Header().Add("Content-Encoding", "gzip")
+			w.WriteHeader(getParentStatus(r, http.StatusOK))
+			w.Write(gz)
+			return
+		}
+		w.WriteHeader(getParentStatus(r, http.StatusOK))
+		w.Write(b)
+	}
+}
+
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
+	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPng))
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
 	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
 	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
