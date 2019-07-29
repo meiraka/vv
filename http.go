@@ -44,13 +44,6 @@ type HTTPHandlerConfig struct {
 	BackgroundTimeout time.Duration
 }
 
-func (c *HTTPHandlerConfig) backgroundTimeout() time.Duration {
-	if c.BackgroundTimeout == 0 {
-		return 30 * time.Second
-	}
-	return c.BackgroundTimeout
-}
-
 // addHTTPPrefix adds prefix path /api/music/storage to song cover path.
 func addHTTPPrefix(m map[string][]string) map[string][]string {
 	if v, ok := m["cover"]; ok {
@@ -61,9 +54,23 @@ func addHTTPPrefix(m map[string][]string) map[string][]string {
 	return m
 }
 
+type httpHandler struct {
+	config    *HTTPHandlerConfig
+	client    *mpd.Client
+	watcher   *mpd.Watcher
+	jsonCache *jsonCache
+	songCache *songCache
+	upgrader  websocket.Upgrader
+	tagger    []TagAdder
+}
+
 // NewHTTPHandler creates MPD http handler
 func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, t []TagAdder) (http.Handler, error) {
+	if c.BackgroundTimeout == 0 {
+		c.BackgroundTimeout = 30 * time.Second
+	}
 	h := &httpHandler{
+		config:  &c,
 		client:  cl,
 		watcher: w,
 		jsonCache: &jsonCache{
@@ -89,9 +96,8 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 	}
 	go func() {
 		defer close(h.jsonCache.event)
-		timeout := c.backgroundTimeout()
 		for e := range w.C {
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			ctx, cancel := context.WithTimeout(context.Background(), c.BackgroundTimeout)
 			switch e {
 			case "database":
 				h.updateLibrary(ctx)
@@ -110,15 +116,6 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 		}
 	}()
 	return h.Handle(), nil
-}
-
-type httpHandler struct {
-	client    *mpd.Client
-	watcher   *mpd.Watcher
-	jsonCache *jsonCache
-	songCache *songCache
-	upgrader  websocket.Upgrader
-	tagger    []TagAdder
 }
 
 type jsonCache struct {
@@ -327,7 +324,7 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 		r.Method = http.MethodGet
 		alter.ServeHTTP(w, parentStatus(r, http.StatusAccepted))
 		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 			defer cancel()
 			if err := cl.End(ctx); err != nil {
 				return
