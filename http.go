@@ -267,6 +267,8 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 }
 
 func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
+	sem := make(chan struct{}, 1)
+	sem <- struct{}{}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			alter.ServeHTTP(w, r)
@@ -282,6 +284,15 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			writeHTTPError(w, http.StatusBadRequest, errors.New("filters and sort fields are required"))
 			return
 		}
+
+		select {
+		case <-sem:
+		default:
+			// TODO: switch to better status code
+			writeHTTPError(w, http.StatusServiceUnavailable, errors.New("updating playlist"))
+			return
+		}
+		defer func() { sem <- struct{}{} }()
 
 		h.songCache.mu.Lock()
 		library, filters, newpos := SortSongs(h.songCache.library, req.Sort, req.Filters, 9999, req.Current)
@@ -326,6 +337,12 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 			defer cancel()
+			select {
+			case <-sem:
+			case <-ctx.Done():
+				return
+			}
+			defer func() { sem <- struct{}{} }()
 			if err := cl.End(ctx); err != nil {
 				return
 			}
