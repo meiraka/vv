@@ -26,22 +26,27 @@ func makeGZip(data []byte) ([]byte, error) {
 
 func makeName(p string) string {
 	n := make([]rune, 0, len(p))
-	up := true
+	title := true
+	up := false
 	for _, v := range p {
 		if 97 <= v && v <= 122 {
-			if up {
+			if title || up {
 				v -= 32
 			}
 			n = append(n, v)
-			up = false
+			title = false
 		} else if 65 <= v && v <= 90 {
-			if !up {
+			if !title && !up {
 				v += 32
 			}
 			n = append(n, v)
-			up = false
-		} else {
+			title = false
+		} else if v == 46 {
 			up = true
+			title = false
+		} else {
+			title = true
+			up = false
 		}
 	}
 	return string(n)
@@ -67,11 +72,11 @@ func main() {
 	}
 
 	f := jen.NewFile("main")
+	c := make([]jen.Code, 0, len(gz))
 	for p, v := range gz {
-		f.Var().Defs(
-			jen.Id(makeName(p)).Op("=").Index().Byte().Parens(jen.Lit(string(v))),
-		)
+		c = append(c, jen.Id(makeName(p)).Op("=").Index().Byte().Parens(jen.Lit(string(v))))
 	}
+	f.Var().Defs(c...)
 
 	fmt.Printf("%#v", f)
 }

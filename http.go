@@ -630,7 +630,7 @@ func (h *httpHandler) assetsHandler(rpath string, gz []byte) http.HandlerFunc {
 
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
-	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPng))
+	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPNG))
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
 	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
 	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
