@@ -64,6 +64,8 @@ func main() {
 	}
 	fmt.Fprintln(f, "package main")
 	fmt.Fprintln(f)
+	fmt.Fprintln(f, "import \"time\"")
+	fmt.Fprintln(f)
 	fmt.Fprintln(f, "var (")
 	for _, file := range files {
 		p := path.Join("assets", file.Name())
@@ -77,6 +79,9 @@ func main() {
 		}
 		fmt.Fprintf(f, "\t// %s is gzip encoded %s\n", makeName(p), p)
 		fmt.Fprintf(f, "\t%s = []byte(%q)\n", makeName(p), g)
+		date := file.ModTime()
+		fmt.Fprintf(f, "\t// %sDate is gzip encoded %s\n", makeName(p), p)
+		fmt.Fprintf(f, "\t%sDate = time.Unix(%d, %d)\n", makeName(p), date.Unix(), 0)
 	}
 	fmt.Fprintln(f, ")")
 }
