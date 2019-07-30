@@ -66,9 +66,15 @@ type httpHandler struct {
 	client    *mpd.Client
 	watcher   *mpd.Watcher
 	jsonCache *jsonCache
-	songCache *songCache
 	upgrader  websocket.Upgrader
 	tagger    []TagAdder
+
+	mu       sync.Mutex
+	playlist []Song
+	library  []Song
+	sort     []string
+	filters  [][]string
+	current  int
 }
 
 // NewHTTPHandler creates MPD http handler
@@ -77,17 +83,11 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 		c.BackgroundTimeout = 30 * time.Second
 	}
 	h := &httpHandler{
-		config:  &c,
-		client:  cl,
-		watcher: w,
-		jsonCache: &jsonCache{
-			event:  make(chan string, 1),
-			data:   map[string][]byte{},
-			gzdata: map[string][]byte{},
-			date:   map[string]time.Time{},
-		},
+		config:    &c,
+		client:    cl,
+		watcher:   w,
+		jsonCache: newJSONCache(),
 		tagger:    append(t, TagAdderFunc(addHTTPPrefix)),
-		songCache: &songCache{},
 	}
 	if err := h.updateLibrary(ctx); err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 		return nil, err
 	}
 	go func() {
-		defer close(h.jsonCache.event)
+		defer h.jsonCache.Close()
 		for e := range w.C {
 			ctx, cancel := context.WithTimeout(context.Background(), c.BackgroundTimeout)
 			switch e {
@@ -121,6 +121,7 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 			case "options":
 			case "update":
 				h.updateStatus(ctx)
+				h.updateOutputs(ctx)
 			}
 			cancel()
 		}
@@ -136,6 +137,25 @@ type jsonCache struct {
 	mu     sync.RWMutex
 }
 
+func newJSONCache() *jsonCache {
+	return &jsonCache{
+		event:  make(chan string),
+		data:   map[string][]byte{},
+		gzdata: map[string][]byte{},
+		date:   map[string]time.Time{},
+	}
+}
+
+func (b *jsonCache) Close() {
+	b.mu.Lock()
+	close(b.event)
+	b.mu.Unlock()
+}
+
+func (b *jsonCache) Event() <-chan string {
+	return b.event
+}
+
 func (b *jsonCache) Set(path string, i interface{}, force bool) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -147,16 +167,12 @@ func (b *jsonCache) Set(path string, i interface{}, force bool) error {
 	if force || !bytes.Equal(o, n) {
 		b.data[path] = n
 		b.date[path] = time.Now()
-		b.sendCh(path)
+		select {
+		case b.event <- path:
+		default:
+		}
 	}
 	return nil
-}
-
-func (b *jsonCache) sendCh(e string) {
-	select {
-	case b.event <- e:
-	default:
-	}
 }
 
 func (b *jsonCache) Get(path string) (data, gzdata []byte, l time.Time) {
@@ -164,15 +180,6 @@ func (b *jsonCache) Get(path string) (data, gzdata []byte, l time.Time) {
 	defer b.mu.RUnlock()
 	return b.data[path], b.gzdata[path], b.date[path]
 
-}
-
-type songCache struct {
-	playlist []Song
-	library  []Song
-	sort     []string
-	filters  [][]string
-	current  int
-	mu       sync.Mutex
 }
 
 func (h *httpHandler) convSong(s map[string][]string) Song {
@@ -199,9 +206,9 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 	if err := h.jsonCache.Set("/api/music/library/songs", v, true); err != nil {
 		return err
 	}
-	h.songCache.mu.Lock()
-	h.songCache.library = v
-	h.songCache.mu.Unlock()
+	h.mu.Lock()
+	h.library = v
+	h.mu.Unlock()
 
 	return nil
 }
@@ -216,9 +223,9 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 		return err
 	}
 
-	h.songCache.mu.Lock()
-	h.songCache.playlist = v
-	h.songCache.mu.Unlock()
+	h.mu.Lock()
+	h.playlist = v
+	h.mu.Unlock()
 
 	return nil
 }
@@ -285,13 +292,13 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	}, false); err != nil {
 		return err
 	}
-	h.songCache.mu.Lock()
-	defer h.songCache.mu.Unlock()
-	h.songCache.current = pos
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.current = pos
 	if err := h.jsonCache.Set("/api/music/playlist", &httpPlaylistInfo{
-		Current: h.songCache.current,
-		Sort:    h.songCache.sort,
-		Filters: h.songCache.filters,
+		Current: h.current,
+		Sort:    h.sort,
+		Filters: h.filters,
 	}, false); err != nil {
 		return err
 	}
@@ -329,9 +336,9 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 		}
 		defer func() { sem <- struct{}{} }()
 
-		h.songCache.mu.Lock()
-		library, filters, newpos := SortSongs(h.songCache.library, req.Sort, req.Filters, 9999, req.Current)
-		playlist := h.songCache.playlist
+		h.mu.Lock()
+		library, filters, newpos := SortSongs(h.library, req.Sort, req.Filters, 9999, req.Current)
+		playlist := h.playlist
 		var update bool
 		if len(library) != len(playlist) {
 			update = true
@@ -351,17 +358,17 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			cl.Add(library[i]["file"][0])
 		}
 		cl.Play(newpos)
-		h.songCache.mu.Unlock()
+		h.mu.Unlock()
 		if !update {
 			ctx := r.Context()
 			if err := h.client.Play(ctx, newpos); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
-			h.songCache.mu.Lock()
-			h.songCache.sort = req.Sort
-			h.songCache.filters = filters
-			h.songCache.mu.Unlock()
+			h.mu.Lock()
+			h.sort = req.Sort
+			h.filters = filters
+			h.mu.Unlock()
 			h.updateStatus(ctx)
 			r.Method = http.MethodGet
 			alter.ServeHTTP(w, r)
@@ -381,10 +388,10 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			if err := cl.End(ctx); err != nil {
 				return
 			}
-			h.songCache.mu.Lock()
-			h.songCache.sort = req.Sort
-			h.songCache.filters = filters
-			h.songCache.mu.Unlock()
+			h.mu.Lock()
+			h.sort = req.Sort
+			h.filters = filters
+			h.mu.Unlock()
 		}()
 
 	}
@@ -452,7 +459,7 @@ func (h *httpHandler) statusWebSocket(alter http.Handler) http.HandlerFunc {
 	var mu sync.Mutex
 
 	go func() {
-		for e := range h.jsonCache.event {
+		for e := range h.jsonCache.Event() {
 			mu.Lock()
 			for _, c := range subs {
 				select {
