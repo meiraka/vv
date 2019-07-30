@@ -46,6 +46,7 @@ func parentStatus(r *http.Request, status int) *http.Request {
 // HTTPHandlerConfig holds HTTPHandler config
 type HTTPHandlerConfig struct {
 	BackgroundTimeout time.Duration
+	LocalAssets       bool
 }
 
 // addHTTPPrefix adds prefix path /api/music/storage to song cover path.
@@ -618,6 +619,11 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 }
 
 func (h *httpHandler) assetsHandler(rpath string, gz []byte) http.HandlerFunc {
+	if h.config.LocalAssets {
+		return func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, rpath)
+		}
+	}
 	r, err := gzip.NewReader(bytes.NewReader(gz))
 	if err != nil {
 		log.Fatalf("failed to create gzip.NewReader for static %s: %v", rpath, err)
