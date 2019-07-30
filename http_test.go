@@ -33,6 +33,7 @@ var (
 		{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"},
 		{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 		{Read: "currentsong\n", Write: "file: bar\nOK\n"},
+		{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"},
 	}
 )
 
@@ -80,6 +81,13 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music/playlist/songs/current",
 			status: http.StatusOK,
 			want:   `{"file":["bar"]}`,
+			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
+		},
+		{
+			Method: http.MethodGet,
+			Path:   "/api/music/outputs",
+			status: http.StatusOK,
+			want:   `[{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}]`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
@@ -232,6 +240,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 				{Read: "playlistinfo\n", Write: "file: bar\nfile: baz\nfile: foo\nOK\n"},
 				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 				{Read: "currentsong\n", Write: "file: bar\nOK\n"},
+				{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"},
 				{Read: "play 2\n", Write: "OK\n"},
 				{Read: "status\n", Write: "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 				{Read: "close\n"},

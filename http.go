@@ -98,6 +98,9 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 	if err := h.updateCurrentSong(ctx); err != nil {
 		return nil, err
 	}
+	if err := h.updateOutputs(ctx); err != nil {
+		return nil, err
+	}
 	go func() {
 		defer close(h.jsonCache.event)
 		for e := range w.C {
@@ -223,6 +226,30 @@ func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
 		return err
 	}
 	return h.jsonCache.Set("/api/music/playlist/songs/current", h.convSong(l), false)
+}
+
+type httpOutput struct {
+	Name      string `json:"name"`
+	Plugin    string `json:"plugin"`
+	Enabled   bool   `json:"enabled"`
+	Attribute string `json:"attribute"` // TODO fix type
+}
+
+func (h *httpHandler) updateOutputs(ctx context.Context) error {
+	l, err := h.client.Outputs(ctx)
+	if err != nil {
+		return err
+	}
+	data := make([]*httpOutput, len(l))
+	for i, v := range l {
+		data[i] = &httpOutput{
+			Name:      v["outputname"],
+			Plugin:    v["plugin"],
+			Enabled:   v["outputenabled"] == "1",
+			Attribute: v["attribute"],
+		}
+	}
+	return h.jsonCache.Set("/api/music/outputs", data, false)
 }
 
 func (h *httpHandler) updateStatus(ctx context.Context) error {
@@ -637,5 +664,6 @@ func (h *httpHandler) Handle() http.Handler {
 	m.Handle("/api/music/playlist/songs/current", h.jsonCacheHandler("/api/music/playlist/songs/current"))
 	m.Handle("/api/music/library", h.libraryPost(h.jsonCacheHandler("/api/music/library")))
 	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))
+	m.Handle("/api/music/outputs", h.jsonCacheHandler("/api/music/outputs"))
 	return m
 }
