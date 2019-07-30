@@ -11,6 +11,7 @@ import (
 	"log"
 	"mime"
 	"net/http"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/vv/mpd"
+	"golang.org/x/text/language"
 )
 
 type httpContextKey string
@@ -661,8 +663,97 @@ func (h *httpHandler) assetsHandler(rpath string, gz []byte) http.HandlerFunc {
 	}
 }
 
+func determineLanguage(r *http.Request, m language.Matcher) language.Tag {
+	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
+	tag, _, _ := m.Match(t...)
+	return tag
+}
+
+func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte) http.HandlerFunc {
+	matcher := language.NewMatcher(translatePrio)
+	m := mime.TypeByExtension(path.Ext(rpath))
+	if h.config.LocalAssets {
+		return func(w http.ResponseWriter, r *http.Request) {
+			info, err := os.Stat(rpath)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			l := info.ModTime()
+			if !modifiedSince(r, l) {
+				w.WriteHeader(304)
+				return
+			}
+			tag := determineLanguage(r, matcher)
+			data, err := ioutil.ReadFile(rpath)
+			if err != nil {
+				writeHTTPError(w, http.StatusInternalServerError, err)
+				return
+			}
+			data, err = translate(data, tag)
+			if err != nil {
+				writeHTTPError(w, http.StatusInternalServerError, err)
+				return
+			}
+			w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+			w.Header().Add("Content-Language", tag.String())
+			w.Header().Add("Content-Type", m+"; charset=utf-8")
+			w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
+			w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+			w.Write(data)
+			return
+		}
+	}
+	r, err := gzip.NewReader(bytes.NewReader(gz))
+	if err != nil {
+		log.Fatalf("failed to create gzip.NewReader for static %s: %v", rpath, err)
+	}
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		log.Fatalf("failed to read static %s: %v", rpath, err)
+	}
+	bt := make([][]byte, len(translatePrio))
+	gt := make([][]byte, len(translatePrio))
+	for i := range translatePrio {
+		data, err := translate(b, translatePrio[i])
+		if err != nil {
+			log.Fatalf("failed to translate %s to %v: %v", rpath, translatePrio[i], err)
+		}
+		bt[i] = data
+		data, err = makeGZip(data)
+		if err != nil {
+			log.Fatalf("failed to translate %s to %v: %v", rpath, translatePrio[i], err)
+		}
+		gt[i] = data
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		tag := determineLanguage(r, matcher)
+		index := 0
+		for ; index < len(translatePrio); index++ {
+			if translatePrio[index] == tag {
+				break
+			}
+		}
+		b = bt[index]
+		gz = gt[index]
+
+		w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+		w.Header().Add("Content-Language", tag.String())
+		w.Header().Add("Content-Type", m+"; charset=utf-8")
+		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
+			w.Header().Add("Content-Encoding", "gzip")
+			w.Write(gz)
+			return
+		}
+		w.Write(b)
+	}
+
+}
+
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
+	m.Handle("/", h.i18nAssetsHandler("assets/app.html", AssetsAppHTML))
 	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPNG))
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
 	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
