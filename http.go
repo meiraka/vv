@@ -620,7 +620,7 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 	}
 }
 
-func (h *httpHandler) assetsHandler(rpath string, gz []byte) http.HandlerFunc {
+func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) http.HandlerFunc {
 	if h.config.LocalAssets {
 		return func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, rpath)
@@ -635,7 +635,6 @@ func (h *httpHandler) assetsHandler(rpath string, gz []byte) http.HandlerFunc {
 		log.Fatalf("failed to read static %s: %v", rpath, err)
 	}
 	m := mime.TypeByExtension(path.Ext(rpath))
-	date := time.Now()
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" && r.Method != "HEAD" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -645,6 +644,7 @@ func (h *httpHandler) assetsHandler(rpath string, gz []byte) http.HandlerFunc {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
+		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
 		if r.Method == "HEAD" {
 			return
@@ -669,11 +669,15 @@ func determineLanguage(r *http.Request, m language.Matcher) language.Tag {
 	return tag
 }
 
-func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte) http.HandlerFunc {
+func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time) http.HandlerFunc {
 	matcher := language.NewMatcher(translatePrio)
 	m := mime.TypeByExtension(path.Ext(rpath))
 	if h.config.LocalAssets {
 		return func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "GET" && r.Method != "HEAD" {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
 			info, err := os.Stat(rpath)
 			if err != nil {
 				http.NotFound(w, r)
@@ -727,6 +731,14 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte) http.HandlerFun
 		gt[i] = data
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" && r.Method != "HEAD" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if !modifiedSince(r, date) {
+			w.WriteHeader(304)
+			return
+		}
 		tag := determineLanguage(r, matcher)
 		index := 0
 		for ; index < len(translatePrio); index++ {
@@ -741,6 +753,7 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte) http.HandlerFun
 		w.Header().Add("Content-Language", tag.String())
 		w.Header().Add("Content-Type", m+"; charset=utf-8")
 		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
+		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
 			w.Write(gz)
@@ -753,8 +766,8 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte) http.HandlerFun
 
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
-	m.Handle("/", h.i18nAssetsHandler("assets/app.html", AssetsAppHTML))
-	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPNG))
+	m.Handle("/", h.i18nAssetsHandler("assets/app.html", AssetsAppHTML, AssetsAppHTMLDate))
+	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPNG, AssetsAppPNGDate))
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
 	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
 	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
