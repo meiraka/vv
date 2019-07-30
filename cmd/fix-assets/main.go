@@ -7,8 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path"
-
-	"github.com/dave/jennifer/jen"
+	"sort"
 )
 
 func makeGZip(data []byte) ([]byte, error) {
@@ -57,7 +56,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gz := map[string][]byte{}
+	sort.Slice(files, func(i, j int) bool { return files[i].Name() < files[j].Name() })
+	fmt.Println("package main")
+	fmt.Println()
+	fmt.Println("var (")
 	for _, file := range files {
 		p := path.Join("assets", file.Name())
 		b, err := ioutil.ReadFile(p)
@@ -68,15 +70,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to make gzip %s: %v", p, err)
 		}
-		gz[p] = g
+		fmt.Printf("\t// %s is gzip encoded %s\n", makeName(p), p)
+		fmt.Printf("\t%s = []byte(%q)\n", makeName(p), g)
 	}
-
-	f := jen.NewFile("main")
-	c := make([]jen.Code, 0, len(gz))
-	for p, v := range gz {
-		c = append(c, jen.Id(makeName(p)).Op("=").Index().Byte().Parens(jen.Lit(string(v))))
-	}
-	f.Var().Defs(c...)
-
-	fmt.Printf("%#v", f)
+	fmt.Println(")")
 }
