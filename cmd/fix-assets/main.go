@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path"
 	"sort"
 )
@@ -57,9 +58,13 @@ func main() {
 		log.Fatal(err)
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Name() < files[j].Name() })
-	fmt.Println("package main")
-	fmt.Println()
-	fmt.Println("var (")
+	f, err := os.Create("assets.go")
+	if err != nil {
+		log.Fatalf("failed to open file: %v", err)
+	}
+	fmt.Fprintln(f, "package main")
+	fmt.Fprintln(f)
+	fmt.Fprintln(f, "var (")
 	for _, file := range files {
 		p := path.Join("assets", file.Name())
 		b, err := ioutil.ReadFile(p)
@@ -70,8 +75,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to make gzip %s: %v", p, err)
 		}
-		fmt.Printf("\t// %s is gzip encoded %s\n", makeName(p), p)
-		fmt.Printf("\t%s = []byte(%q)\n", makeName(p), g)
+		fmt.Fprintf(f, "\t// %s is gzip encoded %s\n", makeName(p), p)
+		fmt.Fprintf(f, "\t%s = []byte(%q)\n", makeName(p), g)
 	}
-	fmt.Println(")")
+	fmt.Fprintln(f, ")")
 }

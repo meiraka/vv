@@ -57,7 +57,7 @@ func getMusicDirectory(confpath string) (string, error) {
 	return "", nil
 }
 
-//go:generate go-bindata assets
+//go:generate go run cmd/fix-assets/main.go
 func main() {
 	setupFlag("config")
 	err := viper.ReadInConfig()
