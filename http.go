@@ -26,8 +26,7 @@ import (
 type httpContextKey string
 
 const (
-	httpParentStatus = httpContextKey("status")
-	httpUpdateTime   = httpContextKey("updateTime")
+	httpUpdateTime = httpContextKey("updateTime")
 )
 
 func getUpdateTime(r *http.Request) time.Time {
@@ -42,6 +41,31 @@ func getUpdateTime(r *http.Request) time.Time {
 func setUpdateTime(r *http.Request, u time.Time) *http.Request {
 	ctx := context.WithValue(r.Context(), httpUpdateTime, u)
 	return r.WithContext(ctx)
+}
+
+type headResponseWriter struct{ w http.ResponseWriter }
+
+func (h *headResponseWriter) Header() http.Header         { return h.w.Header() }
+func (h *headResponseWriter) Write(p []byte) (int, error) { return ioutil.Discard.Write(p) }
+func (h *headResponseWriter) WriteHeader(statusCode int)  { h.w.WriteHeader(statusCode) }
+
+// GetOrHead returns MethdNotAllowed if not GET or HEAD
+func GetOrHead(alter http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if r.Method == http.MethodHead {
+			alter.ServeHTTP(&headResponseWriter{w: w}, r)
+			return
+		}
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		alter.ServeHTTP(w, r)
+	}
 }
 
 // HTTPHandlerConfig holds HTTPHandler config
@@ -592,20 +616,13 @@ func writeHTTPError(w http.ResponseWriter, status int, err error) {
 }
 
 func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" && r.Method != "HEAD" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
+	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, gz, date := h.jsonCache.Get(path)
 		if !modifiedSince(r, date) {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
-		if r.Method == "HEAD" {
-			return
-		}
 		status := http.StatusOK
 		if getUpdateTime(r).After(date) {
 			status = http.StatusAccepted
@@ -618,7 +635,7 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 		}
 		w.WriteHeader(status)
 		w.Write(b)
-	}
+	}))
 }
 
 func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) http.HandlerFunc {
@@ -636,20 +653,13 @@ func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) htt
 		log.Fatalf("failed to read static %s: %v", rpath, err)
 	}
 	m := mime.TypeByExtension(path.Ext(rpath))
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" && r.Method != "HEAD" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
+	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !modifiedSince(r, date) {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
 		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
-		if r.Method == "HEAD" {
-			return
-		}
 		if m != "" {
 			w.Header().Add("Content-Type", m)
 		}
@@ -661,7 +671,7 @@ func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) htt
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
-	}
+	}))
 }
 
 func determineLanguage(r *http.Request, m language.Matcher) language.Tag {
@@ -670,15 +680,11 @@ func determineLanguage(r *http.Request, m language.Matcher) language.Tag {
 	return tag
 }
 
-func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time) http.HandlerFunc {
+func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time) http.Handler {
 	matcher := language.NewMatcher(translatePrio)
 	m := mime.TypeByExtension(path.Ext(rpath))
 	if h.config.LocalAssets {
-		return func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != "GET" && r.Method != "HEAD" {
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				return
-			}
+		return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			info, err := os.Stat(rpath)
 			if err != nil {
 				http.NotFound(w, r)
@@ -707,7 +713,7 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 			w.Header().Add("Content-Length", strconv.Itoa(len(data)))
 			w.Write(data)
 			return
-		}
+		}))
 	}
 	r, err := gzip.NewReader(bytes.NewReader(gz))
 	if err != nil {
@@ -731,11 +737,7 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 		}
 		gt[i] = data
 	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" && r.Method != "HEAD" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
+	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !modifiedSince(r, date) {
 			w.WriteHeader(304)
 			return
@@ -761,7 +763,7 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 			return
 		}
 		w.Write(b)
-	}
+	}))
 
 }
 
