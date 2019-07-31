@@ -115,7 +115,9 @@ func v2() {
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
-	handler, err := HTTPHandlerConfig{}.NewHTTPHandler(ctx, cl, w, nil)
+	handler, err := HTTPHandlerConfig{
+		LocalAssets: viper.GetBool("debug"),
+	}.NewHTTPHandler(ctx, cl, w, nil)
 	if err != nil {
 		log.Fatalf("failed to initialize app: %v", err)
 	}

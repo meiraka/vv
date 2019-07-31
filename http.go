@@ -27,21 +27,20 @@ type httpContextKey string
 
 const (
 	httpParentStatus = httpContextKey("status")
+	httpUpdateTime   = httpContextKey("updateTime")
 )
 
-// getParentStatus gets status code from http.Request witch is set by parentStatus
-func getParentStatus(r *http.Request, alter int) int {
-	if v := r.Context().Value(httpParentStatus); v != nil {
-		if i, ok := v.(int); ok {
+func getUpdateTime(r *http.Request) time.Time {
+	if v := r.Context().Value(httpUpdateTime); v != nil {
+		if i, ok := v.(time.Time); ok {
 			return i
 		}
 	}
-	return alter
+	return time.Time{}
 }
 
-// parentStatus sets status code to http.Request
-func parentStatus(r *http.Request, status int) *http.Request {
-	ctx := context.WithValue(r.Context(), httpParentStatus, status)
+func setUpdateTime(r *http.Request, u time.Time) *http.Request {
+	ctx := context.WithValue(r.Context(), httpUpdateTime, u)
 	return r.WithContext(ctx)
 }
 
@@ -118,10 +117,11 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 				h.updateStatus(ctx)
 				h.updateCurrentSong(ctx)
 			case "mixer":
+				h.updateStatus(ctx)
 			case "options":
+				h.updateStatus(ctx)
 			case "update":
 				h.updateStatus(ctx)
-				h.updateOutputs(ctx)
 			}
 			cancel()
 		}
@@ -273,7 +273,7 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	}
 	pos, err := strconv.Atoi(s["song"])
 	if err != nil {
-		return fmt.Errorf("song: %v", err)
+		pos = 0
 	}
 	elapsed, err := strconv.ParseFloat(s["elapsed"], 64)
 	if err != nil {
@@ -360,6 +360,7 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 		cl.Play(newpos)
 		h.mu.Unlock()
 		if !update {
+			now := time.Now()
 			ctx := r.Context()
 			if err := h.client.Play(ctx, newpos); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
@@ -369,13 +370,12 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			h.sort = req.Sort
 			h.filters = filters
 			h.mu.Unlock()
-			h.updateStatus(ctx)
 			r.Method = http.MethodGet
-			alter.ServeHTTP(w, r)
+			alter.ServeHTTP(w, setUpdateTime(r, now))
 			return
 		}
 		r.Method = http.MethodGet
-		alter.ServeHTTP(w, parentStatus(r, http.StatusAccepted))
+		alter.ServeHTTP(w, setUpdateTime(r, time.Now()))
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 			defer cancel()
@@ -413,13 +413,13 @@ func (h *httpHandler) libraryPost(alter http.Handler) http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
+		now := time.Now()
 		if _, err := h.client.Update(ctx, ""); err != nil {
 			writeHTTPError(w, http.StatusBadRequest, err)
 			return
 		}
-		h.updateStatus(ctx)
 		r.Method = http.MethodGet
-		alter.ServeHTTP(w, r)
+		alter.ServeHTTP(w, setUpdateTime(r, now))
 	}
 }
 
@@ -521,51 +521,44 @@ func (h *httpHandler) statusPost(alter http.Handler) http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
-		var changed bool
+		now := time.Now()
 		if s.Volume != nil {
-			changed = true
 			if err := h.client.SetVol(ctx, *s.Volume); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Repeat != nil {
-			changed = true
 			if err := h.client.Repeat(ctx, *s.Repeat); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Random != nil {
-			changed = true
 			if err := h.client.Random(ctx, *s.Random); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Single != nil {
-			changed = true
 			if err := h.client.Single(ctx, *s.Single); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Oneshot != nil {
-			changed = true
 			if err := h.client.OneShot(ctx); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.Consume != nil {
-			changed = true
 			if err := h.client.Consume(ctx, *s.Consume); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if s.State != nil {
-			changed = true
 			var err error
 			switch *s.State {
 			case "play":
@@ -585,11 +578,8 @@ func (h *httpHandler) statusPost(alter http.Handler) http.HandlerFunc {
 				return
 			}
 		}
-		if changed {
-			h.updateStatus(ctx)
-		}
 		r.Method = "GET"
-		alter.ServeHTTP(w, r)
+		alter.ServeHTTP(w, setUpdateTime(r, now))
 	}
 }
 
@@ -616,13 +606,17 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 		if r.Method == "HEAD" {
 			return
 		}
+		status := http.StatusOK
+		if getUpdateTime(r).After(date) {
+			status = http.StatusAccepted
+		}
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
-			w.WriteHeader(getParentStatus(r, http.StatusOK))
+			w.WriteHeader(status)
 			w.Write(gz)
 			return
 		}
-		w.WriteHeader(getParentStatus(r, http.StatusOK))
+		w.WriteHeader(status)
 		w.Write(b)
 	}
 }
@@ -661,11 +655,11 @@ func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) htt
 		}
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
-			w.WriteHeader(getParentStatus(r, http.StatusOK))
+			w.WriteHeader(http.StatusOK)
 			w.Write(gz)
 			return
 		}
-		w.WriteHeader(getParentStatus(r, http.StatusOK))
+		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
 }
