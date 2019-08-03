@@ -89,7 +89,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodGet,
 			Path:   "/api/music/outputs",
 			status: http.StatusOK,
-			want:   `[{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}]`,
+			want:   `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{

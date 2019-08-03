@@ -276,9 +276,9 @@ func (h *httpHandler) updateOutputs(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	data := make([]*httpOutput, len(l))
-	for i, v := range l {
-		data[i] = &httpOutput{
+	data := make(map[string]*httpOutput, len(l))
+	for _, v := range l {
+		data[v["outputid"]] = &httpOutput{
 			Name:      v["outputname"],
 			Plugin:    v["plugin"],
 			Enabled:   v["outputenabled"] == "1",

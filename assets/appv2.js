@@ -1840,21 +1840,24 @@ vv.view.system = {
       ul.removeChild(ul.lastChild);
     }
     const newul = document.createDocumentFragment();
-    for (const o of vv.storage.outputs) {
-      const c = document.querySelector("#device-template").content;
-      const e = c.querySelector("li");
-      e.querySelector(".system-setting-desc").textContent = o.outputname;
-      const ch = e.querySelector(".slideswitch");
-      ch.setAttribute("aria-label", o.outputname);
-      ch.dataset.deviceid = o.outputid;
-      ch.checked = o.outputenabled === "1";
-      const d = document.importNode(c, true);
-      d.querySelector(".slideswitch").addEventListener("change", e => {
-        vv.control.output(
-            parseInt(e.currentTarget.dataset.deviceid, 10),
-            e.currentTarget.checked);
-      });
-      newul.appendChild(d);
+    for (const id in vv.storage.outputs) {
+      if (vv.storage.outputs.hasOwnProperty(id)) {
+        const o = vv.storage.outputs[id];
+        const c = document.querySelector("#device-template").content;
+        const e = c.querySelector("li");
+        e.querySelector(".system-setting-desc").textContent = o.name;
+        const ch = e.querySelector(".slideswitch");
+        ch.setAttribute("aria-label", o.name);
+        ch.dataset.deviceid = id;
+        ch.checked = o.enabled;
+        const d = document.importNode(c, true);
+        d.querySelector(".slideswitch").addEventListener("change", e => {
+          vv.control.output(
+              parseInt(e.currentTarget.dataset.deviceid, 10),
+              e.currentTarget.checked);
+        });
+        newul.appendChild(d);
+      }
     }
     ul.appendChild(newul);
   },
