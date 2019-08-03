@@ -41,6 +41,10 @@ func makeName(p string) string {
 			}
 			n = append(n, v)
 			title = false
+		} else if 48 <= v && v <= 57 {
+			if len(n) != 0 {
+				n = append(n, v)
+			}
 		} else if v == 46 {
 			up = true
 			title = false

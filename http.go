@@ -192,7 +192,7 @@ func (b *jsonCache) Set(path string, i interface{}, force bool) error {
 	o := b.data[path]
 	if force || !bytes.Equal(o, n) {
 		b.data[path] = n
-		b.date[path] = time.Now()
+		b.date[path] = time.Now().UTC()
 		select {
 		case b.event <- path:
 		default:
@@ -386,7 +386,7 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 		cl.Play(newpos)
 		h.mu.Unlock()
 		if !update {
-			now := time.Now()
+			now := time.Now().UTC()
 			ctx := r.Context()
 			if err := h.client.Play(ctx, newpos); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
@@ -401,7 +401,7 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			return
 		}
 		r.Method = http.MethodGet
-		alter.ServeHTTP(w, setUpdateTime(r, time.Now()))
+		alter.ServeHTTP(w, setUpdateTime(r, time.Now().UTC()))
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 			defer cancel()
@@ -439,7 +439,7 @@ func (h *httpHandler) libraryPost(alter http.Handler) http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
-		now := time.Now()
+		now := time.Now().UTC()
 		if _, err := h.client.Update(ctx, ""); err != nil {
 			writeHTTPError(w, http.StatusBadRequest, err)
 			return
@@ -524,10 +524,19 @@ func (h *httpHandler) statusWebSocket(alter http.Handler) http.HandlerFunc {
 			}
 			subs = n
 		}()
-		for e := range c {
-			err = ws.WriteMessage(websocket.TextMessage, []byte(e))
-			if err != nil {
-				return
+		for {
+			select {
+			case e, ok := <-c:
+				if !ok {
+					return
+				}
+				if err := ws.WriteMessage(websocket.TextMessage, []byte(e)); err != nil {
+					return
+				}
+			case <-time.After(time.Second * 5):
+				if err := ws.WriteMessage(websocket.TextMessage, []byte("ping")); err != nil {
+					return
+				}
 			}
 
 		}
@@ -547,7 +556,7 @@ func (h *httpHandler) statusPost(alter http.Handler) http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
-		now := time.Now()
+		now := time.Now().UTC()
 		if s.Volume != nil {
 			if err := h.client.SetVol(ctx, *s.Volume); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
@@ -625,6 +634,7 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 			return
 		}
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
+		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
 		status := http.StatusOK
 		if getUpdateTime(r).After(date) {
 			status = http.StatusAccepted
@@ -772,7 +782,13 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
 	m.Handle("/", h.i18nAssetsHandler("assets/app.html", AssetsAppHTML, AssetsAppHTMLDate))
+	m.Handle("/assets/app.css", h.assetsHandler("assets/app.css", AssetsAppCSS, AssetsAppCSSDate))
 	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPNG, AssetsAppPNGDate))
+	m.Handle("/assets/manifest.json", h.assetsHandler("assets/manifest.json", AssetsManifestJSON, AssetsManifestJSONDate))
+	m.Handle("/assets/app-black.png", h.assetsHandler("assets/app-black.png", AssetsAppBlackPNG, AssetsAppBlackPNGDate))
+	m.Handle("/assets/w.png", h.assetsHandler("assets/w.png", AssetsWPNG, AssetsWPNGDate))
+	m.Handle("/assets/app.js", h.assetsHandler("assets/appv2.js", AssetsAppv2JS, AssetsAppv2JSDate))
+	m.Handle("/assets/nocover.svg", h.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGDate))
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
 	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
 	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))

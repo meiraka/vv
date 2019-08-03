@@ -106,7 +106,11 @@ func v2() {
 	ctx := context.TODO()
 	network := viper.GetString("mpd.network")
 	addr := viper.GetString("mpd.addr")
-	dialer := mpd.Dialer{}
+	dialer := mpd.Dialer{
+		ReconnectionTimeout:  10 * time.Second,
+		HelthCheckInterval:   time.Second,
+		ReconnectionInterval: 5 * time.Second,
+	}
 	cl, err := dialer.Dial(network, addr, "")
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
