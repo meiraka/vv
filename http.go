@@ -112,6 +112,9 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 		jsonCache: newJSONCache(),
 		tagger:    append(t, TagAdderFunc(addHTTPPrefix)),
 	}
+	if err := h.updateVersion(); err != nil {
+		return nil, err
+	}
 	if err := h.updateLibrary(ctx); err != nil {
 		return nil, err
 	}
@@ -221,6 +224,15 @@ func (h *httpHandler) convSongs(s []map[string][]string) []Song {
 		ret[i] = h.convSong(s[i])
 	}
 	return ret
+}
+
+type httpAPIVersion struct {
+	App string `json:"app"`
+	MPD string `json:"mpd"`
+}
+
+func (h *httpHandler) updateVersion() error {
+	return h.jsonCache.Set("/api/version", &httpAPIVersion{App: version, MPD: h.client.Version()}, false)
 }
 
 func (h *httpHandler) updateLibrary(ctx context.Context) error {
@@ -792,6 +804,7 @@ func (h *httpHandler) Handle() http.Handler {
 	m.Handle("/assets/w.png", h.assetsHandler("assets/w.png", AssetsWPNG, AssetsWPNGDate))
 	m.Handle("/assets/app.js", h.assetsHandler("assets/appv2.js", AssetsAppv2JS, AssetsAppv2JSDate))
 	m.Handle("/assets/nocover.svg", h.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGDate))
+	m.Handle("/api/version", h.jsonCacheHandler("/api/version"))
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
 	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
 	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))

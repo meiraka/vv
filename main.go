@@ -18,7 +18,7 @@ import (
 
 const staticVersion = "v0.6.2+"
 
-var version string
+var version = "v0.7.0+"
 
 func setupFlag(name string) {
 	viper.SetConfigName(name)
