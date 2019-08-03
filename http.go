@@ -146,6 +146,8 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 				h.updateStatus(ctx)
 			case "update":
 				h.updateStatus(ctx)
+			case "output":
+				h.updateOutputs(ctx)
 			}
 			cancel()
 		}

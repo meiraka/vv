@@ -374,6 +374,14 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 			}...),
 			websocket: []string{"/api/music/library"},
 		},
+		"outputs": {
+			watcher: "changed: output\nOK\n",
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 1\nattribute: dop=0\nOK\n"},
+				{Read: "close\n"},
+			}...),
+			websocket: []string{"/api/music/outputs"},
+		},
 	}
 	for k, tt := range testsets {
 		t.Run(fmt.Sprintf("%s", k), func(t *testing.T) {
@@ -424,7 +432,7 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 			for {
 				_, msg, err := ws.ReadMessage()
 				if err != nil {
-					t.Errorf("failed to get message: %v, current: %v", err, got)
+					t.Errorf("failed to get message: %v, got: %v, want: %v", err, got, tt.websocket)
 					break
 				}
 				got = append(got, string(msg))
