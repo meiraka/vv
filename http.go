@@ -635,6 +635,7 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 		}
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
 		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
+		w.Header().Add("Vary", "Accept-Encoding")
 		status := http.StatusOK
 		if getUpdateTime(r).After(date) {
 			status = http.StatusAccepted
@@ -670,11 +671,12 @@ func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) htt
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
-		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
-		w.Header().Add("Content-Type", "application/json; charset=utf-8")
+		w.Header().Add("Cache-Control", "max-age=86400")
 		if m != "" {
 			w.Header().Add("Content-Type", m)
 		}
+		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
+		w.Header().Add("Vary", "Accept-Encoding")
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
 			w.WriteHeader(http.StatusOK)
@@ -718,11 +720,11 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
-			w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
 			w.Header().Add("Content-Language", tag.String())
+			w.Header().Add("Content-Length", strconv.Itoa(len(data)))
 			w.Header().Add("Content-Type", m+"; charset=utf-8")
 			w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
-			w.Header().Add("Content-Length", strconv.Itoa(len(data)))
+			w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
 			w.Write(data)
 			return
 		}))
@@ -764,11 +766,12 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 		b = bt[index]
 		gz = gt[index]
 
-		w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
+		w.Header().Add("Cache-Control", "max-age=86400")
 		w.Header().Add("Content-Language", tag.String())
-		w.Header().Add("Content-Type", m+"; charset=utf-8")
 		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
+		w.Header().Add("Content-Type", m+"; charset=utf-8")
 		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
+		w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
 			w.Write(gz)
