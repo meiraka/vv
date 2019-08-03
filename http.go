@@ -163,7 +163,7 @@ type jsonCache struct {
 
 func newJSONCache() *jsonCache {
 	return &jsonCache{
-		event:  make(chan string),
+		event:  make(chan string, 10),
 		data:   map[string][]byte{},
 		gzdata: map[string][]byte{},
 		date:   map[string]time.Time{},
