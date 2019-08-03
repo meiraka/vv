@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -228,11 +229,13 @@ func (h *httpHandler) convSongs(s []map[string][]string) []Song {
 
 type httpAPIVersion struct {
 	App string `json:"app"`
+	Go  string `json:"go"`
 	MPD string `json:"mpd"`
 }
 
 func (h *httpHandler) updateVersion() error {
-	return h.jsonCache.Set("/api/version", &httpAPIVersion{App: version, MPD: h.client.Version()}, false)
+	goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	return h.jsonCache.Set("/api/version", &httpAPIVersion{App: version, Go: goVersion, MPD: h.client.Version()}, false)
 }
 
 func (h *httpHandler) updateLibrary(ctx context.Context) error {
@@ -279,7 +282,7 @@ func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
 type httpOutput struct {
 	Name      string `json:"name"`
 	Plugin    string `json:"plugin"`
-	Enabled   bool   `json:"enabled"`
+	Enabled   *bool  `json:"enabled"`
 	Attribute string `json:"attribute"` // TODO fix type
 }
 
@@ -293,11 +296,49 @@ func (h *httpHandler) updateOutputs(ctx context.Context) error {
 		data[v["outputid"]] = &httpOutput{
 			Name:      v["outputname"],
 			Plugin:    v["plugin"],
-			Enabled:   v["outputenabled"] == "1",
+			Enabled:   boolPtr(v["outputenabled"] == "1"),
 			Attribute: v["attribute"],
 		}
 	}
 	return h.jsonCache.Set("/api/music/outputs", data, false)
+}
+
+func (h *httpHandler) outputPost(alter http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			alter.ServeHTTP(w, r)
+			return
+		}
+		var req map[string]*httpOutput
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+			return
+		}
+		ctx := r.Context()
+		var updated bool
+		now := time.Now().UTC()
+		for k, v := range req {
+			if v.Enabled != nil {
+				var err error
+				updated = true
+				if *v.Enabled {
+					err = h.client.EnableOutput(ctx, k)
+				} else {
+					err = h.client.DisableOutput(ctx, k)
+				}
+				if err != nil {
+					writeHTTPError(w, http.StatusInternalServerError, err)
+					return
+				}
+			}
+		}
+		if updated {
+			alter.ServeHTTP(w, setUpdateTime(r, now))
+			return
+		}
+		alter.ServeHTTP(w, r)
+
+	}
 }
 
 func (h *httpHandler) updateStatus(ctx context.Context) error {
@@ -793,6 +834,8 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 	}))
 
 }
+
+func boolPtr(b bool) *bool { return &b }
 
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()

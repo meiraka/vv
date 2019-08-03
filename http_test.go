@@ -23,7 +23,7 @@ const (
 var (
 	testDialer = mpd.Dialer{
 		ReconnectionTimeout:  time.Second,
-		HelthCheckInterval:   time.Hour,
+		HealthCheckInterval:  time.Hour,
 		ReconnectionInterval: time.Second,
 	}
 	testHTTPClient = &http.Client{Timeout: testTimeout}
@@ -40,9 +40,6 @@ var (
 )
 
 func TestHTTPHandlerRequest(t *testing.T) {
-	oldVersion := version
-	version = "test"
-	defer func() { version = oldVersion }()
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	testsets := []struct {
@@ -53,13 +50,6 @@ func TestHTTPHandlerRequest(t *testing.T) {
 		want   string
 		event  []*mpdtest.WR
 	}{
-		{
-			Method: http.MethodGet,
-			Path:   "/api/version",
-			status: http.StatusOK,
-			want:   `{"app":"test","mpd":"0.19"}`,
-			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
-		},
 		{
 			Method: http.MethodGet,
 			Path:   "/api/music/playlist",

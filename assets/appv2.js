@@ -1046,7 +1046,7 @@ vv.control = {
   },
   _fetchAll() {
     vv.control._fetch("/api/music/playlist", "sorted");
-    // vv.control._fetch("/api/version", "version");
+    vv.control._fetch("/api/version", "version");
     vv.control._fetch("/api/music/outputs", "outputs");
     vv.control._fetch("/api/music/playlist/songs/current", "current");
     vv.control._fetch("/api/music", "control");
@@ -1991,8 +1991,8 @@ vv.view.system = {
     }
   },
   onVersion() {
-    if (vv.storage.version.vv) {
-      document.getElementById("version").textContent = vv.storage.version.vv;
+    if (vv.storage.version.app) {
+      document.getElementById("version").textContent = vv.storage.version.app;
       document.getElementById("go-version").textContent = vv.storage.version.go;
     }
   },

@@ -20,7 +20,7 @@ type Song map[string][]string
 // Dialer contains options for connecting to mpd
 type Dialer struct {
 	ReconnectionTimeout  time.Duration
-	HelthCheckInterval   time.Duration
+	HealthCheckInterval  time.Duration
 	ReconnectionInterval time.Duration
 }
 
@@ -42,7 +42,7 @@ func (d Dialer) Dial(proto, addr, password string) (*Client, error) {
 		conn:   conn,
 		dialer: &d,
 	}
-	go c.helthcheck()
+	go c.healthCheck()
 	return c, nil
 }
 
@@ -284,19 +284,21 @@ func (c *Client) Outputs(ctx context.Context) ([]map[string]string, error) {
 	return c.listMap(ctx, "outputid: ", "outputs")
 }
 
-func (c *Client) helthcheck() {
-	if c.dialer.HelthCheckInterval == 0 {
+func (c *Client) healthCheck() {
+	if c.dialer.HealthCheckInterval == 0 {
 		return
 	}
-	ticker := time.NewTicker(c.dialer.HelthCheckInterval)
+	ticker := time.NewTicker(c.dialer.HealthCheckInterval)
 	go func() {
-		select {
-		case <-c.closed:
-			return
-		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), c.dialer.HelthCheckInterval)
-			c.ok(ctx, "ping")
-			cancel()
+		for {
+			select {
+			case <-c.closed:
+				return
+			case <-ticker.C:
+				ctx, cancel := context.WithTimeout(context.Background(), c.dialer.HealthCheckInterval)
+				c.ok(ctx, "ping")
+				cancel()
+			}
 		}
 	}()
 }

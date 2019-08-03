@@ -108,7 +108,7 @@ func v2() {
 	addr := viper.GetString("mpd.addr")
 	dialer := mpd.Dialer{
 		ReconnectionTimeout:  10 * time.Second,
-		HelthCheckInterval:   time.Second,
+		HealthCheckInterval:  time.Second,
 		ReconnectionInterval: 5 * time.Second,
 	}
 	cl, err := dialer.Dial(network, addr, "")

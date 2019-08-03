@@ -36,6 +36,7 @@ func (c *conn) Readln() (string, error) {
 	if err != nil {
 		return s, err
 	}
+	// log.Println("TRACE", "read:", s[0:len(s)-1])
 	return s[0 : len(s)-1], nil
 }
 
@@ -48,6 +49,7 @@ func (c *conn) SetDeadline(t time.Time) error {
 }
 
 func (c *conn) Writeln(f ...interface{}) (int, error) {
+	// log.Println(append([]interface{}{"TRACE", "write:"}, f...)...)
 	return fmt.Fprintln(c.conn, f...)
 }
 
