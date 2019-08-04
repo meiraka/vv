@@ -1255,7 +1255,7 @@ vv.control.load();
       let cover = "/assets/nocover.svg";
       let coverForCalc = "/assets/nocover.svg";
       if (vv.storage.current !== null && vv.storage.current.cover) {
-        cover = `/music_directory/${vv.storage.current.cover[0]}`;
+        cover = vv.storage.current.cover[0];
         const imgsize = parseInt(70 * window.devicePixelRatio, 10);
         coverForCalc =
             `/api/images/${cover}?width=${imgsize}&height=${imgsize}`;
@@ -1323,7 +1323,7 @@ vv.view.main = {
         vv.storage.current.Artist;
     if (vv.storage.current.cover) {
       document.getElementById("main-cover-img").style.backgroundImage =
-          `url("/music_directory/${vv.storage.current.cover[0]}")`;
+          `url("${vv.storage.current.cover[0]}")`;
     } else {
       document.getElementById("main-cover-img").style.backgroundImage = "";
     }

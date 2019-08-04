@@ -27,7 +27,8 @@ import (
 type httpContextKey string
 
 const (
-	httpUpdateTime = httpContextKey("updateTime")
+	httpUpdateTime  = httpContextKey("updateTime")
+	httpStoragePath = "/api/music/storage/"
 )
 
 func getUpdateTime(r *http.Request) time.Time {
@@ -73,13 +74,14 @@ func GetOrHead(alter http.Handler) http.HandlerFunc {
 type HTTPHandlerConfig struct {
 	BackgroundTimeout time.Duration
 	LocalAssets       bool
+	MusicDirectory    string
 }
 
 // addHTTPPrefix adds prefix path /api/music/storage to song cover path.
 func addHTTPPrefix(m map[string][]string) map[string][]string {
 	if v, ok := m["cover"]; ok {
 		for i := range v {
-			v[i] = path.Join("/api/music/storage/", v[i])
+			v[i] = path.Join(httpStoragePath, v[i])
 		}
 	}
 	return m
@@ -92,6 +94,7 @@ type httpHandler struct {
 	jsonCache *jsonCache
 	upgrader  websocket.Upgrader
 	tagger    []TagAdder
+	cover     *LocalCoverSearcher
 
 	mu       sync.Mutex
 	playlist []Song
@@ -102,16 +105,28 @@ type httpHandler struct {
 }
 
 // NewHTTPHandler creates MPD http handler
-func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, t []TagAdder) (http.Handler, error) {
+func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
+	}
+	var cover *LocalCoverSearcher
+	tagger := make([]TagAdder, 0, 3)
+	tagger = append(tagger, TagAdderFunc(AddTags))
+	if len(c.MusicDirectory) != 0 {
+		var err error
+		cover, err = NewLocalCoverSearcher(c.MusicDirectory, "cover.*")
+		if err != nil {
+			return nil, err
+		}
+		tagger = append(tagger, cover)
 	}
 	h := &httpHandler{
 		config:    &c,
 		client:    cl,
 		watcher:   w,
 		jsonCache: newJSONCache(),
-		tagger:    append(t, TagAdderFunc(addHTTPPrefix)),
+		tagger:    append(tagger, TagAdderFunc(addHTTPPrefix)),
+		cover:     cover,
 	}
 	if err := h.updateVersion(); err != nil {
 		return nil, err
@@ -859,5 +874,13 @@ func (h *httpHandler) Handle() http.Handler {
 	m.Handle("/api/music/library", h.libraryPost(h.jsonCacheHandler("/api/music/library")))
 	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))
 	m.Handle("/api/music/outputs", h.outputPost(h.jsonCacheHandler("/api/music/outputs")))
+
+	if len(h.config.MusicDirectory) != 0 {
+		fs := http.StripPrefix(httpStoragePath, http.FileServer(http.Dir(h.config.MusicDirectory)))
+		m.HandleFunc(httpStoragePath, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Add("Cache-Control", "max-age=86400")
+			fs.ServeHTTP(w, r)
+		})
+	}
 	return m
 }

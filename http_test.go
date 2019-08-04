@@ -62,7 +62,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodGet,
 			Path:   "/api/music/playlist/songs",
 			status: http.StatusOK,
-			want:   `[{"file":["foo"]},{"file":["bar"]}]`,
+			want:   `[{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["foo"]},{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["bar"]}]`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
@@ -76,14 +76,14 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodGet,
 			Path:   "/api/music/library/songs",
 			status: http.StatusOK,
-			want:   `[{"file":["foo"]},{"file":["bar"]},{"file":["baz"]}]`,
+			want:   `[{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["foo"]},{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["bar"]},{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["baz"]}]`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
 			Method: http.MethodGet,
 			Path:   "/api/music/playlist/songs/current",
 			status: http.StatusOK,
-			want:   `{"file":["bar"]}`,
+			want:   `{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["bar"]}`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
@@ -276,7 +276,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			}
 			defer wl.Close(ctx)
 
-			h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl, nil)
+			h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl)
 			if err != nil {
 				t.Fatalf("NewHTTPHandler got error %v; want nil", err)
 			}
@@ -409,7 +409,7 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 			}
 			defer wl.Close(ctx)
 
-			h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl, nil)
+			h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl)
 			if err != nil {
 				t.Fatalf("NewHTTPHandler got error %v; want nil", err)
 			}

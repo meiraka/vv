@@ -106,6 +106,13 @@ func v2() {
 	ctx := context.TODO()
 	network := viper.GetString("mpd.network")
 	addr := viper.GetString("mpd.addr")
+	musicDirectory := viper.GetString("mpd.music_directory")
+	if len(musicDirectory) == 0 {
+		dir, err := getMusicDirectory("/etc/mpd.conf")
+		if err == nil {
+			musicDirectory = dir
+		}
+	}
 	dialer := mpd.Dialer{
 		ReconnectionTimeout:  10 * time.Second,
 		HealthCheckInterval:  time.Second,
@@ -120,8 +127,9 @@ func v2() {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
 	handler, err := HTTPHandlerConfig{
-		LocalAssets: viper.GetBool("debug"),
-	}.NewHTTPHandler(ctx, cl, w, nil)
+		LocalAssets:    viper.GetBool("debug"),
+		MusicDirectory: musicDirectory,
+	}.NewHTTPHandler(ctx, cl, w)
 	if err != nil {
 		log.Fatalf("failed to initialize app: %v", err)
 	}
