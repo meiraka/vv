@@ -335,12 +335,11 @@ func (h *httpHandler) outputPost(alter http.Handler) http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
-		var updated bool
 		now := time.Now().UTC()
 		for k, v := range req {
 			if v.Enabled != nil {
 				var err error
-				updated = true
+				r = setUpdateTime(r, now)
 				if *v.Enabled {
 					err = h.client.EnableOutput(ctx, k)
 				} else {
@@ -352,10 +351,7 @@ func (h *httpHandler) outputPost(alter http.Handler) http.HandlerFunc {
 				}
 			}
 		}
-		if updated {
-			alter.ServeHTTP(w, setUpdateTime(r, now))
-			return
-		}
+		r.Method = http.MethodGet
 		alter.ServeHTTP(w, r)
 
 	}

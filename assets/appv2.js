@@ -1014,7 +1014,7 @@ vv.control = {
   },
   volume(num) { vv.request.post("/api/music", {volume: num}); },
   output(id, on) {
-    vv.request.post(`/api/music/outputs`, {id: {outputenabled: on}});
+    vv.request.post(`/api/music/outputs`, {[id]: {enabled: on}});
   },
   _fetch(target, store) {
     vv.request.get(

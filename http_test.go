@@ -252,6 +252,28 @@ func TestHTTPHandlerRequest(t *testing.T) {
 				{Read: "close\n"},
 			}...),
 		},
+		{
+			Method: http.MethodPost,
+			Path:   "/api/music/outputs",
+			Body:   `{"0":{"enabled":false}}`,
+			status: http.StatusAccepted,
+			want:   `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "disableoutput 0\n", Write: "OK\n"},
+				{Read: "close\n"},
+			}...),
+		},
+		{
+			Method: http.MethodPost,
+			Path:   "/api/music/outputs",
+			Body:   `{"0":{"enabled":true}}`,
+			status: http.StatusAccepted,
+			want:   `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
+			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
+				{Read: "enableoutput 0\n", Write: "OK\n"},
+				{Read: "close\n"},
+			}...),
+		},
 	}
 	for _, tt := range testsets {
 		t.Run(fmt.Sprintf("%s %s %s", tt.Method, tt.Path, tt.Body), func(t *testing.T) {
