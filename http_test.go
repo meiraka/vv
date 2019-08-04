@@ -36,6 +36,7 @@ var (
 		{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 		{Read: "currentsong\n", Write: "file: bar\nOK\n"},
 		{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"},
+		{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"},
 	}
 )
 
@@ -96,7 +97,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodGet,
 			Path:   "/api/music",
 			status: http.StatusOK,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
@@ -104,7 +105,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"volume":100}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "setvol 100\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -115,7 +116,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"repeat":true}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "repeat 1\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -126,7 +127,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"random":true}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "random 1\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -137,7 +138,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"single":true}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "single 1\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -148,7 +149,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"oneshot":true}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "single oneshot\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -159,7 +160,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"consume":true}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "consume 1\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -170,7 +171,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"state":"play"}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "play -1\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -181,7 +182,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"state":"pause"}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "pause 1\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -192,7 +193,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"state":"next"}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "next\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -203,7 +204,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music",
 			Body:   `{"state":"previous"}`,
 			status: http.StatusAccepted,
-			want:   `{"volume":-1,"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "previous\n", Write: "OK\n"},
 				{Read: "close\n"},
@@ -233,6 +234,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 				{Read: "currentsong\n", Write: "file: bar\nOK\n"},
 				{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"},
+				{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"},
 				{Read: "play 2\n", Write: "OK\n"},
 				{Read: "status\n", Write: "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 				{Read: "close\n"},
@@ -318,6 +320,7 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nupdating_db: 3\nOK\n"},
 				{Read: "currentsong\n", Write: "file: bar\nOK\n"},
 				{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"},
+				{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"},
 				{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nfile: qux\nOK\n"},
 				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 				{Read: "close\n"},

@@ -131,6 +131,9 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 	if err := h.updateOutputs(ctx); err != nil {
 		return nil, err
 	}
+	if err := h.updateStats(ctx); err != nil {
+		return nil, err
+	}
 	go func() {
 		defer h.jsonCache.Close()
 		for e := range w.C {
@@ -346,9 +349,10 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	var volume *int
 	v, err := strconv.Atoi(s["volume"])
-	if err != nil {
-		v = -1
+	if err == nil && v >= 0 {
+		volume = &v
 	}
 	pos, err := strconv.Atoi(s["song"])
 	if err != nil {
@@ -360,14 +364,14 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 		// return fmt.Errorf("elapsed: %v", err)
 	}
 	if err := h.jsonCache.Set("/api/music", &httpMusicStatus{
-		Volume:      v,
-		Repeat:      s["repeat"] == "1",
-		Random:      s["random"] == "1",
-		Single:      s["single"] == "1",
-		Oneshot:     s["single"] == "oneshot",
-		Consume:     s["consume"] == "1",
-		State:       s["state"],
-		SongElapsed: elapsed,
+		Volume:      volume,
+		Repeat:      boolPtr(s["repeat"] == "1"),
+		Random:      boolPtr(s["random"] == "1"),
+		Single:      boolPtr(s["single"] == "1"),
+		Oneshot:     boolPtr(s["single"] == "oneshot"),
+		Consume:     boolPtr(s["consume"] == "1"),
+		State:       stringPtr(s["state"]),
+		SongElapsed: &elapsed,
 	}, false); err != nil {
 		return err
 	}
@@ -385,6 +389,14 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	return h.jsonCache.Set("/api/music/library", &httpLibraryInfo{
 		Updating: updating,
 	}, false)
+}
+
+func (h *httpHandler) updateStats(ctx context.Context) error {
+	s, err := h.client.Stats(ctx)
+	if err != nil {
+		return err
+	}
+	return h.jsonCache.Set("/api/music/stats", s, false)
 }
 
 func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
@@ -503,24 +515,14 @@ func (h *httpHandler) libraryPost(alter http.Handler) http.HandlerFunc {
 }
 
 type httpMusicStatus struct {
-	Volume      int     `json:"volume"`
-	Repeat      bool    `json:"repeat"`
-	Random      bool    `json:"random"`
-	Single      bool    `json:"single"`
-	Oneshot     bool    `json:"oneshot"`
-	Consume     bool    `json:"consume"`
-	State       string  `json:"state"`
-	SongElapsed float64 `json:"song_elapsed"`
-}
-
-type httpMusicPostStatus struct {
-	Volume  *int    `json:"volume"`
-	Repeat  *bool   `json:"repeat"`
-	Random  *bool   `json:"random"`
-	Single  *bool   `json:"single"`
-	Oneshot *bool   `json:"oneshot"`
-	Consume *bool   `json:"consume"`
-	State   *string `json:"state"`
+	Volume      *int     `json:"volume,omitempty"`
+	Repeat      *bool    `json:"repeat,omitempty"`
+	Random      *bool    `json:"random,omitempty"`
+	Single      *bool    `json:"single,omitempty"`
+	Oneshot     *bool    `json:"oneshot,omitempty"`
+	Consume     *bool    `json:"consume,omitempty"`
+	State       *string  `json:"state,omitempty"`
+	SongElapsed *float64 `json:"song_elapsed,omitempty"`
 }
 
 type httpPlaylistInfo struct {
@@ -603,7 +605,7 @@ func (h *httpHandler) statusPost(alter http.Handler) http.HandlerFunc {
 			alter.ServeHTTP(w, r)
 			return
 		}
-		var s httpMusicPostStatus
+		var s httpMusicStatus
 		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 			writeHTTPError(w, http.StatusInternalServerError, err)
 			return
@@ -835,7 +837,8 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 
 }
 
-func boolPtr(b bool) *bool { return &b }
+func boolPtr(b bool) *bool       { return &b }
+func stringPtr(s string) *string { return &s }
 
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
@@ -849,11 +852,12 @@ func (h *httpHandler) Handle() http.Handler {
 	m.Handle("/assets/nocover.svg", h.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGDate))
 	m.Handle("/api/version", h.jsonCacheHandler("/api/version"))
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
+	m.Handle("/api/music/stats", h.jsonCacheHandler("/api/music/stats"))
 	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
 	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
 	m.Handle("/api/music/playlist/songs/current", h.jsonCacheHandler("/api/music/playlist/songs/current"))
 	m.Handle("/api/music/library", h.libraryPost(h.jsonCacheHandler("/api/music/library")))
 	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))
-	m.Handle("/api/music/outputs", h.jsonCacheHandler("/api/music/outputs"))
+	m.Handle("/api/music/outputs", h.outputPost(h.jsonCacheHandler("/api/music/outputs")))
 	return m
 }

@@ -104,6 +104,11 @@ func (c *Client) Status(ctx context.Context) (map[string]string, error) {
 	return c.mapStr(ctx, "status")
 }
 
+// Stats displays statistics.
+func (c *Client) Stats(ctx context.Context) (map[string]string, error) {
+	return c.mapStr(ctx, "stats")
+}
+
 // Music Database Commands
 
 // CountGroup counts the number of songs by a tag(ex: artist)

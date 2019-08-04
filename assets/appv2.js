@@ -1014,7 +1014,7 @@ vv.control = {
   },
   volume(num) { vv.request.post("/api/music", {volume: num}); },
   output(id, on) {
-    vv.request.post(`/api/music/outputs/${id}`, {outputenabled: on});
+    vv.request.post(`/api/music/outputs`, {id: {outputenabled: on}});
   },
   _fetch(target, store) {
     vv.request.get(
@@ -1296,7 +1296,7 @@ vv.view.main = {
   onControl() {
     const c = document.getElementById("control-volume");
     c.value = vv.storage.control.volume;
-    if (vv.storage.control.volume < 0) {
+    if (!vv.storage.control.volume) {
       c.classList.add("disabled");
     } else {
       c.classList.remove("disabled");
@@ -1880,7 +1880,7 @@ vv.view.system = {
     }
 
     vv.control.addEventListener("control", () => {
-      if (vv.storage.control.volume < 0) {
+      if (!vv.storage.control.volume) {
         document.getElementById("volume-header").classList.add("hide");
         document.getElementById("volume-all").classList.add("hide");
       } else {
