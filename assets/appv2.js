@@ -338,6 +338,11 @@ vv.storage = {
   },
   load() {
     try {
+      if (localStorage.version !== "v2") {
+        localStorage.clear();
+        console.log("cl");
+      }
+      localStorage.version = "v2";
       if (localStorage.root && localStorage.root.length !== 0) {
         vv.storage.root = localStorage.root;
         if (vv.storage.root !== "root") {
@@ -1089,7 +1094,7 @@ vv.control = {
           vv.control._fetch("/api/music/playlist/songs/current", "current");
         } else if (e.data === "/api/music/outputs") {
           vv.control._fetch("/api/music/outputs", "outputs");
-        } else if (e.data === "stats") {
+        } else if (e.data === "/api/music/stats") {
           vv.control._fetch("/api/music/stats", "stats");
         } else if (e.data === "/api/music/playlist") {
           vv.control._fetch("/api/music/playlist", "sorted");
