@@ -858,7 +858,7 @@ func (h *httpHandler) image() http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		rpath := filepath.Join(h.config.MusicDirectory, filepath.FromSlash(r.URL.Path))
+		rpath := filepath.Join(filepath.FromSlash(h.config.MusicDirectory), filepath.FromSlash(r.URL.Path))
 		f, err := os.Open(rpath)
 		if err != nil {
 			http.NotFound(w, r)
@@ -871,7 +871,7 @@ func (h *httpHandler) image() http.HandlerFunc {
 		}
 		q := r.URL.Query()
 		ws, hs := q.Get("width"), q.Get("height")
-		if len(ws) == 0 && len(hs) == 0 {
+		if len(ws) == 0 || len(hs) == 0 {
 			w.Header().Add("Cache-Control", "max-age=86400")
 			w.Header().Add("Content-Length", strconv.FormatInt(i.Size(), 10))
 			w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
@@ -925,13 +925,7 @@ func (h *httpHandler) Handle() http.Handler {
 	m.Handle("/api/music/library", h.libraryPost(h.jsonCacheHandler("/api/music/library")))
 	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))
 	m.Handle("/api/music/outputs", h.outputPost(h.jsonCacheHandler("/api/music/outputs")))
+	m.Handle(httpImagePath, http.StripPrefix(httpImagePath, h.image()))
 
-	if len(h.config.MusicDirectory) != 0 {
-		fs := http.StripPrefix(httpImagePath, http.FileServer(http.Dir(h.config.MusicDirectory)))
-		m.HandleFunc(httpImagePath, func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Add("Cache-Control", "max-age=86400")
-			fs.ServeHTTP(w, r)
-		})
-	}
 	return m
 }

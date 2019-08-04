@@ -65,25 +65,24 @@ func (f *LocalCoverSearcher) AddTags(m map[string][]string) map[string][]string 
 	if len(file) != 1 {
 		return m
 	}
-	addr := path.Join(f.dir, file[0])
-	d := path.Dir(addr)
-	k := path.Join(d, f.glob)
+	localPath := filepath.Join(filepath.FromSlash(f.dir), filepath.FromSlash(file[0]))
+	localGlob := filepath.Join(filepath.Dir(localPath), f.glob)
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	v, ok := f.cache[k]
+	v, ok := f.cache[localGlob]
 	if ok {
 		if len(v) != 0 {
 			m["cover"] = []string{v}
 		}
 		return m
 	}
-	p, err := filepath.Glob(k)
+	p, err := filepath.Glob(localGlob)
 	if err != nil || p == nil {
-		f.cache[k] = ""
+		f.cache[localGlob] = ""
 		return m
 	}
-	cover := strings.TrimPrefix(strings.TrimPrefix(p[0], f.dir), "/")
-	f.cache[k] = cover
+	cover := strings.TrimPrefix(strings.TrimPrefix(filepath.ToSlash(p[0]), filepath.ToSlash(f.dir)), "/")
+	f.cache[localGlob] = cover
 	f.image[cover] = struct{}{}
 	m["cover"] = []string{cover}
 	return m
