@@ -30,7 +30,8 @@ type LocalCoverSearcher struct {
 	dir   string
 	glob  string
 	cache map[string]string
-	mu    sync.Mutex
+	image map[string]struct{}
+	mu    sync.RWMutex
 }
 
 // NewLocalCoverSearcher creates LocalCoverSearcher.
@@ -43,7 +44,16 @@ func NewLocalCoverSearcher(dir, glob string) (*LocalCoverSearcher, error) {
 		dir:   dir,
 		glob:  glob,
 		cache: map[string]string{},
+		image: map[string]struct{}{},
 	}, nil
+}
+
+// CachedImage returns true if given path is cached image
+func (f *LocalCoverSearcher) CachedImage(path string) (cached bool) {
+	f.mu.RLock()
+	_, cached = f.image[path]
+	f.mu.RUnlock()
+	return
 }
 
 // AddTags adds cover path to m
@@ -74,6 +84,7 @@ func (f *LocalCoverSearcher) AddTags(m map[string][]string) map[string][]string 
 	}
 	cover := strings.TrimPrefix(strings.TrimPrefix(p[0], f.dir), "/")
 	f.cache[k] = cover
+	f.image[cover] = struct{}{}
 	m["cover"] = []string{cover}
 	return m
 }

@@ -7,12 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"mime"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -27,8 +29,8 @@ import (
 type httpContextKey string
 
 const (
-	httpUpdateTime  = httpContextKey("updateTime")
-	httpStoragePath = "/api/music/storage/"
+	httpUpdateTime = httpContextKey("updateTime")
+	httpImagePath  = "/api/music/image/"
 )
 
 func getUpdateTime(r *http.Request) time.Time {
@@ -81,7 +83,7 @@ type HTTPHandlerConfig struct {
 func addHTTPPrefix(m map[string][]string) map[string][]string {
 	if v, ok := m["cover"]; ok {
 		for i := range v {
-			v[i] = path.Join(httpStoragePath, v[i])
+			v[i] = path.Join(httpImagePath, v[i])
 		}
 	}
 	return m
@@ -724,6 +726,7 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) http.HandlerFunc {
 	if h.config.LocalAssets {
 		return func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Add("Cache-Control", "max-age=1")
 			http.ServeFile(w, r, rpath)
 		}
 	}
@@ -790,6 +793,7 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
+			w.Header().Add("Cache-Control", "max-age=1")
 			w.Header().Add("Content-Language", tag.String())
 			w.Header().Add("Content-Length", strconv.Itoa(len(data)))
 			w.Header().Add("Content-Type", m+"; charset=utf-8")
@@ -852,6 +856,57 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 
 }
 
+func (h *httpHandler) image() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !h.cover.CachedImage(r.URL.Path) {
+			http.NotFound(w, r)
+			return
+		}
+		rpath := filepath.Join(h.config.MusicDirectory, filepath.FromSlash(r.URL.Path))
+		f, err := os.Open(rpath)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		i, err := f.Stat()
+		if err != nil {
+			writeHTTPError(w, http.StatusInternalServerError, err)
+			return
+		}
+		q := r.URL.Query()
+		ws, hs := q.Get("width"), q.Get("height")
+		if len(ws) == 0 && len(hs) == 0 {
+			w.Header().Add("Cache-Control", "max-age=86400")
+			w.Header().Add("Content-Length", strconv.FormatInt(i.Size(), 10))
+			w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
+			w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
+			io.Copy(w, f)
+			return
+		}
+		wi, err := strconv.Atoi(ws)
+		if err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+		}
+		hi, err := strconv.Atoi(hs)
+		if err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+		}
+		b, err := ioutil.ReadAll(f)
+		if err != nil {
+			writeHTTPError(w, http.StatusInternalServerError, err)
+		}
+		b, err = resizeImage(b, wi, hi)
+		if err != nil {
+			writeHTTPError(w, http.StatusInternalServerError, err)
+		}
+		w.Header().Add("Cache-Control", "max-age=86400")
+		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
+		w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
+		w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
+		w.Write(b)
+	}
+}
+
 func boolPtr(b bool) *bool       { return &b }
 func stringPtr(s string) *string { return &s }
 
@@ -876,8 +931,8 @@ func (h *httpHandler) Handle() http.Handler {
 	m.Handle("/api/music/outputs", h.outputPost(h.jsonCacheHandler("/api/music/outputs")))
 
 	if len(h.config.MusicDirectory) != 0 {
-		fs := http.StripPrefix(httpStoragePath, http.FileServer(http.Dir(h.config.MusicDirectory)))
-		m.HandleFunc(httpStoragePath, func(w http.ResponseWriter, r *http.Request) {
+		fs := http.StripPrefix(httpImagePath, http.FileServer(http.Dir(h.config.MusicDirectory)))
+		m.HandleFunc(httpImagePath, func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add("Cache-Control", "max-age=86400")
 			fs.ServeHTTP(w, r)
 		})

@@ -1258,7 +1258,7 @@ vv.control.load();
         cover = vv.storage.current.cover[0];
         const imgsize = parseInt(70 * window.devicePixelRatio, 10);
         coverForCalc =
-            `/api/images/${cover}?width=${imgsize}&height=${imgsize}`;
+            `${cover}?width=${imgsize}&height=${imgsize}`;
       }
       const newimage = `url("${cover}")`;
       if (e.style.backgroundImage !== newimage) {
@@ -1561,8 +1561,7 @@ vv.view.list = {
       if (song.cover) {
         const base = largeImage ? 150 : 70;
         const imgsize = parseInt(base * window.devicePixelRatio, 10);
-        cover.src = "/api/images/music_directory/" +
-            `${song.cover}?width=${imgsize}&height=${imgsize}`;
+        cover.src = `${song.cover}?width=${imgsize}&height=${imgsize}`;
       } else {
         cover.src = "/assets/nocover.svg";
       }
@@ -2309,8 +2308,7 @@ vv.view.modal = {
     const cover = document.getElementById("modal-song-box-cover");
     if (song.cover) {
       const imgsize = window.devicePixelRatio * 112;
-      cover.src = "/api/images/music_directory/" +
-          `${song.cover}?width=${imgsize}&height=${imgsize}`;
+      cover.src = `${song.cover}?width=${imgsize}&height=${imgsize}`;
     } else {
       cover.src = "/assets/nocover.svg";
     }
