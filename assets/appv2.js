@@ -340,7 +340,6 @@ vv.storage = {
     try {
       if (localStorage.version !== "v2") {
         localStorage.clear();
-        console.log("cl");
       }
       localStorage.version = "v2";
       if (localStorage.root && localStorage.root.length !== 0) {
