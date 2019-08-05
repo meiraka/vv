@@ -664,7 +664,7 @@ vv.library = {
     }
     if (songs.length > vv.consts.playlistLength) {
       songs = vv.songs.weakFilter(
-          songs, vv.storage.sorted.filters, vv.consts.playlistLength);
+          songs, vv.storage.sorted.filters || [], vv.consts.playlistLength);
     }
     if (!songs[pos]) {
       return;
@@ -684,7 +684,7 @@ vv.library = {
     }
   },
   abs(song) {
-    if (vv.storage.sorted && vv.storage.sorted.sort !== null) {
+    if (vv.storage.sorted && vv.storage.sorted.hasOwnProperty("sort") && vv.storage.sorted.sort !== null) {
       vv.library.absSorted(song);
     } else {
       vv.library.absFallback(song);
@@ -1162,7 +1162,7 @@ vv.control = {
       }
     };
 
-    let unsorted = (!vv.storage.sorted || vv.storage.sorted.sort === null);
+    let unsorted = (!vv.storage.sorted || !vv.storage.sorted.hasOwnProperty("sort") || vv.storage.sorted.sort === null);
     const focusremove = (key, remove) => {
       const n = () => {
         if (unsorted && vv.storage.sorted && vv.storage.current !== null) {
@@ -1300,11 +1300,11 @@ vv.view.main = {
   },
   onControl() {
     const c = document.getElementById("control-volume");
-    c.value = vv.storage.control.volume;
-    if (!vv.storage.control.volume) {
-      c.classList.add("disabled");
-    } else {
+    if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
+      c.value = vv.storage.control.volume;
       c.classList.remove("disabled");
+    } else {
+      c.classList.add("disabled");
     }
   },
   show() {
@@ -1449,7 +1449,7 @@ vv.view.list = {
         listitem.classList.remove("selected");
       }
       let treeFocused = true;
-      if (vv.storage.sorted && vv.storage.sorted.sort !== null) {
+      if (vv.storage.sorted && vv.storage.sorted.hasOwnProperty("sort") && vv.storage.sorted.sort !== null) {
         if (rootname === "root") {
           treeFocused = false;
         } else if (
@@ -1884,12 +1884,12 @@ vv.view.system = {
     }
 
     vv.control.addEventListener("control", () => {
-      if (!vv.storage.control.volume) {
-        document.getElementById("volume-header").classList.add("hide");
-        document.getElementById("volume-all").classList.add("hide");
-      } else {
+      if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
         document.getElementById("volume-header").classList.remove("hide");
         document.getElementById("volume-all").classList.remove("hide");
+      } else {
+        document.getElementById("volume-header").classList.add("hide");
+        document.getElementById("volume-all").classList.add("hide");
       }
     });
 

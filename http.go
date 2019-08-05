@@ -301,9 +301,9 @@ func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
 
 type httpOutput struct {
 	Name      string `json:"name"`
-	Plugin    string `json:"plugin"`
+	Plugin    string `json:"plugin,omitempty"`
 	Enabled   *bool  `json:"enabled"`
-	Attribute string `json:"attribute"` // TODO fix type
+	Attribute string `json:"attribute,omitempty"` // TODO fix type
 }
 
 func (h *httpHandler) updateOutputs(ctx context.Context) error {
@@ -540,8 +540,8 @@ type httpMusicStatus struct {
 
 type httpPlaylistInfo struct {
 	Current int        `json:"current"`
-	Sort    []string   `json:"sort"`
-	Filters [][]string `json:"filters"`
+	Sort    []string   `json:"sort,omitempty"`
+	Filters [][]string `json:"filters,omitempty"`
 }
 
 type httpLibraryInfo struct {

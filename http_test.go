@@ -55,7 +55,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodGet,
 			Path:   "/api/music/playlist",
 			status: http.StatusOK,
-			want:   `{"current":1,"sort":null,"filters":null}`,
+			want:   `{"current":1}`,
 			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
 		},
 		{
@@ -214,7 +214,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/music/playlist",
 			Body:   `{"current":0,"sort":["file"],"filters":[]}`,
-			want:   `{"current":1,"sort":null,"filters":null}`,
+			want:   `{"current":1}`,
 			status: http.StatusAccepted,
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "command_list_ok_begin\nclear\nadd \"bar\"\nadd \"baz\"\nadd \"foo\"\nplay 0\ncommand_list_end\n",
@@ -227,7 +227,7 @@ func TestHTTPHandlerRequest(t *testing.T) {
 			Path:   "/api/music/playlist",
 			Body:   `{"current":2,"sort":["file"],"filters":[["file","foo"]]}`,
 			status: http.StatusAccepted,
-			want:   `{"current":1,"sort":null,"filters":null}`,
+			want:   `{"current":1}`,
 			event: []*mpdtest.WR{
 				{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"},
 				{Read: "playlistinfo\n", Write: "file: bar\nfile: baz\nfile: foo\nOK\n"},
