@@ -347,7 +347,7 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 				{Read: "close\n"},
 			},
-			websocket: []string{"/api/music/library/songs", "/api/music/library"},
+			websocket: []string{"/api/music/library/songs", "/api/music", "/api/music/library"},
 		},
 		"database": {
 			watcher: "changed: database\nOK\n",
@@ -356,7 +356,7 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
 				{Read: "close\n"},
 			}...),
-			websocket: []string{"/api/music/library/songs"},
+			websocket: []string{"/api/music/library/songs", "/api/music"},
 		},
 		"playlist": {
 			watcher: "changed: playlist\nOK\n",
@@ -397,7 +397,7 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nupdating_db: 1\nOK\n"},
 				{Read: "close\n"},
 			}...),
-			websocket: []string{"/api/music/library"},
+			websocket: []string{"/api/music", "/api/music/library"},
 		},
 		"outputs": {
 			watcher: "changed: output\nOK\n",

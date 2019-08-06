@@ -272,6 +272,7 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 		return err
 	}
 	v := h.convSongs(l)
+	// force update to skip []byte compare
 	if err := h.jsonCache.Set("/api/music/library/songs", v); err != nil {
 		return err
 	}
@@ -288,6 +289,7 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 		return err
 	}
 	v := h.convSongs(l)
+	// force update to skip []byte compare
 	if err := h.jsonCache.Set("/api/music/playlist/songs", v); err != nil {
 		return err
 	}
@@ -384,7 +386,9 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 		elapsed = 0
 		// return fmt.Errorf("elapsed: %v", err)
 	}
-	if err := h.jsonCache.SetIfModified("/api/music", &httpMusicStatus{
+	// force update to Last-Modified header to calc current SongElapsed
+	// TODO: add millisec update time to JSON
+	if err := h.jsonCache.Set("/api/music", &httpMusicStatus{
 		Volume:      volume,
 		Repeat:      boolPtr(s["repeat"] == "1"),
 		Random:      boolPtr(s["random"] == "1"),
@@ -417,7 +421,10 @@ func (h *httpHandler) updateStats(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return h.jsonCache.SetIfModified("/api/music/stats", s)
+	// force update to Last-Modified header to calc current playing time
+	// TODO: add millisec update time to JSON
+	// TODO: cast string to int
+	return h.jsonCache.Set("/api/music/stats", s)
 }
 
 func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
