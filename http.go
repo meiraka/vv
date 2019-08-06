@@ -206,7 +206,15 @@ func (b *jsonCache) Event() <-chan string {
 	return b.event
 }
 
-func (b *jsonCache) Set(path string, i interface{}, force bool) error {
+func (b *jsonCache) Set(path string, i interface{}) error {
+	return b.set(path, i, true)
+}
+
+func (b *jsonCache) SetIfModified(path string, i interface{}) error {
+	return b.set(path, i, false)
+}
+
+func (b *jsonCache) set(path string, i interface{}, force bool) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	n, err := json.Marshal(i)
@@ -255,7 +263,7 @@ type httpAPIVersion struct {
 
 func (h *httpHandler) updateVersion() error {
 	goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
-	return h.jsonCache.Set("/api/version", &httpAPIVersion{App: version, Go: goVersion, MPD: h.client.Version()}, false)
+	return h.jsonCache.SetIfModified("/api/version", &httpAPIVersion{App: version, Go: goVersion, MPD: h.client.Version()})
 }
 
 func (h *httpHandler) updateLibrary(ctx context.Context) error {
@@ -264,7 +272,7 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 		return err
 	}
 	v := h.convSongs(l)
-	if err := h.jsonCache.Set("/api/music/library/songs", v, true); err != nil {
+	if err := h.jsonCache.Set("/api/music/library/songs", v); err != nil {
 		return err
 	}
 	h.mu.Lock()
@@ -280,7 +288,7 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 		return err
 	}
 	v := h.convSongs(l)
-	if err := h.jsonCache.Set("/api/music/playlist/songs", v, true); err != nil {
+	if err := h.jsonCache.Set("/api/music/playlist/songs", v); err != nil {
 		return err
 	}
 
@@ -296,7 +304,7 @@ func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return h.jsonCache.Set("/api/music/playlist/songs/current", h.convSong(l), false)
+	return h.jsonCache.SetIfModified("/api/music/playlist/songs/current", h.convSong(l))
 }
 
 type httpOutput struct {
@@ -320,7 +328,7 @@ func (h *httpHandler) updateOutputs(ctx context.Context) error {
 			Attribute: v["attribute"],
 		}
 	}
-	return h.jsonCache.Set("/api/music/outputs", data, false)
+	return h.jsonCache.SetIfModified("/api/music/outputs", data)
 }
 
 func (h *httpHandler) outputPost(alter http.Handler) http.HandlerFunc {
@@ -376,7 +384,7 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 		elapsed = 0
 		// return fmt.Errorf("elapsed: %v", err)
 	}
-	if err := h.jsonCache.Set("/api/music", &httpMusicStatus{
+	if err := h.jsonCache.SetIfModified("/api/music", &httpMusicStatus{
 		Volume:      volume,
 		Repeat:      boolPtr(s["repeat"] == "1"),
 		Random:      boolPtr(s["random"] == "1"),
@@ -385,23 +393,23 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 		Consume:     boolPtr(s["consume"] == "1"),
 		State:       stringPtr(s["state"]),
 		SongElapsed: &elapsed,
-	}, false); err != nil {
+	}); err != nil {
 		return err
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.current = pos
-	if err := h.jsonCache.Set("/api/music/playlist", &httpPlaylistInfo{
+	if err := h.jsonCache.SetIfModified("/api/music/playlist", &httpPlaylistInfo{
 		Current: h.current,
 		Sort:    h.sort,
 		Filters: h.filters,
-	}, false); err != nil {
+	}); err != nil {
 		return err
 	}
 	_, updating := s["updating_db"]
-	return h.jsonCache.Set("/api/music/library", &httpLibraryInfo{
+	return h.jsonCache.SetIfModified("/api/music/library", &httpLibraryInfo{
 		Updating: updating,
-	}, false)
+	})
 }
 
 func (h *httpHandler) updateStats(ctx context.Context) error {
@@ -409,7 +417,7 @@ func (h *httpHandler) updateStats(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return h.jsonCache.Set("/api/music/stats", s, false)
+	return h.jsonCache.SetIfModified("/api/music/stats", s)
 }
 
 func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
