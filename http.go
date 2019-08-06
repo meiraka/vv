@@ -133,23 +133,10 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 	if err := h.updateVersion(); err != nil {
 		return nil, err
 	}
-	if err := h.updateLibrary(ctx); err != nil {
-		return nil, err
-	}
-	if err := h.updatePlaylist(ctx); err != nil {
-		return nil, err
-	}
-	if err := h.updateStatus(ctx); err != nil {
-		return nil, err
-	}
-	if err := h.updateCurrentSong(ctx); err != nil {
-		return nil, err
-	}
-	if err := h.updateOutputs(ctx); err != nil {
-		return nil, err
-	}
-	if err := h.updateStats(ctx); err != nil {
-		return nil, err
+	for _, v := range []func(context.Context) error{h.updateLibrary, h.updatePlaylist, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats} {
+		if err := v(ctx); err != nil {
+			return nil, err
+		}
 	}
 	go func() {
 		defer h.jsonCache.Close()
