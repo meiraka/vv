@@ -12,6 +12,21 @@ import (
 	"github.com/meiraka/gompd/mpd"
 )
 
+// EqualSongs compares o and n song filepath
+func EqualSongs(o, n []Song) bool {
+	if len(o) != len(n) {
+		return false
+	}
+	for i := range n {
+		f1 := o[i]["file"][0]
+		f2 := n[i]["file"][0]
+		if f1 != f2 {
+			return false
+		}
+	}
+	return true
+}
+
 // TagAdder add tags to song.
 type TagAdder interface {
 	AddTags(map[string][]string) map[string][]string

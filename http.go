@@ -278,9 +278,22 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 	}
 	h.mu.Lock()
 	h.library = v
+	if !EqualSongs(h.playlist, h.library) {
+		h.sort = nil
+		h.filters = nil
+		h.updatePlaylistInfo()
+	}
 	h.mu.Unlock()
 
 	return nil
+}
+
+func (h *httpHandler) updatePlaylistInfo() error {
+	return h.jsonCache.SetIfModified("/api/music/playlist", &httpPlaylistInfo{
+		Current: h.current,
+		Sort:    h.sort,
+		Filters: h.filters,
+	})
 }
 
 func (h *httpHandler) updatePlaylist(ctx context.Context) error {
@@ -296,9 +309,14 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 
 	h.mu.Lock()
 	h.playlist = v
+	if !EqualSongs(h.playlist, h.library) {
+		h.sort = nil
+		h.filters = nil
+		h.updatePlaylistInfo()
+	}
 	h.mu.Unlock()
 
-	return nil
+	return err
 }
 
 func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
@@ -403,11 +421,7 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.current = pos
-	if err := h.jsonCache.SetIfModified("/api/music/playlist", &httpPlaylistInfo{
-		Current: h.current,
-		Sort:    h.sort,
-		Filters: h.filters,
-	}); err != nil {
+	if err := h.updatePlaylistInfo(); err != nil {
 		return err
 	}
 	_, updating := s["updating_db"]
@@ -458,19 +472,7 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 		h.mu.Lock()
 		library, filters, newpos := SortSongs(h.library, req.Sort, req.Filters, 9999, req.Current)
 		playlist := h.playlist
-		var update bool
-		if len(library) != len(playlist) {
-			update = true
-		} else {
-			for i := range library {
-				n := library[i]["file"][0]
-				o := playlist[i]["file"][0]
-				if n != o {
-					update = true
-					break
-				}
-			}
-		}
+		update := !EqualSongs(playlist, library)
 		cl := h.client.BeginCommandList()
 		cl.Clear()
 		for i := range library {
