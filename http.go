@@ -98,12 +98,13 @@ type httpHandler struct {
 	tagger    []TagAdder
 	cover     *LocalCoverSearcher
 
-	mu       sync.Mutex
-	playlist []Song
-	library  []Song
-	sort     []string
-	filters  [][]string
-	current  int
+	mu          sync.Mutex
+	playlist    []Song
+	library     []Song
+	librarySort []Song
+	sort        []string
+	filters     [][]string
+	current     int
 }
 
 // NewHTTPHandler creates MPD http handler
@@ -265,11 +266,11 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 	}
 	h.mu.Lock()
 	h.library = v
-	if !EqualSongs(h.playlist, h.library) {
-		h.sort = nil
-		h.filters = nil
-		h.updatePlaylistInfo()
-	}
+	h.sort = nil
+	h.filters = nil
+	h.librarySort = nil
+	h.updatePlaylistInfo()
+
 	h.mu.Unlock()
 
 	return nil
@@ -296,9 +297,10 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 
 	h.mu.Lock()
 	h.playlist = v
-	if !EqualSongs(h.playlist, h.library) {
+	if h.sort != nil && !EqualSongs(h.playlist, h.librarySort) {
 		h.sort = nil
 		h.filters = nil
+		h.librarySort = nil
 		h.updatePlaylistInfo()
 	}
 	h.mu.Unlock()
@@ -457,13 +459,12 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 		defer func() { sem <- struct{}{} }()
 
 		h.mu.Lock()
-		library, filters, newpos := SortSongs(h.library, req.Sort, req.Filters, 9999, req.Current)
-		playlist := h.playlist
-		update := !EqualSongs(playlist, library)
+		librarySort, filters, newpos := SortSongs(h.library, req.Sort, req.Filters, 9999, req.Current)
+		update := !EqualSongs(h.playlist, librarySort)
 		cl := h.client.BeginCommandList()
 		cl.Clear()
-		for i := range library {
-			cl.Add(library[i]["file"][0])
+		for i := range librarySort {
+			cl.Add(librarySort[i]["file"][0])
 		}
 		cl.Play(newpos)
 		h.mu.Unlock()
@@ -477,6 +478,7 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			h.mu.Lock()
 			h.sort = req.Sort
 			h.filters = filters
+			h.librarySort = librarySort
 			h.mu.Unlock()
 			r.Method = http.MethodGet
 			alter.ServeHTTP(w, setUpdateTime(r, now))
@@ -499,6 +501,7 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			h.mu.Lock()
 			h.sort = req.Sort
 			h.filters = filters
+			h.librarySort = librarySort
 			h.mu.Unlock()
 		}()
 
