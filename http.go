@@ -601,6 +601,9 @@ func (h *httpHandler) statusWebSocket(alter http.Handler) http.HandlerFunc {
 			}
 			subs = n
 		}()
+		if err := ws.WriteMessage(websocket.TextMessage, []byte("ok")); err != nil {
+			return
+		}
 		for {
 			select {
 			case e, ok := <-c:

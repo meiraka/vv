@@ -445,6 +445,9 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 			}
 			defer ws.Close()
 			ws.SetReadDeadline(time.Now().Add(testTimeout))
+			if _, msg, err := ws.ReadMessage(); string(msg) != "ok" || err != nil {
+				t.Fatalf("got message: %s, %v, want: ok <nil>", msg, err)
+			}
 			go func() {
 				<-r // idle
 				w <- tt.watcher
@@ -591,6 +594,9 @@ func TestHTTPHandlerPlaylist(t *testing.T) {
 			}
 
 			ws.SetReadDeadline(time.Now().Add(testTimeout))
+			if _, msg, err := ws.ReadMessage(); string(msg) != "ok" || err != nil {
+				t.Fatalf("got message: %s, %v, want: ok <nil>", msg, err)
+			}
 			got := make([]string, 0, 10)
 			for {
 				_, msg, err := ws.ReadMessage()
