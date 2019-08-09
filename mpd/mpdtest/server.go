@@ -2,6 +2,7 @@ package mpdtest
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -140,6 +141,24 @@ func NewEventServer(firstResp string, resp []*WR) (*Server, error) {
 		}
 	}(ln)
 	return s, nil
+}
+
+// DefineMessage defines mpd read/write message
+func DefineMessage(ctx context.Context, w chan string, r <-chan string, m *WR) {
+	ws := m.Write
+	select {
+	case <-ctx.Done():
+		return
+	case s := <-r:
+		if s != m.Read {
+			ws = fmt.Sprintf("ACK [5@0] {} got %s; want %s\n", strings.TrimSuffix(s, "\n"), strings.TrimSuffix(m.Read, "\n"))
+		}
+	}
+	select {
+	case <-ctx.Done():
+	case w <- ws:
+	}
+
 }
 
 // NewChanServer creates new mpd mock Server for idle command.

@@ -12,7 +12,7 @@ import (
 var (
 	testDialer = Dialer{
 		ReconnectionTimeout:  time.Second,
-		HelthCheckInterval:   time.Second,
+		HealthCheckInterval:  time.Second,
 		ReconnectionInterval: time.Second,
 	}
 )

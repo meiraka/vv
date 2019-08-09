@@ -272,7 +272,6 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 	h.updatePlaylistInfo()
 
 	h.mu.Unlock()
-
 	return nil
 }
 
@@ -467,19 +466,22 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			cl.Add(librarySort[i]["file"][0])
 		}
 		cl.Play(newpos)
+		h.sort = req.Sort
+		h.filters = filters
+		h.librarySort = librarySort
 		h.mu.Unlock()
 		if !update {
 			now := time.Now().UTC()
 			ctx := r.Context()
 			if err := h.client.Play(ctx, newpos); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
+				h.mu.Lock()
+				h.sort = nil
+				h.filters = nil
+				h.librarySort = nil
+				h.mu.Unlock()
 				return
 			}
-			h.mu.Lock()
-			h.sort = req.Sort
-			h.filters = filters
-			h.librarySort = librarySort
-			h.mu.Unlock()
 			r.Method = http.MethodGet
 			alter.ServeHTTP(w, setUpdateTime(r, now))
 			return
@@ -496,13 +498,13 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 			}
 			defer func() { sem <- struct{}{} }()
 			if err := cl.End(ctx); err != nil {
+				h.mu.Lock()
+				h.sort = nil
+				h.filters = nil
+				h.librarySort = nil
+				h.mu.Unlock()
 				return
 			}
-			h.mu.Lock()
-			h.sort = req.Sort
-			h.filters = filters
-			h.librarySort = librarySort
-			h.mu.Unlock()
 		}()
 
 	}

@@ -1,15 +1,19 @@
 package main
 
 import (
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
-func TestReadConfig(t *testing.T) {
+func init() {
 	viper.AddConfigPath("./appendix")
 	setupFlag("example.config")
+}
+
+func TestReadConfig(t *testing.T) {
 	testsets1 := map[string]string{
 		"mpd.host":            "",
 		"mpd.port":            "",
