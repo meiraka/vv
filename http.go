@@ -706,9 +706,18 @@ func writeHTTPError(w http.ResponseWriter, status int, err error) {
 	w.Write(b)
 }
 
+func noneMatch(r *http.Request, etag string) bool {
+	return r.Header.Get("If-None-Match") == etag
+}
+
 func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, gz, date := h.jsonCache.Get(path)
+		etag := strconv.FormatInt(date.UnixNano(), 10)
+		if noneMatch(r, etag) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
 		if !modifiedSince(r, date) {
 			w.WriteHeader(http.StatusNotModified)
 			return
@@ -716,6 +725,7 @@ func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
 		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
 		w.Header().Add("Vary", "Accept-Encoding")
+		w.Header().Add("ETag", etag)
 		status := http.StatusOK
 		if getUpdateTime(r).After(date) {
 			status = http.StatusAccepted

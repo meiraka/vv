@@ -541,6 +541,37 @@ func TestHTTPHandlerPlaylist(t *testing.T) {
 			status:    http.StatusOK,
 			want:      `{"current":0,"sort":["file"]}`,
 		},
+		"playlist changed": {
+			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: baz\nfile: foo\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "command_list_ok_begin\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "clear\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "add \"bar\"\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "add \"baz\"\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "add \"foo\"\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "play 0\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "command_list_end\n", Write: "list_OK\nlist_OK\nlist_OK\nlist_OK\nlist_OK\nOK\n"})
+				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 0\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 0\nOK\n"})
+				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: playlist\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: bar\nOK\n"})
+				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n"})
+				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
+				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "close\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "close\n"})
+			},
+			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/playlist/songs", "/api/music/playlist"},
+			Method:    http.MethodGet,
+			Path:      "/api/music/playlist",
+			status:    http.StatusOK,
+			want:      `{"current":0}`,
+		},
 	}
 	for k, tt := range testsets {
 		t.Run(fmt.Sprintf("%s", k), func(t *testing.T) {
