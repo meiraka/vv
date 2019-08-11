@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/meiraka/gompd/mpd"
 )
@@ -38,69 +37,6 @@ type TagAdderFunc func(map[string][]string) map[string][]string
 // AddTags add tags to song.
 func (t TagAdderFunc) AddTags(m map[string][]string) map[string][]string {
 	return t(m)
-}
-
-// LocalCoverSearcher searches song conver art
-type LocalCoverSearcher struct {
-	dir   string
-	glob  string
-	cache map[string]string
-	image map[string]struct{}
-	mu    sync.RWMutex
-}
-
-// NewLocalCoverSearcher creates LocalCoverSearcher.
-func NewLocalCoverSearcher(dir, glob string) (*LocalCoverSearcher, error) {
-	dir, err := filepath.Abs(dir)
-	if err != nil {
-		return nil, err
-	}
-	return &LocalCoverSearcher{
-		dir:   dir,
-		glob:  glob,
-		cache: map[string]string{},
-		image: map[string]struct{}{},
-	}, nil
-}
-
-// CachedImage returns true if given path is cached image
-func (f *LocalCoverSearcher) CachedImage(path string) (cached bool) {
-	f.mu.RLock()
-	_, cached = f.image[path]
-	f.mu.RUnlock()
-	return
-}
-
-// AddTags adds cover path to m
-func (f *LocalCoverSearcher) AddTags(m map[string][]string) map[string][]string {
-	file, ok := m["file"]
-	if !ok {
-		return m
-	}
-	if len(file) != 1 {
-		return m
-	}
-	localPath := filepath.Join(filepath.FromSlash(f.dir), filepath.FromSlash(file[0]))
-	localGlob := filepath.Join(filepath.Dir(localPath), f.glob)
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	v, ok := f.cache[localGlob]
-	if ok {
-		if len(v) != 0 {
-			m["cover"] = []string{v}
-		}
-		return m
-	}
-	p, err := filepath.Glob(localGlob)
-	if err != nil || p == nil {
-		f.cache[localGlob] = ""
-		return m
-	}
-	cover := strings.TrimPrefix(strings.TrimPrefix(filepath.ToSlash(p[0]), filepath.ToSlash(f.dir)), "/")
-	f.cache[localGlob] = cover
-	f.image[cover] = struct{}{}
-	m["cover"] = []string{cover}
-	return m
 }
 
 // AddTags adds tags to song for vv

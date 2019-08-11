@@ -2,14 +2,24 @@ package main
 
 import (
 	"bytes"
-	_ "golang.org/x/image/bmp"
-	"golang.org/x/image/draw"
 	"image"
 	"image/color"
 	_ "image/gif"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"math"
+	"mime"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+
+	_ "golang.org/x/image/bmp"
+	"golang.org/x/image/draw"
 )
 
 func expandImage(data []byte, width, height int) ([]byte, error) {
@@ -35,12 +45,15 @@ func expandImage(data []byte, width, height int) ([]byte, error) {
 	return outwriter.Bytes(), nil
 }
 
-func resizeImage(data []byte, width, height int) ([]byte, error) {
-	img, _, err := image.Decode(bytes.NewReader(data))
+func resizeImage(data io.ReadSeeker, width, height int) ([]byte, error) {
+	info, _, err := image.DecodeConfig(data)
 	if err != nil {
 		return nil, err
 	}
-	info, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if _, err := data.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	img, _, err := image.Decode(data)
 	if err != nil {
 		return nil, err
 	}
@@ -58,4 +71,116 @@ func resizeImage(data []byte, width, height int) ([]byte, error) {
 	opt := jpeg.Options{Quality: 100}
 	jpeg.Encode(outwriter, out, &opt)
 	return outwriter.Bytes(), nil
+}
+
+// LocalCoverSearcher searches song conver art
+type LocalCoverSearcher struct {
+	dir   string
+	glob  string
+	cache map[string]string
+	image map[string]struct{}
+	mu    sync.RWMutex
+}
+
+// NewLocalCoverSearcher creates LocalCoverSearcher.
+func NewLocalCoverSearcher(dir, glob string) (*LocalCoverSearcher, error) {
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, err
+	}
+	return &LocalCoverSearcher{
+		dir:   dir,
+		glob:  glob,
+		cache: map[string]string{},
+		image: map[string]struct{}{},
+	}, nil
+}
+
+// CachedImage returns true if given path is cached image
+func (l *LocalCoverSearcher) CachedImage(path string) (cached bool) {
+	l.mu.RLock()
+	_, cached = l.image[path]
+	l.mu.RUnlock()
+	return
+}
+
+// AddTags adds cover path to m
+func (l *LocalCoverSearcher) AddTags(m map[string][]string) map[string][]string {
+	file, ok := m["file"]
+	if !ok {
+		return m
+	}
+	if len(file) != 1 {
+		return m
+	}
+	localPath := filepath.Join(filepath.FromSlash(l.dir), filepath.FromSlash(file[0]))
+	localGlob := filepath.Join(filepath.Dir(localPath), l.glob)
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	v, ok := l.cache[localGlob]
+	if ok {
+		if len(v) != 0 {
+			m["cover"] = []string{v}
+		}
+		return m
+	}
+	p, err := filepath.Glob(localGlob)
+	if err != nil || p == nil {
+		l.cache[localGlob] = ""
+		return m
+	}
+	cover := strings.TrimPrefix(strings.TrimPrefix(filepath.ToSlash(p[0]), filepath.ToSlash(l.dir)), "/")
+	l.cache[localGlob] = cover
+	l.image[cover] = struct{}{}
+	m["cover"] = []string{cover}
+	return m
+}
+
+// Handler returns HTTP handler for image
+func (l *LocalCoverSearcher) Handler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !l.CachedImage(r.URL.Path) {
+			http.NotFound(w, r)
+			return
+		}
+		rpath := filepath.Join(filepath.FromSlash(l.dir), filepath.FromSlash(r.URL.Path))
+		f, err := os.Open(rpath)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer f.Close()
+		i, err := f.Stat()
+		if err != nil {
+			writeHTTPError(w, http.StatusInternalServerError, err)
+			return
+		}
+		q := r.URL.Query()
+		ws, hs := q.Get("width"), q.Get("height")
+		if len(ws) == 0 || len(hs) == 0 {
+			w.Header().Add("Cache-Control", "max-age=86400")
+			w.Header().Add("Content-Length", strconv.FormatInt(i.Size(), 10))
+			w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
+			w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
+			io.Copy(w, f)
+			return
+		}
+		wi, err := strconv.Atoi(ws)
+		if err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+		}
+		hi, err := strconv.Atoi(hs)
+		if err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+		}
+		b, err := resizeImage(f, wi, hi)
+		if err != nil {
+			writeHTTPError(w, http.StatusInternalServerError, err)
+		}
+		w.Header().Add("Cache-Control", "max-age=86400")
+		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
+		w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
+		w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
+		w.Write(b)
+	}
 }

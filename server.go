@@ -6,8 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"golang.org/x/text/language"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -21,6 +19,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"golang.org/x/text/language"
 )
 
 const musicDirectoryPrefix = "/music_directory/"
@@ -143,12 +144,13 @@ func (s *Server) apiImages(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
-	data, err := ioutil.ReadFile(imgpath)
+	f, err := os.Open(imgpath)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	data, err = resizeImage(data, width, height)
+	defer f.Close()
+	data, err := resizeImage(f, width, height)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

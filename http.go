@@ -7,14 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"mime"
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -878,57 +876,6 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 
 }
 
-func (h *httpHandler) image() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !h.cover.CachedImage(r.URL.Path) {
-			http.NotFound(w, r)
-			return
-		}
-		rpath := filepath.Join(filepath.FromSlash(h.config.MusicDirectory), filepath.FromSlash(r.URL.Path))
-		f, err := os.Open(rpath)
-		if err != nil {
-			http.NotFound(w, r)
-			return
-		}
-		i, err := f.Stat()
-		if err != nil {
-			writeHTTPError(w, http.StatusInternalServerError, err)
-			return
-		}
-		q := r.URL.Query()
-		ws, hs := q.Get("width"), q.Get("height")
-		if len(ws) == 0 || len(hs) == 0 {
-			w.Header().Add("Cache-Control", "max-age=86400")
-			w.Header().Add("Content-Length", strconv.FormatInt(i.Size(), 10))
-			w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
-			w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
-			io.Copy(w, f)
-			return
-		}
-		wi, err := strconv.Atoi(ws)
-		if err != nil {
-			writeHTTPError(w, http.StatusBadRequest, err)
-		}
-		hi, err := strconv.Atoi(hs)
-		if err != nil {
-			writeHTTPError(w, http.StatusBadRequest, err)
-		}
-		b, err := ioutil.ReadAll(f)
-		if err != nil {
-			writeHTTPError(w, http.StatusInternalServerError, err)
-		}
-		b, err = resizeImage(b, wi, hi)
-		if err != nil {
-			writeHTTPError(w, http.StatusInternalServerError, err)
-		}
-		w.Header().Add("Cache-Control", "max-age=86400")
-		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
-		w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
-		w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
-		w.Write(b)
-	}
-}
-
 func boolPtr(b bool) *bool       { return &b }
 func stringPtr(s string) *string { return &s }
 
@@ -951,7 +898,7 @@ func (h *httpHandler) Handle() http.Handler {
 	m.Handle("/api/music/library", h.libraryPost(h.jsonCache.Handler("/api/music/library")))
 	m.Handle("/api/music/library/songs", h.jsonCache.Handler("/api/music/library/songs"))
 	m.Handle("/api/music/outputs", h.outputPost(h.jsonCache.Handler("/api/music/outputs")))
-	m.Handle(httpImagePath, http.StripPrefix(httpImagePath, h.image()))
+	m.Handle(httpImagePath, http.StripPrefix(httpImagePath, h.cover.Handler()))
 
 	return m
 }
