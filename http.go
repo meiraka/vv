@@ -232,7 +232,7 @@ func (b *jsonCache) Get(path string) (data, gzdata []byte, l time.Time) {
 func (b *jsonCache) Handler(path string) http.HandlerFunc {
 	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, gz, date := b.Get(path)
-		etag := strconv.FormatInt(date.UnixNano(), 10)
+		etag := fmt.Sprintf(`"%d.%d"`, date.Unix(), date.Nanosecond())
 		if noneMatch(r, etag) {
 			w.WriteHeader(http.StatusNotModified)
 			return
@@ -742,7 +742,7 @@ func noneMatch(r *http.Request, etag string) bool {
 	return r.Header.Get("If-None-Match") == etag
 }
 
-func (h *httpHandler) assetsHandler(rpath string, b []byte, date time.Time) http.HandlerFunc {
+func (h *httpHandler) assetsHandler(rpath string, b []byte, hash []byte) http.HandlerFunc {
 	if h.config.LocalAssets {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add("Cache-Control", "max-age=1")
@@ -758,8 +758,10 @@ func (h *httpHandler) assetsHandler(rpath string, b []byte, date time.Time) http
 		}
 	}
 	length := strconv.Itoa(len(b))
+	etag := fmt.Sprintf(`"%s"`, hash)
+	lastModified := time.Now().Format(http.TimeFormat)
 	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !modifiedSince(r, date) {
+		if noneMatch(r, etag) {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
@@ -767,7 +769,8 @@ func (h *httpHandler) assetsHandler(rpath string, b []byte, date time.Time) http
 		if m != "" {
 			w.Header().Add("Content-Type", m)
 		}
-		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
+		w.Header().Add("ETag", etag)
+		w.Header().Add("Last-Modified", lastModified)
 		w.Header().Add("Content-Length", length)
 		if gz != nil {
 			w.Header().Add("Vary", "Accept-Encoding")
@@ -789,7 +792,7 @@ func determineLanguage(r *http.Request, m language.Matcher) language.Tag {
 	return tag
 }
 
-func (h *httpHandler) i18nAssetsHandler(rpath string, b []byte, date time.Time) http.Handler {
+func (h *httpHandler) i18nAssetsHandler(rpath string, b []byte, hash []byte) http.Handler {
 	matcher := language.NewMatcher(translatePrio)
 	m := mime.TypeByExtension(path.Ext(rpath))
 	if h.config.LocalAssets {
@@ -843,8 +846,10 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, b []byte, date time.Time) 
 		}
 		gt[i] = data
 	}
+	etag := fmt.Sprintf(`"%s"`, hash)
+	lastModified := time.Now().Format(http.TimeFormat)
 	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !modifiedSince(r, date) {
+		if noneMatch(r, etag) {
 			w.WriteHeader(304)
 			return
 		}
@@ -862,7 +867,8 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, b []byte, date time.Time) 
 		w.Header().Add("Content-Language", tag.String())
 		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 		w.Header().Add("Content-Type", m+"; charset=utf-8")
-		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
+		w.Header().Add("Etag", etag)
+		w.Header().Add("Last-Modified", lastModified)
 		w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
@@ -879,14 +885,14 @@ func stringPtr(s string) *string { return &s }
 
 func (h *httpHandler) Handle() http.Handler {
 	m := http.NewServeMux()
-	m.Handle("/", h.i18nAssetsHandler("assets/app.html", AssetsAppHTML, AssetsAppHTMLDate))
-	m.Handle("/assets/app.css", h.assetsHandler("assets/app.css", AssetsAppCSS, AssetsAppCSSDate))
-	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPNG, AssetsAppPNGDate))
-	m.Handle("/assets/manifest.json", h.assetsHandler("assets/manifest.json", AssetsManifestJSON, AssetsManifestJSONDate))
-	m.Handle("/assets/app-black.png", h.assetsHandler("assets/app-black.png", AssetsAppBlackPNG, AssetsAppBlackPNGDate))
-	m.Handle("/assets/w.png", h.assetsHandler("assets/w.png", AssetsWPNG, AssetsWPNGDate))
-	m.Handle("/assets/app.js", h.assetsHandler("assets/appv2.js", AssetsAppv2JS, AssetsAppv2JSDate))
-	m.Handle("/assets/nocover.svg", h.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGDate))
+	m.Handle("/", h.i18nAssetsHandler("assets/app.html", AssetsAppHTML, AssetsAppHTMLHash))
+	m.Handle("/assets/app.css", h.assetsHandler("assets/app.css", AssetsAppCSS, AssetsAppCSSHash))
+	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPNG, AssetsAppPNGHash))
+	m.Handle("/assets/manifest.json", h.assetsHandler("assets/manifest.json", AssetsManifestJSON, AssetsManifestJSONHash))
+	m.Handle("/assets/app-black.png", h.assetsHandler("assets/app-black.png", AssetsAppBlackPNG, AssetsAppBlackPNGHash))
+	m.Handle("/assets/w.png", h.assetsHandler("assets/w.png", AssetsWPNG, AssetsWPNGHash))
+	m.Handle("/assets/app.js", h.assetsHandler("assets/appv2.js", AssetsAppv2JS, AssetsAppv2JSHash))
+	m.Handle("/assets/nocover.svg", h.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGHash))
 	m.Handle("/api/version", h.jsonCache.Handler("/api/version"))
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCache.Handler("/api/music"))))
 	m.Handle("/api/music/stats", h.jsonCache.Handler("/api/music/stats"))

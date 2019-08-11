@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -53,8 +55,6 @@ func main() {
 	}
 	fmt.Fprintln(f, "package main")
 	fmt.Fprintln(f)
-	fmt.Fprintln(f, "import \"time\"")
-	fmt.Fprintln(f)
 	fmt.Fprintln(f, "var (")
 	for _, file := range files {
 		p := path.Join("assets", file.Name())
@@ -62,11 +62,13 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to read %s: %v", p, err)
 		}
+		hasher := md5.New()
+		hasher.Write(b)
+		h := hex.EncodeToString(hasher.Sum(nil))
 		fmt.Fprintf(f, "\t// %s is %s\n", makeName(p), p)
 		fmt.Fprintf(f, "\t%s = []byte(%q)\n", makeName(p), b)
-		date := file.ModTime()
-		fmt.Fprintf(f, "\t// %sDate is gzip encoded %s\n", makeName(p), p)
-		fmt.Fprintf(f, "\t%sDate = time.Unix(%d, %d)\n", makeName(p), date.Unix(), 0)
+		fmt.Fprintf(f, "\t// %sHash is md5 for %s\n", makeName(p), p)
+		fmt.Fprintf(f, "\t%sHash = []byte(%q)\n", makeName(p), h)
 	}
 	fmt.Fprintln(f, ")")
 }

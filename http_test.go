@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -87,7 +86,7 @@ func TestJSONCacheHandler(t *testing.T) {
 	}{
 		{header: http.Header{"Accept-Encoding": {"identity"}}, status: 200, want: body},
 		{header: http.Header{"Accept-Encoding": {"gzip"}}, status: 200, want: gz},
-		{header: http.Header{"Accept-Encoding": {"identity"}, "If-None-Match": {strconv.FormatInt(date.UnixNano(), 10)}}, status: 304, want: []byte{}},
+		{header: http.Header{"Accept-Encoding": {"identity"}, "If-None-Match": {fmt.Sprintf(`"%d.%d"`, date.Unix(), date.Nanosecond())}}, status: 304, want: []byte{}},
 		{header: http.Header{"Accept-Encoding": {"identity"}, "If-None-Match": {""}}, status: 200, want: body},
 		{header: http.Header{"Accept-Encoding": {"identity"}, "If-Modified-Since": {date.Format(http.TimeFormat)}}, status: 304, want: []byte{}},
 		{header: http.Header{"Accept-Encoding": {"identity"}, "If-Modified-Since": {date.Add(time.Second).Format(http.TimeFormat)}}, status: 304, want: []byte{}},
