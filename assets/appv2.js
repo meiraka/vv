@@ -214,6 +214,7 @@ vv.storage = {
   outputs: [],
   stats: {},
   last_modified: {},
+  etag: {},
   last_modified_ms: {},
   version: {},
   preferences: {
@@ -745,7 +746,7 @@ vv.request = {
       }
     }
   },
-  get(path, ifmodified, callback, timeout) {
+  get(path, ifmodified, etag, callback, timeout) {
     const key = "GET " + path;
     if (vv.request._requests[key]) {
       vv.request._requests[key].onabort = () => {};  // disable retry
@@ -763,6 +764,7 @@ vv.request = {
         if (xhr.status === 200 && callback) {
           callback(
               xhr.response, xhr.getResponseHeader("Last-Modified"),
+              xhr.getResponseHeader("Etag"),
               xhr.getResponseHeader("Date"));
         }
         return;
@@ -775,7 +777,7 @@ vv.request = {
     xhr.onabort = () => {
       if (timeout < 50000) {
         setTimeout(
-            () => { vv.request.get(path, ifmodified, callback, timeout * 2); });
+            () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
       }
     };
     xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
@@ -784,13 +786,17 @@ vv.request = {
         vv.view.popup.show("network", "timeoutRetry");
         vv.request.abortAll();
         setTimeout(
-            () => { vv.request.get(path, ifmodified, callback, timeout * 2); });
+            () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
       } else {
         vv.view.popup.show("network", "timeout");
       }
     };
     xhr.open("GET", path, true);
-    xhr.setRequestHeader("If-Modified-Since", ifmodified);
+    if (etag !== "") {
+      xhr.setRequestHeader("If-None-Match", etag);
+    } else {
+      xhr.setRequestHeader("If-Modified-Since", ifmodified);
+    }
     xhr.send();
   },
   post(path, obj) {
@@ -1022,8 +1028,10 @@ vv.control = {
   },
   _fetch(target, store) {
     vv.request.get(
-        target, vv.control._getOrElse(vv.storage.last_modified, store, ""),
-        (ret, modified, date) => {
+        target,
+        vv.control._getOrElse(vv.storage.last_modified, store, ""),
+        vv.control._getOrElse(vv.storage.etag, store, ""),
+        (ret, modified, etag, date) => {
           if (!ret.error) {
             if (Object.prototype.toString.call(ret.data) ===
                     "[object Object]" &&
@@ -1039,6 +1047,7 @@ vv.control = {
             vv.storage[store] = ret;
             vv.storage.last_modified_ms[store] = Date.parse(modified) + diff;
             vv.storage.last_modified[store] = modified;
+            vv.storage.etag[store] = etag;
             if (store === "library") {
               vv.storage.save.library();
             } else if (store === "sorted") {
