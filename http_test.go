@@ -42,6 +42,38 @@ var (
 	}
 )
 
+func TestJSONCacheSet(t *testing.T) {
+	path := "/test"
+	var oldDate time.Time
+	b := newJSONCache()
+	if b, gz, date := b.Get(path); b != nil || gz != nil || !date.Equal(time.Time{}) {
+		t.Errorf("got %s, %s, %v; want nil, nil, time.Time{}", b, gz, date)
+	}
+	b.Set(path, map[string]int{"a": 1})
+	if b, _, date := b.Get(path); string(b) != `{"a":1}` || date.Equal(time.Time{}) {
+		t.Errorf("got %s, _, %v; want %s, _, not time.Time{}", b, date, `{"a":1}`)
+	} else {
+		oldDate = date
+	}
+	b.SetIfModified(path, map[string]int{"a": 1})
+	if b, _, date := b.Get(path); string(b) != `{"a":1}` || !date.Equal(oldDate) {
+		t.Errorf("got %s, _, %v; want %s, _, %v", b, date, `{"a":1}`, oldDate)
+	} else {
+		oldDate = date
+	}
+	b.Set(path, map[string]int{"a": 1})
+	if b, _, date := b.Get(path); string(b) != `{"a":1}` || date.Equal(oldDate) {
+		t.Errorf("got %s, _, %v; want %s, _, not %v", b, date, `{"a":1}`, oldDate)
+	} else {
+		oldDate = date
+	}
+	b.SetIfModified(path, map[string]int{"a": 2})
+	if b, _, date := b.Get(path); string(b) != `{"a":2}` || date.Equal(oldDate) {
+		t.Errorf("got %s, _, %v; want %s, _, not %v", b, date, `{"a":2}`, oldDate)
+	}
+
+}
+
 func TestJSONCacheHandler(t *testing.T) {
 	b := newJSONCache()
 	_ = b.SetIfModified("/test", map[string]int{"a": 1})
