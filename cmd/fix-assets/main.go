@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"compress/gzip"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,19 +8,6 @@ import (
 	"path"
 	"sort"
 )
-
-func makeGZip(data []byte) ([]byte, error) {
-	var gz bytes.Buffer
-	zw := gzip.NewWriter(&gz)
-	_, err := zw.Write(data)
-	if err != nil {
-		return nil, err
-	}
-	if err := zw.Close(); err != nil {
-		return nil, err
-	}
-	return gz.Bytes(), nil
-}
 
 func makeName(p string) string {
 	n := make([]rune, 0, len(p))
@@ -77,12 +62,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to read %s: %v", p, err)
 		}
-		g, err := makeGZip(b)
-		if err != nil {
-			log.Fatalf("failed to make gzip %s: %v", p, err)
-		}
-		fmt.Fprintf(f, "\t// %s is gzip encoded %s\n", makeName(p), p)
-		fmt.Fprintf(f, "\t%s = []byte(%q)\n", makeName(p), g)
+		fmt.Fprintf(f, "\t// %s is %s\n", makeName(p), p)
+		fmt.Fprintf(f, "\t%s = []byte(%q)\n", makeName(p), b)
 		date := file.ModTime()
 		fmt.Fprintf(f, "\t// %sDate is gzip encoded %s\n", makeName(p), p)
 		fmt.Fprintf(f, "\t%sDate = time.Unix(%d, %d)\n", makeName(p), date.Unix(), 0)

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -743,22 +742,22 @@ func noneMatch(r *http.Request, etag string) bool {
 	return r.Header.Get("If-None-Match") == etag
 }
 
-func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) http.HandlerFunc {
+func (h *httpHandler) assetsHandler(rpath string, b []byte, date time.Time) http.HandlerFunc {
 	if h.config.LocalAssets {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add("Cache-Control", "max-age=1")
 			http.ServeFile(w, r, rpath)
 		}
 	}
-	r, err := gzip.NewReader(bytes.NewReader(gz))
-	if err != nil {
-		log.Fatalf("failed to create gzip.NewReader for static %s: %v", rpath, err)
-	}
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		log.Fatalf("failed to read static %s: %v", rpath, err)
-	}
 	m := mime.TypeByExtension(path.Ext(rpath))
+	var gz []byte
+	var err error
+	if m != "image/png" && m != "image/jpg" {
+		if gz, err = makeGZip(b); err != nil {
+			log.Fatalf("failed to make gzip for static %s: %v", rpath, err)
+		}
+	}
+	length := strconv.Itoa(len(b))
 	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !modifiedSince(r, date) {
 			w.WriteHeader(http.StatusNotModified)
@@ -769,12 +768,15 @@ func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) htt
 			w.Header().Add("Content-Type", m)
 		}
 		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
-		w.Header().Add("Vary", "Accept-Encoding")
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
-			w.Header().Add("Content-Encoding", "gzip")
-			w.WriteHeader(http.StatusOK)
-			w.Write(gz)
-			return
+		w.Header().Add("Content-Length", length)
+		if gz != nil {
+			w.Header().Add("Vary", "Accept-Encoding")
+			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
+				w.Header().Add("Content-Encoding", "gzip")
+				w.WriteHeader(http.StatusOK)
+				w.Write(gz)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
@@ -787,7 +789,7 @@ func determineLanguage(r *http.Request, m language.Matcher) language.Tag {
 	return tag
 }
 
-func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time) http.Handler {
+func (h *httpHandler) i18nAssetsHandler(rpath string, b []byte, date time.Time) http.Handler {
 	matcher := language.NewMatcher(translatePrio)
 	m := mime.TypeByExtension(path.Ext(rpath))
 	if h.config.LocalAssets {
@@ -823,13 +825,9 @@ func (h *httpHandler) i18nAssetsHandler(rpath string, gz []byte, date time.Time)
 			return
 		}))
 	}
-	r, err := gzip.NewReader(bytes.NewReader(gz))
+	gz, err := makeGZip(b)
 	if err != nil {
-		log.Fatalf("failed to create gzip.NewReader for static %s: %v", rpath, err)
-	}
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		log.Fatalf("failed to read static %s: %v", rpath, err)
+		log.Fatalf("failed to make gzip for static %s: %v", rpath, err)
 	}
 	bt := make([][]byte, len(translatePrio))
 	gt := make([][]byte, len(translatePrio))
