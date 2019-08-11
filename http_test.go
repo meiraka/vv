@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/meiraka/vv/mpd"
-	"github.com/meiraka/vv/mpd/mpdtest"
+	"github.com/meiraka/vv/internal/mpd"
+	"github.com/meiraka/vv/internal/mpd/mpdtest"
 )
 
 const (

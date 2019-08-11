@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/meiraka/vv/mpd"
+	"github.com/meiraka/vv/internal/mpd"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -57,7 +57,7 @@ func getMusicDirectory(confpath string) (string, error) {
 	return "", nil
 }
 
-//go:generate go run cmd/fix-assets/main.go
+//go:generate go run internal/cmd/fix-assets/main.go
 func main() {
 	setupFlag("config")
 	err := viper.ReadInConfig()

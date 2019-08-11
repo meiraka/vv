@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/meiraka/vv/mpd/mpdtest"
+	"github.com/meiraka/vv/internal/mpd/mpdtest"
 )
 
 var (
