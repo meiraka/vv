@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -39,6 +41,48 @@ var (
 		{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"},
 	}
 )
+
+func TestJSONCacheHandler(t *testing.T) {
+	b := newJSONCache()
+	_ = b.SetIfModified("/test", map[string]int{"a": 1})
+	ts := httptest.NewServer(b.Handler("/test"))
+	defer ts.Close()
+	body, gz, date := b.Get("/test")
+	testsets := []struct {
+		header http.Header
+		status int
+		want   []byte
+	}{
+		{header: http.Header{"Accept-Encoding": {"identity"}}, status: 200, want: body},
+		{header: http.Header{"Accept-Encoding": {"gzip"}}, status: 200, want: gz},
+		{header: http.Header{"Accept-Encoding": {"identity"}, "If-None-Match": {strconv.FormatInt(date.UnixNano(), 10)}}, status: 304, want: []byte{}},
+		{header: http.Header{"Accept-Encoding": {"identity"}, "If-None-Match": {""}}, status: 200, want: body},
+		{header: http.Header{"Accept-Encoding": {"identity"}, "If-Modified-Since": {date.Format(http.TimeFormat)}}, status: 304, want: []byte{}},
+		{header: http.Header{"Accept-Encoding": {"identity"}, "If-Modified-Since": {date.Add(time.Second).Format(http.TimeFormat)}}, status: 304, want: []byte{}},
+		{header: http.Header{"Accept-Encoding": {"identity"}, "If-Modified-Since": {date.Add(-1 * time.Second).Format(http.TimeFormat)}}, status: 200, want: body},
+	}
+	for _, tt := range testsets {
+		t.Run(fmt.Sprint(tt.header), func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodGet, ts.URL, nil)
+			for k, v := range tt.header {
+				for i := range v {
+					req.Header.Add(k, v[i])
+				}
+			}
+			resp, err := testHTTPClient.Do(req)
+			if err != nil {
+				t.Fatalf("failed to request: %v", err)
+			}
+			defer resp.Body.Close()
+			got, err := ioutil.ReadAll(resp.Body)
+			if !bytes.Equal(got, tt.want) || resp.StatusCode != tt.status {
+				t.Errorf("got %d %s; want %d %s", resp.StatusCode, got, tt.status, tt.want)
+			}
+
+		})
+
+	}
+}
 
 func TestHTTPHandlerRequest(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)

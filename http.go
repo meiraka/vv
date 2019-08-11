@@ -213,6 +213,10 @@ func (b *jsonCache) set(path string, i interface{}, force bool) error {
 	if force || !bytes.Equal(o, n) {
 		b.data[path] = n
 		b.date[path] = time.Now().UTC()
+		gz, err := makeGZip(n)
+		if err == nil {
+			b.gzdata[path] = gz
+		}
 		select {
 		case b.event <- path:
 		default:
@@ -226,6 +230,37 @@ func (b *jsonCache) Get(path string) (data, gzdata []byte, l time.Time) {
 	defer b.mu.RUnlock()
 	return b.data[path], b.gzdata[path], b.date[path]
 
+}
+
+func (b *jsonCache) Handler(path string) http.HandlerFunc {
+	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, gz, date := b.Get(path)
+		etag := strconv.FormatInt(date.UnixNano(), 10)
+		if noneMatch(r, etag) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		if !modifiedSince(r, date) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.Header().Add("Content-Type", "application/json; charset=utf-8")
+		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
+		w.Header().Add("Vary", "Accept-Encoding")
+		w.Header().Add("ETag", etag)
+		status := http.StatusOK
+		if getUpdateTime(r).After(date) {
+			status = http.StatusAccepted
+		}
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
+			w.Header().Add("Content-Encoding", "gzip")
+			w.WriteHeader(status)
+			w.Write(gz)
+			return
+		}
+		w.WriteHeader(status)
+		w.Write(b)
+	}))
 }
 
 func (h *httpHandler) convSong(s map[string][]string) Song {
@@ -710,37 +745,6 @@ func noneMatch(r *http.Request, etag string) bool {
 	return r.Header.Get("If-None-Match") == etag
 }
 
-func (h *httpHandler) jsonCacheHandler(path string) http.HandlerFunc {
-	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, gz, date := h.jsonCache.Get(path)
-		etag := strconv.FormatInt(date.UnixNano(), 10)
-		if noneMatch(r, etag) {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-		if !modifiedSince(r, date) {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-		w.Header().Add("Content-Type", "application/json; charset=utf-8")
-		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
-		w.Header().Add("Vary", "Accept-Encoding")
-		w.Header().Add("ETag", etag)
-		status := http.StatusOK
-		if getUpdateTime(r).After(date) {
-			status = http.StatusAccepted
-		}
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
-			w.Header().Add("Content-Encoding", "gzip")
-			w.WriteHeader(status)
-			w.Write(gz)
-			return
-		}
-		w.WriteHeader(status)
-		w.Write(b)
-	}))
-}
-
 func (h *httpHandler) assetsHandler(rpath string, gz []byte, date time.Time) http.HandlerFunc {
 	if h.config.LocalAssets {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -938,15 +942,15 @@ func (h *httpHandler) Handle() http.Handler {
 	m.Handle("/assets/w.png", h.assetsHandler("assets/w.png", AssetsWPNG, AssetsWPNGDate))
 	m.Handle("/assets/app.js", h.assetsHandler("assets/appv2.js", AssetsAppv2JS, AssetsAppv2JSDate))
 	m.Handle("/assets/nocover.svg", h.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGDate))
-	m.Handle("/api/version", h.jsonCacheHandler("/api/version"))
-	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCacheHandler("/api/music"))))
-	m.Handle("/api/music/stats", h.jsonCacheHandler("/api/music/stats"))
-	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCacheHandler("/api/music/playlist")))
-	m.Handle("/api/music/playlist/songs", h.jsonCacheHandler("/api/music/playlist/songs"))
-	m.Handle("/api/music/playlist/songs/current", h.jsonCacheHandler("/api/music/playlist/songs/current"))
-	m.Handle("/api/music/library", h.libraryPost(h.jsonCacheHandler("/api/music/library")))
-	m.Handle("/api/music/library/songs", h.jsonCacheHandler("/api/music/library/songs"))
-	m.Handle("/api/music/outputs", h.outputPost(h.jsonCacheHandler("/api/music/outputs")))
+	m.Handle("/api/version", h.jsonCache.Handler("/api/version"))
+	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCache.Handler("/api/music"))))
+	m.Handle("/api/music/stats", h.jsonCache.Handler("/api/music/stats"))
+	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCache.Handler("/api/music/playlist")))
+	m.Handle("/api/music/playlist/songs", h.jsonCache.Handler("/api/music/playlist/songs"))
+	m.Handle("/api/music/playlist/songs/current", h.jsonCache.Handler("/api/music/playlist/songs/current"))
+	m.Handle("/api/music/library", h.libraryPost(h.jsonCache.Handler("/api/music/library")))
+	m.Handle("/api/music/library/songs", h.jsonCache.Handler("/api/music/library/songs"))
+	m.Handle("/api/music/outputs", h.outputPost(h.jsonCache.Handler("/api/music/outputs")))
 	m.Handle(httpImagePath, http.StripPrefix(httpImagePath, h.image()))
 
 	return m
