@@ -1064,6 +1064,7 @@ vv.control = {
     vv.control._fetch("/api/music/playlist/songs/current", "current");
     vv.control._fetch("/api/music", "control");
     vv.control._fetch("/api/music/library/songs", "library");
+    vv.control._fetch("/api/music/stats", "stats");
   },
   _notify_last_update: (new Date()).getTime(),
   _notify_last_connection: (new Date()).getTime(),
@@ -1955,16 +1956,15 @@ vv.view.system = {
   },
   _update_stats() {
     document.getElementById("stat-albums").textContent =
-        vv.storage.stats.albums;
+        vv.storage.stats.albums.toString(10);
     document.getElementById("stat-artists").textContent =
-        vv.storage.stats.artists;
+        vv.storage.stats.artists.toString(10);
     document.getElementById("stat-db-playtime").textContent =
-        vv.view.system._strtimedelta(
-            parseInt(vv.storage.stats.db_playtime, 10));
+        vv.view.system._strtimedelta(vv.storage.stats.library_playtime, 10);
     document.getElementById("stat-playtime").textContent =
-        vv.view.system._strtimedelta(parseInt(vv.storage.stats.playtime, 10));
+        vv.view.system._strtimedelta(vv.storage.stats.playtime);
     document.getElementById("stat-tracks").textContent = vv.storage.stats.songs;
-    const db_update = new Date(parseInt(vv.storage.stats.db_update, 10) * 1000);
+    const db_update = new Date(vv.storage.stats.library_update * 1000);
     const options = {
       hour: "numeric",
       minute: "numeric",
@@ -1976,16 +1976,14 @@ vv.view.system = {
     };
     document.getElementById("stat-db-update").textContent =
         db_update.toLocaleString(document.documentElement.lang, options);
-    document.getElementById("stat-websockets").textContent =
-        vv.storage.stats.subscribers;
   },
   _update_time() {
     const diff = parseInt(
         ((new Date()).getTime() - vv.storage.last_modified_ms.stats) / 1000,
         10);
-    const uptime = parseInt(vv.storage.stats.uptime, 10) + diff;
+    const uptime = vv.storage.stats.uptime + diff;
     if (vv.storage.control.state === "play") {
-      const playtime = parseInt(vv.storage.stats.playtime, 10) + diff;
+      const playtime = vv.storage.stats.playtime + diff;
       document.getElementById("stat-playtime").textContent =
           vv.view.system._strtimedelta(playtime);
     }

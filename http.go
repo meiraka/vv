@@ -144,11 +144,13 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 			case "database":
 				h.updateLibrary(ctx)
 				h.updateStatus(ctx)
+				h.updateStats(ctx)
 			case "playlist":
 				h.updatePlaylist(ctx)
 			case "player":
 				h.updateStatus(ctx)
 				h.updateCurrentSong(ctx)
+				h.updateStats(ctx)
 			case "mixer":
 				h.updateStatus(ctx)
 			case "options":
@@ -450,15 +452,53 @@ func (h *httpHandler) updateStatus(ctx context.Context) error {
 	})
 }
 
+type httpStats struct {
+	Uptime          int `json:"uptime"`
+	Playtime        int `json:"playtime"`
+	Artists         int `json:"artists"`
+	Albums          int `json:"albums"`
+	Songs           int `json:"songs"`
+	LibraryPlaytime int `json:"library_playtime"`
+	LibraryUpdate   int `json:"library_update"`
+}
+
+var updateStatsIntKeys = []string{"artists", "albums", "songs", "uptime", "db_playtime", "db_update", "playtime"}
+
 func (h *httpHandler) updateStats(ctx context.Context) error {
 	s, err := h.client.Stats(ctx)
 	if err != nil {
 		return err
 	}
+	ret := &httpStats{}
+	for _, k := range updateStatsIntKeys {
+		v, ok := s[k]
+		if !ok {
+			continue
+		}
+		iv, err := strconv.Atoi(v)
+		if err != nil {
+			return err
+		}
+		switch k {
+		case "artists":
+			ret.Artists = iv
+		case "albums":
+			ret.Albums = iv
+		case "songs":
+			ret.Songs = iv
+		case "uptime":
+			ret.Uptime = iv
+		case "db_playtime":
+			ret.LibraryPlaytime = iv
+		case "db_update":
+			ret.LibraryUpdate = iv
+		case "playtime":
+			ret.Playtime = iv
+		}
+	}
+
 	// force update to Last-Modified header to calc current playing time
-	// TODO: add millisec update time to JSON
-	// TODO: cast string to int
-	return h.jsonCache.Set("/api/music/stats", s)
+	return h.jsonCache.Set("/api/music/stats", ret)
 }
 
 func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {

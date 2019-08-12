@@ -420,18 +420,20 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 				{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"},
 				{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nfile: qux\nOK\n"},
 				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"},
 				{Read: "close\n"},
 			},
-			websocket: []string{"/api/music/library/songs", "/api/music", "/api/music/library"},
+			websocket: []string{"/api/music/library/songs", "/api/music", "/api/music/library", "/api/music/stats"},
 		},
 		"database": {
 			watcher: "changed: database\nOK\n",
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nfile: qux\nOK\n"},
 				{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
+				{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"},
 				{Read: "close\n"},
 			}...),
-			websocket: []string{"/api/music/library/songs", "/api/music"},
+			websocket: []string{"/api/music/library/songs", "/api/music", "/api/music/stats"},
 		},
 		"playlist": {
 			watcher: "changed: playlist\nOK\n",
@@ -446,9 +448,10 @@ func TestHTTPHandlerWebSocket(t *testing.T) {
 			event: mpdtest.Append(testMPDEvent, []*mpdtest.WR{
 				{Read: "status\n", Write: "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: play\nOK\n"},
 				{Read: "currentsong\n", Write: "file: baz\nOK\n"},
+				{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"},
 				{Read: "close\n"},
 			}...),
-			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current"},
+			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 		},
 		"mixer": {
 			watcher: "changed: mixer\nOK\n",
@@ -574,12 +577,13 @@ func TestHTTPHandlerPlaylist(t *testing.T) {
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 0\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 0\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n"})
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "close\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "close\n"})
 			},
-			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current"},
+			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 			Method:    http.MethodGet,
 			Path:      "/api/music/playlist",
 			status:    http.StatusOK,
@@ -605,12 +609,13 @@ func TestHTTPHandlerPlaylist(t *testing.T) {
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 0\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 0\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n"})
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "close\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "close\n"})
 			},
-			websocket: []string{"/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/playlist/songs/current"},
+			websocket: []string{"/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 			Method:    http.MethodGet,
 			Path:      "/api/music/playlist",
 			status:    http.StatusOK,
@@ -634,6 +639,7 @@ func TestHTTPHandlerPlaylist(t *testing.T) {
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 0\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 0\nOK\n"})
+				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: playlist\nOK\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: bar\nOK\n"})
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "idle\n"})
@@ -641,7 +647,7 @@ func TestHTTPHandlerPlaylist(t *testing.T) {
 				mpdtest.DefineMessage(ctx, iw, ir, &mpdtest.WR{Read: "close\n"})
 				mpdtest.DefineMessage(ctx, w, r, &mpdtest.WR{Read: "close\n"})
 			},
-			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/playlist/songs", "/api/music/playlist"},
+			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats", "/api/music/playlist/songs", "/api/music/playlist"},
 			Method:    http.MethodGet,
 			Path:      "/api/music/playlist",
 			status:    http.StatusOK,
