@@ -170,6 +170,13 @@ func TestHTTPHandlerRequest(t *testing.T) {
 		},
 		{
 			Method: http.MethodGet,
+			Path:   "/api/music/stats",
+			status: http.StatusOK,
+			want:   `{"uptime":667505,"playtime":0,"artists":835,"albums":528,"songs":5715,"library_playtime":1475220,"library_update":1560656023}`,
+			event:  mpdtest.Append(testMPDEvent, &mpdtest.WR{Read: "close\n"}),
+		},
+		{
+			Method: http.MethodGet,
 			Path:   "/api/music",
 			status: http.StatusOK,
 			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
