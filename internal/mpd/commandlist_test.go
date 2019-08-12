@@ -9,11 +9,13 @@ import (
 )
 
 func TestCommandList(t *testing.T) {
-	ts, _ := mpdtest.NewServer("OK MPD 0.19", map[string]string{
-		"password 2434": "OK\n",
-		"ping":          "OK\n",
-		"command_list_ok_begin\nclear\nadd \"/foo/bar\"\ncommand_list_end": "list_OK\nlist_OK\nOK\n",
-		"close": "OK\n",
+	ts, _ := mpdtest.NewEventServer("OK MPD 0.19", []*mpdtest.WR{
+		{Read: "password 2434\n", Write: "OK\n"},
+		{Read: "command_list_ok_begin\n"},
+		{Read: "clear\n"},
+		{Read: "add \"/foo/bar\"\n"},
+		{Read: "command_list_end\n", Write: "list_OK\nlist_OK\nOK\n"},
+		{Read: "close", Write: "OK\n"},
 	})
 	defer ts.Close()
 	c, err := testDialer.Dial("tcp", ts.URL, "2434")
