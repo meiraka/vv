@@ -1649,7 +1649,7 @@ vv.view.list = {
     const index = vv.storage.tree.length;
     const scroll = document.getElementById("list" + index);
     let updated = false;
-    for (const selectable of document.querySelectorAll(`#list-items${index}.selectable`)) {
+    for (const selectable of document.querySelectorAll(`#list-items${index} .selectable`)) {
       const p = selectable.offsetTop;
       if (scroll.scrollTop < p && p < scroll.scrollTop + scroll.clientHeight &&
           !updated) {
