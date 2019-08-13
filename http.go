@@ -131,7 +131,8 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 	if err := h.updateVersion(); err != nil {
 		return nil, err
 	}
-	for _, v := range []func(context.Context) error{h.updateLibrary, h.updatePlaylist, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats} {
+	all := []func(context.Context) error{h.updateLibrary, h.updatePlaylist, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats}
+	for _, v := range all {
 		if err := v(ctx); err != nil {
 			return nil, err
 		}
@@ -141,6 +142,11 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 		for e := range w.C {
 			ctx, cancel := context.WithTimeout(context.Background(), c.BackgroundTimeout)
 			switch e {
+			case "reconnect":
+				h.updateVersion()
+				for _, v := range all {
+					v(ctx)
+				}
 			case "database":
 				h.updateLibrary(ctx)
 				h.updateStatus(ctx)

@@ -34,6 +34,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 	}
 	go func() {
 		defer close(closed)
+		var err error
 		for {
 			select {
 			case <-ctx.Done():
@@ -41,7 +42,13 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 			default:
 			}
 			// TODO: logging
-			_ = w.conn.Exec(context.Background(), func(conn *conn) error {
+			err = w.conn.Exec(context.Background(), func(conn *conn) error {
+				if err != nil {
+					select {
+					case c <- "reconnect":
+					default:
+					}
+				}
 				if _, err := conn.Writeln(cmd...); err != nil {
 					return err
 				}
