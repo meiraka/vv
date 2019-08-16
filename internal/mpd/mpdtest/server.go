@@ -33,7 +33,7 @@ func Expect(ctx context.Context, w chan string, r <-chan string, m *WR) {
 		return
 	case s := <-r:
 		if s != m.Read {
-			ws = fmt.Sprintf("ACK [5@0] {} got %s; want %s\n", strings.TrimSuffix(s, "\n"), strings.TrimSuffix(m.Read, "\n"))
+			ws = fmt.Sprintf("ACK [5@0] {} got %s; want %s\n", strings.TrimSuffix(m.Read, "\n"), strings.TrimSuffix(s, "\n"))
 		}
 	}
 	select {
