@@ -33,14 +33,6 @@ var (
 	testHTTPConfig = HTTPHandlerConfig{
 		BackgroundTimeout: time.Second,
 	}
-	testMPDEvent = []*mpdtest.WR{
-		{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"},
-		{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"},
-		{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"},
-		{Read: "currentsong\n", Write: "file: bar\nOK\n"},
-		{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"},
-		{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"},
-	}
 )
 
 func TestJSONCacheSet(t *testing.T) {
@@ -416,6 +408,18 @@ func TestHTTPHandler(t *testing.T) {
 			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/library", nil),
 			status: http.StatusOK,
 			want:   `{"updating":false}`,
+		},
+		{
+			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
+				sub.Disconnect(ctx)
+				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
+				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
+				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
+				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
+				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+			},
+			websocket: []string{"/api/music/library/songs", "/api/music/playlist/songs", "/api/music", "/api/music/stats"},
 		},
 	}
 	for _, tt := range testsets {

@@ -10,8 +10,17 @@ import (
 
 // Server is mock mpd server.
 type Server struct {
-	ln  net.Listener
-	URL string
+	ln         net.Listener
+	URL        string
+	disconnect chan struct{}
+}
+
+// Disconnect closes current connection.
+func (s *Server) Disconnect(ctx context.Context) {
+	select {
+	case s.disconnect <- struct{}{}:
+	case <-ctx.Done():
+	}
 }
 
 // Close closes connection
@@ -50,8 +59,9 @@ func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
 		return nil, nil, nil, err
 	}
 	s := &Server{
-		ln:  ln,
-		URL: ln.Addr().String(),
+		ln:         ln,
+		URL:        ln.Addr().String(),
+		disconnect: make(chan struct{}, 1),
 	}
 	wc := make(chan string, 10)
 	rc := make(chan string, 10)
@@ -65,8 +75,17 @@ func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
 				return
 			}
 			go func(conn net.Conn) {
-				for m := range wc {
-					if _, err := fmt.Fprint(conn, m); err != nil {
+				defer conn.Close()
+				for {
+					select {
+					case m, ok := <-wc:
+						if !ok {
+							return
+						}
+						if _, err := fmt.Fprint(conn, m); err != nil {
+							return
+						}
+					case <-s.disconnect:
 						return
 					}
 				}
