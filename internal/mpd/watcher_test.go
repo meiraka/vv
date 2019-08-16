@@ -15,7 +15,7 @@ const (
 func TestWatcher(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	wc, rc, ts, nil := mpdtest.NewChanServer("OK MPD 0.19")
+	wc, rc, ts, nil := mpdtest.NewServer("OK MPD 0.19")
 	defer ts.Close()
 	c, err := testDialer.NewWatcher("tcp", ts.URL, "")
 	if err != nil {

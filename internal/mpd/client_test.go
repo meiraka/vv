@@ -18,10 +18,12 @@ var (
 )
 
 func TestDial(t *testing.T) {
-	ts, _ := mpdtest.NewEventServer("OK MPD 0.19", []*mpdtest.WR{
-		{Read: "password 2434\n", Write: "OK\n"},
-		{Read: "close"},
-	})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	w, r, ts, _ := mpdtest.NewServer("OK MPD 0.19")
+	go func() {
+		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+	}()
 	defer ts.Close()
 	c, err := testDialer.Dial("tcp", ts.URL, "2434")
 	if err != nil {
@@ -30,18 +32,18 @@ func TestDial(t *testing.T) {
 	if g, w := c.Version(), "0.19"; g != w {
 		t.Errorf("Version() got `%s`; want `%s`", g, w)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
 	if err := c.Close(ctx); err != nil {
 		t.Errorf("Close got error %v; want nil", err)
 	}
 }
 
 func TestDialPasswordError(t *testing.T) {
-	ts, _ := mpdtest.NewEventServer("OK MPD 0.19", []*mpdtest.WR{
-		{Read: "password 2434\n", Write: "ACK [3@1] {password} error\n"},
-		{Read: "close"},
-	})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	w, r, ts, _ := mpdtest.NewServer("OK MPD 0.19")
+	go func() {
+		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "ACK [3@1] {password} error\n"})
+	}()
 	defer ts.Close()
 	c, err := testDialer.Dial("tcp", ts.URL, "2434")
 	want := &CommandError{ID: 3, Index: 1, Command: "password", Message: "error"}
@@ -51,7 +53,7 @@ func TestDialPasswordError(t *testing.T) {
 	if err != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	c.Close(ctx)
+	if err := c.Close(ctx); err != nil {
+		t.Errorf("Close got error %v; want nil", err)
+	}
 }
