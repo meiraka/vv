@@ -1,73 +1,24 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"mime"
 	"net/http"
-	"os"
 	"path"
 	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/vv/internal/mpd"
-	"golang.org/x/text/language"
 )
-
-type httpContextKey string
 
 const (
-	httpUpdateTime = httpContextKey("updateTime")
-	httpImagePath  = "/api/music/image/"
+	httpImagePath = "/api/music/image/"
 )
-
-func getUpdateTime(r *http.Request) time.Time {
-	if v := r.Context().Value(httpUpdateTime); v != nil {
-		if i, ok := v.(time.Time); ok {
-			return i
-		}
-	}
-	return time.Time{}
-}
-
-func setUpdateTime(r *http.Request, u time.Time) *http.Request {
-	ctx := context.WithValue(r.Context(), httpUpdateTime, u)
-	return r.WithContext(ctx)
-}
-
-type headResponseWriter struct{ w http.ResponseWriter }
-
-func (h *headResponseWriter) Header() http.Header         { return h.w.Header() }
-func (h *headResponseWriter) Write(p []byte) (int, error) { return ioutil.Discard.Write(p) }
-func (h *headResponseWriter) WriteHeader(statusCode int)  { h.w.WriteHeader(statusCode) }
-
-// GetOrHead returns MethdNotAllowed if not GET or HEAD
-func GetOrHead(alter http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		if r.Method == http.MethodHead {
-			alter.ServeHTTP(&headResponseWriter{w: w}, r)
-			return
-		}
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		alter.ServeHTTP(w, r)
-	}
-}
 
 // HTTPHandlerConfig holds HTTPHandler config
 type HTTPHandlerConfig struct {
@@ -86,7 +37,7 @@ func addHTTPPrefix(m map[string][]string) map[string][]string {
 	return m
 }
 
-type httpHandler struct {
+type api struct {
 	config    *HTTPHandlerConfig
 	client    *mpd.Client
 	watcher   *mpd.Watcher
@@ -104,8 +55,8 @@ type httpHandler struct {
 	current     int
 }
 
-// NewHTTPHandler creates MPD http handler
-func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
+// NewAPIHandler creates json api handler.
+func (c HTTPHandlerConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
 	}
@@ -120,7 +71,7 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 		}
 		tagger = append(tagger, cover)
 	}
-	h := &httpHandler{
+	h := &api{
 		config:    &c,
 		client:    cl,
 		watcher:   w,
@@ -172,110 +123,14 @@ func (c HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w
 	return h.Handle(), nil
 }
 
-type jsonCache struct {
-	event  chan string
-	data   map[string][]byte
-	gzdata map[string][]byte
-	date   map[string]time.Time
-	mu     sync.RWMutex
-}
-
-func newJSONCache() *jsonCache {
-	return &jsonCache{
-		event:  make(chan string, 10),
-		data:   map[string][]byte{},
-		gzdata: map[string][]byte{},
-		date:   map[string]time.Time{},
-	}
-}
-
-func (b *jsonCache) Close() {
-	b.mu.Lock()
-	close(b.event)
-	b.mu.Unlock()
-}
-
-func (b *jsonCache) Event() <-chan string {
-	return b.event
-}
-
-func (b *jsonCache) Set(path string, i interface{}) error {
-	return b.set(path, i, true)
-}
-
-func (b *jsonCache) SetIfModified(path string, i interface{}) error {
-	return b.set(path, i, false)
-}
-
-func (b *jsonCache) set(path string, i interface{}, force bool) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	n, err := json.Marshal(i)
-	if err != nil {
-		return err
-	}
-	o := b.data[path]
-	if force || !bytes.Equal(o, n) {
-		b.data[path] = n
-		b.date[path] = time.Now().UTC()
-		gz, err := makeGZip(n)
-		if err == nil {
-			b.gzdata[path] = gz
-		}
-		select {
-		case b.event <- path:
-		default:
-		}
-	}
-	return nil
-}
-
-func (b *jsonCache) Get(path string) (data, gzdata []byte, l time.Time) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	return b.data[path], b.gzdata[path], b.date[path]
-
-}
-
-func (b *jsonCache) Handler(path string) http.HandlerFunc {
-	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, gz, date := b.Get(path)
-		etag := fmt.Sprintf(`"%d.%d"`, date.Unix(), date.Nanosecond())
-		if noneMatch(r, etag) {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-		if !modifiedSince(r, date) {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-		w.Header().Add("Content-Type", "application/json; charset=utf-8")
-		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
-		w.Header().Add("Vary", "Accept-Encoding")
-		w.Header().Add("ETag", etag)
-		status := http.StatusOK
-		if getUpdateTime(r).After(date) {
-			status = http.StatusAccepted
-		}
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
-			w.Header().Add("Content-Encoding", "gzip")
-			w.WriteHeader(status)
-			w.Write(gz)
-			return
-		}
-		w.WriteHeader(status)
-		w.Write(b)
-	}))
-}
-
-func (h *httpHandler) convSong(s map[string][]string) Song {
+func (h *api) convSong(s map[string][]string) Song {
 	for i := range h.tagger {
 		s = h.tagger[i].AddTags(s)
 	}
 	return Song(s)
 }
 
-func (h *httpHandler) convSongs(s []map[string][]string) []Song {
+func (h *api) convSongs(s []map[string][]string) []Song {
 	ret := make([]Song, len(s))
 	for i := range s {
 		ret[i] = h.convSong(s[i])
@@ -289,12 +144,12 @@ type httpAPIVersion struct {
 	MPD string `json:"mpd"`
 }
 
-func (h *httpHandler) updateVersion() error {
+func (h *api) updateVersion() error {
 	goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	return h.jsonCache.SetIfModified("/api/version", &httpAPIVersion{App: version, Go: goVersion, MPD: h.client.Version()})
 }
 
-func (h *httpHandler) updateLibrary(ctx context.Context) error {
+func (h *api) updateLibrary(ctx context.Context) error {
 	l, err := h.client.ListAllInfo(ctx, "/")
 	if err != nil {
 		return err
@@ -315,7 +170,7 @@ func (h *httpHandler) updateLibrary(ctx context.Context) error {
 	return nil
 }
 
-func (h *httpHandler) updatePlaylistInfo() error {
+func (h *api) updatePlaylistInfo() error {
 	return h.jsonCache.SetIfModified("/api/music/playlist", &httpPlaylistInfo{
 		Current: h.current,
 		Sort:    h.sort,
@@ -323,7 +178,7 @@ func (h *httpHandler) updatePlaylistInfo() error {
 	})
 }
 
-func (h *httpHandler) updatePlaylist(ctx context.Context) error {
+func (h *api) updatePlaylist(ctx context.Context) error {
 	l, err := h.client.PlaylistInfo(ctx)
 	if err != nil {
 		return err
@@ -347,7 +202,7 @@ func (h *httpHandler) updatePlaylist(ctx context.Context) error {
 	return err
 }
 
-func (h *httpHandler) updateCurrentSong(ctx context.Context) error {
+func (h *api) updateCurrentSong(ctx context.Context) error {
 	l, err := h.client.CurrentSong(ctx)
 	if err != nil {
 		return err
@@ -362,7 +217,7 @@ type httpOutput struct {
 	Attribute string `json:"attribute,omitempty"` // TODO fix type
 }
 
-func (h *httpHandler) updateOutputs(ctx context.Context) error {
+func (h *api) updateOutputs(ctx context.Context) error {
 	l, err := h.client.Outputs(ctx)
 	if err != nil {
 		return err
@@ -379,7 +234,7 @@ func (h *httpHandler) updateOutputs(ctx context.Context) error {
 	return h.jsonCache.SetIfModified("/api/music/outputs", data)
 }
 
-func (h *httpHandler) outputPost(alter http.Handler) http.HandlerFunc {
+func (h *api) outputPost(alter http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			alter.ServeHTTP(w, r)
@@ -413,7 +268,7 @@ func (h *httpHandler) outputPost(alter http.Handler) http.HandlerFunc {
 	}
 }
 
-func (h *httpHandler) updateStatus(ctx context.Context) error {
+func (h *api) updateStatus(ctx context.Context) error {
 	s, err := h.client.Status(ctx)
 	if err != nil {
 		return err
@@ -470,7 +325,7 @@ type httpStats struct {
 
 var updateStatsIntKeys = []string{"artists", "albums", "songs", "uptime", "db_playtime", "db_update", "playtime"}
 
-func (h *httpHandler) updateStats(ctx context.Context) error {
+func (h *api) updateStats(ctx context.Context) error {
 	s, err := h.client.Stats(ctx)
 	if err != nil {
 		return err
@@ -507,7 +362,7 @@ func (h *httpHandler) updateStats(ctx context.Context) error {
 	return h.jsonCache.Set("/api/music/stats", ret)
 }
 
-func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
+func (h *api) playlistPost(alter http.Handler) http.HandlerFunc {
 	sem := make(chan struct{}, 1)
 	sem <- struct{}{}
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -588,7 +443,7 @@ func (h *httpHandler) playlistPost(alter http.Handler) http.HandlerFunc {
 	}
 }
 
-func (h *httpHandler) libraryPost(alter http.Handler) http.HandlerFunc {
+func (h *api) libraryPost(alter http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			alter.ServeHTTP(w, r)
@@ -635,7 +490,7 @@ type httpLibraryInfo struct {
 	Updating bool `json:"updating"`
 }
 
-func (h *httpHandler) statusWebSocket(alter http.Handler) http.HandlerFunc {
+func (h *api) statusWebSocket(alter http.Handler) http.HandlerFunc {
 	subs := make([]chan string, 0, 10)
 	var mu sync.Mutex
 
@@ -702,7 +557,7 @@ func (h *httpHandler) statusWebSocket(alter http.Handler) http.HandlerFunc {
 	}
 }
 
-func (h *httpHandler) statusPost(alter http.Handler) http.HandlerFunc {
+func (h *api) statusPost(alter http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			alter.ServeHTTP(w, r)
@@ -784,161 +639,11 @@ func writeHTTPError(w http.ResponseWriter, status int, err error) {
 	w.Write(b)
 }
 
-func noneMatch(r *http.Request, etag string) bool {
-	return r.Header.Get("If-None-Match") == etag
-}
-
-func (h *httpHandler) assetsHandler(rpath string, b []byte, hash []byte) http.HandlerFunc {
-	if h.config.LocalAssets {
-		return func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Add("Cache-Control", "max-age=1")
-			http.ServeFile(w, r, rpath)
-		}
-	}
-	m := mime.TypeByExtension(path.Ext(rpath))
-	var gz []byte
-	var err error
-	if m != "image/png" && m != "image/jpg" {
-		if gz, err = makeGZip(b); err != nil {
-			log.Fatalf("failed to make gzip for static %s: %v", rpath, err)
-		}
-	}
-	length := strconv.Itoa(len(b))
-	etag := fmt.Sprintf(`"%s"`, hash)
-	lastModified := time.Now().Format(http.TimeFormat)
-	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if noneMatch(r, etag) {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-		w.Header().Add("Cache-Control", "max-age=86400")
-		if m != "" {
-			w.Header().Add("Content-Type", m)
-		}
-		w.Header().Add("ETag", etag)
-		w.Header().Add("Last-Modified", lastModified)
-		w.Header().Add("Content-Length", length)
-		if gz != nil {
-			w.Header().Add("Vary", "Accept-Encoding")
-			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
-				w.Header().Add("Content-Encoding", "gzip")
-				w.WriteHeader(http.StatusOK)
-				w.Write(gz)
-				return
-			}
-		}
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}))
-}
-
-func determineLanguage(r *http.Request, m language.Matcher) language.Tag {
-	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
-	tag, _, _ := m.Match(t...)
-	return tag
-}
-
-func (h *httpHandler) i18nAssetsHandler(rpath string, b []byte, hash []byte) http.Handler {
-	matcher := language.NewMatcher(translatePrio)
-	m := mime.TypeByExtension(path.Ext(rpath))
-	if h.config.LocalAssets {
-		return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			info, err := os.Stat(rpath)
-			if err != nil {
-				http.NotFound(w, r)
-				return
-			}
-			l := info.ModTime()
-			if !modifiedSince(r, l) {
-				w.WriteHeader(304)
-				return
-			}
-			tag := determineLanguage(r, matcher)
-			data, err := ioutil.ReadFile(rpath)
-			if err != nil {
-				writeHTTPError(w, http.StatusInternalServerError, err)
-				return
-			}
-			data, err = translate(data, tag)
-			if err != nil {
-				writeHTTPError(w, http.StatusInternalServerError, err)
-				return
-			}
-			w.Header().Add("Cache-Control", "max-age=1")
-			w.Header().Add("Content-Language", tag.String())
-			w.Header().Add("Content-Length", strconv.Itoa(len(data)))
-			w.Header().Add("Content-Type", m+"; charset=utf-8")
-			w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
-			w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
-			w.Write(data)
-			return
-		}))
-	}
-	gz, err := makeGZip(b)
-	if err != nil {
-		log.Fatalf("failed to make gzip for static %s: %v", rpath, err)
-	}
-	bt := make([][]byte, len(translatePrio))
-	gt := make([][]byte, len(translatePrio))
-	for i := range translatePrio {
-		data, err := translate(b, translatePrio[i])
-		if err != nil {
-			log.Fatalf("failed to translate %s to %v: %v", rpath, translatePrio[i], err)
-		}
-		bt[i] = data
-		data, err = makeGZip(data)
-		if err != nil {
-			log.Fatalf("failed to translate %s to %v: %v", rpath, translatePrio[i], err)
-		}
-		gt[i] = data
-	}
-	etag := fmt.Sprintf(`"%s"`, hash)
-	lastModified := time.Now().Format(http.TimeFormat)
-	return GetOrHead(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if noneMatch(r, etag) {
-			w.WriteHeader(304)
-			return
-		}
-		tag := determineLanguage(r, matcher)
-		index := 0
-		for ; index < len(translatePrio); index++ {
-			if translatePrio[index] == tag {
-				break
-			}
-		}
-		b = bt[index]
-		gz = gt[index]
-
-		w.Header().Add("Cache-Control", "max-age=86400")
-		w.Header().Add("Content-Language", tag.String())
-		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
-		w.Header().Add("Content-Type", m+"; charset=utf-8")
-		w.Header().Add("Etag", etag)
-		w.Header().Add("Last-Modified", lastModified)
-		w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
-			w.Header().Add("Content-Encoding", "gzip")
-			w.Write(gz)
-			return
-		}
-		w.Write(b)
-	}))
-
-}
-
 func boolPtr(b bool) *bool       { return &b }
 func stringPtr(s string) *string { return &s }
 
-func (h *httpHandler) Handle() http.Handler {
+func (h *api) Handle() http.Handler {
 	m := http.NewServeMux()
-	m.Handle("/", h.i18nAssetsHandler("assets/app.html", AssetsAppHTML, AssetsAppHTMLHash))
-	m.Handle("/assets/app.css", h.assetsHandler("assets/app.css", AssetsAppCSS, AssetsAppCSSHash))
-	m.Handle("/assets/app.png", h.assetsHandler("assets/app.png", AssetsAppPNG, AssetsAppPNGHash))
-	m.Handle("/assets/manifest.json", h.assetsHandler("assets/manifest.json", AssetsManifestJSON, AssetsManifestJSONHash))
-	m.Handle("/assets/app-black.png", h.assetsHandler("assets/app-black.png", AssetsAppBlackPNG, AssetsAppBlackPNGHash))
-	m.Handle("/assets/w.png", h.assetsHandler("assets/w.png", AssetsWPNG, AssetsWPNGHash))
-	m.Handle("/assets/app.js", h.assetsHandler("assets/appv2.js", AssetsAppv2JS, AssetsAppv2JSHash))
-	m.Handle("/assets/nocover.svg", h.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGHash))
 	m.Handle("/api/version", h.jsonCache.Handler("/api/version"))
 	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCache.Handler("/api/music"))))
 	m.Handle("/api/music/stats", h.jsonCache.Handler("/api/music/stats"))
