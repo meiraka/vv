@@ -9,7 +9,6 @@ require (
 	github.com/gorilla/websocket v1.2.0
 	github.com/hashicorp/hcl v0.0.0-20180404174102-ef8a98b0bbce // indirect
 	github.com/magiconair/properties v1.8.0 // indirect
-	github.com/meiraka/gompd v1.1.0
 	github.com/mitchellh/mapstructure v0.0.0-20180511142126-bb74f1db0675 // indirect
 	github.com/pelletier/go-toml v1.1.0 // indirect
 	github.com/spf13/afero v1.1.0 // indirect
