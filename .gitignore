@@ -3,6 +3,7 @@
 *.a
 *.so
 vv
+internal/cmd/fix-assets/fix-assets
 build/
 
 # Folders
