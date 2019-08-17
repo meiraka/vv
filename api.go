@@ -141,7 +141,7 @@ func (h *api) convSong(s map[string][]string) map[string][]string {
 	for i := range h.tagger {
 		s = h.tagger[i].AddTags(s)
 	}
-	return Song(s)
+	return s
 }
 
 func (h *api) convSongs(s []map[string][]string) []map[string][]string {

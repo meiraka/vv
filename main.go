@@ -30,7 +30,6 @@ func setupFlag(name string) {
 	pflag.String("server.addr", ":8080", "this app serving address")
 	pflag.Bool("server.keepalive", true, "use HTTP keep-alive")
 	pflag.BoolP("debug", "d", false, "use local assets if exists")
-	pflag.BoolP("v2", "v", false, "use next version")
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
 }
@@ -67,39 +66,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	if viper.GetBool("v2") {
-		v2()
-	} else {
-		v1()
-	}
-}
-
-func v1() {
-	musicDirectory := viper.GetString("mpd.music_directory")
-	if len(musicDirectory) == 0 {
-		dir, err := getMusicDirectory("/etc/mpd.conf")
-		if err == nil {
-			musicDirectory = dir
-		}
-	}
-	network := viper.GetString("mpd.network")
-	addr := viper.GetString("mpd.addr")
-	music, err := Dial(network, addr, "", musicDirectory)
-	defer music.Close()
-	if err != nil {
-		log.Println("[error]", "faied to connect/initialize mpd:", err)
-		os.Exit(1)
-	}
-	serverAddr := viper.GetString("server.addr")
-	s := Server{
-		Music:          music,
-		MusicDirectory: musicDirectory,
-		Addr:           serverAddr,
-		StartTime:      time.Now().UTC(),
-		KeepAlive:      viper.GetBool("server.keepalive"),
-		debug:          viper.GetBool("debug"),
-	}
-	s.Serve()
+	v2()
 }
 
 func v2() {
