@@ -87,6 +87,7 @@ func (b *jsonCache) Handler(path string) http.HandlerFunc {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
+		w.Header().Add("Cache-Control", "max-age=0")
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
 		w.Header().Add("Last-Modified", date.Format(http.TimeFormat))
 		w.Header().Add("Vary", "Accept-Encoding")
