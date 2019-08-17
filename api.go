@@ -14,6 +14,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/vv/internal/mpd"
+	"github.com/meiraka/vv/internal/songs"
 )
 
 const (
@@ -25,6 +26,19 @@ type HTTPHandlerConfig struct {
 	BackgroundTimeout time.Duration
 	LocalAssets       bool
 	MusicDirectory    string
+}
+
+// TagAdder add tags to song.
+type TagAdder interface {
+	AddTags(map[string][]string) map[string][]string
+}
+
+// TagAdderFunc converts func to TagAdder
+type TagAdderFunc func(map[string][]string) map[string][]string
+
+// AddTags add tags to song.
+func (t TagAdderFunc) AddTags(m map[string][]string) map[string][]string {
+	return t(m)
 }
 
 // addHTTPPrefix adds prefix path /api/music/storage to song cover path.
@@ -47,9 +61,9 @@ type api struct {
 	cover     *LocalCoverSearcher
 
 	mu          sync.Mutex
-	playlist    []Song
-	library     []Song
-	librarySort []Song
+	playlist    []map[string][]string
+	library     []map[string][]string
+	librarySort []map[string][]string
 	sort        []string
 	filters     [][]string
 	current     int
@@ -62,7 +76,7 @@ func (c HTTPHandlerConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w 
 	}
 	var cover *LocalCoverSearcher
 	tagger := make([]TagAdder, 0, 3)
-	tagger = append(tagger, TagAdderFunc(AddTags))
+	tagger = append(tagger, TagAdderFunc(songs.AddTags))
 	if len(c.MusicDirectory) != 0 {
 		var err error
 		cover, err = NewLocalCoverSearcher(c.MusicDirectory, "cover.*")
@@ -123,15 +137,15 @@ func (c HTTPHandlerConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w 
 	return h.Handle(), nil
 }
 
-func (h *api) convSong(s map[string][]string) Song {
+func (h *api) convSong(s map[string][]string) map[string][]string {
 	for i := range h.tagger {
 		s = h.tagger[i].AddTags(s)
 	}
 	return Song(s)
 }
 
-func (h *api) convSongs(s []map[string][]string) []Song {
-	ret := make([]Song, len(s))
+func (h *api) convSongs(s []map[string][]string) []map[string][]string {
+	ret := make([]map[string][]string, len(s))
 	for i := range s {
 		ret[i] = h.convSong(s[i])
 	}
@@ -191,7 +205,7 @@ func (h *api) updatePlaylist(ctx context.Context) error {
 
 	h.mu.Lock()
 	h.playlist = v
-	if h.sort != nil && !EqualSongs(h.playlist, h.librarySort) {
+	if h.sort != nil && !songs.SortEqual(h.playlist, h.librarySort) {
 		h.sort = nil
 		h.filters = nil
 		h.librarySort = nil
@@ -391,8 +405,8 @@ func (h *api) playlistPost(alter http.Handler) http.HandlerFunc {
 		defer func() { sem <- struct{}{} }()
 
 		h.mu.Lock()
-		librarySort, filters, newpos := SortSongs(h.library, req.Sort, req.Filters, 9999, req.Current)
-		update := !EqualSongs(h.playlist, librarySort)
+		librarySort, filters, newpos := songs.WeakFilterSort(h.library, req.Sort, req.Filters, 9999, req.Current)
+		update := !songs.SortEqual(h.playlist, librarySort)
 		cl := h.client.BeginCommandList()
 		cl.Clear()
 		for i := range librarySort {

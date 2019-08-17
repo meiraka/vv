@@ -566,15 +566,6 @@ func makeHandleAssets(f string) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-/*modifiedSince compares If-Modified-Since header given time.Time.*/
-func modifiedSince(r *http.Request, l time.Time) bool {
-	t, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since"))
-	if err != nil {
-		return true
-	}
-	return !l.Before(t.Add(time.Second))
-}
-
 func writeError(w http.ResponseWriter, err error) {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 	errstr := ""

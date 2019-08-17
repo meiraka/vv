@@ -26,42 +26,6 @@ func EqualSongs(o, n []Song) bool {
 	return true
 }
 
-// TagAdder add tags to song.
-type TagAdder interface {
-	AddTags(map[string][]string) map[string][]string
-}
-
-// TagAdderFunc converts func to TagAdder
-type TagAdderFunc func(map[string][]string) map[string][]string
-
-// AddTags add tags to song.
-func (t TagAdderFunc) AddTags(m map[string][]string) map[string][]string {
-	return t(m)
-}
-
-// AddTags adds tags to song for vv
-// TrackNumber, DiscNumber are used for sorting.
-// Length is used for displaing time.
-func AddTags(m map[string][]string) map[string][]string {
-	track := getIntTag(m, "Track", 0)
-	m["TrackNumber"] = []string{fmt.Sprintf("%04d", track)}
-	disc := getIntTag(m, "Disc", 1)
-	m["DiscNumber"] = []string{fmt.Sprintf("%04d", disc)}
-	t := getIntTag(m, "Time", 0)
-	m["Length"] = []string{fmt.Sprintf("%02d:%02d", t/60, t%60)}
-	return m
-}
-
-func getIntTag(m map[string][]string, k string, e int) int {
-	if d, found := m[k]; found {
-		ret, err := strconv.Atoi(d[0])
-		if err == nil {
-			return ret
-		}
-	}
-	return e
-}
-
 func findCovers(dir, file, glob string, cache map[string]string) string {
 	dir, err := filepath.Abs(dir)
 	if err != nil {
