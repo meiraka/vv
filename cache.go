@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -98,10 +99,12 @@ func (b *jsonCache) Handler(path string) http.HandlerFunc {
 		}
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
+			w.Header().Add("Content-Length", strconv.Itoa(len(gz)))
 			w.WriteHeader(status)
 			w.Write(gz)
 			return
 		}
+		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 		w.WriteHeader(status)
 		w.Write(b)
 	}
