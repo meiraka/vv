@@ -52,6 +52,7 @@ func (h *HTTPHandlerConfig) assetsHandler(rpath string, b []byte, hash []byte) h
 		}
 	}
 	length := strconv.Itoa(len(b))
+	gzLength := strconv.Itoa(len(gz))
 	etag := fmt.Sprintf(`"%s"`, hash)
 	lastModified := time.Now().Format(http.TimeFormat)
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -65,17 +66,17 @@ func (h *HTTPHandlerConfig) assetsHandler(rpath string, b []byte, hash []byte) h
 		}
 		w.Header().Add("ETag", etag)
 		w.Header().Add("Last-Modified", lastModified)
-		w.Header().Add("Content-Length", length)
 		if gz != nil {
 			w.Header().Add("Vary", "Accept-Encoding")
 			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 				w.Header().Add("Content-Encoding", "gzip")
+				w.Header().Add("Content-Length", gzLength)
 				w.WriteHeader(http.StatusOK)
 				w.Write(gz)
 				return
 			}
 		}
-		w.WriteHeader(http.StatusOK)
+		w.Header().Add("Content-Length", length)
 		w.Write(b)
 	}
 }
@@ -159,16 +160,17 @@ func (h *HTTPHandlerConfig) i18nAssetsHandler(rpath string, b []byte, hash []byt
 
 		w.Header().Add("Cache-Control", "max-age=86400")
 		w.Header().Add("Content-Language", tag.String())
-		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 		w.Header().Add("Content-Type", m+"; charset=utf-8")
 		w.Header().Add("Etag", etag)
 		w.Header().Add("Last-Modified", lastModified)
 		w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {
 			w.Header().Add("Content-Encoding", "gzip")
+			w.Header().Add("Content-Length", strconv.Itoa(len(gz)))
 			w.Write(gz)
 			return
 		}
+		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 		w.Write(b)
 	}
 
