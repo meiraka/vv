@@ -58,6 +58,11 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 					select {
 					case <-ctx.Done():
 						// TODO: logging
+						select {
+						case <-readCtx.Done():
+							return
+						default:
+						}
 						_, _ = conn.Writeln("noidle")
 						return
 					case <-readCtx.Done():
