@@ -26,11 +26,11 @@ func (s *Server) Disconnect(ctx context.Context) {
 		s.mu.Unlock()
 		return
 	}
-	s.mu.Unlock()
 	select {
 	case s.disconnect <- struct{}{}:
 	case <-ctx.Done():
 	}
+	s.mu.Unlock()
 }
 
 // Close closes connection
