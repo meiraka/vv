@@ -530,13 +530,12 @@ func (h *api) statusWebSocket(alter http.Handler) http.HandlerFunc {
 			alter.ServeHTTP(w, r)
 			return
 		}
-		c := make(chan string, 2)
+		c := make(chan string, 100)
 		mu.Lock()
 		subs = append(subs, c)
 		mu.Unlock()
 		defer func() {
 			mu.Lock()
-			defer mu.Unlock()
 			n := make([]chan string, len(subs)-1, len(subs)+10)
 			diff := 0
 			for i, ec := range subs {
@@ -547,6 +546,8 @@ func (h *api) statusWebSocket(alter http.Handler) http.HandlerFunc {
 				}
 			}
 			subs = n
+			close(c)
+			mu.Unlock()
 		}()
 		if err := ws.WriteMessage(websocket.TextMessage, []byte("ok")); err != nil {
 			return

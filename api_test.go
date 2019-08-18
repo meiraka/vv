@@ -356,15 +356,6 @@ func TestAPIPHandler(t *testing.T) {
 			label += fmt.Sprint(tt.websocket)
 		}
 		t.Run(label, func(t *testing.T) {
-			var wg sync.WaitGroup
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if tt.f != nil {
-					tt.f(w, r, iw, ir)
-				}
-			}()
-
 			ws, _, err := websocket.DefaultDialer.Dial(strings.Replace(ts.URL, "http://", "ws://", 1)+"/api/music", nil)
 			if err != nil {
 				t.Fatalf("failed to connect websocket: %v", err)
@@ -374,6 +365,15 @@ func TestAPIPHandler(t *testing.T) {
 			if _, msg, err := ws.ReadMessage(); string(msg) != "ok" || err != nil {
 				t.Fatalf("got message: %s, %v, want: ok <nil>", msg, err)
 			}
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if tt.f != nil {
+					tt.f(w, r, iw, ir)
+				}
+			}()
 
 			if tt.req != nil {
 				resp, err := testHTTPClient.Do(tt.req)
@@ -396,7 +396,7 @@ func TestAPIPHandler(t *testing.T) {
 				for {
 					_, msg, err := ws.ReadMessage()
 					if err != nil {
-						t.Errorf("failed to get message: %v, got: %v, want: %v", err, got, tt.websocket)
+						t.Errorf("failed to get websocket message: %v, got: %v, want: %v", err, got, tt.websocket)
 						break
 					}
 					got = append(got, string(msg))
