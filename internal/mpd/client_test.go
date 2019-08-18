@@ -13,7 +13,7 @@ var (
 	testDialer = Dialer{
 		ReconnectionTimeout:  time.Second,
 		HealthCheckInterval:  time.Second,
-		ReconnectionInterval: time.Second,
+		ReconnectionInterval: 100 * time.Millisecond,
 	}
 )
 
@@ -38,7 +38,7 @@ func TestDial(t *testing.T) {
 }
 
 func TestDialPasswordError(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	w, r, ts, _ := mpdtest.NewServer("OK MPD 0.19")
 	go func() {

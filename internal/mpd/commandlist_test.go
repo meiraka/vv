@@ -73,6 +73,12 @@ func TestCommandListNetworkError(t *testing.T) {
 	w, r, ts, _ := mpdtest.NewServer("OK MPD 0.19")
 	go func() {
 		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "close\n"})
+		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "command_list_ok_begin\n"})
+		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "clear\n"})
+		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "play 0\n"})
+		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "add \"/foo/bar\"\n"})
+		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "command_list_end\n"})
 		ts.Disconnect(ctx)
 		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
 		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "close\n"})

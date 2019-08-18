@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
+	"time"
 )
 
 // Server is mock mpd server.
@@ -13,10 +15,18 @@ type Server struct {
 	ln         net.Listener
 	URL        string
 	disconnect chan struct{}
+	mu         sync.Mutex
+	closed     bool
 }
 
 // Disconnect closes current connection.
 func (s *Server) Disconnect(ctx context.Context) {
+	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		return
+	}
+	s.mu.Unlock()
 	select {
 	case s.disconnect <- struct{}{}:
 	case <-ctx.Done():
@@ -25,6 +35,10 @@ func (s *Server) Disconnect(ctx context.Context) {
 
 // Close closes connection
 func (s *Server) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.closed = true
+	close(s.disconnect)
 	return s.ln.Close()
 }
 
@@ -63,8 +77,8 @@ func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
 		URL:        ln.Addr().String(),
 		disconnect: make(chan struct{}, 1),
 	}
-	wc := make(chan string, 10)
-	rc := make(chan string, 10)
+	wc := make(chan string)
+	rc := make(chan string)
 	go func(ln net.Listener) {
 		for {
 			conn, err := ln.Accept()
@@ -72,35 +86,37 @@ func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
 				return
 			}
 			if _, err := fmt.Fprintln(conn, firstResp); err != nil {
-				return
+				break
 			}
 			go func(conn net.Conn) {
-				defer conn.Close()
-				for {
-					select {
-					case m, ok := <-wc:
-						if !ok {
-							return
-						}
+				ctx, cancel := context.WithCancel(context.Background())
+				go func(conn net.Conn) {
+					defer cancel()
+					for m := range wc {
 						if _, err := fmt.Fprint(conn, m); err != nil {
 							return
 						}
-					case <-s.disconnect:
-						return
 					}
-				}
-			}(conn)
-			go func(conn net.Conn) {
-				defer conn.Close()
-				r := bufio.NewReader(conn)
-				for {
-					nl, err := r.ReadString('\n')
-					if err != nil {
-						return
+				}(conn)
+				go func(conn net.Conn) {
+					defer conn.Close()
+					r := bufio.NewReader(conn)
+					for {
+						nl, err := r.ReadString('\n')
+						if err != nil {
+							return
+						}
+						rc <- nl
 					}
-					rc <- nl
-				}
 
+				}(conn)
+
+				select {
+				case <-s.disconnect:
+				case <-ctx.Done():
+				}
+				conn.SetDeadline(time.Now().Add(-1 * time.Second))
+				conn.Close()
 			}(conn)
 		}
 	}(ln)
