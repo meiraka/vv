@@ -547,13 +547,26 @@ func (h *api) statusWebSocket(alter http.Handler) http.HandlerFunc {
 			}
 			subs = n
 			close(c)
+			ws.Close()
 			mu.Unlock()
 		}()
 		if err := ws.WriteMessage(websocket.TextMessage, []byte("ok")); err != nil {
 			return
 		}
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			defer cancel()
+			for {
+				_, _, err := ws.ReadMessage()
+				if err != nil {
+					return
+				}
+			}
+		}()
 		for {
 			select {
+			case <-ctx.Done():
+				return
 			case e, ok := <-c:
 				if !ok {
 					return

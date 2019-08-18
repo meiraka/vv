@@ -361,7 +361,8 @@ func TestAPIPHandler(t *testing.T) {
 				t.Fatalf("failed to connect websocket: %v", err)
 			}
 			defer ws.Close()
-			ws.SetReadDeadline(time.Now().Add(testTimeout))
+			timeout, _ := ctx.Deadline()
+			ws.SetReadDeadline(timeout)
 			if _, msg, err := ws.ReadMessage(); string(msg) != "ok" || err != nil {
 				t.Fatalf("got message: %s, %v, want: ok <nil>", msg, err)
 			}
