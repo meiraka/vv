@@ -162,7 +162,7 @@ func (l *LocalCoverSearcher) Handler() http.HandlerFunc {
 			w.Header().Add("Content-Length", strconv.FormatInt(i.Size(), 10))
 			w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
 			w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
-			io.Copy(w, f)
+			io.CopyN(w, f, i.Size())
 			return
 		}
 		wi, err := strconv.Atoi(ws)
