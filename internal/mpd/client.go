@@ -362,6 +362,9 @@ func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]s
 			}
 			i := strings.Index(line, ": ")
 			if i < 0 {
+				if strings.HasPrefix(line, "ACK") {
+					return newCommandError(line)
+				}
 				return fmt.Errorf("can't parse line: " + line)
 			}
 			m[line[0:i]] = line[i+2:]

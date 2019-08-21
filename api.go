@@ -454,7 +454,7 @@ func (h *api) libraryPost(alter http.Handler) http.HandlerFunc {
 		ctx := r.Context()
 		now := time.Now().UTC()
 		if _, err := h.client.Update(ctx, ""); err != nil {
-			writeHTTPError(w, http.StatusBadRequest, err)
+			writeHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
 		r.Method = http.MethodGet

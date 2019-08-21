@@ -343,6 +343,13 @@ func TestAPIPHandler(t *testing.T) {
 			want: map[int]string{http.StatusBadRequest: `{"error":"requires updating=true"}`},
 		},
 		{
+			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/library", strings.NewReader(`{"updating":true}`)),
+			want: map[int]string{http.StatusInternalServerError: `{"error":"mpd: update: error"}`},
+			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
+				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "update \n", Write: "ACK [2@1] {update} error\n"})
+			},
+		},
+		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music/library", strings.NewReader(`{"updating":true}`)),
 			want: map[int]string{
 				http.StatusAccepted: `{"updating":false}`,
