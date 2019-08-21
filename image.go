@@ -155,6 +155,10 @@ func (l *LocalCoverSearcher) Handler() http.HandlerFunc {
 			writeHTTPError(w, http.StatusInternalServerError, err)
 			return
 		}
+		if !modifiedSince(r, i.ModTime()) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
 		q := r.URL.Query()
 		ws, hs := q.Get("width"), q.Get("height")
 		if len(ws) == 0 || len(hs) == 0 {
