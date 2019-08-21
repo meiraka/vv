@@ -78,53 +78,46 @@ func TestAPIPHandler(t *testing.T) {
 		f         func(chan string, <-chan string, chan string, <-chan string)
 		websocket []string
 		req       *http.Request
-		status    int
-		want      string
+		want      map[int]string
 	}{
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music", nil),
-			status: http.StatusOK,
-			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music", nil),
+			want: map[int]string{http.StatusOK: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`},
 		},
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/playlist", nil),
-			status: http.StatusOK,
-			want:   `{"current":1}`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/playlist", nil),
+			want: map[int]string{http.StatusOK: `{"current":1}`},
 		},
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/playlist/songs", nil),
-			status: http.StatusOK,
-			want:   `[{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["foo"]},{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["bar"]}]`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/playlist/songs", nil),
+			want: map[int]string{http.StatusOK: `[{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["foo"]},{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["bar"]}]`},
 		},
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/library", nil),
-			status: http.StatusOK,
-			want:   `{"updating":false}`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/library", nil),
+			want: map[int]string{http.StatusOK: `{"updating":false}`},
 		},
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/library/songs", nil),
-			status: http.StatusOK,
-			want:   `[{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["foo"]},{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["bar"]},{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["baz"]}]`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/library/songs", nil),
+			want: map[int]string{http.StatusOK: `[{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["foo"]},{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["bar"]},{"DiscNumber":["0001"],"Length":["00:00"],"TrackNumber":["0000"],"file":["baz"]}]`},
 		},
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/playlist/songs/current", nil),
-			status: http.StatusOK,
-			want:   `{"DiscNumber":["0001"],"Length":["00:00"],"Pos":["1"],"TrackNumber":["0000"],"file":["bar"]}`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/playlist/songs/current", nil),
+			want: map[int]string{http.StatusOK: `{"DiscNumber":["0001"],"Length":["00:00"],"Pos":["1"],"TrackNumber":["0000"],"file":["bar"]}`},
 		},
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/outputs", nil),
-			status: http.StatusOK,
-			want:   `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/outputs", nil),
+			want: map[int]string{http.StatusOK: `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`},
 		},
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/stats", nil),
-			status: http.StatusOK,
-			want:   `{"uptime":667505,"playtime":0,"artists":835,"albums":528,"songs":5715,"library_playtime":1475220,"library_update":1560656023}`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/stats", nil),
+			want: map[int]string{http.StatusOK: `{"uptime":667505,"playtime":0,"artists":835,"albums":528,"songs":5715,"library_playtime":1475220,"library_update":1560656023}`},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"repeat":true}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"repeat":true}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+				http.StatusOK:       `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "repeat 1\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
@@ -133,9 +126,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"random":true}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"random":true}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "random 1\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
@@ -144,9 +139,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"oneshot":true}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"oneshot":true}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "single oneshot\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
@@ -155,9 +152,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"single":true}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"single":true}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "single 1\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
@@ -166,9 +165,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"consume":true}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"consume":true}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "consume 1\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
@@ -177,9 +178,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"play"}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"play"}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "play -1\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
@@ -190,9 +193,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music", "/api/music/stats"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"next"}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"next"}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "next\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
@@ -203,9 +208,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"previous"}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"previous"}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "previous\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
@@ -216,9 +223,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"pause"}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"pause"}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "pause 1\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
@@ -229,9 +238,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music", "/api/music/stats"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"volume":100}`)),
-			status: http.StatusAccepted,
-			want:   `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"volume":100}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+				http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "setvol 100\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: mixer\nOK\n"})
@@ -240,9 +251,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music/outputs", strings.NewReader(`{"0":{"enabled":true}}`)),
-			status: http.StatusAccepted,
-			want:   `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music/outputs", strings.NewReader(`{"0":{"enabled":true}}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
+				http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":true,"attribute":"dop=0"}}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "enableoutput 0\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
@@ -251,9 +264,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music/outputs"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music/outputs", strings.NewReader(`{"0":{"enabled":false}}`)),
-			status: http.StatusAccepted,
-			want:   `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":true,"attribute":"dop=0"}}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music/outputs", strings.NewReader(`{"0":{"enabled":false}}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":true,"attribute":"dop=0"}}`,
+				http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "disableoutput 0\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
@@ -262,9 +277,8 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music/outputs"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music/playlist", strings.NewReader(`{"current":0,"sort":["file"],"filters":[]}`)),
-			status: http.StatusAccepted,
-			want:   `{"current":1}`,
+			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/playlist", strings.NewReader(`{"current":0,"sort":["file"],"filters":[]}`)),
+			want: map[int]string{http.StatusAccepted: `{"current":1}`},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "command_list_ok_begin\n"})
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "clear\n"})
@@ -283,9 +297,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music/playlist", strings.NewReader(`{"current":1,"sort":["file"],"filters":[]}`)),
-			status: http.StatusAccepted,
-			want:   `{"current":0,"sort":["file"]}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music/playlist", strings.NewReader(`{"current":1,"sort":["file"],"filters":[]}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"current":0,"sort":["file"]}`,
+				http.StatusOK:       `{"current":1,"sort":["file"]}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "play 1\n", Write: "OK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
@@ -303,9 +319,11 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music/playlist/songs", "/api/music/playlist"},
 		},
 		{
-			req:    NewRequest(http.MethodPost, ts.URL+"/api/music/library", strings.NewReader(`{"updating":true}`)),
-			status: http.StatusAccepted,
-			want:   `{"updating":false}`,
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music/library", strings.NewReader(`{"updating":true}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"updating":false}`,
+				http.StatusOK:       `{"updating":true}`,
+			},
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "update \n", Write: "updating_db: 1\nOK\n"})
 				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: update\nOK\n"})
@@ -314,9 +332,8 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music", "/api/music/library"},
 		},
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/library", nil),
-			status: http.StatusOK,
-			want:   `{"updating":true}`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/library", nil),
+			want: map[int]string{http.StatusOK: `{"updating":true}`},
 		},
 		{
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
@@ -330,9 +347,8 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music", "/api/music/library", "/api/music/library/songs", "/api/music", "/api/music/stats"},
 		},
 		{
-			req:    NewRequest(http.MethodGet, ts.URL+"/api/music/library", nil),
-			status: http.StatusOK,
-			want:   `{"updating":false}`,
+			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/library", nil),
+			want: map[int]string{http.StatusOK: `{"updating":false}`},
 		},
 		{
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
@@ -387,8 +403,11 @@ func TestAPIPHandler(t *testing.T) {
 				if err != nil {
 					t.Fatalf("failed to read response: %v", err)
 				}
-				if got := string(b); got != tt.want || resp.StatusCode != tt.status {
-					t.Errorf("got %d %v; want %d %v", resp.StatusCode, got, tt.status, tt.want)
+				want, ok := tt.want[resp.StatusCode]
+				if !ok {
+					t.Errorf("got %d %s, want %v", resp.StatusCode, b, tt.want)
+				} else if got := string(b); got != want {
+					t.Errorf("got %d %v; want %d %v", resp.StatusCode, got, resp.StatusCode, want)
 				}
 			}
 			wg.Wait()
