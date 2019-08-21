@@ -51,12 +51,20 @@ func TestAPIPHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
-	defer c.Close(ctx)
+	defer func() {
+		if err := c.Close(ctx); err != nil {
+			t.Errorf("mpd.Client.Close got err %v; want nil", err)
+		}
+	}()
 	wl, err := testDialer.NewWatcher("tcp", sub.URL, "")
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
-	defer wl.Close(ctx)
+	defer func() {
+		if err := wl.Close(ctx); err != nil {
+			t.Errorf("mpd.Watcher.Close got err %v; want nil", err)
+		}
+	}()
 
 	go func() {
 		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
