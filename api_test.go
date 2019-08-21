@@ -336,6 +336,7 @@ func TestAPIPHandler(t *testing.T) {
 		},
 		{
 			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
+				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n"})
 				sub.Disconnect(ctx)
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
