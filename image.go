@@ -106,6 +106,9 @@ func (l *LocalCoverSearcher) CachedImage(path string) (cached bool) {
 
 // AddTags adds cover path to m
 func (l *LocalCoverSearcher) AddTags(m map[string][]string) map[string][]string {
+	if l == nil {
+		return m
+	}
 	file, ok := m["file"]
 	if !ok {
 		return m

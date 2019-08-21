@@ -28,19 +28,6 @@ type HTTPHandlerConfig struct {
 	MusicDirectory    string
 }
 
-// TagAdder add tags to song.
-type TagAdder interface {
-	AddTags(map[string][]string) map[string][]string
-}
-
-// TagAdderFunc converts func to TagAdder
-type TagAdderFunc func(map[string][]string) map[string][]string
-
-// AddTags add tags to song.
-func (t TagAdderFunc) AddTags(m map[string][]string) map[string][]string {
-	return t(m)
-}
-
 // addHTTPPrefix adds prefix path /api/music/storage to song cover path.
 func addHTTPPrefix(m map[string][]string) map[string][]string {
 	if v, ok := m["cover"]; ok {
@@ -57,7 +44,6 @@ type api struct {
 	watcher   *mpd.Watcher
 	jsonCache *jsonCache
 	upgrader  websocket.Upgrader
-	tagger    []TagAdder
 	cover     *LocalCoverSearcher
 
 	mu          sync.Mutex
@@ -75,22 +61,18 @@ func (c HTTPHandlerConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w 
 		c.BackgroundTimeout = 30 * time.Second
 	}
 	var cover *LocalCoverSearcher
-	tagger := make([]TagAdder, 0, 3)
-	tagger = append(tagger, TagAdderFunc(songs.AddTags))
 	if len(c.MusicDirectory) != 0 {
 		var err error
 		cover, err = NewLocalCoverSearcher(c.MusicDirectory, "cover.*")
 		if err != nil {
 			return nil, err
 		}
-		tagger = append(tagger, cover)
 	}
 	h := &api{
 		config:    &c,
 		client:    cl,
 		watcher:   w,
 		jsonCache: newJSONCache(),
-		tagger:    append(tagger, TagAdderFunc(addHTTPPrefix)),
 		cover:     cover,
 	}
 	if err := h.updateVersion(); err != nil {
@@ -138,10 +120,7 @@ func (c HTTPHandlerConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w 
 }
 
 func (h *api) convSong(s map[string][]string) map[string][]string {
-	for i := range h.tagger {
-		s = h.tagger[i].AddTags(s)
-	}
-	return s
+	return addHTTPPrefix(h.cover.AddTags(songs.AddTags(s)))
 }
 
 func (h *api) convSongs(s []map[string][]string) []map[string][]string {
@@ -593,7 +572,7 @@ func (h *api) statusPost(alter http.Handler) http.HandlerFunc {
 		}
 		var s httpMusicStatus
 		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
-			writeHTTPError(w, http.StatusInternalServerError, err)
+			writeHTTPError(w, http.StatusBadRequest, err)
 			return
 		}
 		ctx := r.Context()
@@ -681,7 +660,9 @@ func (h *api) Handle() http.Handler {
 	m.Handle("/api/music/library", h.libraryPost(h.jsonCache.Handler("/api/music/library")))
 	m.Handle("/api/music/library/songs", h.jsonCache.Handler("/api/music/library/songs"))
 	m.Handle("/api/music/outputs", h.outputPost(h.jsonCache.Handler("/api/music/outputs")))
-	m.Handle(httpImagePath, http.StripPrefix(httpImagePath, h.cover.Handler()))
+	if h.cover != nil {
+		m.Handle(httpImagePath, http.StripPrefix(httpImagePath, h.cover.Handler()))
+	}
 
 	return m
 }

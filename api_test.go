@@ -152,6 +152,10 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music"},
 		},
 		{
+			req:  NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{invalid json}`)),
+			want: map[int]string{http.StatusBadRequest: `{"error":"invalid character 'i' looking for beginning of object key string"}`},
+		},
+		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"single":true}`)),
 			want: map[int]string{
 				http.StatusAccepted: `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
@@ -251,6 +255,10 @@ func TestAPIPHandler(t *testing.T) {
 			websocket: []string{"/api/music"},
 		},
 		{
+			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/outputs", strings.NewReader(`{invalid json}`)),
+			want: map[int]string{http.StatusBadRequest: `{"error":"invalid character 'i' looking for beginning of object key string"}`},
+		},
+		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music/outputs", strings.NewReader(`{"0":{"enabled":true}}`)),
 			want: map[int]string{
 				http.StatusAccepted: `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
@@ -275,6 +283,14 @@ func TestAPIPHandler(t *testing.T) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
 			},
 			websocket: []string{"/api/music/outputs"},
+		},
+		{
+			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/playlist", strings.NewReader(`{invalid json}`)),
+			want: map[int]string{http.StatusBadRequest: `{"error":"invalid character 'i' looking for beginning of object key string"}`},
+		},
+		{
+			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/playlist", strings.NewReader(`{}`)),
+			want: map[int]string{http.StatusBadRequest: `{"error":"filters and sort fields are required"}`},
 		},
 		{
 			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/playlist", strings.NewReader(`{"current":0,"sort":["file"],"filters":[]}`)),
@@ -317,6 +333,14 @@ func TestAPIPHandler(t *testing.T) {
 				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
 			},
 			websocket: []string{"/api/music/playlist/songs", "/api/music/playlist"},
+		},
+		{
+			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/library", strings.NewReader(`{invalid json}`)),
+			want: map[int]string{http.StatusBadRequest: `{"error":"invalid character 'i' looking for beginning of object key string"}`},
+		},
+		{
+			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/library", strings.NewReader(`{}`)),
+			want: map[int]string{http.StatusBadRequest: `{"error":"requires updating=true"}`},
 		},
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music/library", strings.NewReader(`{"updating":true}`)),
