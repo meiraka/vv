@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -26,20 +25,13 @@ type Dialer struct {
 
 // Dial connects to mpd server.
 func (d Dialer) Dial(proto, addr, password string) (*Client, error) {
-	conn := &connKeeper{
-		proto:                proto,
-		addr:                 addr,
-		password:             password,
-		ReconnectionTimeout:  d.ReconnectionTimeout,
-		ReconnectionInterval: d.ReconnectionInterval,
-		connC:                make(chan *conn, 1),
-	}
-	if err := conn.connectOnce(); err != nil {
+	pool, err := newPool(proto, addr, password, d.ReconnectionTimeout, d.ReconnectionInterval)
+	if err != nil {
 		return nil, err
 	}
 	c := &Client{
 		closed: make(chan struct{}, 1),
-		conn:   conn,
+		pool:   pool,
 		dialer: &d,
 	}
 	go c.healthCheck()
@@ -51,7 +43,7 @@ type Client struct {
 	proto    string
 	addr     string
 	password string
-	conn     *connKeeper
+	pool     *pool
 	closed   chan struct{}
 	dialer   *Dialer
 }
@@ -59,19 +51,19 @@ type Client struct {
 // Close closes mpd connection.
 func (c *Client) Close(ctx context.Context) error {
 	close(c.closed)
-	return c.conn.Close(ctx)
+	return c.pool.Close(ctx)
 }
 
 // Version returns mpd server version.
 func (c *Client) Version() string {
-	return c.conn.Version()
+	return c.pool.Version()
 }
 
 // Querying MPD’s status
 
 // CurrentSong displays the song info of the current song
 func (c *Client) CurrentSong(ctx context.Context) (song map[string][]string, err error) {
-	err = c.conn.Exec(ctx, func(conn *conn) error {
+	err = c.pool.Exec(ctx, func(conn *conn) error {
 		if _, err := conn.Writeln("currentsong"); err != nil {
 			return err
 		}
@@ -186,7 +178,7 @@ func (c *Client) Previous(ctx context.Context) error {
 
 // PlaylistInfo displays a list of all songs in the playlist.
 func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string, err error) {
-	err = c.conn.Exec(ctx, func(conn *conn) error {
+	err = c.pool.Exec(ctx, func(conn *conn) error {
 		if _, err := conn.Writeln("playlistinfo"); err != nil {
 			return err
 		}
@@ -225,7 +217,7 @@ func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string,
 
 // ListAllInfo lists all songs and directories in uri.
 func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[string][]string, err error) {
-	err = c.conn.Exec(ctx, func(conn *conn) error {
+	err = c.pool.Exec(ctx, func(conn *conn) error {
 		if _, err := conn.Writeln("listallinfo", uri); err != nil {
 			return err
 		}
@@ -310,7 +302,7 @@ func (c *Client) healthCheck() {
 
 func (c *Client) mapsLastKeyOk(ctx context.Context, lastKey string, cmd ...interface{}) ([]map[string]string, error) {
 	var ret []map[string]string
-	err := c.conn.Exec(ctx, func(conn *conn) error {
+	err := c.pool.Exec(ctx, func(conn *conn) error {
 		item := map[string]string{}
 		ret = []map[string]string{}
 		if len(cmd) == 0 {
@@ -341,13 +333,13 @@ func (c *Client) mapsLastKeyOk(ctx context.Context, lastKey string, cmd ...inter
 }
 
 func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
-	return c.conn.Exec(ctx, func(conn *conn) error {
+	return c.pool.Exec(ctx, func(conn *conn) error {
 		return conn.OK(cmd...)
 	})
 }
 
 func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]string, err error) {
-	err = c.conn.Exec(ctx, func(conn *conn) error {
+	err = c.pool.Exec(ctx, func(conn *conn) error {
 		if _, err := conn.Writeln(cmd...); err != nil {
 			return err
 		}
@@ -374,7 +366,7 @@ func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]s
 }
 
 func (c *Client) listMap(ctx context.Context, newKey string, cmd ...interface{}) (l []map[string]string, err error) {
-	err = c.conn.Exec(ctx, func(conn *conn) error {
+	err = c.pool.Exec(ctx, func(conn *conn) error {
 		if _, err := conn.Writeln(cmd...); err != nil {
 			return err
 		}
@@ -402,115 +394,6 @@ func (c *Client) listMap(ctx context.Context, newKey string, cmd ...interface{})
 		}
 	})
 	return
-}
-
-type connKeeper struct {
-	proto                string
-	addr                 string
-	password             string
-	ReconnectionTimeout  time.Duration
-	ReconnectionInterval time.Duration
-	connC                chan *conn
-	mu                   sync.Mutex
-	version              string
-}
-
-func (c *connKeeper) Exec(ctx context.Context, f func(*conn) error) error {
-	conn, err := c.get(ctx)
-	if err != nil {
-		return err
-	}
-	errs := make(chan error)
-	go func() {
-		errs <- f(conn)
-		close(errs)
-	}()
-	select {
-	case err = <-errs:
-	case <-ctx.Done():
-		err = ctx.Err()
-		conn.SetDeadline(time.Now())
-	}
-	return c.returnConn(conn, err)
-}
-
-func (c *connKeeper) Close(ctx context.Context) error {
-	conn, err := c.get(ctx)
-	if err != nil {
-		return err
-	}
-	close(c.connC)
-	if _, err := conn.Writeln("close"); err != nil {
-		return err
-	}
-	return conn.Close()
-}
-
-func (c *connKeeper) Version() string {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.version
-}
-
-func (c *connKeeper) get(ctx context.Context) (*conn, error) {
-	select {
-	case conn, ok := <-c.connC:
-		if !ok {
-			return nil, ErrClosed
-		}
-		if d, ok := ctx.Deadline(); ok {
-			conn.SetDeadline(d)
-		} else {
-			conn.SetDeadline(time.Time{})
-		}
-		return conn, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
-}
-
-func (c *connKeeper) returnConn(conn *conn, err error) error {
-	if err != nil {
-		if _, ok := err.(*CommandError); !ok {
-			conn.Close()
-			go c.connect()
-			return err
-		}
-	}
-	c.connC <- conn
-	return err
-}
-
-func (c *connKeeper) connect() {
-	for {
-		if err := c.connectOnce(); err != nil {
-			time.Sleep(c.ReconnectionInterval)
-			continue
-		}
-		return
-	}
-}
-
-func (c *connKeeper) connectOnce() error {
-	deadline := time.Time{}
-	if c.ReconnectionTimeout != 0 {
-		deadline = time.Now().Add(c.ReconnectionTimeout)
-	}
-	conn, ver, err := newConn(c.proto, c.addr, deadline)
-	if err != nil {
-		return err
-	}
-	if len(c.password) > 0 {
-		if err := conn.OK("password", c.password); err != nil {
-			conn.Close()
-			return err
-		}
-	}
-	c.connC <- conn
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.version = ver
-	return nil
 }
 
 // quote escaping strings values for mpd.

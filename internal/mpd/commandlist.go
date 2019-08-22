@@ -52,7 +52,7 @@ func (cl *CommandList) End(ctx context.Context) error {
 		cl.commands = [][]interface{}{}
 		cl.parser = []func(*conn) error{}
 	}()
-	return cl.c.conn.Exec(ctx, func(conn *conn) error {
+	return cl.c.pool.Exec(ctx, func(conn *conn) error {
 		for i := range commands {
 			if _, err := conn.Writeln(commands[i]...); err != nil {
 				return err

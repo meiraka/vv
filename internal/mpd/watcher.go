@@ -12,15 +12,8 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 	for i := range subsystems {
 		cmd[i+1] = subsystems[i]
 	}
-	connK := &connKeeper{
-		proto:                proto,
-		addr:                 addr,
-		password:             password,
-		ReconnectionTimeout:  d.ReconnectionTimeout,
-		ReconnectionInterval: d.ReconnectionInterval,
-		connC:                make(chan *conn, 1),
-	}
-	if err := connK.connectOnce(); err != nil {
+	pool, err := newPool(proto, addr, password, d.ReconnectionTimeout, d.ReconnectionInterval)
+	if err != nil {
 		return nil, err
 	}
 	c := make(chan string, 10)
@@ -29,7 +22,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 	w := &Watcher{
 		C:      c,
 		closed: closed,
-		conn:   connK,
+		pool:   pool,
 		cancel: cancel,
 	}
 	go func() {
@@ -42,7 +35,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 			default:
 			}
 			// TODO: logging
-			err = w.conn.Exec(context.Background(), func(conn *conn) error {
+			err = w.pool.Exec(context.Background(), func(conn *conn) error {
 				if err != nil {
 					select {
 					case c <- "reconnect":
@@ -96,7 +89,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 
 // Watcher is the mpd idle command wather
 type Watcher struct {
-	conn   *connKeeper
+	pool   *pool
 	closed <-chan struct{}
 	C      <-chan string
 	cancel func()
@@ -110,5 +103,5 @@ func (w *Watcher) Close(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	return w.conn.Close(ctx)
+	return w.pool.Close(ctx)
 }
