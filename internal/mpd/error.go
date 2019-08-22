@@ -49,5 +49,8 @@ func newCommandError(s string) error {
 }
 
 func (f *CommandError) Error() string {
+	if len(f.Command) == 0 {
+		return fmt.Sprintf("mpd: %s", f.Message)
+	}
 	return fmt.Sprintf("mpd: %s: %s", f.Command, f.Message)
 }
