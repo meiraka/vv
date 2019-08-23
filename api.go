@@ -9,6 +9,7 @@ import (
 	"path"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -659,6 +660,7 @@ func (h *api) handle() http.HandlerFunc {
 	musicLibrary := h.libraryPost(h.jsonCache.Handler("/api/music/library"))
 	musicLibrarySongs := h.jsonCache.Handler("/api/music/library/songs")
 	musicOutputs := h.outputPost(h.jsonCache.Handler("/api/music/outputs"))
+	musicImage := http.StripPrefix(httpImagePath, h.cover.Handler())
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/version":
@@ -680,7 +682,11 @@ func (h *api) handle() http.HandlerFunc {
 		case "/api/music/outputs":
 			musicOutputs(w, r)
 		default:
-			http.NotFound(w, r)
+			if strings.HasPrefix(r.URL.Path, httpImagePath) {
+				musicImage.ServeHTTP(w, r)
+			} else {
+				http.NotFound(w, r)
+			}
 		}
 	}
 }
