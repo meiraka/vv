@@ -15,6 +15,44 @@ import (
 	"golang.org/x/text/language"
 )
 
+// AssetsHandler returns hander for asset files.
+func (h HTTPHandlerConfig) AssetsHandler() http.HandlerFunc {
+	root := h.i18nAssetsHandler("assets/app.html", AssetsAppHTML, AssetsAppHTMLHash)
+	appCSS := h.assetsHandler("assets/app.css", AssetsAppCSS, AssetsAppCSSHash)
+	appPNG := h.assetsHandler("assets/app.png", AssetsAppPNG, AssetsAppPNGHash)
+	manifestJSON := h.assetsHandler("assets/manifest.json", AssetsManifestJSON, AssetsManifestJSONHash)
+	appBlackPNG := h.assetsHandler("assets/app-black.png", AssetsAppBlackPNG, AssetsAppBlackPNGHash)
+	wPNG := h.assetsHandler("assets/w.png", AssetsWPNG, AssetsWPNGHash)
+	appJS := h.assetsHandler("assets/app.js", AssetsAppJS, AssetsAppJSHash)
+	nocoverSVG := h.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGHash)
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.URL.Path {
+		case "/":
+			root(w, r)
+		case "/assets/app.css":
+			appCSS(w, r)
+		case "/assets/app.png":
+			appPNG(w, r)
+		case "/assets/manifest.json":
+			manifestJSON(w, r)
+		case "/assets/app-black.png":
+			appBlackPNG(w, r)
+		case "/assets/w.png":
+			wPNG(w, r)
+		case "/assets/app.js":
+			appJS(w, r)
+		case "/assets/nocover.svg":
+			nocoverSVG(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}
+}
+
 func (h *HTTPHandlerConfig) assetsHandler(rpath string, b []byte, hash []byte) http.HandlerFunc {
 	if h.LocalAssets {
 		return func(w http.ResponseWriter, r *http.Request) {
