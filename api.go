@@ -116,7 +116,7 @@ func (c HTTPHandlerConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w 
 			cancel()
 		}
 	}()
-	return h.Handle(), nil
+	return h.handle(), nil
 }
 
 func (h *api) convSong(s map[string][]string) map[string][]string {
@@ -649,20 +649,38 @@ func writeHTTPError(w http.ResponseWriter, status int, err error) {
 func boolPtr(b bool) *bool       { return &b }
 func stringPtr(s string) *string { return &s }
 
-func (h *api) Handle() http.Handler {
-	m := http.NewServeMux()
-	m.Handle("/api/version", h.jsonCache.Handler("/api/version"))
-	m.Handle("/api/music", h.statusWebSocket(h.statusPost(h.jsonCache.Handler("/api/music"))))
-	m.Handle("/api/music/stats", h.jsonCache.Handler("/api/music/stats"))
-	m.Handle("/api/music/playlist", h.playlistPost(h.jsonCache.Handler("/api/music/playlist")))
-	m.Handle("/api/music/playlist/songs", h.jsonCache.Handler("/api/music/playlist/songs"))
-	m.Handle("/api/music/playlist/songs/current", h.jsonCache.Handler("/api/music/playlist/songs/current"))
-	m.Handle("/api/music/library", h.libraryPost(h.jsonCache.Handler("/api/music/library")))
-	m.Handle("/api/music/library/songs", h.jsonCache.Handler("/api/music/library/songs"))
-	m.Handle("/api/music/outputs", h.outputPost(h.jsonCache.Handler("/api/music/outputs")))
-	if h.cover != nil {
-		m.Handle(httpImagePath, http.StripPrefix(httpImagePath, h.cover.Handler()))
+func (h *api) handle() http.HandlerFunc {
+	version := h.jsonCache.Handler("/api/version")
+	music := h.statusWebSocket(h.statusPost(h.jsonCache.Handler("/api/music")))
+	musicStats := h.jsonCache.Handler("/api/music/stats")
+	musicPlaylist := h.playlistPost(h.jsonCache.Handler("/api/music/playlist"))
+	musicPlaylistSongs := h.jsonCache.Handler("/api/music/playlist/songs")
+	musicPlaylistSongsCurrent := h.jsonCache.Handler("/api/music/playlist/songs/current")
+	musicLibrary := h.libraryPost(h.jsonCache.Handler("/api/music/library"))
+	musicLibrarySongs := h.jsonCache.Handler("/api/music/library/songs")
+	musicOutputs := h.outputPost(h.jsonCache.Handler("/api/music/outputs"))
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/version":
+			version(w, r)
+		case "/api/music":
+			music(w, r)
+		case "/api/music/stats":
+			musicStats(w, r)
+		case "/api/music/playlist":
+			musicPlaylist(w, r)
+		case "/api/music/playlist/songs":
+			musicPlaylistSongs(w, r)
+		case "/api/music/playlist/songs/current":
+			musicPlaylistSongsCurrent(w, r)
+		case "/api/music/library":
+			musicLibrary(w, r)
+		case "/api/music/library/songs":
+			musicLibrarySongs(w, r)
+		case "/api/music/outputs":
+			musicOutputs(w, r)
+		default:
+			http.NotFound(w, r)
+		}
 	}
-
-	return m
 }
