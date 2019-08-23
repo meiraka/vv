@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	httpImagePath = "/api/music/image/"
+	httpImagePath = "/api/music/images/"
 )
 
 // HTTPHandlerConfig holds HTTPHandler config
