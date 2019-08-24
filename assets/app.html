@@ -349,8 +349,6 @@ html {
             <div class="system-setting-desc">{{ or .Uptime "Uptime:" }}</div><div class="system-setting-value" id=stat-uptime></div>
           <li class="list-item system-setting">
             <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><time class="system-setting-value" id=stat-db-update></time>
-          <li class="list-item system-setting">
-            <div class="system-setting-desc">{{ or .Websockets "Websockets:" }}</div><div class="system-setting-value" id=stat-websockets></div>
       </article>
     </article>
 
@@ -393,14 +391,6 @@ html {
           <div class="link">
             <a class="product-link" href="https://github.com/gorilla/websocket">https://github.com/gorilla/websocket</a>
             <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">{{ or .BSD2ClauseLicense "BSD 2-clause license" }}</a>
-          </div>
-        <li class="license-box information-box">
-          <div>
-            <span class="product-name">github.com/meiraka/gompd</span>
-          </div>
-          <div class="link">
-            <a class="product-link" href="https://github.com/meiraka/gompd">https://github.com/meiraka/gompd</a>
-            <a class="license-link" href="https://github.com/meiraka/gompd/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
           </div>
         <li class="license-box information-box">
           <div>
