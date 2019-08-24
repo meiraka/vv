@@ -2003,6 +2003,7 @@ vv.view.system = {
   onVersion() {
     if (vv.storage.version.app) {
       document.getElementById("version").textContent = vv.storage.version.app;
+      document.getElementById("mpd-version").textContent = vv.storage.version.mpd;
       document.getElementById("go-version").textContent = vv.storage.version.go;
     }
   },
