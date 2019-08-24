@@ -13,72 +13,101 @@ import (
 
 type jsonCache struct {
 	event  chan string
-	data   map[string][]byte
-	gzdata map[string][]byte
-	date   map[string]time.Time
+	index  []string
+	data   [][]byte
+	gzdata [][]byte
+	date   []time.Time
 	mu     sync.RWMutex
 }
 
 func newJSONCache() *jsonCache {
 	return &jsonCache{
 		event:  make(chan string, 100),
-		data:   map[string][]byte{},
-		gzdata: map[string][]byte{},
-		date:   map[string]time.Time{},
+		index:  []string{},
+		data:   [][]byte{},
+		gzdata: [][]byte{},
+		date:   []time.Time{},
 	}
 }
 
-func (b *jsonCache) Close() {
-	b.mu.Lock()
-	close(b.event)
-	b.mu.Unlock()
+func (c *jsonCache) Close() {
+	c.mu.Lock()
+	close(c.event)
+	c.mu.Unlock()
 }
 
-func (b *jsonCache) Event() <-chan string {
-	return b.event
+func (c *jsonCache) Event() <-chan string {
+	return c.event
 }
 
-func (b *jsonCache) Set(path string, i interface{}) error {
-	return b.set(path, i, true)
+func (c *jsonCache) Set(path string, i interface{}) error {
+	return c.set(path, i, true)
 }
 
-func (b *jsonCache) SetIfModified(path string, i interface{}) error {
-	return b.set(path, i, false)
+func (c *jsonCache) SetIfModified(path string, i interface{}) error {
+	return c.set(path, i, false)
 }
 
-func (b *jsonCache) set(path string, i interface{}, force bool) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+func (c *jsonCache) getPos(path string) int {
+	for i := range c.index {
+		if c.index[i] == path {
+			return i
+		}
+	}
+	c.index = append(c.index, path)
+	c.data = append(c.data, nil)
+	c.gzdata = append(c.gzdata, nil)
+	c.date = append(c.date, time.Time{})
+	return len(c.index) - 1
+}
+
+func (c *jsonCache) set(path string, i interface{}, force bool) error {
 	n, err := json.Marshal(i)
 	if err != nil {
 		return err
 	}
-	o := b.data[path]
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	pos := c.getPos(path)
+
+	o := c.data[pos]
 	if force || !bytes.Equal(o, n) {
-		b.data[path] = n
-		b.date[path] = time.Now().UTC()
+		c.data[pos] = n
+		c.date[pos] = time.Now().UTC()
 		gz, err := makeGZip(n)
 		if err == nil {
-			b.gzdata[path] = gz
+			c.gzdata[pos] = gz
+		} else {
+			c.gzdata[pos] = nil
 		}
 		select {
-		case b.event <- path:
+		case c.event <- path:
 		default:
 		}
 	}
 	return nil
 }
 
-func (b *jsonCache) Get(path string) (data, gzdata []byte, l time.Time) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	return b.data[path], b.gzdata[path], b.date[path]
+func (c *jsonCache) Get(path string) (data, gzdata []byte, l time.Time) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	for i := range c.index {
+		if c.index[i] == path {
+			return c.data[i], c.gzdata[i], c.date[i]
+		}
+	}
+	return nil, nil, time.Time{}
 
 }
 
-func (b *jsonCache) Handler(path string) http.HandlerFunc {
+func (c *jsonCache) Handler(path string) http.HandlerFunc {
+	c.mu.Lock()
+	pos := c.getPos(path)
+	c.mu.Unlock()
 	return func(w http.ResponseWriter, r *http.Request) {
-		b, gz, date := b.Get(path)
+		c.mu.RLock()
+		b, gz, date := c.data[pos], c.gzdata[pos], c.date[pos]
+		c.mu.RUnlock()
 		etag := fmt.Sprintf(`"%d.%d"`, date.Unix(), date.Nanosecond())
 		if noneMatch(r, etag) {
 			w.WriteHeader(http.StatusNotModified)
