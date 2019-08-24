@@ -987,7 +987,7 @@ vv.control = {
     vv.storage.control.update_library = true;
     vv.control.raiseEvent("control");
   },
-  prev() { vv.request.post("/api/music", {state: "prev"}); },
+  prev() { vv.request.post("/api/music", {state: "previous"}); },
   play_pause() {
     const state = vv.control._getOrElse(vv.storage.control, "state", "stopped");
     const action = state === "play" ? "pause" : "play";
