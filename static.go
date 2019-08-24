@@ -15,16 +15,23 @@ import (
 	"golang.org/x/text/language"
 )
 
-// AssetsHandler returns hander for asset files.
-func (h HTTPHandlerConfig) AssetsHandler() http.HandlerFunc {
-	root := h.i18nAssetsHandler("assets/app.html", AssetsAppHTML, AssetsAppHTMLHash)
-	appCSS := h.assetsHandler("assets/app.css", AssetsAppCSS, AssetsAppCSSHash)
-	appPNG := h.assetsHandler("assets/app.png", AssetsAppPNG, AssetsAppPNGHash)
-	manifestJSON := h.assetsHandler("assets/manifest.json", AssetsManifestJSON, AssetsManifestJSONHash)
-	appBlackPNG := h.assetsHandler("assets/app-black.png", AssetsAppBlackPNG, AssetsAppBlackPNGHash)
-	wPNG := h.assetsHandler("assets/w.png", AssetsWPNG, AssetsWPNGHash)
-	appJS := h.assetsHandler("assets/app.js", AssetsAppJS, AssetsAppJSHash)
-	nocoverSVG := h.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGHash)
+// AssetsConfig represents Assets configuration
+type AssetsConfig struct {
+	LocalAssets bool
+}
+
+// NewAssetsHandler returns hander for asset files.
+func (c AssetsConfig) NewAssetsHandler() http.HandlerFunc {
+	root := c.i18nAssetsHandler("assets/app.html", AssetsAppHTML, AssetsAppHTMLHash)
+	appCSS := c.assetsHandler("assets/app.css", AssetsAppCSS, AssetsAppCSSHash)
+	appJS := c.assetsHandler("assets/app.js", AssetsAppJS, AssetsAppJSHash)
+	appPNG := c.assetsHandler("assets/app.png", AssetsAppPNG, AssetsAppPNGHash)
+	appSVG := c.assetsHandler("assets/app.svg", AssetsAppSVG, AssetsAppSVGHash)
+	manifestJSON := c.assetsHandler("assets/manifest.json", AssetsManifestJSON, AssetsManifestJSONHash)
+	appBlackPNG := c.assetsHandler("assets/app-black.png", AssetsAppBlackPNG, AssetsAppBlackPNGHash)
+	appBlackSVG := c.assetsHandler("assets/app-black.svg", AssetsAppBlackSVG, AssetsAppBlackSVGHash)
+	wPNG := c.assetsHandler("assets/w.png", AssetsWPNG, AssetsWPNGHash)
+	nocoverSVG := c.assetsHandler("assets/nocover.svg", AssetsNocoverSVG, AssetsNocoverSVGHash)
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			http.NotFound(w, r)
@@ -35,16 +42,20 @@ func (h HTTPHandlerConfig) AssetsHandler() http.HandlerFunc {
 			root(w, r)
 		case "/assets/app.css":
 			appCSS(w, r)
+		case "/assets/app.js":
+			appJS(w, r)
 		case "/assets/app.png":
 			appPNG(w, r)
+		case "/assets/app.svg":
+			appSVG(w, r)
 		case "/assets/manifest.json":
 			manifestJSON(w, r)
 		case "/assets/app-black.png":
 			appBlackPNG(w, r)
+		case "/assets/app-black.svg":
+			appBlackSVG(w, r)
 		case "/assets/w.png":
 			wPNG(w, r)
-		case "/assets/app.js":
-			appJS(w, r)
 		case "/assets/nocover.svg":
 			nocoverSVG(w, r)
 		default:
@@ -53,8 +64,8 @@ func (h HTTPHandlerConfig) AssetsHandler() http.HandlerFunc {
 	}
 }
 
-func (h *HTTPHandlerConfig) assetsHandler(rpath string, b []byte, hash []byte) http.HandlerFunc {
-	if h.LocalAssets {
+func (c *AssetsConfig) assetsHandler(rpath string, b []byte, hash []byte) http.HandlerFunc {
+	if c.LocalAssets {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add("Cache-Control", "max-age=1")
 			http.ServeFile(w, r, rpath)
@@ -104,10 +115,10 @@ func determineLanguage(r *http.Request, m language.Matcher) language.Tag {
 	return tag
 }
 
-func (h *HTTPHandlerConfig) i18nAssetsHandler(rpath string, b []byte, hash []byte) http.HandlerFunc {
+func (c *AssetsConfig) i18nAssetsHandler(rpath string, b []byte, hash []byte) http.HandlerFunc {
 	matcher := language.NewMatcher(translatePrio)
 	m := mime.TypeByExtension(path.Ext(rpath))
-	if h.LocalAssets {
+	if c.LocalAssets {
 		return func(w http.ResponseWriter, r *http.Request) {
 			info, err := os.Stat(rpath)
 			if err != nil {

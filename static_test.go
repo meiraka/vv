@@ -17,12 +17,30 @@ func Gzip(t *testing.T, b []byte) []byte {
 	return gz
 }
 
+func TestLocalAssetsHandler(t *testing.T) {
+	assets := []string{"/", "/assets/app-black.png", "/assets/app-black.svg", "/assets/app.css", "/assets/app.js", "/assets/app.png", "/assets/app.svg", "/assets/manifest.json", "/assets/nocover.svg", "/assets/w.png"}
+	for _, local := range []bool{true, false} {
+		h := AssetsConfig{LocalAssets: local}.NewAssetsHandler()
+		for _, path := range assets {
+			t.Run(fmt.Sprintf("local=%t, %s", local, path), func(t *testing.T) {
+				req := httptest.NewRequest(http.MethodGet, path, nil)
+				w := httptest.NewRecorder()
+				h(w, req)
+				resp := w.Result()
+				if resp.StatusCode != 200 {
+					t.Errorf("got %d; want %d", resp.StatusCode, 200)
+				}
+
+			})
+		}
+
+	}
+
+}
+
 func TestAssetsHandler(t *testing.T) {
-	m := http.NewServeMux()
-	conf := HTTPHandlerConfig{LocalAssets: false}
-	m.Handle("/assets/app.svg", conf.assetsHandler("assets/app.svg", AssetsAppSVG, AssetsAppSVGHash))
-	m.Handle("/assets/app.png", conf.assetsHandler("assets/app.png", AssetsAppPNG, AssetsAppPNGHash))
-	ts := httptest.NewServer(m)
+	conf := AssetsConfig{LocalAssets: false}
+	ts := httptest.NewServer(conf.NewAssetsHandler())
 	defer ts.Close()
 	testsets := map[string]struct {
 		path   string
@@ -63,7 +81,7 @@ func TestAssetsHandler(t *testing.T) {
 }
 
 func TestI18NAssetsHandler(t *testing.T) {
-	conf := HTTPHandlerConfig{LocalAssets: false}
+	conf := AssetsConfig{LocalAssets: false}
 	b := []byte(`{{ or .lang "en" }}`)
 	ts := httptest.NewServer(conf.i18nAssetsHandler("assets/app.html", b, AssetsAppHTMLHash))
 	defer ts.Close()

@@ -29,7 +29,7 @@ var (
 		ReconnectionInterval: time.Second,
 	}
 	testHTTPClient = &http.Client{Timeout: testTimeout}
-	testHTTPConfig = HTTPHandlerConfig{
+	testAPIConfig  = APIConfig{
 		BackgroundTimeout: time.Second,
 	}
 )
@@ -74,7 +74,7 @@ func TestAPIPHandler(t *testing.T) {
 		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
 		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 	}()
-	h, err := testHTTPConfig.NewHTTPHandler(ctx, c, wl)
+	h, err := testAPIConfig.NewAPIHandler(ctx, c, wl)
 	if err != nil {
 		t.Fatalf("NewHTTPHandler got error %v; want nil", err)
 	}

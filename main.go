@@ -93,15 +93,24 @@ func v2() {
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
-	handler, err := HTTPHandlerConfig{
-		LocalAssets:    viper.GetBool("debug"),
+	assets := AssetsConfig{
+		LocalAssets: viper.GetBool("debug"),
+	}.NewAssetsHandler()
+	api, err := APIConfig{
 		MusicDirectory: musicDirectory,
-	}.NewHTTPHandler(ctx, cl, w)
+	}.NewAPIHandler(ctx, cl, w)
+	if err != nil {
+		log.Fatalf("failed to initialize api handler: %v", err)
+	}
+	m := http.NewServeMux()
+	m.Handle("/", assets)
+	m.Handle("/api/", api)
+
 	if err != nil {
 		log.Fatalf("failed to initialize app: %v", err)
 	}
 	s := http.Server{
-		Handler: handler,
+		Handler: m,
 		Addr:    viper.GetString("server.addr"),
 	}
 	errs := make(chan error, 1)
@@ -129,16 +138,4 @@ func v2() {
 	if err := w.Close(ctx); err != nil {
 		log.Printf("failed to close mpd connection(event): %v", err)
 	}
-}
-
-// NewHTTPHandler creates MPD http handler
-func (h HTTPHandlerConfig) NewHTTPHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
-	api, err := h.NewAPIHandler(ctx, cl, w)
-	if err != nil {
-		return nil, err
-	}
-	m := http.NewServeMux()
-	m.Handle("/", h.AssetsHandler())
-	m.Handle("/api/", api)
-	return m, nil
 }

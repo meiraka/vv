@@ -22,10 +22,9 @@ const (
 	httpImagePath = "/api/music/images/"
 )
 
-// HTTPHandlerConfig holds HTTPHandler config
-type HTTPHandlerConfig struct {
+// APIConfig holds HTTPHandler config
+type APIConfig struct {
 	BackgroundTimeout time.Duration
-	LocalAssets       bool
 	MusicDirectory    string
 }
 
@@ -40,7 +39,7 @@ func addHTTPPrefix(m map[string][]string) map[string][]string {
 }
 
 type api struct {
-	config    *HTTPHandlerConfig
+	config    *APIConfig
 	client    *mpd.Client
 	watcher   *mpd.Watcher
 	jsonCache *jsonCache
@@ -57,7 +56,7 @@ type api struct {
 }
 
 // NewAPIHandler creates json api handler.
-func (c HTTPHandlerConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
+func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
 	}
