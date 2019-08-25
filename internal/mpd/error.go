@@ -19,6 +19,9 @@ func newCommandError(s string) error {
 	if len(s) < 5 {
 		return fmt.Errorf("unknown error: %s", s)
 	}
+	if !strings.HasPrefix(s, "ACK [") {
+		return fmt.Errorf("unknown error: %s", s)
+	}
 	u := s[5:]
 	at := strings.IndexRune(u, '@')
 	if at < 0 {

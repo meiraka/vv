@@ -3,7 +3,6 @@ package mpd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 )
@@ -191,11 +190,11 @@ func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string,
 				songs = append(songs, song)
 			}
 			if len(songs) == 0 {
-				return fmt.Errorf("unexpected: " + line)
+				return newCommandError(line)
 			}
 			i := strings.Index(line, ": ")
 			if i < 0 {
-				return fmt.Errorf("can't parse line: " + line)
+				return newCommandError(line)
 			}
 			key := line[0:i]
 			if _, found := song[key]; !found {
@@ -236,11 +235,11 @@ func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[strin
 			}
 			if inEntry {
 				if len(songs) == 0 {
-					return fmt.Errorf("unexpected: " + line)
+					return newCommandError(line)
 				}
 				i := strings.Index(line, ": ")
 				if i < 0 {
-					return fmt.Errorf("can't parse line: " + line)
+					return newCommandError(line)
 				}
 				key := line[0:i]
 				if _, found := song[key]; !found {
@@ -248,6 +247,8 @@ func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[strin
 				} else {
 					song[key] = append(song[key], line[i+2:])
 				}
+			} else if strings.HasPrefix(line, "ACK [") {
+				return newCommandError(line)
 			}
 		}
 	})
@@ -317,10 +318,7 @@ func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]s
 			}
 			i := strings.Index(line, ": ")
 			if i < 0 {
-				if strings.HasPrefix(line, "ACK") {
-					return newCommandError(line)
-				}
-				return fmt.Errorf("can't parse line: " + line)
+				return newCommandError(line)
 			}
 			m[line[0:i]] = line[i+2:]
 		}
@@ -347,11 +345,11 @@ func (c *Client) listMap(ctx context.Context, newKey string, cmd ...interface{})
 				l = append(l, m)
 			}
 			if m == nil {
-				return fmt.Errorf("unexpected: " + line)
+				return newCommandError(line)
 			}
 			i := strings.Index(line, ": ")
 			if i < 0 {
-				return fmt.Errorf("can't parse line: " + line)
+				return newCommandError(line)
 			}
 			m[line[0:i]] = line[i+2:]
 		}

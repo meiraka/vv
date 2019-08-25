@@ -19,7 +19,7 @@ var (
 )
 
 func TestClient(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	w, r, ts, _ := mpdtest.NewServer("OK MPD 0.19")
 	go func() {
@@ -55,6 +55,21 @@ func TestClient(t *testing.T) {
 					write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n",
 					want:  map[string]string{"volume": "-1", "song": "1", "elapsed": "1.1", "repeat": "0", "random": "0", "single": "0", "consume": "0", "state": "pause"},
 				},
+				"playlistinfo\n": {
+					cmd:   func(ctx context.Context) (interface{}, error) { return c.PlaylistInfo(ctx) },
+					write: "file: foo\nfile: bar\nOK\n",
+					want:  []map[string][]string{{"file": {"foo"}}, {"file": {"bar"}}},
+				},
+				"listallinfo /\n": {
+					cmd:   func(ctx context.Context) (interface{}, error) { return c.ListAllInfo(ctx, "/") },
+					write: "file: foo\nfile: bar\nfile: baz\nOK\n",
+					want:  []map[string][]string{{"file": {"foo"}}, {"file": {"bar"}}, {"file": {"baz"}}},
+				},
+				"outputs\n": {
+					cmd:   func(ctx context.Context) (interface{}, error) { return c.Outputs(ctx) },
+					write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n",
+					want:  []map[string]string{{"outputid": "0", "outputname": "My ALSA Device", "plugin": "alsa", "outputenabled": "0", "attribute": "dop=0"}},
+				},
 			} {
 				t.Run(read, func(t *testing.T) {
 					go func() {
@@ -70,9 +85,9 @@ func TestClient(t *testing.T) {
 						mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: read})
 						ts.Disconnect(ctx)
 					}()
-					_, err := tt.cmd(ctx)
+					got, err := tt.cmd(ctx)
 					if err != io.EOF {
-						t.Errorf("got _, %v; want nil, %v", err, io.EOF)
+						t.Errorf("got %v, %v; want nil, %v", got, err, io.EOF)
 					}
 					w <- "" // close server conn
 					mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
