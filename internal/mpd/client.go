@@ -78,7 +78,7 @@ func (c *Client) CurrentSong(ctx context.Context) (song map[string][]string, err
 			}
 			i := strings.Index(line, ": ")
 			if i < 0 {
-				return fmt.Errorf("can't parse line: " + line)
+				return newCommandError(line)
 			}
 			key := line[0:i]
 			if _, found := song[key]; !found {
@@ -102,11 +102,6 @@ func (c *Client) Stats(ctx context.Context) (map[string]string, error) {
 }
 
 // Music Database Commands
-
-// CountGroup counts the number of songs by a tag(ex: artist)
-func (c *Client) CountGroup(ctx context.Context, group string) ([]map[string]string, error) {
-	return c.mapsLastKeyOk(ctx, "playtime", "count", "group", group)
-}
 
 // Playback options
 
@@ -298,38 +293,6 @@ func (c *Client) healthCheck() {
 			}
 		}
 	}()
-}
-
-func (c *Client) mapsLastKeyOk(ctx context.Context, lastKey string, cmd ...interface{}) ([]map[string]string, error) {
-	var ret []map[string]string
-	err := c.pool.Exec(ctx, func(conn *conn) error {
-		item := map[string]string{}
-		ret = []map[string]string{}
-		if len(cmd) == 0 {
-			return nil
-		}
-		if _, err := conn.Writeln(cmd...); err != nil {
-			return err
-		}
-		for {
-			if s, err := conn.Readln(); err != nil {
-				return err
-			} else if s == "OK" {
-				return nil
-			} else {
-				kv := strings.SplitN(s, ": ", 2)
-				if len(kv) != 2 {
-					continue
-				}
-				item[kv[0]] = kv[1]
-				if kv[0] == lastKey {
-					ret = append(ret, item)
-					item = map[string]string{}
-				}
-			}
-		}
-	})
-	return ret, err
 }
 
 func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {

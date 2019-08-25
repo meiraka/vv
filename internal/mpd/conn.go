@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -23,12 +24,12 @@ func newConn(proto, addr string, deadline time.Time) (*conn, string, error) {
 		conn:   c,
 	}
 	conn.SetDeadline(deadline)
-	s, err := conn.ReadString('\n')
+	v, err := conn.Readln()
 	if err != nil {
 		conn.Close()
 		return nil, "", err
 	}
-	return conn, s[len("OK MPD ") : len(s)-1], nil
+	return conn, strings.TrimPrefix(v, "OK MPD "), nil
 }
 
 func (c *conn) Readln() (string, error) {
@@ -65,10 +66,10 @@ func (c *conn) OK(cmd ...interface{}) error {
 
 // ReadEnd reads and checks end message of mpd response.
 func (c *conn) ReadEnd(end string) error {
-	if s, err := c.ReadString('\n'); err != nil {
-		return fmt.Errorf("read failed: %v", err)
-	} else if s != end+"\n" {
-		return newCommandError(s[0 : len(s)-1])
+	if v, err := c.Readln(); err != nil {
+		return err
+	} else if v != end {
+		return newCommandError(v)
 	}
 	return nil
 }
