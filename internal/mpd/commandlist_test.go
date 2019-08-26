@@ -12,7 +12,10 @@ import (
 func TestCommandList(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	w, r, ts, _ := mpdtest.NewServer("OK MPD 0.19")
+	w, r, ts, err := mpdtest.NewServer("OK MPD 0.19")
+	if err != nil {
+		t.Fatalf("failed to create test server: %v", err)
+	}
 	go func() {
 		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
 		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "command_list_ok_begin\n"})

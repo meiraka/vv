@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/net/nettest"
 )
 
 // Server is mock mpd server.
@@ -68,7 +70,7 @@ func Expect(ctx context.Context, w chan string, r <-chan string, m *WR) {
 
 // NewServer creates new mpd mock Server for idle command.
 func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := nettest.NewLocalListener("tcp")
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -92,14 +94,30 @@ func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
 				ctx, cancel := context.WithCancel(context.Background())
 				go func(conn net.Conn) {
 					defer cancel()
-					for m := range wc {
-						if _, err := fmt.Fprint(conn, m); err != nil {
+					for {
+						select {
+						case m, ok := <-wc:
+							if !ok {
+								return
+							}
+							if _, err := fmt.Fprint(conn, m); err != nil {
+								cancel()
+								if len(m) != 0 {
+									wc <- m
+								}
+								return
+							}
+						case <-ctx.Done():
+							return
+						case <-s.disconnect:
 							return
 						}
+
 					}
 				}(conn)
 				go func(conn net.Conn) {
 					defer conn.Close()
+					defer cancel()
 					r := bufio.NewReader(conn)
 					for {
 						nl, err := r.ReadString('\n')
@@ -111,10 +129,7 @@ func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
 
 				}(conn)
 
-				select {
-				case <-s.disconnect:
-				case <-ctx.Done():
-				}
+				<-ctx.Done()
 				conn.SetDeadline(time.Now().Add(-1 * time.Second))
 				conn.Close()
 			}(conn)

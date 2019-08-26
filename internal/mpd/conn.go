@@ -35,6 +35,7 @@ func newConn(proto, addr string, deadline time.Time) (*conn, string, error) {
 func (c *conn) Readln() (string, error) {
 	s, err := c.ReadString('\n')
 	if err != nil {
+		// log.Println("TRACE", "read err:", err)
 		return s, err
 	}
 	// log.Println("TRACE", "read:", s[0:len(s)-1])
@@ -42,6 +43,7 @@ func (c *conn) Readln() (string, error) {
 }
 
 func (c *conn) Close() error {
+	// log.Println("TRACE", "close")
 	return c.conn.Close()
 }
 

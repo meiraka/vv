@@ -14,14 +14,17 @@ var (
 	testDialer = Dialer{
 		ReconnectionTimeout:  time.Second,
 		HealthCheckInterval:  time.Second,
-		ReconnectionInterval: time.Millisecond,
+		ReconnectionInterval: time.Microsecond,
 	}
 )
 
 func TestClient(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	w, r, ts, _ := mpdtest.NewServer("OK MPD 0.19")
+	w, r, ts, err := mpdtest.NewServer("OK MPD 0.19")
+	if err != nil {
+		t.Fatalf("failed to create test server: %v", err)
+	}
 	go func() {
 		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
 	}()
@@ -89,7 +92,6 @@ func TestClient(t *testing.T) {
 					if err != io.EOF {
 						t.Errorf("got %v, %v; want nil, %v", got, err, io.EOF)
 					}
-					w <- "" // close server conn
 					mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
 				})
 				t.Run(read+" command error", func(t *testing.T) {
@@ -100,6 +102,18 @@ func TestClient(t *testing.T) {
 					if want := newCommandError("ACK [50@1] {test} test error"); !reflect.DeepEqual(err, want) {
 						t.Errorf("got _, %v; want nil, %v", err, want)
 					}
+				})
+				t.Run(read+" context cancel", func(t *testing.T) {
+					cmdCtx, cmdCancel := context.WithCancel(ctx)
+					go func() {
+						mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: read})
+						cmdCancel()
+					}()
+					got, err := tt.cmd(cmdCtx)
+					if err != context.Canceled {
+						t.Errorf("got %v, %v; want nil, %v", got, err, io.EOF)
+					}
+					mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
 				})
 			}
 		},
