@@ -109,10 +109,10 @@ func (c *AssetsConfig) assetsHandler(rpath string, b []byte, hash []byte) http.H
 	}
 }
 
-func determineLanguage(r *http.Request, m language.Matcher) language.Tag {
+func determineLanguage(r *http.Request, m language.Matcher) (language.Tag, int) {
 	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
-	tag, _, _ := m.Match(t...)
-	return tag
+	_, i, _ := m.Match(t...)
+	return translatePrio[i], i
 }
 
 func (c *AssetsConfig) i18nAssetsHandler(rpath string, b []byte, hash []byte) http.HandlerFunc {
@@ -130,7 +130,7 @@ func (c *AssetsConfig) i18nAssetsHandler(rpath string, b []byte, hash []byte) ht
 				w.WriteHeader(304)
 				return
 			}
-			tag := determineLanguage(r, matcher)
+			tag, _ := determineLanguage(r, matcher)
 			data, err := ioutil.ReadFile(rpath)
 			if err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
@@ -176,13 +176,7 @@ func (c *AssetsConfig) i18nAssetsHandler(rpath string, b []byte, hash []byte) ht
 			w.WriteHeader(304)
 			return
 		}
-		tag := determineLanguage(r, matcher)
-		index := 0
-		for ; index < len(translatePrio); index++ {
-			if translatePrio[index] == tag {
-				break
-			}
-		}
+		tag, index := determineLanguage(r, matcher)
 		b = bt[index]
 		gz = gt[index]
 
