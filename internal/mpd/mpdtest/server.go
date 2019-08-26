@@ -7,7 +7,6 @@ import (
 	"net"
 	"strings"
 	"sync"
-	"time"
 )
 
 // Server is mock mpd server.
@@ -92,30 +91,7 @@ func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
 				ctx, cancel := context.WithCancel(context.Background())
 				go func(conn net.Conn) {
 					defer cancel()
-					for {
-						select {
-						case m, ok := <-wc:
-							if !ok {
-								return
-							}
-							if _, err := fmt.Fprint(conn, m); err != nil {
-								cancel()
-								if len(m) != 0 {
-									wc <- m
-								}
-								return
-							}
-						case <-ctx.Done():
-							return
-						case <-s.disconnect:
-							return
-						}
-
-					}
-				}(conn)
-				go func(conn net.Conn) {
 					defer conn.Close()
-					defer cancel()
 					r := bufio.NewReader(conn)
 					for {
 						nl, err := r.ReadString('\n')
@@ -126,10 +102,25 @@ func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
 					}
 
 				}(conn)
-
-				<-ctx.Done()
-				conn.SetDeadline(time.Now().Add(-1 * time.Second))
-				conn.Close()
+				defer conn.Close()
+				for {
+					select {
+					case m, ok := <-wc:
+						if !ok {
+							return
+						}
+						if _, err := fmt.Fprint(conn, m); err != nil {
+							if len(m) != 0 {
+								wc <- m
+							}
+							return
+						}
+					case <-s.disconnect:
+						return
+					case <-ctx.Done():
+						return
+					}
+				}
 			}(conn)
 		}
 	}(ln)
