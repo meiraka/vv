@@ -18,6 +18,6 @@ require (
 	github.com/spf13/viper v1.0.2
 	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/image v0.0.0-20180601115456-af66defab954
-	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
+	golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a // indirect
 	golang.org/x/text v0.3.0
 )

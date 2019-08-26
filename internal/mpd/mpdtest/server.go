@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"golang.org/x/net/nettest"
 )
 
 // Server is mock mpd server.
@@ -70,7 +68,7 @@ func Expect(ctx context.Context, w chan string, r <-chan string, m *WR) {
 
 // NewServer creates new mpd mock Server for idle command.
 func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
-	ln, err := nettest.NewLocalListener("tcp")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return nil, nil, nil, err
 	}
