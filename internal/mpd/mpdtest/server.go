@@ -14,8 +14,14 @@ type Server struct {
 	ln         net.Listener
 	URL        string
 	disconnect chan struct{}
+	rc         chan *rConn
 	mu         sync.Mutex
 	closed     bool
+}
+
+type rConn struct {
+	read string
+	wc   chan string
 }
 
 // Disconnect closes current connection.
@@ -48,37 +54,38 @@ type WR struct {
 }
 
 // Expect expects mpd read/write message
-func Expect(ctx context.Context, w chan string, r <-chan string, m *WR) {
-	ws := m.Write
+func (s *Server) Expect(ctx context.Context, m *WR) {
 	select {
 	case <-ctx.Done():
 		return
-	case s := <-r:
-		if s != m.Read {
-			ws = fmt.Sprintf("ACK [5@0] {} got %s; want %s\n", strings.TrimSuffix(m.Read, "\n"), strings.TrimSuffix(s, "\n"))
+	case r := <-s.rc:
+		w := m.Write
+		if r.read != m.Read {
+			w = fmt.Sprintf("ACK [5@0] {} got %s; want %s\n", strings.TrimSuffix(m.Read, "\n"), strings.TrimSuffix(r.read, "\n"))
 		}
-	}
-	select {
-	case <-ctx.Done():
-	case w <- ws:
+		select {
+		case <-ctx.Done():
+		case r.wc <- w:
+		}
 	}
 
 }
 
 // NewServer creates new mpd mock Server for idle command.
-func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
+func NewServer(firstResp string) (*Server, error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
+	rc := make(chan *rConn)
 	s := &Server{
 		ln:         ln,
 		URL:        ln.Addr().String(),
 		disconnect: make(chan struct{}, 1),
+		rc:         rc,
 	}
-	wc := make(chan string)
-	rc := make(chan string)
 	go func(ln net.Listener) {
+		var wg sync.WaitGroup
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
@@ -87,42 +94,46 @@ func NewServer(firstResp string) (chan string, <-chan string, *Server, error) {
 			if _, err := fmt.Fprintln(conn, firstResp); err != nil {
 				break
 			}
+			wg.Add(1)
 			go func(conn net.Conn) {
+				defer wg.Done()
 				ctx, cancel := context.WithCancel(context.Background())
-				go func(conn net.Conn) {
+				defer cancel()
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
 					defer cancel()
 					defer conn.Close()
 					r := bufio.NewReader(conn)
+					wc := make(chan string, 1)
 					for {
 						nl, err := r.ReadString('\n')
 						if err != nil {
 							return
 						}
-						rc <- nl
-					}
-
-				}(conn)
-				defer conn.Close()
-				for {
-					select {
-					case m, ok := <-wc:
-						if !ok {
-							return
+						rc <- &rConn{
+							read: nl,
+							wc:   wc,
 						}
-						if _, err := fmt.Fprint(conn, m); err != nil {
-							if len(m) != 0 {
-								wc <- m
+						select {
+						case <-ctx.Done():
+							return
+						case l := <-wc:
+							if len(l) != 0 {
+								if _, err := fmt.Fprint(conn, l); err != nil {
+									return
+								}
 							}
-							return
 						}
-					case <-s.disconnect:
-						return
-					case <-ctx.Done():
-						return
 					}
+				}()
+				select {
+				case <-ctx.Done():
+				case <-s.disconnect:
 				}
+				conn.Close()
 			}(conn)
 		}
 	}(ln)
-	return wc, rc, s, nil
+	return s, nil
 }

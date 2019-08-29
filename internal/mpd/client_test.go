@@ -21,12 +21,12 @@ var (
 func TestClient(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	w, r, ts, err := mpdtest.NewServer("OK MPD 0.19")
+	ts, err := mpdtest.NewServer("OK MPD 0.19")
 	if err != nil {
 		t.Fatalf("failed to create test server: %v", err)
 	}
 	go func() {
-		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
 	}()
 	defer ts.Close()
 	c, err := testDialer.Dial("tcp", ts.URL, "2434")
@@ -76,7 +76,7 @@ func TestClient(t *testing.T) {
 			} {
 				t.Run(read, func(t *testing.T) {
 					go func() {
-						mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: read, Write: tt.write})
+						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: tt.write})
 					}()
 					got, err := tt.cmd(ctx)
 					if !reflect.DeepEqual(got, tt.want) || err != nil {
@@ -85,18 +85,24 @@ func TestClient(t *testing.T) {
 				})
 				t.Run(read+" network read error", func(t *testing.T) {
 					go func() {
-						mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: read})
+						ts.Expect(ctx, &mpdtest.WR{Read: read})
 						ts.Disconnect(ctx)
 					}()
 					got, err := tt.cmd(ctx)
 					if err != io.EOF {
 						t.Errorf("got %v, %v; want nil, %v", got, err, io.EOF)
 					}
-					mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+					go func() {
+						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+						ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
+					}()
+					if err := c.Ping(ctx); err != nil {
+						t.Errorf("ping got %v; want <nil>", err)
+					}
 				})
 				t.Run(read+" command error", func(t *testing.T) {
 					go func() {
-						mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: read, Write: "ACK [50@1] {test} test error\n"})
+						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: "ACK [50@1] {test} test error\n"})
 					}()
 					_, err := tt.cmd(ctx)
 					if want := newCommandError("ACK [50@1] {test} test error"); !reflect.DeepEqual(err, want) {
@@ -106,14 +112,20 @@ func TestClient(t *testing.T) {
 				t.Run(read+" context cancel", func(t *testing.T) {
 					cmdCtx, cmdCancel := context.WithCancel(ctx)
 					go func() {
-						mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: read})
+						ts.Expect(ctx, &mpdtest.WR{Read: read})
 						cmdCancel()
 					}()
 					got, err := tt.cmd(cmdCtx)
 					if err != context.Canceled {
 						t.Errorf("got %v, %v; want nil, %v", got, err, io.EOF)
 					}
-					mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+					go func() {
+						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+						ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
+					}()
+					if err := c.Ping(ctx); err != nil {
+						t.Errorf("ping got %v; want <nil>", err)
+					}
 				})
 			}
 		},
@@ -130,9 +142,9 @@ func TestClient(t *testing.T) {
 func TestDialPasswordError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	w, r, ts, _ := mpdtest.NewServer("OK MPD 0.19")
+	ts, _ := mpdtest.NewServer("OK MPD 0.19")
 	go func() {
-		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "password 2434\n", Write: "ACK [3@1] {password} error\n"})
+		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "ACK [3@1] {password} error\n"})
 	}()
 	defer ts.Close()
 	c, err := testDialer.Dial("tcp", ts.URL, "2434")

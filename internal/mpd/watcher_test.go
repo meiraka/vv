@@ -15,7 +15,7 @@ const (
 func TestWatcher(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	wc, rc, ts, err := mpdtest.NewServer("OK MPD 0.19")
+	ts, err := mpdtest.NewServer("OK MPD 0.19")
 	if err != nil {
 		t.Fatalf("failed to create test server: %v", err)
 	}
@@ -24,25 +24,16 @@ func TestWatcher(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
-	if got, want := readChan(ctx, t, rc), "idle\n"; got != want {
-		t.Fatalf("got server %s; want %s", got, want)
-	}
-	wc <- "changed: player\nOK\n"
+	ts.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
 	if got, want := readChan(ctx, t, c.C), "player"; got != want {
 		t.Fatalf("got client %s; want %s", got, want)
 	}
-	if got, want := readChan(ctx, t, rc), "idle\n"; got != want {
-		t.Fatalf("got server %s; want %s", got, want)
-	}
+	ts.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 	errs := make(chan error, 1)
 	go func() { errs <- c.Close(ctx) }()
-	if got, want := readChan(ctx, t, rc), "noidle\n"; got != want {
-		t.Errorf("got server %s; want %s", got, want)
-	}
-	wc <- "OK\n"
-	if got, want := readChan(ctx, t, rc), "close\n"; got != want {
-		t.Errorf("got server %q; want %s", got, want)
-	}
+
+	ts.Expect(ctx, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
+	ts.Expect(ctx, &mpdtest.WR{Read: "close\n"})
 	if err := <-errs; err != nil {
 		t.Errorf("Close got error %v; want nil", err)
 	}

@@ -37,12 +37,12 @@ var (
 func TestAPIPHandler(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	w, r, main, err := mpdtest.NewServer("OK MPD 0.19")
+	main, err := mpdtest.NewServer("OK MPD 0.19")
 	defer main.Close()
 	if err != nil {
 		t.Fatalf("failed to create mpd test server: %v", err)
 	}
-	iw, ir, sub, err := mpdtest.NewServer("OK MPD 0.19")
+	sub, err := mpdtest.NewServer("OK MPD 0.19")
 	defer sub.Close()
 	if err != nil {
 		t.Fatalf("failed to create mpd test server: %v", err)
@@ -67,12 +67,12 @@ func TestAPIPHandler(t *testing.T) {
 	}()
 
 	go func() {
-		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
-		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
-		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
-		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
-		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
-		mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 	}()
 	h, err := testAPIConfig.NewAPIHandler(ctx, c, wl)
 	if err != nil {
@@ -83,7 +83,7 @@ func TestAPIPHandler(t *testing.T) {
 	defer ts.Close()
 
 	testsets := []struct {
-		f         func(chan string, <-chan string, chan string, <-chan string)
+		f         func()
 		websocket []string
 		req       *http.Request
 		want      map[int]string
@@ -126,10 +126,10 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 				http.StatusOK:       `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "repeat 1\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "repeat 1\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
 		},
@@ -139,10 +139,10 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 				http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "random 1\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "random 1\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
 		},
@@ -152,10 +152,10 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 				http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "single oneshot\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: oneshot\nconsume: 0\nstate: pause\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "single oneshot\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: oneshot\nconsume: 0\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
 		},
@@ -169,10 +169,10 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
 				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "single 1\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 0\nstate: pause\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "single 1\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 0\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
 		},
@@ -182,10 +182,10 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
 				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "consume 1\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "consume 1\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
 		},
@@ -195,12 +195,12 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
 				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "play -1\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: play\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "play -1\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: play\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 			},
 			websocket: []string{"/api/music", "/api/music/stats"},
 		},
@@ -210,12 +210,12 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
 				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "next\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: play\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: baz\nPos: 2\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "next\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 2\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: play\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: baz\nPos: 2\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 			},
 			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 		},
@@ -225,12 +225,12 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
 				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "previous\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: play\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "previous\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: play\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 			},
 			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 		},
@@ -240,12 +240,12 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
 				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "pause 1\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "pause 1\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 			},
 			websocket: []string{"/api/music", "/api/music/stats"},
 		},
@@ -255,10 +255,10 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
 				http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "setvol 100\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: mixer\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: 100\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "setvol 100\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: mixer\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: 100\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
 		},
@@ -272,10 +272,10 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
 				http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":true,"attribute":"dop=0"}}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "enableoutput 0\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 1\nattribute: dop=0\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "enableoutput 0\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 1\nattribute: dop=0\nOK\n"})
 			},
 			websocket: []string{"/api/music/outputs"},
 		},
@@ -285,10 +285,10 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":true,"attribute":"dop=0"}}`,
 				http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attribute":"dop=0"}}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "disableoutput 0\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "disableoutput 0\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
 			},
 			websocket: []string{"/api/music/outputs"},
 		},
@@ -303,20 +303,20 @@ func TestAPIPHandler(t *testing.T) {
 		{
 			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/playlist", strings.NewReader(`{"current":0,"sort":["file"],"filters":[]}`)),
 			want: map[int]string{http.StatusAccepted: `{"current":1}`},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "command_list_ok_begin\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "clear\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "add \"bar\"\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "add \"baz\"\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "add \"foo\"\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "play 0\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "command_list_end\n", Write: "list_OK\nlist_OK\nlist_OK\nlist_OK\nlist_OK\nOK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: playlist\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: bar\nfile: baz\nfile: foo\nOK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 0\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 0\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "command_list_ok_begin\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "clear\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "add \"bar\"\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "add \"baz\"\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "add \"foo\"\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "play 0\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "command_list_end\n", Write: "list_OK\nlist_OK\nlist_OK\nlist_OK\nlist_OK\nOK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: playlist\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: bar\nfile: baz\nfile: foo\nOK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 0\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 0\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 			},
 			websocket: []string{"/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 		},
@@ -326,19 +326,19 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"current":0,"sort":["file"]}`,
 				http.StatusOK:       `{"current":1,"sort":["file"]}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "play 1\n", Write: "OK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "play 1\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 			},
 			websocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 		},
 		{
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: playlist\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
+			f: func() {
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: playlist\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
 			},
 			websocket: []string{"/api/music/playlist/songs", "/api/music/playlist"},
 		},
@@ -353,8 +353,8 @@ func TestAPIPHandler(t *testing.T) {
 		{
 			req:  NewRequest(http.MethodPost, ts.URL+"/api/music/library", strings.NewReader(`{"updating":true}`)),
 			want: map[int]string{http.StatusInternalServerError: `{"error":"mpd: update: error"}`},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "update \n", Write: "ACK [2@1] {update} error\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "update \n", Write: "ACK [2@1] {update} error\n"})
 			},
 		},
 		{
@@ -363,10 +363,10 @@ func TestAPIPHandler(t *testing.T) {
 				http.StatusAccepted: `{"updating":false}`,
 				http.StatusOK:       `{"updating":true}`,
 			},
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "update \n", Write: "updating_db: 1\nOK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: update\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nupdating_db: 1\nOK\n"})
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "update \n", Write: "updating_db: 1\nOK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: update\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nupdating_db: 1\nOK\n"})
 			},
 			websocket: []string{"/api/music", "/api/music/library"},
 		},
@@ -375,13 +375,13 @@ func TestAPIPHandler(t *testing.T) {
 			want: map[int]string{http.StatusOK: `{"updating":true}`},
 		},
 		{
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: update\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: "changed: database\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+			f: func() {
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: update\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: database\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 			},
 			websocket: []string{"/api/music", "/api/music/library", "/api/music/library/songs", "/api/music", "/api/music/stats"},
 		},
@@ -390,15 +390,15 @@ func TestAPIPHandler(t *testing.T) {
 			want: map[int]string{http.StatusOK: `{"updating":false}`},
 		},
 		{
-			f: func(w chan string, r <-chan string, iw chan string, ir <-chan string) {
-				mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n"})
+			f: func() {
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 				sub.Disconnect(ctx)
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
-				mpdtest.Expect(ctx, w, r, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 			},
 			websocket: []string{"/api/music/library/songs", "/api/music/playlist/songs", "/api/music", "/api/music/stats"},
 		},
@@ -428,7 +428,7 @@ func TestAPIPHandler(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				if tt.f != nil {
-					tt.f(w, r, iw, ir)
+					tt.f()
 				}
 			}()
 
@@ -471,8 +471,8 @@ func TestAPIPHandler(t *testing.T) {
 		})
 	}
 	go func() {
-		mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "idle\n", Write: ""})
-		mpdtest.Expect(ctx, iw, ir, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
+		sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: ""})
+		sub.Expect(ctx, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
 	}()
 }
 

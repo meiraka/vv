@@ -296,6 +296,11 @@ func (c *Client) healthCheck() {
 	}()
 }
 
+// Ping tests connection.
+func (c *Client) Ping(ctx context.Context) error {
+	return c.ok(ctx, "ping")
+}
+
 func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
 	return c.pool.Exec(ctx, func(conn *conn) error {
 		return conn.OK(cmd...)
