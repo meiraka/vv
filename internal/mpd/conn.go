@@ -57,11 +57,8 @@ func (c *conn) Writeln(f ...interface{}) (int, error) {
 }
 
 func (c *conn) OK(cmd ...interface{}) error {
-	if len(cmd) == 0 {
-		return nil
-	}
 	if _, err := c.Writeln(cmd...); err != nil {
-		return fmt.Errorf("write failed: %v", err)
+		return err
 	}
 	return c.ReadEnd("OK")
 }

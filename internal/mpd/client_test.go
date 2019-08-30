@@ -42,6 +42,72 @@ func TestClient(t *testing.T) {
 		t.Errorf("Version() got `%s`; want `%s`", g, w)
 	}
 	for k, v := range map[string]func(t *testing.T){
+		"one": func(t *testing.T) {
+			testsets := map[string]func(context.Context) error{
+				"play -1\n":        func(ctx context.Context) error { return c.Play(ctx, -1) },
+				"next\n":           c.Next,
+				"previous\n":       c.Previous,
+				"pause 1\n":        func(ctx context.Context) error { return c.Pause(ctx, true) },
+				"random 1\n":       func(ctx context.Context) error { return c.Random(ctx, true) },
+				"random 0\n":       func(ctx context.Context) error { return c.Random(ctx, false) },
+				"single 1\n":       func(ctx context.Context) error { return c.Single(ctx, true) },
+				"single oneshot\n": c.OneShot,
+				"repeat 1\n":       func(ctx context.Context) error { return c.Repeat(ctx, true) },
+				"setvol 100\n":     func(ctx context.Context) error { return c.SetVol(ctx, 100) },
+			}
+			for read, cmd := range testsets {
+				t.Run(read, func(t *testing.T) {
+					go func() {
+						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: "OK\n"})
+					}()
+					if err := cmd(ctx); err != nil {
+						t.Errorf("got %v; want <nil>", err)
+					}
+				})
+				t.Run(read+" network read error", func(t *testing.T) {
+					go func() {
+						ts.Expect(ctx, &mpdtest.WR{Read: read})
+						ts.Disconnect(ctx)
+					}()
+					if err := cmd(ctx); err != io.EOF {
+						t.Errorf("got %v; want <nil>", err)
+					}
+					go func() {
+						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+						ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
+					}()
+					if err := c.Ping(ctx); err != nil {
+						t.Errorf("ping got %v; want <nil>", err)
+					}
+				})
+				t.Run(read+" command error", func(t *testing.T) {
+					go func() {
+						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: "ACK [50@1] {test} test error\n"})
+					}()
+					if got, want := cmd(ctx), newCommandError("ACK [50@1] {test} test error"); !reflect.DeepEqual(got, want) {
+						t.Errorf("got _, %v; want nil, %v", got, want)
+					}
+				})
+				t.Run(read+" context cancel", func(t *testing.T) {
+					cmdCtx, cmdCancel := context.WithCancel(ctx)
+					go func() {
+						ts.Expect(ctx, &mpdtest.WR{Read: read})
+						cmdCancel()
+					}()
+					if err := cmd(cmdCtx); err != context.Canceled {
+						t.Errorf("got _, %v; want nil, %v", err, io.EOF)
+					}
+					go func() {
+						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+						ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
+					}()
+					if err := c.Ping(ctx); err != nil {
+						t.Errorf("ping got %v; want <nil>", err)
+					}
+				})
+			}
+
+		},
 		"get": func(t *testing.T) {
 			for read, tt := range map[string]struct {
 				cmd   func(context.Context) (interface{}, error)
