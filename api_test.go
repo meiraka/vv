@@ -24,17 +24,14 @@ const (
 
 var (
 	testDialer = mpd.Dialer{
-		ReconnectionTimeout:  time.Second,
+		Timeout:              time.Second,
 		HealthCheckInterval:  time.Hour,
 		ReconnectionInterval: time.Second,
 	}
 	testHTTPClient = &http.Client{Timeout: testTimeout}
-	testAPIConfig  = APIConfig{
-		BackgroundTimeout: time.Second,
-	}
 )
 
-func TestAPIPHandler(t *testing.T) {
+func TestAPIPHandlerJSON(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	main, err := mpdtest.NewServer("OK MPD 0.19")
@@ -74,7 +71,9 @@ func TestAPIPHandler(t *testing.T) {
 		main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
 		main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 	}()
-	h, err := testAPIConfig.NewAPIHandler(ctx, c, wl)
+	h, err := APIConfig{
+		BackgroundTimeout: time.Second,
+	}.NewAPIHandler(ctx, c, wl)
 	if err != nil {
 		t.Fatalf("NewHTTPHandler got error %v; want nil", err)
 	}
@@ -467,6 +466,80 @@ func TestAPIPHandler(t *testing.T) {
 						break
 					}
 				}
+			}
+		})
+	}
+	go func() {
+		sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: ""})
+		sub.Expect(ctx, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
+	}()
+}
+
+func TestAPIPHandlerBinary(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	defer cancel()
+	main, err := mpdtest.NewServer("OK MPD 0.19")
+	defer main.Close()
+	if err != nil {
+		t.Fatalf("failed to create mpd test server: %v", err)
+	}
+	sub, err := mpdtest.NewServer("OK MPD 0.19")
+	defer sub.Close()
+	if err != nil {
+		t.Fatalf("failed to create mpd test server: %v", err)
+	}
+	c, err := testDialer.Dial("tcp", main.URL, "")
+	if err != nil {
+		t.Fatalf("Dial got error %v; want nil", err)
+	}
+	defer func() {
+		if err := c.Close(ctx); err != nil {
+			t.Errorf("mpd.Client.Close got err %v; want nil", err)
+		}
+	}()
+	wl, err := testDialer.NewWatcher("tcp", sub.URL, "")
+	if err != nil {
+		t.Fatalf("Dial got error %v; want nil", err)
+	}
+	defer func() {
+		if err := wl.Close(ctx); err != nil {
+			t.Errorf("mpd.Watcher.Close got err %v; want nil", err)
+		}
+	}()
+
+	go func() {
+		main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: assets/foo.wav\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "OK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "OK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "OK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+	}()
+	h, err := APIConfig{
+		BackgroundTimeout: time.Second,
+		MusicDirectory:    "./",
+		Cover:             []string{"app.png"},
+	}.NewAPIHandler(ctx, c, wl)
+	if err != nil {
+		t.Fatalf("NewHTTPHandler got error %v; want nil", err)
+	}
+	ts := httptest.NewServer(h)
+	defer ts.Close()
+	for url, want := range map[string]int{
+		"/api/music/images/assets/app.png":                    http.StatusOK,
+		"/api/music/images/assets/app.svg":                    http.StatusNotFound,
+		"/api/music/images/assets/app.png?width=10&height=10": http.StatusOK,
+	} {
+		t.Run(url, func(t *testing.T) {
+			resp, err := testHTTPClient.Get(ts.URL + url)
+			if err != nil {
+				t.Fatalf("failed to request: %v", err)
+			}
+			defer resp.Body.Close()
+			b, _ := ioutil.ReadAll(resp.Body)
+			if resp.StatusCode != want {
+				t.Errorf("got %d; want %d", resp.StatusCode, want)
+				t.Logf("body: %s", b)
 			}
 		})
 	}

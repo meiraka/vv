@@ -14,8 +14,8 @@ type conn struct {
 	version string
 }
 
-func newConn(proto, addr string, deadline time.Time) (*conn, string, error) {
-	c, err := net.Dial(proto, addr)
+func newConn(proto, addr string, timeout time.Duration) (*conn, string, error) {
+	c, err := net.DialTimeout(proto, addr, timeout)
 	if err != nil {
 		return nil, "", err
 	}
@@ -23,7 +23,9 @@ func newConn(proto, addr string, deadline time.Time) (*conn, string, error) {
 		Reader: bufio.NewReader(c),
 		conn:   c,
 	}
-	conn.SetDeadline(deadline)
+	if timeout != 0 {
+		conn.SetDeadline(time.Now().Add(timeout))
+	}
 	v, err := conn.Readln()
 	if err != nil {
 		conn.Close()

@@ -10,19 +10,19 @@ type pool struct {
 	proto                string
 	addr                 string
 	password             string
-	ReconnectionTimeout  time.Duration
+	Timeout              time.Duration
 	ReconnectionInterval time.Duration
 	connC                chan *conn
 	mu                   sync.Mutex
 	version              string
 }
 
-func newPool(proto string, addr string, password string, reconnectionTimeout time.Duration, reconnectionInterval time.Duration) (*pool, error) {
+func newPool(proto string, addr string, password string, timeout time.Duration, reconnectionInterval time.Duration) (*pool, error) {
 	p := &pool{
 		proto:                proto,
 		addr:                 addr,
 		password:             password,
-		ReconnectionTimeout:  reconnectionTimeout,
+		Timeout:              timeout,
 		ReconnectionInterval: reconnectionInterval,
 		connC:                make(chan *conn, 1),
 	}
@@ -109,11 +109,7 @@ func (c *pool) connect() {
 }
 
 func (c *pool) connectOnce() error {
-	deadline := time.Time{}
-	if c.ReconnectionTimeout != 0 {
-		deadline = time.Now().Add(c.ReconnectionTimeout)
-	}
-	conn, ver, err := newConn(c.proto, c.addr, deadline)
+	conn, ver, err := newConn(c.proto, c.addr, c.Timeout)
 	if err != nil {
 		return err
 	}

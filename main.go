@@ -81,7 +81,7 @@ func v2() {
 		}
 	}
 	dialer := mpd.Dialer{
-		ReconnectionTimeout:  10 * time.Second,
+		Timeout:              10 * time.Second,
 		HealthCheckInterval:  time.Second,
 		ReconnectionInterval: 5 * time.Second,
 	}

@@ -26,6 +26,7 @@ const (
 type APIConfig struct {
 	BackgroundTimeout time.Duration
 	MusicDirectory    string
+	Cover             []string
 }
 
 // addHTTPPrefix adds prefix path /api/music/storage to song cover path.
@@ -44,7 +45,7 @@ type api struct {
 	watcher   *mpd.Watcher
 	jsonCache *jsonCache
 	upgrader  websocket.Upgrader
-	cover     *LocalCoverSearcher
+	cover     *songs.LocalCoverSearcher
 
 	mu          sync.Mutex
 	playlist    []map[string][]string
@@ -60,10 +61,13 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
 	}
-	var cover *LocalCoverSearcher
+	if len(c.Cover) == 0 {
+		c.Cover = []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"}
+	}
+	var cover *songs.LocalCoverSearcher
 	if len(c.MusicDirectory) != 0 {
 		var err error
-		cover, err = NewLocalCoverSearcher(c.MusicDirectory, "cover.*")
+		cover, err = songs.NewLocalCoverSearcher(c.MusicDirectory, c.Cover)
 		if err != nil {
 			return nil, err
 		}
@@ -659,7 +663,14 @@ func (h *api) handle() http.HandlerFunc {
 	musicLibrary := h.libraryPost(h.jsonCache.Handler("/api/music/library"))
 	musicLibrarySongs := h.jsonCache.Handler("/api/music/library/songs")
 	musicOutputs := h.outputPost(h.jsonCache.Handler("/api/music/outputs"))
-	musicImage := http.StripPrefix(httpImagePath, h.cover.Handler())
+	image := ImageHandler(h.config.MusicDirectory)
+	musicImage := http.StripPrefix(httpImagePath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !h.cover.Cached(r.URL.Path) {
+			http.NotFound(w, r)
+			return
+		}
+		image.ServeHTTP(w, r)
+	}))
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/version":

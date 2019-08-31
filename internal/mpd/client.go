@@ -17,14 +17,15 @@ type Song map[string][]string
 
 // Dialer contains options for connecting to mpd
 type Dialer struct {
-	ReconnectionTimeout  time.Duration
+	// Timeout is the maximum amount of time a dial will wait for a connect to complete.
+	Timeout              time.Duration
 	HealthCheckInterval  time.Duration
 	ReconnectionInterval time.Duration
 }
 
 // Dial connects to mpd server.
 func (d Dialer) Dial(proto, addr, password string) (*Client, error) {
-	pool, err := newPool(proto, addr, password, d.ReconnectionTimeout, d.ReconnectionInterval)
+	pool, err := newPool(proto, addr, password, d.Timeout, d.ReconnectionInterval)
 	if err != nil {
 		return nil, err
 	}

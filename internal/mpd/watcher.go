@@ -12,7 +12,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 	for i := range subsystems {
 		cmd[i+1] = subsystems[i]
 	}
-	pool, err := newPool(proto, addr, password, d.ReconnectionTimeout, d.ReconnectionInterval)
+	pool, err := newPool(proto, addr, password, d.Timeout, d.ReconnectionInterval)
 	if err != nil {
 		return nil, err
 	}
