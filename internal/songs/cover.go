@@ -30,8 +30,11 @@ func NewLocalCoverSearcher(dir string, files []string) (*LocalCoverSearcher, err
 	}, nil
 }
 
-// Cached returns true if given path is cached image
+// Cached returns true if given path is valid cache image
 func (l *LocalCoverSearcher) Cached(path string) (cached bool) {
+	if l == nil {
+		return false
+	}
 	l.mu.RLock()
 	_, cached = l.rcache[path]
 	l.mu.RUnlock()
