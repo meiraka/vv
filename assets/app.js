@@ -214,6 +214,7 @@ vv.storage = {
   outputs: [],
   stats: {},
   last_modified: {},
+  etag: {},
   last_modified_ms: {},
   version: {},
   preferences: {
@@ -338,6 +339,10 @@ vv.storage = {
   },
   load() {
     try {
+      if (localStorage.version !== "v2") {
+        localStorage.clear();
+      }
+      localStorage.version = "v2";
       if (localStorage.root && localStorage.root.length !== 0) {
         vv.storage.root = localStorage.root;
         if (vv.storage.root !== "root") {
@@ -634,7 +639,7 @@ vv.library = {
   absSorted(song) {
     let root = "";
     const pos = parseInt(song.Pos[0], 10);
-    const keys = vv.storage.sorted.keys.join();
+    const keys = vv.storage.sorted.sort.join();
     for (const key in vv.library.TREE) {
       if (vv.library.TREE.hasOwnProperty(key)) {
         if (vv.library.TREE[key].sort.join() === keys) {
@@ -659,7 +664,7 @@ vv.library = {
     }
     if (songs.length > vv.consts.playlistLength) {
       songs = vv.songs.weakFilter(
-          songs, vv.storage.sorted.filters, vv.consts.playlistLength);
+          songs, vv.storage.sorted.filters || [], vv.consts.playlistLength);
     }
     if (!songs[pos]) {
       return;
@@ -679,7 +684,7 @@ vv.library = {
     }
   },
   abs(song) {
-    if (vv.storage.sorted && vv.storage.sorted.sorted) {
+    if (vv.storage.sorted && vv.storage.sorted.hasOwnProperty("sort") && vv.storage.sorted.sort !== null) {
       vv.library.absSorted(song);
     } else {
       vv.library.absFallback(song);
@@ -741,7 +746,7 @@ vv.request = {
       }
     }
   },
-  get(path, ifmodified, callback, timeout) {
+  get(path, ifmodified, etag, callback, timeout) {
     const key = "GET " + path;
     if (vv.request._requests[key]) {
       vv.request._requests[key].onabort = () => {};  // disable retry
@@ -759,6 +764,7 @@ vv.request = {
         if (xhr.status === 200 && callback) {
           callback(
               xhr.response, xhr.getResponseHeader("Last-Modified"),
+              xhr.getResponseHeader("Etag"),
               xhr.getResponseHeader("Date"));
         }
         return;
@@ -771,7 +777,7 @@ vv.request = {
     xhr.onabort = () => {
       if (timeout < 50000) {
         setTimeout(
-            () => { vv.request.get(path, ifmodified, callback, timeout * 2); });
+            () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
       }
     };
     xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
@@ -780,13 +786,17 @@ vv.request = {
         vv.view.popup.show("network", "timeoutRetry");
         vv.request.abortAll();
         setTimeout(
-            () => { vv.request.get(path, ifmodified, callback, timeout * 2); });
+            () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
       } else {
         vv.view.popup.show("network", "timeout");
       }
     };
     xhr.open("GET", path, true);
-    xhr.setRequestHeader("If-Modified-Since", ifmodified);
+    if (etag !== "") {
+      xhr.setRequestHeader("If-None-Match", etag);
+    } else {
+      xhr.setRequestHeader("If-Modified-Since", ifmodified);
+    }
     xhr.send();
   },
   post(path, obj) {
@@ -799,7 +809,7 @@ vv.request = {
     xhr.responseType = "json";
     xhr.timeout = 1000;
     xhr.onload = () => {
-      if (xhr.status !== 200) {
+      if (xhr.status !== 200&&xhr.status !== 202) {
         if (xhr.response && xhr.response.error) {
           vv.view.popup.show("network", xhr.response.error);
         } else {
@@ -973,53 +983,55 @@ vv.control = {
     }
   },
   rescan_library() {
-    vv.request.post("/api/music/library", {action: "rescan"});
+    vv.request.post("/api/music/library", {updating: true});
     vv.storage.control.update_library = true;
     vv.control.raiseEvent("control");
   },
-  prev() { vv.request.post("/api/music/status", {state: "prev"}); },
+  prev() { vv.request.post("/api/music", {state: "previous"}); },
   play_pause() {
     const state = vv.control._getOrElse(vv.storage.control, "state", "stopped");
     const action = state === "play" ? "pause" : "play";
-    vv.request.post("/api/music/status", {state: action});
+    vv.request.post("/api/music", {state: action});
     vv.storage.control.state = action;
     vv.control.raiseEvent("control");
   },
-  next() { vv.request.post("/api/music/status", {state: "next"}); },
+  next() { vv.request.post("/api/music", {state: "next"}); },
   toggle_repeat() {
     if (vv.storage.control.single) {
-      vv.request.post("/api/music/status", {repeat: false, single: false});
+      vv.request.post("/api/music", {repeat: false, single: false});
       vv.storage.control.single = false;
       vv.storage.control.repeat = false;
     } else if (vv.storage.control.repeat) {
-      vv.request.post("/api/music/status", {single: true});
+      vv.request.post("/api/music", {single: true});
       vv.storage.control.single = true;
     } else {
-      vv.request.post("/api/music/status", {repeat: true});
+      vv.request.post("/api/music", {repeat: true});
       vv.storage.control.repeat = true;
     }
     vv.control.raiseEvent("control");
   },
   toggle_random() {
-    vv.request.post("/api/music/status", {random: !vv.storage.control.random});
+    vv.request.post("/api/music", {random: !vv.storage.control.random});
     vv.storage.control.random = !vv.storage.control.random;
     vv.control.raiseEvent("control");
   },
   play(pos) {
-    vv.request.post("/api/music/playlist/sort", {
-      keys: vv.library.sortkeys(),
+    vv.request.post("/api/music/playlist", {
+      sort: vv.library.sortkeys(),
       filters: vv.library.filters(pos),
-      play: pos
+      current: pos
     });
   },
-  volume(num) { vv.request.post("/api/music/status", {volume: num}); },
+  volume(num) { vv.request.post("/api/music", {volume: num}); },
   output(id, on) {
-    vv.request.post(`/api/music/outputs/${id}`, {outputenabled: on});
+    vv.request.post(`/api/music/outputs`, {[id]: {enabled: on}});
   },
   _fetch(target, store) {
     vv.request.get(
-        target, vv.control._getOrElse(vv.storage.last_modified, store, ""),
-        (ret, modified, date) => {
+        target,
+        vv.control._getOrElse(vv.storage.last_modified, store, ""),
+        vv.control._getOrElse(vv.storage.etag, store, ""),
+        (ret, modified, etag, date) => {
           if (!ret.error) {
             if (Object.prototype.toString.call(ret.data) ===
                     "[object Object]" &&
@@ -1032,9 +1044,10 @@ vv.control = {
             } catch (e) {
               // use default value;
             }
-            vv.storage[store] = ret.data;
+            vv.storage[store] = ret;
             vv.storage.last_modified_ms[store] = Date.parse(modified) + diff;
             vv.storage.last_modified[store] = modified;
+            vv.storage.etag[store] = etag;
             if (store === "library") {
               vv.storage.save.library();
             } else if (store === "sorted") {
@@ -1045,12 +1058,13 @@ vv.control = {
         });
   },
   _fetchAll() {
-    vv.control._fetch("/api/music/playlist/sort", "sorted");
+    vv.control._fetch("/api/music/playlist", "sorted");
     vv.control._fetch("/api/version", "version");
     vv.control._fetch("/api/music/outputs", "outputs");
-    vv.control._fetch("/api/music/playlist/current", "current");
-    vv.control._fetch("/api/music/status", "control");
-    vv.control._fetch("/api/music/library", "library");
+    vv.control._fetch("/api/music/playlist/songs/current", "current");
+    vv.control._fetch("/api/music", "control");
+    vv.control._fetch("/api/music/library/songs", "library");
+    vv.control._fetch("/api/music/stats", "stats");
   },
   _notify_last_update: (new Date()).getTime(),
   _notify_last_connection: (new Date()).getTime(),
@@ -1065,7 +1079,7 @@ vv.control = {
     vv.control._notify_last_connection = (new Date()).getTime();
     vv.control._connected = false;
     const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
-    const uri = `${wsp}//${location.host}/api/music/notify`;
+    const uri = `${wsp}//${location.host}/api/music`;
     if (vv.control._ws !== null) {
       vv.control._ws.onclose = () => {};
       vv.control._ws.close();
@@ -1081,18 +1095,18 @@ vv.control = {
     };
     vv.control._ws.onmessage = e => {
       if (e && e.data) {
-        if (e.data === "library") {
-          vv.control._fetch("/api/music/library", "library");
-        } else if (e.data === "status") {
-          vv.control._fetch("/api/music/status", "control");
-        } else if (e.data === "playlist/current") {
-          vv.control._fetch("/api/music/playlist/current", "current");
-        } else if (e.data === "outputs") {
+        if (e.data === "/api/music/library/songs") {
+          vv.control._fetch("/api/music/library/songs", "library");
+        } else if (e.data === "/api/music") {
+          vv.control._fetch("/api/music", "control");
+        } else if (e.data === "/api/music/playlist/songs/current") {
+          vv.control._fetch("/api/music/playlist/songs/current", "current");
+        } else if (e.data === "/api/music/outputs") {
           vv.control._fetch("/api/music/outputs", "outputs");
-        } else if (e.data === "stats") {
+        } else if (e.data === "/api/music/stats") {
           vv.control._fetch("/api/music/stats", "stats");
-        } else if (e.data === "playlist/sort") {
-          vv.control._fetch("/api/music/playlist/sort", "sorted");
+        } else if (e.data === "/api/music/playlist") {
+          vv.control._fetch("/api/music/playlist", "sorted");
         }
         const new_notify_last_update = (new Date()).getTime();
         if (new_notify_last_update - vv.control._notify_last_update > 10000) {
@@ -1157,7 +1171,7 @@ vv.control = {
       }
     };
 
-    let unsorted = !vv.storage.sorted;
+    let unsorted = (!vv.storage.sorted || !vv.storage.sorted.hasOwnProperty("sort") || vv.storage.sorted.sort === null);
     const focusremove = (key, remove) => {
       const n = () => {
         if (unsorted && vv.storage.sorted && vv.storage.current !== null) {
@@ -1255,10 +1269,10 @@ vv.control.load();
       let cover = "/assets/nocover.svg";
       let coverForCalc = "/assets/nocover.svg";
       if (vv.storage.current !== null && vv.storage.current.cover) {
-        cover = `/music_directory/${vv.storage.current.cover[0]}`;
+        cover = vv.storage.current.cover[0];
         const imgsize = parseInt(70 * window.devicePixelRatio, 10);
         coverForCalc =
-            `/api/images/${cover}?width=${imgsize}&height=${imgsize}`;
+            `${cover}?width=${imgsize}&height=${imgsize}`;
       }
       const newimage = `url("${cover}")`;
       if (e.style.backgroundImage !== newimage) {
@@ -1295,11 +1309,11 @@ vv.view.main = {
   },
   onControl() {
     const c = document.getElementById("control-volume");
-    c.value = vv.storage.control.volume;
-    if (vv.storage.control.volume < 0) {
-      c.classList.add("disabled");
-    } else {
+    if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
+      c.value = vv.storage.control.volume;
       c.classList.remove("disabled");
+    } else {
+      c.classList.add("disabled");
     }
   },
   show() {
@@ -1323,14 +1337,14 @@ vv.view.main = {
         vv.storage.current.Artist;
     if (vv.storage.current.cover) {
       document.getElementById("main-cover-img").style.backgroundImage =
-          `url("/music_directory/${vv.storage.current.cover[0]}")`;
+          `url("${vv.storage.current.cover[0]}")`;
     } else {
       document.getElementById("main-cover-img").style.backgroundImage = "";
     }
   },
   onCurrent() { vv.view.main.update(); },
   onPoll() {
-    if (vv.storage.current === null) {
+    if (vv.storage.current === null || !vv.storage.current.Time) {
       return;
     }
     if (vv.view.main.hidden() ||
@@ -1444,11 +1458,11 @@ vv.view.list = {
         listitem.classList.remove("selected");
       }
       let treeFocused = true;
-      if (vv.storage.sorted && vv.storage.sorted.sorted) {
+      if (vv.storage.sorted && vv.storage.sorted.hasOwnProperty("sort") && vv.storage.sorted.sort !== null) {
         if (rootname === "root") {
           treeFocused = false;
         } else if (
-            vv.storage.sorted.keys.join() !==
+            vv.storage.sorted.sort.join() !==
             vv.library.TREE[rootname].sort.join()) {
           treeFocused = false;
         }
@@ -1561,8 +1575,7 @@ vv.view.list = {
       if (song.cover) {
         const base = largeImage ? 150 : 70;
         const imgsize = parseInt(base * window.devicePixelRatio, 10);
-        cover.src = "/api/images/music_directory/" +
-            `${song.cover}?width=${imgsize}&height=${imgsize}`;
+        cover.src = `${song.cover}?width=${imgsize}&height=${imgsize}`;
       } else {
         cover.src = "/assets/nocover.svg";
       }
@@ -1840,21 +1853,24 @@ vv.view.system = {
       ul.removeChild(ul.lastChild);
     }
     const newul = document.createDocumentFragment();
-    for (const o of vv.storage.outputs) {
-      const c = document.querySelector("#device-template").content;
-      const e = c.querySelector("li");
-      e.querySelector(".system-setting-desc").textContent = o.outputname;
-      const ch = e.querySelector(".slideswitch");
-      ch.setAttribute("aria-label", o.outputname);
-      ch.dataset.deviceid = o.outputid;
-      ch.checked = o.outputenabled === "1";
-      const d = document.importNode(c, true);
-      d.querySelector(".slideswitch").addEventListener("change", e => {
-        vv.control.output(
-            parseInt(e.currentTarget.dataset.deviceid, 10),
-            e.currentTarget.checked);
-      });
-      newul.appendChild(d);
+    for (const id in vv.storage.outputs) {
+      if (vv.storage.outputs.hasOwnProperty(id)) {
+        const o = vv.storage.outputs[id];
+        const c = document.querySelector("#device-template").content;
+        const e = c.querySelector("li");
+        e.querySelector(".system-setting-desc").textContent = o.name;
+        const ch = e.querySelector(".slideswitch");
+        ch.setAttribute("aria-label", o.name);
+        ch.dataset.deviceid = id;
+        ch.checked = o.enabled;
+        const d = document.importNode(c, true);
+        d.querySelector(".slideswitch").addEventListener("change", e => {
+          vv.control.output(
+              parseInt(e.currentTarget.dataset.deviceid, 10),
+              e.currentTarget.checked);
+        });
+        newul.appendChild(d);
+      }
     }
     ul.appendChild(newul);
   },
@@ -1877,12 +1893,12 @@ vv.view.system = {
     }
 
     vv.control.addEventListener("control", () => {
-      if (vv.storage.control.volume < 0) {
-        document.getElementById("volume-header").classList.add("hide");
-        document.getElementById("volume-all").classList.add("hide");
-      } else {
+      if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
         document.getElementById("volume-header").classList.remove("hide");
         document.getElementById("volume-all").classList.remove("hide");
+      } else {
+        document.getElementById("volume-header").classList.add("hide");
+        document.getElementById("volume-all").classList.add("hide");
       }
     });
 
@@ -1940,16 +1956,15 @@ vv.view.system = {
   },
   _update_stats() {
     document.getElementById("stat-albums").textContent =
-        vv.storage.stats.albums;
+        vv.storage.stats.albums.toString(10);
     document.getElementById("stat-artists").textContent =
-        vv.storage.stats.artists;
+        vv.storage.stats.artists.toString(10);
     document.getElementById("stat-db-playtime").textContent =
-        vv.view.system._strtimedelta(
-            parseInt(vv.storage.stats.db_playtime, 10));
+        vv.view.system._strtimedelta(vv.storage.stats.library_playtime, 10);
     document.getElementById("stat-playtime").textContent =
-        vv.view.system._strtimedelta(parseInt(vv.storage.stats.playtime, 10));
+        vv.view.system._strtimedelta(vv.storage.stats.playtime);
     document.getElementById("stat-tracks").textContent = vv.storage.stats.songs;
-    const db_update = new Date(parseInt(vv.storage.stats.db_update, 10) * 1000);
+    const db_update = new Date(vv.storage.stats.library_update * 1000);
     const options = {
       hour: "numeric",
       minute: "numeric",
@@ -1961,16 +1976,14 @@ vv.view.system = {
     };
     document.getElementById("stat-db-update").textContent =
         db_update.toLocaleString(document.documentElement.lang, options);
-    document.getElementById("stat-websockets").textContent =
-        vv.storage.stats.subscribers;
   },
   _update_time() {
     const diff = parseInt(
         ((new Date()).getTime() - vv.storage.last_modified_ms.stats) / 1000,
         10);
-    const uptime = parseInt(vv.storage.stats.uptime, 10) + diff;
+    const uptime = vv.storage.stats.uptime + diff;
     if (vv.storage.control.state === "play") {
-      const playtime = parseInt(vv.storage.stats.playtime, 10) + diff;
+      const playtime = vv.storage.stats.playtime + diff;
       document.getElementById("stat-playtime").textContent =
           vv.view.system._strtimedelta(playtime);
     }
@@ -1988,8 +2001,9 @@ vv.view.system = {
     }
   },
   onVersion() {
-    if (vv.storage.version.vv) {
-      document.getElementById("version").textContent = vv.storage.version.vv;
+    if (vv.storage.version.app) {
+      document.getElementById("version").textContent = vv.storage.version.app;
+      document.getElementById("mpd-version").textContent = vv.storage.version.mpd;
       document.getElementById("go-version").textContent = vv.storage.version.go;
     }
   },
@@ -2306,8 +2320,7 @@ vv.view.modal = {
     const cover = document.getElementById("modal-song-box-cover");
     if (song.cover) {
       const imgsize = window.devicePixelRatio * 112;
-      cover.src = "/api/images/music_directory/" +
-          `${song.cover}?width=${imgsize}&height=${imgsize}`;
+      cover.src = `${song.cover}?width=${imgsize}&height=${imgsize}`;
     } else {
       cover.src = "/assets/nocover.svg";
     }

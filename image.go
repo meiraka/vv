@@ -2,45 +2,32 @@ package main
 
 import (
 	"bytes"
-	_ "golang.org/x/image/bmp"
-	"golang.org/x/image/draw"
 	"image"
-	"image/color"
 	_ "image/gif"
 	"image/jpeg"
-	"image/png"
+	_ "image/png"
+	"io"
 	"math"
+	"mime"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
+
+	_ "golang.org/x/image/bmp"
+	"golang.org/x/image/draw"
 )
 
-func expandImage(data []byte, width, height int) ([]byte, error) {
-	r := bytes.NewReader(data)
-	img, _, err := image.Decode(r)
+func resizeImage(data io.ReadSeeker, width, height int) ([]byte, error) {
+	info, _, err := image.DecodeConfig(data)
 	if err != nil {
 		return nil, err
 	}
-	outRect := image.Rectangle{image.ZP, image.Pt(width, height)}
-	out := image.NewRGBA(outRect)
-	w := color.RGBA{255, 255, 255, 255}
-	for x := 0; x < width; x++ {
-		for y := 0; y < height; y++ {
-			out.Set(x, y, w)
-		}
-	}
-	s := img.Bounds().Size()
-	l := image.Pt((width-s.X)/2, (height-s.Y)/2)
-	target := image.Rectangle{l, image.Pt(l.X+s.X, l.Y+s.Y)}
-	draw.Draw(out, target, img, image.ZP, draw.Over)
-	outwriter := new(bytes.Buffer)
-	png.Encode(outwriter, out)
-	return outwriter.Bytes(), nil
-}
-
-func resizeImage(data []byte, width, height int) ([]byte, error) {
-	img, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
+	if _, err := data.Seek(0, io.SeekStart); err != nil {
 		return nil, err
 	}
-	info, _, err := image.DecodeConfig(bytes.NewReader(data))
+	img, _, err := image.Decode(data)
 	if err != nil {
 		return nil, err
 	}
@@ -58,4 +45,53 @@ func resizeImage(data []byte, width, height int) ([]byte, error) {
 	opt := jpeg.Options{Quality: 100}
 	jpeg.Encode(outwriter, out, &opt)
 	return outwriter.Bytes(), nil
+}
+
+// ImageHandler returns HTTP handler for image
+func ImageHandler(local string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		rpath := filepath.Join(filepath.FromSlash(local), filepath.FromSlash(r.URL.Path))
+		i, err := os.Stat(rpath)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		if !modifiedSince(r, i.ModTime()) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		f, err := os.Open(rpath)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer f.Close()
+		q := r.URL.Query()
+		ws, hs := q.Get("width"), q.Get("height")
+		if len(ws) == 0 || len(hs) == 0 {
+			w.Header().Add("Cache-Control", "max-age=86400")
+			w.Header().Add("Content-Length", strconv.FormatInt(i.Size(), 10))
+			w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
+			w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
+			io.CopyN(w, f, i.Size())
+			return
+		}
+		wi, err := strconv.Atoi(ws)
+		if err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+		}
+		hi, err := strconv.Atoi(hs)
+		if err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+		}
+		b, err := resizeImage(f, wi, hi)
+		if err != nil {
+			writeHTTPError(w, http.StatusInternalServerError, err)
+		}
+		w.Header().Add("Cache-Control", "max-age=86400")
+		w.Header().Add("Content-Length", strconv.Itoa(len(b)))
+		w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
+		w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
+		w.Write(b)
+	}
 }

@@ -2,17 +2,23 @@ package main
 
 import (
 	"bufio"
+	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/meiraka/vv/internal/mpd"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"log"
-	"os"
-	"strings"
-	"time"
 )
 
 const staticVersion = "v0.6.2+"
 
-var version string
+var version = "v0.7.0+"
 
 func setupFlag(name string) {
 	viper.SetConfigName(name)
@@ -50,7 +56,7 @@ func getMusicDirectory(confpath string) (string, error) {
 	return "", nil
 }
 
-//go:generate go-bindata assets
+//go:generate go run internal/cmd/fix-assets/main.go
 func main() {
 	setupFlag("config")
 	err := viper.ReadInConfig()
@@ -60,6 +66,13 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	v2()
+}
+
+func v2() {
+	ctx := context.TODO()
+	network := viper.GetString("mpd.network")
+	addr := viper.GetString("mpd.addr")
 	musicDirectory := viper.GetString("mpd.music_directory")
 	if len(musicDirectory) == 0 {
 		dir, err := getMusicDirectory("/etc/mpd.conf")
@@ -67,22 +80,62 @@ func main() {
 			musicDirectory = dir
 		}
 	}
-	network := viper.GetString("mpd.network")
-	addr := viper.GetString("mpd.addr")
-	music, err := Dial(network, addr, "", musicDirectory)
-	defer music.Close()
+	dialer := mpd.Dialer{
+		Timeout:              10 * time.Second,
+		HealthCheckInterval:  time.Second,
+		ReconnectionInterval: 5 * time.Second,
+	}
+	cl, err := dialer.Dial(network, addr, "")
 	if err != nil {
-		log.Println("[error]", "faied to connect/initialize mpd:", err)
-		os.Exit(1)
+		log.Fatalf("failed to dial mpd: %v", err)
 	}
-	serverAddr := viper.GetString("server.addr")
-	s := Server{
-		Music:          music,
+	w, err := dialer.NewWatcher(network, addr, "")
+	if err != nil {
+		log.Fatalf("failed to dial mpd: %v", err)
+	}
+	assets := AssetsConfig{
+		LocalAssets: viper.GetBool("debug"),
+	}.NewAssetsHandler()
+	api, err := APIConfig{
 		MusicDirectory: musicDirectory,
-		Addr:           serverAddr,
-		StartTime:      time.Now().UTC(),
-		KeepAlive:      viper.GetBool("server.keepalive"),
-		debug:          viper.GetBool("debug"),
+	}.NewAPIHandler(ctx, cl, w)
+	if err != nil {
+		log.Fatalf("failed to initialize api handler: %v", err)
 	}
-	s.Serve()
+	m := http.NewServeMux()
+	m.Handle("/", assets)
+	m.Handle("/api/", api)
+
+	if err != nil {
+		log.Fatalf("failed to initialize app: %v", err)
+	}
+	s := http.Server{
+		Handler: m,
+		Addr:    viper.GetString("server.addr"),
+	}
+	errs := make(chan error, 1)
+	go func() {
+		errs <- s.ListenAndServe()
+	}()
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT)
+	select {
+	case <-sc:
+	case err := <-errs:
+		if err != http.ErrServerClosed {
+			log.Fatalf("server stopped with error: %v", err)
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.Shutdown(ctx); err != nil {
+		log.Printf("failed to stop http server: %v", err)
+	}
+	if err := cl.Close(ctx); err != nil {
+		log.Printf("failed to close mpd connection(main): %v", err)
+	}
+	if err := w.Close(ctx); err != nil {
+		log.Printf("failed to close mpd connection(event): %v", err)
+	}
 }
