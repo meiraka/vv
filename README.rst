@@ -2,6 +2,9 @@
 vv
 ==
 
+.. image:: https://github.com/meiraka/vv/workflows/Go/badge.svg
+   :target: https://github.com/meiraka/vv/actions
+
 Web App client for Music Player Daemon
 
 .. image:: appendix/screenshot.jpg
