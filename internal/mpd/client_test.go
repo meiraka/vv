@@ -3,6 +3,7 @@ package mpd
 import (
 	"context"
 	"io"
+	"net"
 	"reflect"
 	"testing"
 	"time"
@@ -12,14 +13,13 @@ import (
 
 var (
 	testDialer = Dialer{
-		Timeout:              time.Second,
-		HealthCheckInterval:  time.Second,
+		Timeout:              testTimeout,
 		ReconnectionInterval: time.Microsecond,
 	}
 )
 
 func TestClient(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	ts, err := mpdtest.NewServer("OK MPD 0.19")
 	if err != nil {
@@ -72,8 +72,13 @@ func TestClient(t *testing.T) {
 						ts.Expect(ctx, &mpdtest.WR{Read: read})
 						ts.Disconnect(ctx)
 					}()
-					if err := cmd(ctx); err != io.EOF {
-						t.Errorf("got %v; want <nil>", err)
+					cmdCtx, cmdCancel := context.WithTimeout(ctx, testTimeout/100)
+					defer cmdCancel()
+					err := cmd(cmdCtx)
+					if _, ok := err.(net.Error); !ok {
+						if err != io.EOF {
+							t.Errorf("got %v; want %v or net.Error", err, io.EOF)
+						}
 					}
 					go func() {
 						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
@@ -157,9 +162,13 @@ func TestClient(t *testing.T) {
 						ts.Expect(ctx, &mpdtest.WR{Read: read})
 						ts.Disconnect(ctx)
 					}()
-					got, err := tt.cmd(ctx)
-					if err != io.EOF {
-						t.Errorf("got %v, %v; want nil, %v", got, err, io.EOF)
+					cmdCtx, cmdCancel := context.WithTimeout(ctx, testTimeout/100)
+					defer cmdCancel()
+					got, err := tt.cmd(cmdCtx)
+					if _, ok := err.(net.Error); !ok {
+						if err != io.EOF {
+							t.Errorf("got %v, %v; want nil, %v or net.Error", got, err, io.EOF)
+						}
 					}
 					go func() {
 						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
