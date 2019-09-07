@@ -1,4 +1,4 @@
-name: Go
+name: test
 on:
   push:
     branches: [master]
@@ -25,4 +25,4 @@ jobs:
     - name: go test
       run: go test ./... -v
     - name: go build
-      run: go build -v .
+      run: make all
