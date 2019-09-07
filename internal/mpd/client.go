@@ -29,28 +29,29 @@ func (d Dialer) Dial(proto, addr, password string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	hCtx, hStop := context.WithCancel(context.Background())
 	c := &Client{
-		closed: make(chan struct{}, 1),
-		pool:   pool,
-		dialer: &d,
+		pool:            pool,
+		dialer:          &d,
+		stopHealthCheck: hStop,
 	}
-	go c.healthCheck()
+	go c.healthCheck(hCtx)
 	return c, nil
 }
 
 // Client is a mpd client.
 type Client struct {
-	proto    string
-	addr     string
-	password string
-	pool     *pool
-	closed   chan struct{}
-	dialer   *Dialer
+	proto           string
+	addr            string
+	password        string
+	pool            *pool
+	stopHealthCheck func()
+	dialer          *Dialer
 }
 
 // Close closes mpd connection.
 func (c *Client) Close(ctx context.Context) error {
-	close(c.closed)
+	c.stopHealthCheck()
 	return c.pool.Close(ctx)
 }
 
@@ -278,19 +279,20 @@ func (c *Client) Outputs(ctx context.Context) ([]map[string]string, error) {
 	return c.listMap(ctx, "outputid: ", "outputs")
 }
 
-func (c *Client) healthCheck() {
+func (c *Client) healthCheck(ctx context.Context) {
 	if c.dialer.HealthCheckInterval == 0 {
 		return
 	}
 	ticker := time.NewTicker(c.dialer.HealthCheckInterval)
 	go func() {
+		defer ticker.Stop()
 		for {
 			select {
-			case <-c.closed:
+			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				ctx, cancel := context.WithTimeout(context.Background(), c.dialer.HealthCheckInterval)
-				c.ok(ctx, "ping")
+				ctx, cancel := context.WithTimeout(ctx, c.dialer.HealthCheckInterval)
+				c.Ping(ctx)
 				cancel()
 			}
 		}

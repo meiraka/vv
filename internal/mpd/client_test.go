@@ -37,6 +37,9 @@ func TestClient(t *testing.T) {
 		if err := c.Close(ctx); err != nil {
 			t.Errorf("Close got error %v; want nil", err)
 		}
+		if err := c.Close(ctx); err != ErrClosed {
+			t.Errorf("Close got error %v; want %v", err, ErrClosed)
+		}
 	}()
 	if g, w := c.Version(), "0.19"; g != w {
 		t.Errorf("Version() got `%s`; want `%s`", g, w)
