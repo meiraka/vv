@@ -2,7 +2,7 @@
 vv
 ==
 
-.. image:: https://github.com/meiraka/vv/workflows/Go/badge.svg
+.. image:: https://github.com/meiraka/vv/workflows/test/badge.svg
    :target: https://github.com/meiraka/vv/actions
 
 Web App client for Music Player Daemon
