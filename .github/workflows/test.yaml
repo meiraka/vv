@@ -19,7 +19,9 @@ jobs:
     - name: gofmt
       run: test -z "$(gofmt -s -l . | tee /dev/stderr)"
     - name: golint
-      run: test -z "$(golint ./... | tee /dev/stderr)"
+      run: |
+        go install golang.org/x/lint/golint
+        test -z "$(golint ./... | tee /dev/stderr)"
     - name: go vet
       run: go vet ./...
     - name: go test
