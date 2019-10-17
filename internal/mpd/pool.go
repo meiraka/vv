@@ -13,7 +13,7 @@ type pool struct {
 	Timeout              time.Duration
 	ReconnectionInterval time.Duration
 	connC                chan *conn
-	mu                   sync.Mutex
+	mu                   sync.RWMutex
 	version              string
 }
 
@@ -64,8 +64,8 @@ func (c *pool) Close(ctx context.Context) error {
 }
 
 func (c *pool) Version() string {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.version
 }
 
