@@ -9,3 +9,28 @@ mpd:
 server:
     # this app serving address
     addr: ":8080"
+
+playlist:
+  tree:
+    AlbumArtist:
+      sort: ["AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"]
+      tree: [["AlbumArtist", "plain"], ["Album", "album"], ["Title", "song"]]
+    Album:
+      sort: ["AlbumArtist-Date-Album", "DiscNumber", "TrackNumber", "Title", "file"]
+      tree: [["AlbumArtist-Date-Album", "album"], ["Title", "song"]]
+    Artist:
+      sort: ["Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"]
+      tree: [["Artist", "plain"], ["Title", "song"]]
+    Genre:
+      sort: ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"]
+      tree: [["Genre", "plain"], ["Album", "album"], ["Title", "song"]]
+    Date:
+      sort: ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"]
+      tree: [["Date", "plain"], ["Album", "album"], ["Title", "song"]]
+    Composer:
+      sort: ["Composer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"]
+      tree: [["Composer", "plain"], ["Album", "album"], ["Title", "song"]]
+    Performer:
+      sort: ["Performer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"]
+      tree: [["Performer", "plain"], ["Album", "album"], ["Title", "song"]]
+  tree_order: ["AlbumArtist", "Album", "Artist", "Genre", "Date", "Composer", "Performer"]

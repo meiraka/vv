@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -12,27 +13,11 @@ import (
 	"time"
 
 	"github.com/meiraka/vv/internal/mpd"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 const staticVersion = "v0.6.2+"
 
 var version = "v0.7.0+"
-
-func setupFlag(name string) {
-	viper.SetConfigName(name)
-	viper.AddConfigPath("/etc/xdg/vv")
-	viper.AddConfigPath("$HOME/.config/vv")
-	pflag.String("mpd.network", "tcp", "mpd server network to connect")
-	pflag.String("mpd.addr", "localhost:6600", "mpd server address to connect")
-	pflag.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
-	pflag.String("server.addr", ":8080", "this app serving address")
-	pflag.Bool("server.keepalive", true, "use HTTP keep-alive")
-	pflag.BoolP("debug", "d", false, "use local assets if exists")
-	pflag.Parse()
-	viper.BindPFlags(pflag.CommandLine)
-}
 
 func getMusicDirectory(confpath string) (string, error) {
 	f, err := os.Open(confpath)
@@ -46,6 +31,7 @@ func getMusicDirectory(confpath string) (string, error) {
 			return "", err
 		}
 		l := sc.Text()
+		l = strings.TrimSpace(l)
 		if strings.HasPrefix(l, "music_directory") {
 			q := strings.TrimSpace(strings.TrimPrefix(l, "music_directory"))
 			if strings.HasPrefix(q, "\"") && strings.HasSuffix(q, "\"") {
@@ -58,59 +44,61 @@ func getMusicDirectory(confpath string) (string, error) {
 
 //go:generate go run internal/cmd/fix-assets/main.go
 func main() {
-	setupFlag("config")
-	err := viper.ReadInConfig()
-	if err != nil {
-		if _, notfound := err.(viper.ConfigFileNotFoundError); !notfound {
-			log.Println("[error]", "faied to load config file:", err)
-			os.Exit(1)
-		}
-	}
 	v2()
 }
 
 func v2() {
 	ctx := context.TODO()
-	network := viper.GetString("mpd.network")
-	addr := viper.GetString("mpd.addr")
-	musicDirectory := viper.GetString("mpd.music_directory")
+	config, err := ParseConfig([]string{"/etc/xdg/vv"})
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 	dialer := mpd.Dialer{
 		Timeout:              10 * time.Second,
 		HealthCheckInterval:  time.Second,
 		ReconnectionInterval: 5 * time.Second,
 	}
-	cl, err := dialer.Dial(network, addr, "")
+	tree, err := json.Marshal(config.Playlist.Tree)
+	if err != nil {
+		log.Fatalf("failed to create playlist tree: %v", err)
+	}
+	treeOrder, err := json.Marshal(config.Playlist.TreeOrder)
+	if err != nil {
+		log.Fatalf("failed to create playlist tree order: %v", err)
+	}
+	cl, err := dialer.Dial(config.MPD.Network, config.MPD.Addr, "")
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
-	w, err := dialer.NewWatcher(network, addr, "")
+	w, err := dialer.NewWatcher(config.MPD.Network, config.MPD.Addr, "")
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
 	// get music dir from local mpd connection
-	if network == "unix" {
+	if config.MPD.Network == "unix" && config.MPD.MusicDirectory == "" {
 		if c, err := cl.Config(ctx); err == nil {
 			if dir, ok := c["music_directory"]; ok {
-				musicDirectory = dir
+				config.MPD.MusicDirectory = dir
 			}
 		}
 	}
 
 	// get music dir from local mpd config
-	if len(musicDirectory) == 0 {
+	if config.MPD.MusicDirectory == "" {
 		dir, err := getMusicDirectory("/etc/mpd.conf")
 		if err == nil {
-			musicDirectory = dir
+			config.MPD.MusicDirectory = dir
 		}
 	}
-	if !strings.HasPrefix(musicDirectory, "/") {
-		musicDirectory = ""
+	if !strings.HasPrefix(config.MPD.MusicDirectory, "/") {
+		config.MPD.MusicDirectory = ""
 	}
 	assets := AssetsConfig{
-		LocalAssets: viper.GetBool("debug"),
+		LocalAssets: config.debug,
+		Extra:       map[string]string{"TREE": string(tree), "TREE_ORDER": string(treeOrder)},
 	}.NewAssetsHandler()
 	api, err := APIConfig{
-		MusicDirectory: musicDirectory,
+		MusicDirectory: config.MPD.MusicDirectory,
 	}.NewAPIHandler(ctx, cl, w)
 	if err != nil {
 		log.Fatalf("failed to initialize api handler: %v", err)
@@ -124,7 +112,7 @@ func v2() {
 	}
 	s := http.Server{
 		Handler: m,
-		Addr:    viper.GetString("server.addr"),
+		Addr:    config.Server.Addr,
 	}
 	errs := make(chan error, 1)
 	go func() {

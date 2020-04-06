@@ -221,6 +221,9 @@ vv.storage = {
         feature: {
             show_scrollbars_when_scrolling: false,
         },
+        playlist: {
+            playback_tracks: "all",
+        },
         appearance: {
             theme: "prefer-coverart",
             color_threshold: 128,
@@ -414,55 +417,12 @@ vv.library = {
         Composer: [],
         Performer: []
     },
-    TREE: {
-        AlbumArtist: {
-            sort: [
-                "AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title",
-                "file"
-            ],
-            tree: [["AlbumArtist", "plain"], ["Album", "album"], ["Title", "song"]]
-        },
-        Album: {
-            sort: [
-                "AlbumArtist-Date-Album", "DiscNumber", "TrackNumber", "Title", "file"
-            ],
-            tree: [["AlbumArtist-Date-Album", "album"], ["Title", "song"]]
-        },
-        Artist: {
-            sort: [
-                "Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"
-            ],
-            tree: [["Artist", "plain"], ["Title", "song"]]
-        },
-        Genre: {
-            sort: ["Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
-            tree: [["Genre", "plain"], ["Album", "album"], ["Title", "song"]]
-        },
-        Date: {
-            sort: ["Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"],
-            tree: [["Date", "plain"], ["Album", "album"], ["Title", "song"]]
-        },
-        Composer: {
-            sort: [
-                "Composer", "Date", "Album", "DiscNumber", "TrackNumber", "Title",
-                "file"
-            ],
-            tree: [["Composer", "plain"], ["Album", "album"], ["Title", "song"]]
-        },
-        Performer: {
-            sort: [
-                "Performer", "Date", "Album", "DiscNumber", "TrackNumber", "Title",
-                "file"
-            ],
-            tree: [["Performer", "plain"], ["Album", "album"], ["Title", "song"]]
-        }
-    },
     _listener: {},
     addEventListener(e, f) { vv.pubsub.add(vv.library._listener, e, f); },
     removeEventListener(e, f) { vv.pubsub.rm(vv.library._listener, e, f); },
     _mkmemo(key) {
         const ret = [];
-        for (const leef of vv.library.TREE[key].tree) {
+        for (const leef of TREE[key].tree) {
             ret.push(leef[0]);
         }
         return ret;
@@ -472,7 +432,7 @@ vv.library = {
         const root = vv.library.rootname();
         if (vv.library._roots[root].length === 0) {
             vv.library._roots[root] = vv.songs.sort(
-                vv.storage.library, vv.library.TREE[root].sort,
+                vv.storage.library, TREE[root].sort,
                 vv.library._mkmemo(root));
         }
         const filters = {};
@@ -483,20 +443,18 @@ vv.library = {
             filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
         }
         const ret = {};
-        ret.key = vv.library.TREE[root].tree[vv.storage.tree.length - 1][0];
+        ret.key = TREE[root].tree[vv.storage.tree.length - 1][0];
         ret.songs = vv.library._roots[root];
         ret.songs = vv.songs.filter(ret.songs, filters);
         ret.songs = vv.songs.uniq(ret.songs, ret.key);
-        ret.style = vv.library.TREE[root].tree[vv.storage.tree.length - 1][1];
-        ret.isdir = vv.storage.tree.length !== vv.library.TREE[root].tree.length;
+        ret.style = TREE[root].tree[vv.storage.tree.length - 1][1];
+        ret.isdir = vv.storage.tree.length !== TREE[root].tree.length;
         return ret;
     },
     list_root() {
         const ret = [];
-        for (const key in vv.library.TREE) {
-            if (vv.library.TREE.hasOwnProperty(key)) {
-                ret.push({ root: [key] });
-            }
+        for (let i = 0, imax = TREE_ORDER.length; i < imax; i++) {
+            ret.push({ root: [TREE_ORDER[i]] });
         }
         return { key: "root", songs: ret, style: "plain", isdir: true };
     },
@@ -533,11 +491,11 @@ vv.library = {
         for (let i = 0, imax = vv.library._list_child_cache.length; i < imax; i++) {
             vv.library._list_child_cache[i] = {};
         }
-        for (const key in vv.library.TREE) {
-            if (vv.library.TREE.hasOwnProperty(key)) {
+        for (const key in TREE) {
+            if (TREE.hasOwnProperty(key)) {
                 if (key === vv.storage.root) {
                     vv.library._roots[key] = vv.songs.sort(
-                        data, vv.library.TREE[key].sort, vv.library._mkmemo(key));
+                        data, TREE[key].sort, vv.library._mkmemo(key));
                 } else {
                     vv.library._roots[key] = [];
                 }
@@ -566,7 +524,7 @@ vv.library = {
         if (r === "root") {
             return [];
         }
-        return vv.library.TREE[r].sort;
+        return TREE[r].sort;
     },
     up() {
         const songs = vv.library.list().songs;
@@ -594,7 +552,7 @@ vv.library = {
             vv.storage.tree.push([r, value]);
             r = value;
         } else {
-            const key = vv.library.TREE[r].tree[vv.storage.tree.length - 1][0];
+            const key = TREE[r].tree[vv.storage.tree.length - 1][0];
             vv.storage.tree.push([key, value]);
         }
         vv.library.focus = {};
@@ -602,7 +560,7 @@ vv.library = {
         vv.library.update_list();
         const songs = vv.library.list().songs;
         if (songs.length === 1 &&
-            vv.library.TREE[r].tree.length !== vv.storage.tree.length) {
+            TREE[r].tree.length !== vv.storage.tree.length) {
             vv.library.down(vv.song.get(songs[0], vv.library.list().key));
         } else {
             vv.pubsub.raise(vv.library._listener, "changed");
@@ -620,7 +578,7 @@ vv.library = {
             vv.storage.tree.splice(0, vv.storage.tree.length);
             vv.storage.tree.push(r);
             const root = vv.storage.tree[0][1];
-            const selected = vv.library.TREE[root].tree;
+            const selected = TREE[root].tree;
             for (let i = 0, imax = selected.length; i < imax; i++) {
                 if (i === selected.length - 1) {
                     break;
@@ -646,9 +604,9 @@ vv.library = {
         let root = "";
         const pos = parseInt(song.Pos[0], 10);
         const keys = vv.storage.sorted.sort.join();
-        for (const key in vv.library.TREE) {
-            if (vv.library.TREE.hasOwnProperty(key)) {
-                if (vv.library.TREE[key].sort.join() === keys) {
+        for (const key in TREE) {
+            if (TREE.hasOwnProperty(key)) {
+                if (TREE[key].sort.join() === keys) {
                     root = key;
                     break;
                 }
@@ -661,7 +619,7 @@ vv.library = {
         let songs = vv.library._roots[root];
         if (!songs || songs.length === 0) {
             vv.library._roots[root] = vv.songs.sort(
-                vv.storage.library, vv.library.TREE[root].sort,
+                vv.storage.library, TREE[root].sort,
                 vv.library._mkmemo(root));
             songs = vv.library._roots[root];
             if (songs.length === 0) {
@@ -703,8 +661,8 @@ vv.library = {
         }
         const v = vv.library.list().songs;
         if (vv.storage.tree.length > 1) {
-            const key = vv.library.TREE[root].tree[vv.storage.tree.length - 2][0];
-            const style = vv.library.TREE[root].tree[vv.storage.tree.length - 2][1];
+            const key = TREE[root].tree[vv.storage.tree.length - 2][0];
+            const style = TREE[root].tree[vv.storage.tree.length - 2][1];
             return { key: key, song: v[0], style: style, isdir: true };
         }
         return { key: "top", song: { top: [root] }, style: "plain", isdir: true };
@@ -716,8 +674,8 @@ vv.library = {
         }
         const v = vv.library.list().songs;
         if (vv.storage.tree.length > 2) {
-            const key = vv.library.TREE[root].tree[vv.storage.tree.length - 3][0];
-            const style = vv.library.TREE[root].tree[vv.storage.tree.length - 3][1];
+            const key = TREE[root].tree[vv.storage.tree.length - 3][0];
+            const style = TREE[root].tree[vv.storage.tree.length - 3][1];
             return { key: key, song: v[0], style: style, isdir: true };
         } else if (vv.storage.tree.length === 2) {
             return { key: "top", song: { top: [root] }, style: "plain", isdir: true };
@@ -1034,9 +992,12 @@ vv.control = {
         vv.control.raiseEvent("control");
     },
     play(pos) {
+        const filters = vv.library.filters(pos);
+        const must = (vv.storage.preferences.playlist.playback_tracks === "all") ? 0 : filters.length - 1;
         vv.request.post("/api/music/playlist", {
             sort: vv.library.sortkeys(),
-            filters: vv.library.filters(pos),
+            filters: filters,
+            must: must,
             current: pos
         });
     },
@@ -1496,7 +1457,7 @@ vv.view.list = {
                     treeFocused = false;
                 } else if (
                     vv.storage.sorted.sort.join() !==
-                    vv.library.TREE[rootname].sort.join()) {
+                    TREE[rootname].sort.join()) {
                     treeFocused = false;
                 }
             }
@@ -1959,6 +1920,8 @@ vv.view.system = {
         vv.view.system._initconfig("appearance-playlist-follows-playback");
         vv.view.system._initconfig("appearance-volume");
         vv.view.system._initconfig("appearance-volume-max");
+        vv.view.system._initconfig("playlist-playback-tracks_all");
+        vv.view.system._initconfig("playlist-playback-tracks_list");
         document.getElementById("system-reload").addEventListener("click", () => {
             location.reload();
         });
@@ -2330,7 +2293,7 @@ vv.view.modal = {
                 emptyvalue.classList.add("modal-song-box-item-value-empty");
                 newdoc.appendChild(emptyvalue);
             } else {
-                const root = vv.library.TREE[key];
+                const root = TREE[key];
                 let targetValues = [];
                 if (root && root.tree) {
                     const target = root.tree[0][0];

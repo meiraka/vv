@@ -23,6 +23,7 @@ html {
 <link rel="apple-touch-startup-image" href="/assets/w.png">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" sizes="192x192" href="/assets/app.png">
+<script>const TREE = JSON.parse({{ or .TREE "{}" }});const TREE_ORDER = JSON.parse({{ or .TREE_ORDER "[]" }});</script>
 <script src="/assets/app.js" async></script>
 <title>vv</title>
 </head>
@@ -250,6 +251,7 @@ html {
     <div class="system-box">
       <nav id="system-nav" class="system-nav on">
         <button class="system-nav-item fallback" id="system-nav-appearance" data-target="system-appearance" type="button">{{ or .Appearance "Appearance" }}</button>
+        <button class="system-nav-item" id="system-nav-playlist" data-target="system-playlist" type="button">{{ or .Playlist "Playlist" }}</button>
         <button class="system-nav-item" id="system-nav-database" data-target="system-database" type="button">{{ or .Database "Database" }}</button>
         <button class="system-nav-item" id="system-nav-outputs" data-target="system-outputs" type="button">{{ or .Outputs "Outputs" }}</button>
         <button class="system-nav-item" id="system-nav-info" data-target="system-info" type="button">{{ or .Information "Information" }}</button>
@@ -297,9 +299,6 @@ html {
         <article class="system-article-sub">
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-playlist-follows-playback-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
-              <input type="checkbox" id="appearance-playlist-follows-playback" class="slideswitch" aria-labelledby="appearance-playlist-follows-playback-label">
-            <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-playlist-gridview-album-label">{{ or .GridviewAlbum "Gridview album" }}</div>
               <input type="checkbox" id="appearance-playlist-gridview-album" class="slideswitch" aria-labelledby="appearance-playlist-gridview-album-label">
           </ul>
@@ -323,6 +322,29 @@ html {
           </ul>
         </article>
       </article>
+
+      <article id="system-playlist" class="scrollable system-article">
+        <h1 class="system-article-sub-header">{{ or .Playback "Playback" }}</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings">
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="appearance-playlist-follows-playback-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
+              <input type="checkbox" id="appearance-playlist-follows-playback" class="slideswitch" aria-labelledby="appearance-playlist-follows-playback-label">
+            <li class="list-item system-setting">
+              <div class="system-setting-desc-box">
+                <div class="system-setting-desc" id="playlist-playback-tracks">{{ or .PlaybackRange "Playback Range" }}</div>
+                <div class="system-setting-desc-help">{{ or .PlaybackRangeHelp "This settings will applied from the next track selection." }}</div>
+              </div>
+              <div class="radio-box">
+                <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_all" value="all"/>
+                <label class="radio-check" for="playlist-playback-tracks_all">{{ or .PlayAllTracks "All tracks" }}</label>
+                <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_list" value="list"/>
+                <label class="radio-check" for="playlist-playback-tracks_list">{{ or .PlaySelectedList "Selected list" }}</label>
+              </div>
+          </ul>
+        </article>
+      </article>
+
 
       <article id="system-database" class="scrollable system-article">
         <h1 class="system-article-sub-header">{{ or .Library "Library" }}</h1>
@@ -415,14 +437,6 @@ html {
             <div class="link">
               <a class="product-link" href="https://github.com/spf13/pflag">https://github.com/spf13/pflag</a>
               <a class="license-link" href="https://github.com/spf13/pflag/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
-            </div>
-          <li class="license-box information-box">
-            <div>
-              <span class="product-name">github.com/spf13/viper</span>
-            </div>
-            <div class="link">
-              <a class="product-link" href="https://github.com/spf13/viper">https://github.com/spf13/viper</a>
-              <a class="license-link" href="https://github.com/spf13/viper/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>

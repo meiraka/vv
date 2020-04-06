@@ -36,6 +36,10 @@ var translateData = map[language.Tag]map[string]string{
 		"GridviewAlbum":               "アルバム一覧をグリッド表示",
 		"AutoHideScrollbar":           "自動的にスクロールバーを非表示",
 		"Playlist":                    "プレイリスト",
+		"PlaybackRange":               "再生範囲",
+		"PlayAllTracks":               "すべての曲を再生",
+		"PlaySelectedList":            "現在のリストを再生",
+		"PlaybackRangeHelp":           "次曲選択以降に有効になります。",
 		"Library":                     "ライブラリ",
 		"Rescan":                      "ライブラリを再読み込み",
 		"Playback":                    "再生",
@@ -110,13 +114,21 @@ var translateData = map[language.Tag]map[string]string{
 	},
 }
 
-func translate(html []byte, lang language.Tag) ([]byte, error) {
+func translate(html []byte, lang language.Tag, extra map[string]string) ([]byte, error) {
 	t, err := template.New("webpage").Parse(string(html))
 	if err != nil {
 		return nil, err
 	}
 	buf := new(bytes.Buffer)
-	err = t.Execute(buf, translateData[lang])
+	m, ok := translateData[lang]
+	if ok {
+		for k, v := range extra {
+			m[k] = v
+		}
+	} else {
+		m = extra
+	}
+	err = t.Execute(buf, m)
 	if err != nil {
 		return nil, err
 	}

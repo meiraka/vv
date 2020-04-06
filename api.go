@@ -388,7 +388,7 @@ func (h *api) playlistPost(alter http.Handler) http.HandlerFunc {
 		defer func() { sem <- struct{}{} }()
 
 		h.mu.Lock()
-		librarySort, filters, newpos := songs.WeakFilterSort(h.library, req.Sort, req.Filters, 9999, req.Current)
+		librarySort, filters, newpos := songs.WeakFilterSort(h.library, req.Sort, req.Filters, req.Must, 9999, req.Current)
 		update := !songs.SortEqual(h.playlist, librarySort)
 		cl := h.client.BeginCommandList()
 		cl.Clear()
@@ -481,6 +481,7 @@ type httpPlaylistInfo struct {
 	Current int        `json:"current"`
 	Sort    []string   `json:"sort,omitempty"`
 	Filters [][]string `json:"filters,omitempty"`
+	Must    int        `json:"must,omitempty"`
 }
 
 type httpLibraryInfo struct {

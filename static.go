@@ -18,6 +18,7 @@ import (
 // AssetsConfig represents Assets configuration
 type AssetsConfig struct {
 	LocalAssets bool
+	Extra       map[string]string
 }
 
 // NewAssetsHandler returns hander for asset files.
@@ -136,7 +137,7 @@ func (c *AssetsConfig) i18nAssetsHandler(rpath string, b []byte, hash []byte) ht
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
-			data, err = translate(data, tag)
+			data, err = translate(data, tag, c.Extra)
 			if err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
@@ -158,7 +159,7 @@ func (c *AssetsConfig) i18nAssetsHandler(rpath string, b []byte, hash []byte) ht
 	bt := make([][]byte, len(translatePrio))
 	gt := make([][]byte, len(translatePrio))
 	for i := range translatePrio {
-		data, err := translate(b, translatePrio[i])
+		data, err := translate(b, translatePrio[i], c.Extra)
 		if err != nil {
 			log.Fatalf("failed to translate %s to %v: %v", rpath, translatePrio[i], err)
 		}

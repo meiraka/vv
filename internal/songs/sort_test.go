@@ -14,6 +14,7 @@ func TestWeakFilterSort(t *testing.T) {
 		desc    string
 		keys    []string
 		filters [][]string
+		must    int
 		max     int
 		pos     int
 		want    []map[string][]string
@@ -40,9 +41,25 @@ func TestWeakFilterSort(t *testing.T) {
 			want:    []map[string][]string{a, b},
 			wantPos: 0,
 		},
+		"filter 1st item(must)": {
+			keys: []string{"Album", "Track"},
+			max:  100, filters: [][]string{{"Album", "baz"}, {"Track", "1"}},
+			must:    1,
+			pos:     0,
+			want:    []map[string][]string{a, b},
+			wantPos: 0,
+		},
 		"filter 2nd item": {
 			keys: []string{"Album", "Track"},
 			max:  1, filters: [][]string{{"Album", "baz"}, {"Track", "1"}},
+			pos:     0,
+			want:    []map[string][]string{a},
+			wantPos: 0,
+		},
+		"filter 2nd item(must)": {
+			keys: []string{"Album", "Track"},
+			max:  100, filters: [][]string{{"Album", "baz"}, {"Track", "1"}},
+			must:    2,
 			pos:     0,
 			want:    []map[string][]string{a},
 			wantPos: 0,
@@ -78,7 +95,7 @@ func TestWeakFilterSort(t *testing.T) {
 	}
 	for label, tt := range testsets {
 		t.Run(label, func(t *testing.T) {
-			got, _, pos := WeakFilterSort(songs, tt.keys, tt.filters, tt.max, tt.pos)
+			got, _, pos := WeakFilterSort(songs, tt.keys, tt.filters, tt.must, tt.max, tt.pos)
 			if !reflect.DeepEqual(got, tt.want) || pos != tt.wantPos {
 				t.Errorf("got WeakFilterSort(%v, %v, %v, %v, %v) =\n%v, _, %v; want\n%v, _, %v", songs, tt.keys, tt.filters, tt.max, tt.pos, got, pos, tt.want, tt.wantPos)
 			}

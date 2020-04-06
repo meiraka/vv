@@ -951,6 +951,9 @@ button:hover {
   display: flex;
 }
 
+.system-setting-desc-box {
+  flex: 1 1 auto;
+}
 .system-setting-desc {
   font-size: 18px;
   overflow: hidden;
@@ -958,6 +961,12 @@ button:hover {
   white-space: nowrap;
   flex: 1 1 auto;
   padding: 8px 8px 8px 0;
+}
+.system-setting-desc-help {
+  color: var(--sub-text-color);
+  font-size: 12px;
+  overflow: hidden;
+  padding: 0 10px 0 0;
 }
 
 .system-setting-value-expand {
@@ -1248,6 +1257,7 @@ button:hover {
   padding: 4px;
   display: flex;
   flex-direction: row-reverse;
+  white-space: nowrap;
 }
 
 input[type=radio] {
@@ -1259,6 +1269,8 @@ input[type=radio] {
   box-sizing: border-box;
   display: inline-block;
   position: relative;
+  min-width: 30px;
+  min-height: 30px;
   width: 30px;
   height: 30px;
   border-radius: 30px;
