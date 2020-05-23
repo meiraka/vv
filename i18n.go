@@ -2,8 +2,9 @@ package main
 
 import (
 	"bytes"
-	"golang.org/x/text/language"
 	"html/template"
+
+	"golang.org/x/text/language"
 )
 
 var translatePrio = []language.Tag{
@@ -21,7 +22,12 @@ var translateData = map[language.Tag]map[string]string{
 		"System":                      "システム",
 		"ReloadApplication":           "再読み込み",
 		"Appearance":                  "外観の設定",
-		"ColorThreshold":              "色",
+		"Theme":                       "テーマ",
+		"ThemeLight":                  "ライト",
+		"ThemeDark":                   "ダーク",
+		"ThemeSystem":                 "システムに合わせる",
+		"ThemeCoverArt":               "カバーアートに合わせる",
+		"CoverArtColorThreshold":      "カバーアートの色閾値",
 		"Animation":                   "アニメーション",
 		"BackgroundImage":             "背景画像を表示",
 		"BackgroundImageBlur":         "背景画像のブラーエフェクト",

@@ -201,6 +201,53 @@ body {
   transition: color 0.2s 0s ease-out, background-color 0.2s 0s ease-out;
 }
 
+:root {
+  color-scheme: light dark;
+  /* default text color*/
+  --text-color: #303030;
+  /* license link text color*/
+  --sub-text-color: #404040;
+  /* default text underline*/
+  --border-color: #404040;
+  /* default app body background color */
+  --bg-color: #ffffff;
+  --bg-color-rgb: 255, 255, 255;
+  /* button outline or border color*/
+  --button-outline: #404040;
+  --button-outline-rgb: 64, 64, 64;
+  /* button inner background color or text*/
+  --button-inner: #ffffff;
+  --button-inner-rgb: 255, 255, 255;
+  --button-disabled-outline: #303030;
+  --button-disabled-inner: #a0a0a0;
+  --list-selected: rgba(255, 255, 255, 0.2);
+  --list-hover: rgba(255, 255, 255, 0.3);
+  --overlay: rgba(255, 255, 255, 0.4);
+  --scrollbar: rgba(48, 48, 48, 0.2);
+  --scrollbar-hover: rgba(48, 48, 48, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-color: #d0d0d0;
+    --sub-text-color: #c0c0c0;
+    --border-color: #e0e0e0;
+    --bg-color: #000000;
+    --bg-color-rgb: 0, 0, 0;
+    --button-outline: #e0e0e0;
+    --button-outline-rgb: 224, 224, 224;
+    --button-inner: #202020;
+    --button-inner-rgb: 32, 32, 32;
+    --button-disabled-outline: #f0f0f0;
+    --button-disabled-inner: #a0a0a0;
+    --list-selected: rgba(0, 0, 0, 0.2);
+    --list-hover: rgba(0, 0, 0, 0.3);
+    --overlay: rgba(0, 0, 0, 0.4);
+    --scrollbar: rgba(208, 208, 208, 0.2);
+    --scrollbar-hover: rgba(208, 208, 208, 0.6);
+  }
+}
+
 .light {
   /* default text color*/
   --text-color: #303030;
@@ -1167,6 +1214,40 @@ button:hover {
   color: transparent;
   transition: none;
   text-shadow: 0 0 0 var(--button-inner);
+}
+
+.radio-box {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.radio-check {
+  line-height: 30px;
+  padding: 4px;
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+input[type=radio] {
+  display: none;
+}
+
+.radio-check:before {
+  margin: 0 0 0 10px;
+  box-sizing: border-box;
+  display: inline-block;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 30px;
+  background-color: var(--button-outline);
+  border: solid 3px var(--button-outline);
+  content: '';
+}
+
+input[type=radio]:checked + .radio-check:before {
+  background-color: var(--button-inner);
 }
 
 .popup-box {

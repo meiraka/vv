@@ -256,7 +256,19 @@ html {
       <article class="system-article-sub">
         <ul class="system-settings">
           <li class="list-item system-setting">
-            <div class="system-setting-desc" id="appearance-color-threshold-label">{{ or .ColorThreshold "Color threshold" }}</div>
+            <div class="system-setting-desc" id="appearance-theme-label">{{ or .Theme "Theme" }}</div>
+            <div class="radio-box">
+              <input type="radio" name="appearance-theme" id="appearance-theme_light" value="light"/>
+              <label class="radio-check" for="appearance-theme_light">{{ or .ThemeLight "Light" }}</label>
+              <input type="radio" name="appearance-theme" id="appearance-theme_dark" value="dark"/>
+              <label class="radio-check" for="appearance-theme_dark">{{ or .ThemeDark "Dark" }}</label>
+              <input type="radio" name="appearance-theme" id="appearance-theme_prefer-system" value="prefer-system"/>
+              <label class="radio-check" for="appearance-theme_prefer-system">{{ or .ThemeSystem "Prefer System" }}</label>
+              <input type="radio" name="appearance-theme" id="appearance-theme_prefer-coverart" value="prefer-coverart"/>
+              <label class="radio-check" for="appearance-theme_prefer-coverart">{{ or .ThemeCoverArt "Prefer CoverArt" }}</label>
+            </div>
+          <li class="list-item system-setting" id="config-appearance-color-threshold">
+            <div class="system-setting-desc" id="appearance-color-threshold-label">{{ or .CoverArtColorThreshold "CoverArt Color threshold" }}</div>
             <div class="system-setting-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label"></div>
           <li class="list-item system-setting" id="config-appearance-animation">
             <div class="system-setting-desc" id="appearance-animation-label">{{ or .Animation "Animation" }}</div>

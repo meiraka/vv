@@ -221,6 +221,7 @@ vv.storage = {
     volume: {show: true, max: "100"},
     playback: {view_follow: true},
     appearance: {
+      theme: "prefer-coverart",
       color_threshold: 128,
       animation: true,
       background_image: true,
@@ -1224,14 +1225,32 @@ vv.control.load();
   };
   const update_theme = () => {
     const color = document.querySelector("meta[name=theme-color]");
-    if (rgbg.gray < vv.storage.preferences.appearance.color_threshold) {
-      document.body.classList.add("dark");
-      document.body.classList.remove("light");
-      color.setAttribute("content", mkcolor(rgbg, darker));
-    } else {
-      document.body.classList.add("light");
+    if (vv.storage.preferences.appearance.theme === "prefer-system") {
+      document.body.classList.add("system-theme-color");
       document.body.classList.remove("dark");
-      color.setAttribute("content", mkcolor(rgbg, lighter));
+      document.body.classList.remove("light");
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        color.setAttribute("content", mkcolor(rgbg, darker));
+      } else {
+        color.setAttribute("content", mkcolor(rgbg, lighter));
+      }
+    } else {
+      document.body.classList.remove("system-theme-color");
+      var dark = true;
+      if (vv.storage.preferences.appearance.theme === "light") {
+          dark = false;
+      } else if (vv.storage.preferences.appearance.theme !== "dark" && rgbg.gray >= vv.storage.preferences.appearance.color_threshold) {
+          dark = false;
+      }
+      if (dark) {
+        document.body.classList.add("dark");
+        document.body.classList.remove("light");
+        color.setAttribute("content", mkcolor(rgbg, darker));
+      } else {
+        document.body.classList.add("light");
+        document.body.classList.remove("dark");
+        color.setAttribute("content", mkcolor(rgbg, lighter));
+      }
     }
   };
   const calc_color = path => {
@@ -1291,6 +1310,11 @@ vv.control.load();
   vv.control.addEventListener("preferences", update);
   vv.control.addEventListener("preferences", update_theme);
   vv.control.addEventListener("start", update);
+  vv.control.addEventListener("start", e => {
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', update_theme);
+    }
+  });
 }
 
 vv.view.main = {
@@ -1816,6 +1840,10 @@ vv.control.addEventListener("start", vv.view.list.onStart);
 vv.view.system = {
   _initconfig(id) {
     const obj = document.getElementById(id);
+    const suffix = id.indexOf("_");  // remove _XX suffix for config key
+    if (suffix !== -1) {
+      id = id.slice(0, suffix);
+    }
     const s = id.indexOf("-");
     const mainkey = id.slice(0, s);
     const subkey = id.slice(s + 1).replace(/-/g, "_");
@@ -1833,6 +1861,11 @@ vv.view.system = {
         vv.storage.preferences[mainkey][subkey] = obj.value;
         vv.control.raiseEvent("preferences");
       });
+    } else if (obj.type === "radio") {
+      if (obj.value === vv.storage.preferences[mainkey][subkey]) {
+        obj.checked = "checked";
+      }
+      getter = () => { return obj.value; };
     }
     obj.addEventListener("change", () => {
       vv.storage.preferences[mainkey][subkey] = getter();
@@ -1845,6 +1878,11 @@ vv.view.system = {
       document.body.classList.add("animation");
     } else {
       document.body.classList.remove("animation");
+    }
+    if (vv.storage.preferences.appearance.theme === "prefer-coverart") {
+      document.getElementById("config-appearance-color-threshold").classList.remove("hide");
+    } else {
+      document.getElementById("config-appearance-color-threshold").classList.add("hide");
     }
   },
   onOutputs() {
@@ -1902,6 +1940,17 @@ vv.view.system = {
       }
     });
 
+    if (!window.matchMedia || !(window.matchMedia('(prefers-color-scheme: dark)').matches || window.matchMedia('(prefers-color-scheme: light)').matches)) {
+      document.getElementById("appearance-theme-prefer-system").disabled = true;
+      if (vv.storage.preferences.appearance.theme === "prefer-system") {
+        vv.storage.preferences.appearance.theme = "prefer-coverart";
+      }
+    }
+
+    vv.view.system._initconfig("appearance-theme_light");
+    vv.view.system._initconfig("appearance-theme_dark");
+    vv.view.system._initconfig("appearance-theme_prefer-system");
+    vv.view.system._initconfig("appearance-theme_prefer-coverart");
     vv.view.system._initconfig("appearance-color-threshold");
     vv.view.system._initconfig("appearance-animation");
     vv.view.system._initconfig("appearance-background-image");
