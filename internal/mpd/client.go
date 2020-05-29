@@ -304,6 +304,14 @@ func (c *Client) Ping(ctx context.Context) error {
 	return c.ok(ctx, "ping")
 }
 
+// Reflection
+
+// Config dumps configuration values that may be interesting for the client.
+// This command is only permitted to “local” clients (connected via local socket).
+func (c *Client) Config(ctx context.Context) (map[string]string, error) {
+	return c.mapStr(ctx, "config")
+}
+
 func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
 	return c.pool.Exec(ctx, func(conn *conn) error {
 		return conn.OK(cmd...)

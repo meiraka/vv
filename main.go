@@ -74,12 +74,6 @@ func v2() {
 	network := viper.GetString("mpd.network")
 	addr := viper.GetString("mpd.addr")
 	musicDirectory := viper.GetString("mpd.music_directory")
-	if len(musicDirectory) == 0 {
-		dir, err := getMusicDirectory("/etc/mpd.conf")
-		if err == nil {
-			musicDirectory = dir
-		}
-	}
 	dialer := mpd.Dialer{
 		Timeout:              10 * time.Second,
 		HealthCheckInterval:  time.Second,
@@ -92,6 +86,22 @@ func v2() {
 	w, err := dialer.NewWatcher(network, addr, "")
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
+	}
+	// get music dir from local mpd connection
+	if network == "unix" {
+		if c, err := cl.Config(ctx); err == nil {
+			if dir, ok := c["music_directory"]; ok {
+				musicDirectory = dir
+			}
+		}
+	}
+
+	// get music dir from local mpd config
+	if len(musicDirectory) == 0 {
+		dir, err := getMusicDirectory("/etc/mpd.conf")
+		if err == nil {
+			musicDirectory = dir
+		}
 	}
 	assets := AssetsConfig{
 		LocalAssets: viper.GetBool("debug"),
