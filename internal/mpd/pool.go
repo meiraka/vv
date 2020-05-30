@@ -57,9 +57,6 @@ func (c *pool) Close(ctx context.Context) error {
 		return err
 	}
 	close(c.connC)
-	if _, err := conn.Writeln("close"); err != nil {
-		return err
-	}
 	return conn.Close()
 }
 

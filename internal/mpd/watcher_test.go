@@ -33,7 +33,6 @@ func TestWatcher(t *testing.T) {
 	go func() { errs <- c.Close(ctx) }()
 
 	ts.Expect(ctx, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
-	ts.Expect(ctx, &mpdtest.WR{Read: "close\n"})
 	if err := <-errs; err != nil {
 		t.Errorf("Close got error %v; want nil", err)
 	}
