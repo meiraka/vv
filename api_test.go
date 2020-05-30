@@ -398,6 +398,7 @@ func TestAPIPHandlerJSON(t *testing.T) {
 				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 			},
 			websocket: []string{"/api/music/library/songs", "/api/music/playlist/songs", "/api/music", "/api/music/stats"},
 		},

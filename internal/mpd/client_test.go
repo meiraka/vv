@@ -2,6 +2,7 @@ package mpd
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"reflect"
@@ -236,4 +237,40 @@ func TestDialPasswordError(t *testing.T) {
 	if err := c.Close(ctx); err != nil {
 		t.Errorf("Close got error %v; want nil", err)
 	}
+}
+
+func TestClientCloseNetworkError(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen mock server addr: %v", err)
+	}
+	svr := make(chan struct{})
+	cli := make(chan struct{})
+	defer close(svr)
+	go func() {
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatalf("failed to accept by mock server: %v", err)
+		}
+		fmt.Fprintln(conn, "OK MPD 0.19")
+		<-svr
+		conn.Close()
+		ln.Close()
+		cli <- struct{}{}
+	}()
+	c, err := testDialer.Dial("tcp", ln.Addr().String(), "")
+	if err != nil {
+		t.Fatalf("failed to connect mock server: %v", err)
+	}
+	svr <- struct{}{}
+	<-cli
+	if err := c.Ping(ctx); err != io.EOF {
+		t.Errorf("Ping(ctx) got %v; want %v", err, io.EOF)
+	}
+	if err := c.Close(ctx); err != ErrClosed {
+		t.Errorf("got %v; want %v", err, ErrClosed)
+	}
+
 }

@@ -13,11 +13,14 @@ type pool struct {
 	Timeout              time.Duration
 	ReconnectionInterval time.Duration
 	connC                chan *conn
+	connCtx              context.Context
+	connCancel           context.CancelFunc
 	mu                   sync.RWMutex
 	version              string
 }
 
 func newPool(proto string, addr string, password string, timeout time.Duration, reconnectionInterval time.Duration) (*pool, error) {
+	ctx, cancel := context.WithCancel(context.Background())
 	p := &pool{
 		proto:                proto,
 		addr:                 addr,
@@ -25,6 +28,8 @@ func newPool(proto string, addr string, password string, timeout time.Duration, 
 		Timeout:              timeout,
 		ReconnectionInterval: reconnectionInterval,
 		connC:                make(chan *conn, 1),
+		connCtx:              ctx,
+		connCancel:           cancel,
 	}
 	if err := p.connectOnce(); err != nil {
 		return nil, err
@@ -52,6 +57,7 @@ func (c *pool) Exec(ctx context.Context, f func(*conn) error) error {
 }
 
 func (c *pool) Close(ctx context.Context) error {
+	c.connCancel()
 	conn, err := c.get(ctx)
 	if err != nil {
 		return err
@@ -98,7 +104,12 @@ func (c *pool) returnConn(conn *conn, err error) error {
 func (c *pool) connect() {
 	for {
 		if err := c.connectOnce(); err != nil {
-			time.Sleep(c.ReconnectionInterval)
+			select {
+			case <-c.connCtx.Done():
+				close(c.connC)
+				return
+			case <-time.After(c.ReconnectionInterval):
+			}
 			continue
 		}
 		return
@@ -106,7 +117,13 @@ func (c *pool) connect() {
 }
 
 func (c *pool) connectOnce() error {
-	conn, ver, err := newConn(c.proto, c.addr, c.Timeout)
+	ctx := c.connCtx
+	if c.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.Timeout)
+		defer cancel()
+	}
+	conn, err := newConn(ctx, c.proto, c.addr)
 	if err != nil {
 		return err
 	}
@@ -119,6 +136,6 @@ func (c *pool) connectOnce() error {
 	c.connC <- conn
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.version = ver
+	c.version = conn.Version
 	return nil
 }

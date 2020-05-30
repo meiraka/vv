@@ -35,7 +35,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 			default:
 			}
 			// TODO: logging
-			err = w.pool.Exec(context.Background(), func(conn *conn) error {
+			err = w.pool.Exec(context.Background() /* do not use ctx to graceful shutdown */, func(conn *conn) error {
 				if err != nil {
 					select {
 					case c <- "reconnect":
@@ -98,10 +98,11 @@ type Watcher struct {
 // Close closes connection
 func (w *Watcher) Close(ctx context.Context) error {
 	w.cancel()
+	err := w.pool.Close(ctx)
 	select {
 	case <-w.closed:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	return w.pool.Close(ctx)
+	return err
 }

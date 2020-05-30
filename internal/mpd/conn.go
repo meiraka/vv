@@ -2,6 +2,7 @@ package mpd
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -11,27 +12,29 @@ import (
 type conn struct {
 	*bufio.Reader
 	conn    net.Conn
-	version string
+	Version string
 }
 
-func newConn(proto, addr string, timeout time.Duration) (*conn, string, error) {
-	c, err := net.DialTimeout(proto, addr, timeout)
+func newConn(ctx context.Context, proto, addr string) (*conn, error) {
+	dialer := net.Dialer{}
+	c, err := dialer.DialContext(ctx, proto, addr)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	conn := &conn{
 		Reader: bufio.NewReader(c),
 		conn:   c,
 	}
-	if timeout != 0 {
-		conn.SetDeadline(time.Now().Add(timeout))
+	if deadline, ok := ctx.Deadline(); ok {
+		conn.SetDeadline(deadline)
 	}
 	v, err := conn.Readln()
 	if err != nil {
 		conn.Close()
-		return nil, "", err
+		return nil, err
 	}
-	return conn, strings.TrimPrefix(v, "OK MPD "), nil
+	conn.Version = strings.TrimPrefix(v, "OK MPD ")
+	return conn, nil
 }
 
 func (c *conn) Readln() (string, error) {

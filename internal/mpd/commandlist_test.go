@@ -3,6 +3,7 @@ package mpd
 import (
 	"context"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -72,7 +73,10 @@ func TestCommandListNetworkError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	ts, _ := mpdtest.NewServer("OK MPD 0.19")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_ok_begin\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "clear\n"})
@@ -94,6 +98,7 @@ func TestCommandListNetworkError(t *testing.T) {
 	if err := cl.End(ctx); err == nil {
 		t.Error("CommandList got nil; want non nil error at network error")
 	}
+	wg.Wait()
 	if err := c.Close(ctx); err != nil {
 		t.Errorf("Close got error %v; want nil", err)
 	}
