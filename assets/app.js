@@ -1229,7 +1229,7 @@ vv.control.load();
       document.body.classList.add("system-theme-color");
       document.body.classList.remove("dark");
       document.body.classList.remove("light");
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
         color.setAttribute("content", mkcolor(rgbg, darker));
       } else {
         color.setAttribute("content", mkcolor(rgbg, lighter));
@@ -1311,8 +1311,11 @@ vv.control.load();
   vv.control.addEventListener("preferences", update_theme);
   vv.control.addEventListener("start", update);
   vv.control.addEventListener("start", e => {
-    if (window.matchMedia) {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', update_theme);
+    var darkmode = window.matchMedia("(prefers-color-scheme: dark)");
+    if (darkmode.addEventListener) {
+      darkmode.addEventListener("change", update_theme);
+    } else if (darkmode.addListener) {
+      darkmode.addListener(update_theme);
     }
   });
 }
@@ -1940,7 +1943,7 @@ vv.view.system = {
       }
     });
 
-    if (!window.matchMedia || !(window.matchMedia('(prefers-color-scheme: dark)').matches || window.matchMedia('(prefers-color-scheme: light)').matches)) {
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches === window.matchMedia("(prefers-color-scheme: light)").matches) {
       document.getElementById("appearance-theme-prefer-system").disabled = true;
       if (vv.storage.preferences.appearance.theme === "prefer-system") {
         vv.storage.preferences.appearance.theme = "prefer-coverart";
