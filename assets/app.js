@@ -1070,13 +1070,14 @@ vv.control = {
     _notify_last_update: (new Date()).getTime(),
     _notify_last_connection: (new Date()).getTime(),
     _connected: false,
-    _notify_err_cnt: 0,
+    _notify_try_num: 0,
     _ws: null,
     _listennotify(cause) {
-        vv.request.abortAll({ stop: true });
-        if (cause) {
+        if (cause && vv.control._notify_try_num > 1) {  // reduce device wakeup reconnecting message
             vv.view.popup.show("network", cause);
         }
+        vv.control._notify_try_num++;
+        vv.request.abortAll({ stop: true });
         vv.control._notify_last_connection = (new Date()).getTime();
         vv.control._connected = false;
         const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
@@ -1087,11 +1088,12 @@ vv.control = {
         }
         vv.control._ws = new WebSocket(uri);
         vv.control._ws.onopen = () => {
-            if (vv.control._notify_err_cnt > 0) {
+            if (vv.control._notify_try_num > 1) {
                 vv.view.popup.hide("network");
             }
             vv.control._connected = true;
             vv.control._notify_last_update = (new Date()).getTime();
+            vv.control._notify_try_num = 0;
             vv.control._fetchAll();
         };
         vv.control._ws.onmessage = e => {
@@ -1109,22 +1111,16 @@ vv.control = {
                 } else if (e.data === "/api/music/playlist") {
                     vv.control._fetch("/api/music/playlist", "sorted");
                 }
-                const new_notify_last_update = (new Date()).getTime();
-                if (new_notify_last_update - vv.control._notify_last_update > 10000) {
+                const now = (new Date()).getTime();
+                if (now - vv.control._notify_last_update > 10000) {
                     // recover lost notification
                     setTimeout(vv.control._listennotify);
                 }
-                vv.control._notify_last_update = new_notify_last_update;
-                vv.control._notify_err_cnt = 0;
+                vv.control._notify_last_update = now;
             }
         };
         vv.control._ws.onclose = () => {
-            if (vv.control._notify_err_cnt > 0) {
-                vv.view.popup.show("network", "closed");
-            }
-            vv.control._notify_last_update = (new Date()).getTime();
-            vv.control._notify_err_cnt++;
-            setTimeout(vv.control._listennotify, 1000);
+            setTimeout(() => { vv.control._listennotify("timeoutRetry"); }, 1000);
         };
     },
     _init() {
@@ -1132,12 +1128,10 @@ vv.control = {
             const now = (new Date()).getTime();
             if (vv.control._connected &&
                 now - 10000 > vv.control._notify_last_update) {
-                vv.control._notify_err_cnt++;
                 setTimeout(() => { vv.control._listennotify("doesNotRespond"); });
             } else if (
                 !vv.control._connected &&
                 now - 2000 > vv.control._notify_last_connection) {
-                vv.control._notify_err_cnt++;
                 setTimeout(() => { vv.control._listennotify("timeoutRetry"); });
             }
             vv.control.raiseEvent("poll");
