@@ -103,6 +103,9 @@ func v2() {
 			musicDirectory = dir
 		}
 	}
+	if !strings.HasPrefix(musicDirectory, "/") {
+		musicDirectory = ""
+	}
 	assets := AssetsConfig{
 		LocalAssets: viper.GetBool("debug"),
 	}.NewAssetsHandler()

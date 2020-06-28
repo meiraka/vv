@@ -238,234 +238,228 @@ html {
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
     </button>
-    <nav id="system-nav" class="system-nav">
-      <button class="system-nav-item on" id="system-nav-preferences" data-target="system-preferences" type="button">{{ or .Preferences "Preferences" }}</button>
-      <button class="system-nav-item" id="system-nav-stats" data-target="system-stats" type="button">{{ or .Stats "Stats" }}</button>
-      <button class="system-nav-item" id="system-nav-info" data-target="system-info" type="button">{{ or .Information "Information" }}</button>
+    <nav class="system-box-nav">
+      <button type="button" id="system-box-nav-back" class="header-item system-box-nav-back root" title="{{ or .titletBack "Back" }}" aria-label="{{ or .ariaLabelBack "Back" }}">
+        <div class="header-item-iconlabel">
+          <svg class="header-item-icon reversible-icon" width="24" height="32" viewBox="0 0 150 200">
+            <path class="stroke" d="M 100,40 40,100 100,160"/>
+          </svg>
+        </div>
+      </button>
     </nav>
+    <div class="system-box">
+      <nav id="system-nav" class="system-nav on">
+        <button class="system-nav-item fallback" id="system-nav-appearance" data-target="system-appearance" type="button">{{ or .Appearance "Appearance" }}</button>
+        <button class="system-nav-item" id="system-nav-database" data-target="system-database" type="button">{{ or .Database "Database" }}</button>
+        <button class="system-nav-item" id="system-nav-outputs" data-target="system-outputs" type="button">{{ or .Outputs "Outputs" }}</button>
+        <button class="system-nav-item" id="system-nav-info" data-target="system-info" type="button">{{ or .Information "Information" }}</button>
+      </nav>
 
-    <article id="system-preferences" class="scrollable system-article on">
-      <h1 class="system-article-sub-header">{{ or .System "System" }}</h1>
-      <article class="system-article-sub">
-        <ul class="system-settings">
-          <li class="list-item system-setting">
+      <article id="system-appearance" class="scrollable system-article fallback">
+        <h1 class="system-article-sub-header">{{ or .General "General" }}</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings">
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="appearance-theme-label">{{ or .Theme "Theme" }}</div>
+              <div class="radio-box">
+                <input type="radio" name="appearance-theme" id="appearance-theme_light" value="light"/>
+                <label class="radio-check" for="appearance-theme_light">{{ or .ThemeLight "Light" }}</label>
+                <input type="radio" name="appearance-theme" id="appearance-theme_dark" value="dark"/>
+                <label class="radio-check" for="appearance-theme_dark">{{ or .ThemeDark "Dark" }}</label>
+                <input type="radio" name="appearance-theme" id="appearance-theme_prefer-system" value="prefer-system"/>
+                <label class="radio-check" for="appearance-theme_prefer-system">{{ or .ThemeSystem "Prefer System" }}</label>
+                <input type="radio" name="appearance-theme" id="appearance-theme_prefer-coverart" value="prefer-coverart"/>
+                <label class="radio-check" for="appearance-theme_prefer-coverart">{{ or .ThemeCoverArt "Prefer CoverArt" }}</label>
+              </div>
+            <li class="list-item system-setting" id="config-appearance-color-threshold">
+              <div class="system-setting-desc" id="appearance-color-threshold-label">{{ or .CoverArtColorThreshold "CoverArt Color threshold" }}</div>
+              <div class="system-setting-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label"></div>
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="appearance-background-image-label">{{ or .BackgroundImage "Background image" }}</div>
+              <input type="checkbox" id="appearance-background-image" class="slideswitch" aria-labelledby="appearance-background-image-label">
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="appearance-background-image-blur-label">{{ or .BackgroundImageBlur "Background image blur" }}</div>
+              <select class="tool-select value" id="appearance-background-image-blur" aria-labelledby="appearance-background-image-blur-label">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="8">8</option>
+                <option value="16">16</option>
+                <option value="32">32</option>
+              </select>
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="appearance-circled-image-label">{{ or .CircledImage "Circled image" }}</div>
+              <input type="checkbox" id="appearance-circled-image" class="slideswitch" aria-labelledby="appearance-circled-image-label">
+          </ul>
+        </article>
+        <h1 class="system-article-sub-header">{{ or .Playlist "Playlist" }}</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings">
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="appearance-playlist-follows-playback-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
+              <input type="checkbox" id="appearance-playlist-follows-playback" class="slideswitch" aria-labelledby="appearance-playlist-follows-playback-label">
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="appearance-playlist-gridview-album-label">{{ or .GridviewAlbum "Gridview album" }}</div>
+              <input type="checkbox" id="appearance-playlist-gridview-album" class="slideswitch" aria-labelledby="appearance-playlist-gridview-album-label">
+          </ul>
+        </article>
+        <h1 class="system-article-sub-header" id="volume-header">{{ or .Volume "Volume" }}</h1>
+        <article class="system-article-sub" id="volume-all">
+          <ul class="system-settings">
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="appearance-volume-label">{{ or .ShowVolumeNob "Show volume nob" }}</div>
+              <input type="checkbox" id="appearance-volume" class="slideswitch" aria-labelledby="appearance-volume-label">
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="appearance-volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
+              <select class="tool-select value" id="appearance-volume-max" aria-labelledby="appearance-volume-max-label">
+                <option value="50">50</option>
+                <option value="60">60</option>
+                <option value="70">70</option>
+                <option value="80">80</option>
+                <option value="90">90</option>
+                <option value="100">100</option>
+              </select>
+          </ul>
+        </article>
+      </article>
+
+      <article id="system-database" class="scrollable system-article">
+        <h1 class="system-article-sub-header">{{ or .Library "Library" }}</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings">
+            <li class="list-item system-setting">
+              <button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .Rescan "Rescan" }}</button>
+            <li class="list-item system-setting">
+              <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><time class="system-setting-value" id=stat-db-update></time>
+            <li class="list-item system-setting">
+              <div class="system-setting-desc">{{ or .Tracks "Tracks:" }}</div><div class="system-setting-value" id=stat-tracks></div>
+            <li class="list-item system-setting">
+              <div class="system-setting-desc">{{ or .Artists "Artists:" }}</div><div class="system-setting-value" id=stat-artists></div>
+            <li class="list-item system-setting">
+              <div class="system-setting-desc">{{ or .Albums "Albums:" }}</div><div class="system-setting-value" id=stat-albums></div>
+            <li class="list-item system-setting">
+              <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
+          </ul>
+        </article>
+      </article>
+
+      <article id="system-outputs" class="scrollable system-article">
+        <h1 class="system-article-sub-header">{{ or .Devices "Devices" }}</h1>
+        <article class="system-article-sub">
+          <ul class="system-settings" id="devices"></ul>
+          <template id="device-template">
+            <li class="system-setting list-item">
+              <div class="system-setting-desc"></div>
+              <input class="slideswitch" type="checkbox">
+            </li>
+          </template>
+        </article>
+      </article>
+
+      <article id="system-info" class="scrollable system-article">
+        <h1 class="system-article-sub-header">{{ or .ThisApplication "This Application" }}</h1>
+        <ul class="information-list">
+          <li class="license-box information-box">
+            <div>
+              <span class="product-name">vv</span>
+              <span class="product-version" id="version"></span>
+            </div>
+            <div class="link">
+              <a class="product-link" href="https://github.com/meiraka/vv">https://github.com/meiraka/vv</a>
+              <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
+            </div>
+        </ul>
+        <h1 class="system-article-sub-header">{{ or .Compiler "Compiler" }}</h1>
+        <ul class="information-list">
+          <li class="license-box information-box">
+            <div>
+              <span class="product-name">The Go Programming Language</span>
+              <span class="product-version" id="go-version"></span>
+            </div>
+            <div class="link">
+              <a class="product-link" href="https://golang.org/">https://golang.org/</a>
+              <a class="license-link" href="https://golang.org/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+            </div>
+        </ul>
+        <h1 class="system-article-sub-header">{{ or .Renderer "Renderer" }}</h1>
+        <ul class="information-list">
+          <li>
+            <div class="information-box" id=user-agent></div>
+          <li>
             <button id=system-reload class="system-setting-value button-simple" type="button">{{ or .ReloadApplication "Reload Application" }}</button>
         </ul>
-      </article>
-      <h1 class="system-article-sub-header">{{ or .Appearance "Appearance" }}</h1>
-      <article class="system-article-sub">
-        <ul class="system-settings">
-          <li class="list-item system-setting">
-            <div class="system-setting-desc" id="appearance-theme-label">{{ or .Theme "Theme" }}</div>
-            <div class="radio-box">
-              <input type="radio" name="appearance-theme" id="appearance-theme_light" value="light"/>
-              <label class="radio-check" for="appearance-theme_light">{{ or .ThemeLight "Light" }}</label>
-              <input type="radio" name="appearance-theme" id="appearance-theme_dark" value="dark"/>
-              <label class="radio-check" for="appearance-theme_dark">{{ or .ThemeDark "Dark" }}</label>
-              <input type="radio" name="appearance-theme" id="appearance-theme_prefer-system" value="prefer-system"/>
-              <label class="radio-check" for="appearance-theme_prefer-system">{{ or .ThemeSystem "Prefer System" }}</label>
-              <input type="radio" name="appearance-theme" id="appearance-theme_prefer-coverart" value="prefer-coverart"/>
-              <label class="radio-check" for="appearance-theme_prefer-coverart">{{ or .ThemeCoverArt "Prefer CoverArt" }}</label>
+        <h1 class="system-article-sub-header">{{ or .Credits "Credits" }}</h1>
+        <ul class="information-list">
+          <li class="license-box information-box">
+            <div>
+              <span class="product-name">Music Player Daemon</span>
+              <span class="product-version" id="mpd-version"></span>
             </div>
-          <li class="list-item system-setting" id="config-appearance-color-threshold">
-            <div class="system-setting-desc" id="appearance-color-threshold-label">{{ or .CoverArtColorThreshold "CoverArt Color threshold" }}</div>
-            <div class="system-setting-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label"></div>
-          <li class="list-item system-setting" id="config-appearance-animation">
-            <div class="system-setting-desc" id="appearance-animation-label">{{ or .Animation "Animation" }}</div>
-            <input type="checkbox" id="appearance-animation" class="slideswitch" aria-labelledby="appearance-animation-label">
-          <li class="list-item system-setting">
-            <div class="system-setting-desc" id="appearance-background-image-label">{{ or .BackgroundImage "Background image" }}</div>
-            <input type="checkbox" id="appearance-background-image" class="slideswitch" aria-labelledby="appearance-background-image-label">
-          <li class="list-item system-setting">
-            <div class="system-setting-desc" id="appearance-background-image-blur-label">{{ or .BackgroundImageBlur "Background image blur" }}</div>
-            <select class="tool-select value" id="appearance-background-image-blur" aria-labelledby="appearance-background-image-blur-label">
-              <option value="0">0</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="4">4</option>
-              <option value="8">8</option>
-              <option value="16">16</option>
-              <option value="32">32</option>
-            </select>
-          <li class="list-item system-setting">
-            <div class="system-setting-desc" id="appearance-circled-image-label">{{ or .CircledImage "Circled image" }}</div>
-            <input type="checkbox" id="appearance-circled-image" class="slideswitch" aria-labelledby="appearance-circled-image-label">
-          <li class="list-item system-setting">
-            <div class="system-setting-desc" id="appearance-gridview-album-label">{{ or .GridviewAlbum "Gridview album" }}</div>
-            <input type="checkbox" id="appearance-gridview-album" class="slideswitch" aria-labelledby="appearance-gridview-album-label">
-          <li class="list-item system-setting" id="config-appearance-auto-hide-scrollbar">
-            <div class="system-setting-desc" id="appearance-auto-hide-scrollbar-label">{{ or .AutoHideScrollbar "Auto hide scrollbar" }}</div>
-            <input type="checkbox" id="appearance-auto-hide-scrollbar" class="slideswitch" aria-labelledby="appearance-auto-hide-scrollbar-label">
+            <div class="link">
+              <a class="product-link" href="https://www.musicpd.org">https://www.musicpd.org</a>
+              <a class="license-link" href="https://github.com/MusicPlayerDaemon/MPD/blob/master/COPYING">{{ or .GPLv2 "GNU General Public License v2.0" }}</a>
+            </div>
+          <li class="license-box information-box">
+            <div>
+              <span class="product-name">github.com/gorilla/websocket</span>
+            </div>
+            <div class="link">
+              <a class="product-link" href="https://github.com/gorilla/websocket">https://github.com/gorilla/websocket</a>
+              <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">{{ or .BSD2ClauseLicense "BSD 2-clause license" }}</a>
+            </div>
+          <li class="license-box information-box">
+            <div>
+              <span class="product-name">github.com/spf13/pflag</span>
+            </div>
+            <div class="link">
+              <a class="product-link" href="https://github.com/spf13/pflag">https://github.com/spf13/pflag</a>
+              <a class="license-link" href="https://github.com/spf13/pflag/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+            </div>
+          <li class="license-box information-box">
+            <div>
+              <span class="product-name">github.com/spf13/viper</span>
+            </div>
+            <div class="link">
+              <a class="product-link" href="https://github.com/spf13/viper">https://github.com/spf13/viper</a>
+              <a class="license-link" href="https://github.com/spf13/viper/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
+            </div>
+          <li class="license-box information-box">
+            <div>
+              <span class="product-name">golang.org/x/image</span>
+            </div>
+            <div class="link">
+              <a class="product-link" href="https://github.com/golang/image">https://github.com/golang/image</a>
+              <a class="license-link" href="https://github.com/golang/image/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+            </div>
+          <li class="license-box information-box">
+            <div>
+              <span class="product-name">golang.org/x/text</span>
+            </div>
+            <div class="link">
+              <a class="product-link" href="https://go.googlesource.com/text">https://go.googlesource.com/text</a>
+              <a class="license-link" href="https://go.googlesource.com/text/+/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+            </div>
         </ul>
       </article>
-      <h1 class="system-article-sub-header">{{ or .Library "Library" }}</h1>
-      <article class="system-article-sub">
-        <ul class="system-settings">
-          <li class="list-item system-setting">
-            <button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .Rescan "Rescan" }}</button>
-        </ul>
-      </article>
-      <h1 class="system-article-sub-header">{{ or .Playback "Playback" }}</h1>
-      <article class="system-article-sub">
-        <ul class="system-settings">
-          <li class="list-item system-setting">
-            <div class="system-setting-desc" id="playback-view-follow-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
-            <input type="checkbox" id="playback-view-follow" class="slideswitch" aria-labelledby="playback-view-follow-label">
-        </ul>
-      </article>
-      <h1 class="system-article-sub-header" id="volume-header">{{ or .Volume "Volume" }}</h1>
-      <article class="system-article-sub" id="volume-all">
-        <ul class="system-settings">
-          <li class="list-item system-setting">
-            <div class="system-setting-desc" id="volume-show-label">{{ or .ShowVolumeNob "Show volume nob" }}</div>
-            <input type="checkbox" id="volume-show" class="slideswitch" aria-labelledby="volume-show-label">
-          <li class="list-item system-setting">
-            <div class="system-setting-desc" id="volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
-            <select class="tool-select value" id="volume-max" aria-labelledby="volume-max-label">
-              <option value="50">50</option>
-              <option value="60">60</option>
-              <option value="70">70</option>
-              <option value="80">80</option>
-              <option value="90">90</option>
-              <option value="100">100</option>
-            </select>
-        </ul>
-      </article>
-      <h1 class="system-article-sub-header">{{ or .Devices "Devices" }}</h1>
-      <article class="system-article-sub">
-        <ul class="system-settings" id="devices"></ul>
-        <template id="device-template">
-          <li class="system-setting list-item">
-            <div class="system-setting-desc"></div>
-            <input class="slideswitch" type="checkbox">
-          </li>
-        </template>
-      </article>
-    </article>
-
-    <article id="system-stats" class="scrollable system-article">
-      <h1 class="system-article-sub-header">mpd</h1>
-      <article class="system-article-sub">
-        <ul class="system-settings">
-          <li class="list-item system-setting">
-            <div class="system-setting-desc">{{ or .Tracks "Tracks:" }}</div><div class="system-setting-value" id=stat-tracks></div>
-          <li class="list-item system-setting">
-            <div class="system-setting-desc">{{ or .Artists "Artists:" }}</div><div class="system-setting-value" id=stat-artists></div>
-          <li class="list-item system-setting">
-            <div class="system-setting-desc">{{ or .Albums "Albums:" }}</div><div class="system-setting-value" id=stat-albums></div>
-          <li class="list-item system-setting">
-            <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
-          <li class="list-item system-setting">
-            <div class="system-setting-desc">{{ or .TotalPlaytime "Total playtime:" }}</div><div class="system-setting-value" id=stat-playtime></div>
-          <li class="list-item system-setting">
-            <div class="system-setting-desc">{{ or .Uptime "Uptime:" }}</div><div class="system-setting-value" id=stat-uptime></div>
-          <li class="list-item system-setting">
-            <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><time class="system-setting-value" id=stat-db-update></time>
-      </article>
-    </article>
-
-    <article id="system-info" class="scrollable system-article">
-      <h1 class="system-article-sub-header">{{ or .ThisApplication "This Application" }}</h1>
-      <ul class="information-list">
-        <li class="license-box information-box">
-          <div>
-            <span class="product-name">vv</span>
-            <span class="product-version" id="version"></span>
-          </div>
-          <div class="link">
-            <a class="product-link" href="https://github.com/meiraka/vv">https://github.com/meiraka/vv</a>
-            <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
-          </div>
-      </ul>
-      <h1 class="system-article-sub-header">{{ or .Compiler "Compiler" }}</h1>
-      <ul class="information-list">
-        <li class="license-box information-box">
-          <div>
-            <span class="product-name">The Go Programming Language</span>
-            <span class="product-version" id="go-version"></span>
-          </div>
-          <div class="link">
-            <a class="product-link" href="https://golang.org/">https://golang.org/</a>
-            <a class="license-link" href="https://golang.org/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
-          </div>
-      </ul>
-      <h1 class="system-article-sub-header">{{ or .Renderer "Renderer" }}</h1>
-      <ul class="information-list">
-        <li>
-          <div class="information-box" id=user-agent></div>
-      </ul>
-      <h1 class="system-article-sub-header">{{ or .Credits "Credits" }}</h1>
-      <ul class="information-list">
-        <li class="license-box information-box">
-          <div>
-            <span class="product-name">Music Player Daemon</span>
-            <span class="product-version" id="mpd-version"></span>
-          </div>
-          <div class="link">
-            <a class="product-link" href="https://www.musicpd.org">https://www.musicpd.org</a>
-            <a class="license-link" href="https://github.com/MusicPlayerDaemon/MPD/blob/master/COPYING">{{ or .GPLv2 "GNU General Public License v2.0" }}</a>
-          </div>
-        <li class="license-box information-box">
-          <div>
-            <span class="product-name">github.com/gorilla/websocket</span>
-          </div>
-          <div class="link">
-            <a class="product-link" href="https://github.com/gorilla/websocket">https://github.com/gorilla/websocket</a>
-            <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">{{ or .BSD2ClauseLicense "BSD 2-clause license" }}</a>
-          </div>
-        <li class="license-box information-box">
-          <div>
-            <span class="product-name">github.com/spf13/pflag</span>
-          </div>
-          <div class="link">
-            <a class="product-link" href="https://github.com/spf13/pflag">https://github.com/spf13/pflag</a>
-            <a class="license-link" href="https://github.com/spf13/pflag/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
-          </div>
-        <li class="license-box information-box">
-          <div>
-            <span class="product-name">github.com/spf13/viper</span>
-          </div>
-          <div class="link">
-            <a class="product-link" href="https://github.com/spf13/viper">https://github.com/spf13/viper</a>
-            <a class="license-link" href="https://github.com/spf13/viper/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
-          </div>
-        <li class="license-box information-box">
-          <div>
-            <span class="product-name">golang.org/x/image</span>
-          </div>
-          <div class="link">
-            <a class="product-link" href="https://github.com/golang/image">https://github.com/golang/image</a>
-            <a class="license-link" href="https://github.com/golang/image/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
-          </div>
-        <li class="license-box information-box">
-          <div>
-            <span class="product-name">golang.org/x/text</span>
-          </div>
-          <div class="link">
-            <a class="product-link" href="https://go.googlesource.com/text">https://go.googlesource.com/text</a>
-            <a class="license-link" href="https://go.googlesource.com/text/+/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
-          </div>
-      </ul>
-    </article>
-
     </div>
   </div>
 </div>
 <footer>
   <nav id="control-playback" class="control-playback">
-    <button class="control-button control-playback-sub" id="control-prev" class=prev type="button" value="prev" title="{{ or .titlePrevious "Previous" }}" aria-label="{{ or .ariaLabelGoToPreviousSong "Go to previous song" }}">
+    <button class="control-button control-playback-sub prev" id="control-prev" type="button" value="prev" title="{{ or .titlePrevious "Previous" }}" aria-label="{{ or .ariaLabelGoToPreviousSong "Go to previous song" }}">
       <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
       </svg>
     </button>
-    <button class="control-button control-playback-toggleplay" id="control-toggleplay" class=play type="button" value="play/pause" title="{{ or .titlePlayOrPause "Play / Pause" }}" data-aria-label-play="{{ or .ariaLabelPlaySong "Play song" }}" data-aria-label-pause="{{ or .ariaLabelPauseSong "Pause song" }}">
+    <button class="control-button control-playback-toggleplay play" id="control-toggleplay" type="button" value="play/pause" title="{{ or .titlePlayOrPause "Play / Pause" }}" data-aria-label-play="{{ or .ariaLabelPlaySong "Play song" }}" data-aria-label-pause="{{ or .ariaLabelPauseSong "Pause song" }}">
       <svg class="control-playback-toggleplay-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class="fill play" d="M 70,60 140,100 70,140 z"/>
         <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
         <path class="stroke" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
       </svg>
     </button>
-    <button class="control-button control-playback-sub" id="control-next" class=next type="button" value="next" title="{{ or .titleNext "Next" }}" aria-label="{{ or .ariaLabelGoToNextSong "Go to next song" }}">
+    <button class="control-button control-playback-sub next" id="control-next" type="button" value="next" title="{{ or .titleNext "Next" }}" aria-label="{{ or .ariaLabelGoToNextSong "Go to next song" }}">
       <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
       </svg>

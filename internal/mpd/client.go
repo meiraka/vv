@@ -3,6 +3,7 @@ package mpd
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -211,6 +212,11 @@ func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string,
 
 // The music database
 
+// Albumart locates album art for the given song and return a chunk of an album art image file at offset.
+func (c *Client) AlbumArt(ctx context.Context, uri string) ([]byte, error) {
+	return c.readBinary(ctx, "albumart", quote(uri))
+}
+
 // ListAllInfo lists all songs and directories in uri.
 func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[string][]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
@@ -316,6 +322,31 @@ func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
 	return c.pool.Exec(ctx, func(conn *conn) error {
 		return conn.OK(cmd...)
 	})
+}
+
+func (c *Client) readBinary(ctx context.Context, cmd, uri string) (b []byte, err error) {
+	err = c.pool.Exec(ctx, func(conn *conn) error {
+		var m map[string]string
+		m, b, err = conn.ReadBinary(cmd, uri, 0)
+		size, err := strconv.Atoi(m["size"])
+		if err != nil {
+			return err
+		}
+		for {
+			if size == len(b) {
+				return nil
+			}
+			if size < len(b) {
+				return errors.New("oversize")
+			}
+			_, nb, err := conn.ReadBinary(cmd, uri, len(b))
+			if err != nil {
+				return err
+			}
+			b = append(b, nb...)
+		}
+	})
+	return
 }
 
 func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]string, err error) {

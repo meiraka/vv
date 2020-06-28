@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -76,4 +78,48 @@ func (c *conn) ReadEnd(end string) error {
 		return newCommandError(v)
 	}
 	return nil
+}
+
+// ReadBinary reads key-value map and mpd binary responses.
+func (c *conn) ReadBinary(cmd ...interface{}) (map[string]string, []byte, error) {
+	if _, err := c.Writeln(cmd...); err != nil {
+		return nil, nil, err
+	}
+	m := map[string]string{}
+	var key, value string
+	for {
+		line, err := c.Readln()
+		if err != nil {
+			return nil, nil, err
+		}
+		if line == "OK" {
+			return m, nil, nil
+		}
+		i := strings.Index(line, ": ")
+		if i < 0 {
+			return nil, nil, newCommandError(line)
+		}
+		key = line[0:i]
+		value = line[i+2:]
+		m[key] = value
+		if key == "binary" {
+			length, err := strconv.Atoi(value)
+			if err != nil {
+				return nil, nil, err
+			}
+			// binary
+			b := make([]byte, length)
+			_, err = io.ReadFull(c, b)
+			if err != nil {
+				return nil, nil, err
+			}
+			// newline
+			_, err = c.ReadString('\n')
+			if err != nil {
+				return nil, nil, err
+			}
+			// OK
+			return m, b, c.ReadEnd("OK")
+		}
+	}
 }

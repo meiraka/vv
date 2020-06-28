@@ -218,17 +218,19 @@ vv.storage = {
     last_modified_ms: {},
     version: {},
     preferences: {
-        volume: { show: true, max: "100" },
-        playback: { view_follow: true },
+        feature: {
+            show_scrollbars_when_scrolling: false,
+        },
         appearance: {
             theme: "prefer-coverart",
             color_threshold: 128,
-            animation: true,
             background_image: true,
             background_image_blur: 32,
             circled_image: true,
-            gridview_album: true,
-            auto_hide_scrollbar: true
+            volume: true,
+            volume_max: "100",
+            playlist_follows_playback: true,
+            playlist_gridview_album: true,
         }
     },
     _idbUpdateTables(e) {
@@ -389,9 +391,12 @@ vv.storage = {
             vv.pubsub.raise(vv.storage._listener, "onload");
             // private browsing
         }
-        // Mobile
         if (navigator.userAgent.indexOf("Mobile") > 1) {
-            vv.storage.preferences.appearance.auto_hide_scrollbar = false;
+            vv.storage.preferences.feature.show_scrollbars_when_scrolling = true;
+        } else if (navigator.userAgent.indexOf("Macintosh") > 1) {
+            vv.storage.preferences.feature.show_scrollbars_when_scrolling = true;
+        } else {
+            document.body.classList.add("scrollbar-styling");
         }
     }
 };
@@ -834,7 +839,7 @@ vv.control = {
     addEventListener(e, f) { vv.pubsub.add(vv.control._listener, e, f); },
     removeEventListener(e, f) { vv.pubsub.rm(vv.control._listener, e, f); },
     raiseEvent(e) { vv.pubsub.raise(vv.control._listener, e); },
-    swipe(element, f, resetFunc, leftElement, landscape) {
+    swipe(element, f, resetFunc, leftElement, conditionFunc) {
         element.swipe_target = f;
         let starttime = 0;
         let now = 0;
@@ -845,7 +850,7 @@ vv.control = {
         let swipe = false;
         const start = e => {
             if ((e.buttons && e.buttons !== 1) ||
-                (landscape && window.innerHeight < window.innerWidth)) {
+                (conditionFunc && !conditionFunc())) {
                 return;
             }
             const t = e.touches ? e.touches[0] : e;
@@ -891,7 +896,7 @@ vv.control = {
         };
         const move = e => {
             if (e.buttons === 0 || (e.buttons && e.buttons !== 1) || !swipe ||
-                (landscape && window.innerHeight < window.innerWidth)) {
+                (conditionFunc && !conditionFunc())) {
                 cancel(e);
                 return;
             }
@@ -913,7 +918,7 @@ vv.control = {
         };
         const end = e => {
             if ((e.buttons && e.buttons !== 1) || !swipe ||
-                (landscape && window.innerHeight < window.innerWidth)) {
+                (conditionFunc && !conditionFunc())) {
                 cancel(e);
                 return;
             }
@@ -935,6 +940,18 @@ vv.control = {
             element.addEventListener("mousedown", start, { passive: true });
             element.addEventListener("mousemove", move, { passive: true });
             element.addEventListener("mouseup", end, { passive: true });
+        }
+    },
+    disableSwipe(element) {
+        const f = (e) => { e.stopPropagation(); };
+        if ("ontouchend" in element) {
+            element.addEventListener("touchstart", f, { passive: true });
+            element.addEventListener("touchmove", f, { passive: true });
+            element.addEventListener("touchend", f, { passive: true });
+        } else {
+            element.addEventListener("mousedown", f, { passive: true });
+            element.addEventListener("mousemove", f, { passive: true });
+            element.addEventListener("mouseup", f, { passive: true });
         }
     },
     click(element, f) {
@@ -1160,7 +1177,7 @@ vv.control = {
     load() {
         const focus = () => {
             vv.storage.save.current();
-            if (vv.storage.preferences.playback.view_follow &&
+            if (vv.storage.preferences.appearance.playlist_follows_playback &&
                 vv.storage.current !== null) {
                 vv.library.abs(vv.storage.current);
             }
@@ -1171,7 +1188,7 @@ vv.control = {
             const n = () => {
                 if (unsorted && vv.storage.sorted && vv.storage.current !== null) {
                     if (vv.storage.sorted &&
-                        vv.storage.preferences.playback.view_follow) {
+                        vv.storage.preferences.appearance.playlist_follows_playback.view_follow) {
                         vv.library.abs(vv.storage.current);
                     }
                     unsorted = false;
@@ -1322,11 +1339,6 @@ vv.view.main = {
         } else {
             e.classList.remove("circled");
         }
-        if (vv.storage.preferences.appearance.auto_hide_scrollbar) {
-            document.body.classList.add("auto-hide-scrollbar");
-        } else {
-            document.body.classList.remove("auto-hide-scrollbar");
-        }
     },
     onControl() {
         const c = document.getElementById("control-volume");
@@ -1406,7 +1418,7 @@ vv.view.main = {
         vv.view.main.onPreferences();
         vv.control.swipe(
             document.getElementById("main"), vv.view.list.show, null,
-            document.getElementById("lists"), true);
+            document.getElementById("lists"), () => { return window.innerHeight >= window.innerWidth; });
     }
 };
 vv.control.addEventListener("poll", vv.view.main.onPoll);
@@ -1430,7 +1442,7 @@ vv.view.list = {
     _preferences_update() {
         const index = vv.storage.tree.length;
         const ul = document.getElementById("list-items" + index);
-        if (vv.storage.preferences.appearance.gridview_album) {
+        if (vv.storage.preferences.appearance.playlist_gridview_album) {
             ul.classList.add("grid");
             ul.classList.remove("nogrid");
         } else {
@@ -1491,6 +1503,7 @@ vv.view.list = {
             const elapsed = Array.from(listitem.getElementsByClassName("song-elapsed"));
             const sep = Array.from(listitem.getElementsByClassName("song-lengthseparator"));
             if (treeFocused && elapsed.length !== 0 && vv.storage.current !== null &&
+                vv.storage.current.file &&
                 vv.storage.current.file[0] === listitem.dataset.file) {
                 viewNowPlaying = true;
                 if (focusSong && !focusSong.file) {
@@ -1700,7 +1713,7 @@ vv.view.list = {
         const scroll = document.getElementById("list" + index);
         const l = document.getElementById("list-items" + index);
         let itemcount = parseInt(scroll.clientWidth / 160, 10);
-        if (!vv.storage.preferences.appearance.gridview_album) {
+        if (!vv.storage.preferences.appearance.playlist_gridview_album) {
             itemcount = 1;
         }
         const t = scroll.scrollTop;
@@ -1854,10 +1867,11 @@ vv.view.system = {
         } else if (obj.type === "range") {
             obj.value = String(vv.storage.preferences[mainkey][subkey]);
             getter = () => { return parseInt(obj.value, 10); };
-            obj.addEventListener("input", () => {
+            obj.addEventListener("input", (e) => {
                 vv.storage.preferences[mainkey][subkey] = obj.value;
                 vv.control.raiseEvent("preferences");
             });
+            vv.control.disableSwipe(obj);
         } else if (obj.type === "radio") {
             if (obj.value === vv.storage.preferences[mainkey][subkey]) {
                 obj.checked = "checked";
@@ -1871,11 +1885,6 @@ vv.view.system = {
         });
     },
     onPreferences() {
-        if (vv.storage.preferences.appearance.animation) {
-            document.body.classList.add("animation");
-        } else {
-            document.body.classList.remove("animation");
-        }
         if (vv.storage.preferences.appearance.theme === "prefer-coverart") {
             document.getElementById("config-appearance-color-threshold").classList.remove("hide");
         } else {
@@ -1921,12 +1930,6 @@ vv.view.system = {
         // preferences
         vv.view.system.onPreferences();
 
-        // Mobile
-        if (navigator.userAgent.indexOf("Mobile") > 1) {
-            document.getElementById("config-appearance-auto-hide-scrollbar")
-                .classList.add("hide");
-        }
-
         vv.control.addEventListener("control", () => {
             if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
                 document.getElementById("volume-header").classList.remove("hide");
@@ -1949,15 +1952,13 @@ vv.view.system = {
         vv.view.system._initconfig("appearance-theme_prefer-system");
         vv.view.system._initconfig("appearance-theme_prefer-coverart");
         vv.view.system._initconfig("appearance-color-threshold");
-        vv.view.system._initconfig("appearance-animation");
         vv.view.system._initconfig("appearance-background-image");
         vv.view.system._initconfig("appearance-background-image-blur");
         vv.view.system._initconfig("appearance-circled-image");
-        vv.view.system._initconfig("appearance-gridview-album");
-        vv.view.system._initconfig("appearance-auto-hide-scrollbar");
-        vv.view.system._initconfig("playback-view-follow");
-        vv.view.system._initconfig("volume-show");
-        vv.view.system._initconfig("volume-max");
+        vv.view.system._initconfig("appearance-playlist-gridview-album");
+        vv.view.system._initconfig("appearance-playlist-follows-playback");
+        vv.view.system._initconfig("appearance-volume");
+        vv.view.system._initconfig("appearance-volume-max");
         document.getElementById("system-reload").addEventListener("click", () => {
             location.reload();
         });
@@ -1969,10 +1970,11 @@ vv.view.system = {
 
         const navs = Array.from(document.getElementsByClassName("system-nav-item"));
         const showChild = e => {
+            document.getElementById("system-nav").classList.remove("on");
+            document.getElementById("system-box-nav-back").classList.remove("root");
             for (const nav of navs) {
                 if (nav === e.currentTarget) {
-                    if (nav.id === "system-nav-stats") {
-                        vv.view.system._update_time();
+                    if (nav.id === "system-nav-database") {
                         vv.view.system._update_stats();
                     }
                     nav.classList.add("on");
@@ -1981,11 +1983,30 @@ vv.view.system = {
                     nav.classList.remove("on");
                     document.getElementById(nav.dataset.target).classList.remove("on");
                 }
+                document.getElementById(nav.dataset.target).classList.remove("fallback");
+                nav.classList.remove("fallback");
+            }
+        };
+        const showParent = () => {
+            document.getElementById("system-nav").classList.add("on");
+            document.getElementById("system-box-nav-back").classList.add("root");
+            for (const nav of navs) {
+                if (nav.classList.contains("on")) {
+                    document.getElementById(nav.dataset.target).classList.remove("on");
+                    document.getElementById(nav.dataset.target).classList.add("fallback");
+                    nav.classList.remove("on");
+                    nav.classList.add("fallback");
+                }
             }
         };
         for (const nav of navs) {
             nav.addEventListener("click", showChild);
+            vv.control.swipe(
+                document.getElementById(nav.dataset.target), showParent, null,
+                document.getElementById("system-nav"),
+                () => { return window.innerWidth <= 760; });
         }
+        document.getElementById("system-box-nav-back").addEventListener("click", showParent);
     },
     _zfill2(i) {
         if (i < 100) {
@@ -2007,8 +2028,6 @@ vv.view.system = {
             vv.storage.stats.artists.toString(10);
         document.getElementById("stat-db-playtime").textContent =
             vv.view.system._strtimedelta(vv.storage.stats.library_playtime, 10);
-        document.getElementById("stat-playtime").textContent =
-            vv.view.system._strtimedelta(vv.storage.stats.playtime);
         document.getElementById("stat-tracks").textContent = vv.storage.stats.songs;
         const db_update = new Date(vv.storage.stats.library_update * 1000);
         const options = {
@@ -2023,26 +2042,8 @@ vv.view.system = {
         document.getElementById("stat-db-update").textContent =
             db_update.toLocaleString(document.documentElement.lang, options);
     },
-    _update_time() {
-        const diff = parseInt(
-            ((new Date()).getTime() - vv.storage.last_modified_ms.stats) / 1000,
-            10);
-        const uptime = vv.storage.stats.uptime + diff;
-        if (vv.storage.control.state === "play") {
-            const playtime = vv.storage.stats.playtime + diff;
-            document.getElementById("stat-playtime").textContent =
-                vv.view.system._strtimedelta(playtime);
-        }
-        document.getElementById("stat-uptime").textContent =
-            vv.view.system._strtimedelta(uptime);
-    },
-    onPoll() {
-        if (document.getElementById("system-stats").classList.contains("on")) {
-            vv.view.system._update_time();
-        }
-    },
     onStats() {
-        if (document.getElementById("system-stats").classList.contains("on")) {
+        if (document.getElementById("system-database").classList.contains("on")) {
             vv.view.system._update_stats();
         }
     },
@@ -2061,7 +2062,6 @@ vv.view.system = {
 };
 vv.control.addEventListener("start", vv.view.system.onStart);
 vv.control.addEventListener("version", vv.view.system.onVersion);
-vv.control.addEventListener("poll", vv.view.system.onPoll);
 vv.control.addEventListener("control", vv.view.system.onControl);
 vv.control.addEventListener("status", vv.view.system.onStats);
 vv.control.addEventListener("preferences", vv.view.system.onPreferences);
@@ -2134,8 +2134,8 @@ vv.control.addEventListener("outputs", vv.view.system.onOutputs);
 vv.view.footer = {
     onPreferences() {
         const c = document.getElementById("control-volume");
-        c.max = parseInt(vv.storage.preferences.volume.max, 10);
-        if (vv.storage.preferences.volume.show) {
+        c.max = parseInt(vv.storage.preferences.appearance.volume_max, 10);
+        if (vv.storage.preferences.appearance.volume) {
             c.classList.remove("hide");
         } else {
             c.classList.add("hide");
@@ -2212,6 +2212,7 @@ vv.view.footer = {
 };
 vv.control.addEventListener("start", vv.view.footer.onStart);
 vv.control.addEventListener("control", vv.view.footer.onControl);
+vv.control.addEventListener("preferences", vv.view.footer.onPreferences);
 
 vv.view.popup = {
     show(target, description) {
