@@ -35,12 +35,12 @@ html {
 <header>
   <nav class="header-items">
     <button type="button" id="header-back" class="header-item header-back header-iconlabel" data-title-format="{{ or .titleFormatBackTo "Back to %s" }}" data-aria-label-format="{{ or .ariaLabelBackTo "Back to %s" }}">
-      <div class="header-item-iconlabel">
+      <span class="header-item-iconlabel">
         <svg class="header-item-icon reversible-icon" width="24" height="32" viewBox="0 0 150 200">
           <path class="stroke" d="M 100,40 40,100 100,160"/>
         </svg>
         <span id="header-back-label" class="header-back-label header-item-label"></span>
-      </div>
+      </span>
     </button>
     <div class="header-item header-space"></div>
     <button type="button" id="header-main" class="header-item header-main" title="{{ or .titleShowNowPlayingItem "Show now playing item" }}" aria-label="{{ or .ariaLabelShowNowPlayingItem "Show now playing item" }}">
@@ -67,25 +67,25 @@ html {
   </nav>
 </header>
 <main dir="auto">
-  <section id="lists" class="lists full">
-    <article id="list0" class="full list scrollable">
+  <div id="lists" class="lists full">
+    <div id="list0" class="full list scrollable">
       <ol id="list-items0" class="list-items"></ol>
-    </article>
-    <article id="list1" class="full list scrollable">
+    </div>
+    <div id="list1" class="full list scrollable">
       <ol id="list-items1" class="list-items"></ol>
-    </article>
-    <article id="list2" class="full list scrollable">
+    </div>
+    <div id="list2" class="full list scrollable">
       <ol id="list-items2" class="list-items"></ol>
-    </article>
-    <article id="list3" class="full list scrollable">
+    </div>
+    <div id="list3" class="full list scrollable">
       <ol id="list-items3" class="list-items"></ol>
-    </article>
-    <article id="list4" class="full list scrollable">
+    </div>
+    <div id="list4" class="full list scrollable">
       <ol id="list-items4" class="list-items"></ol>
-    </article>
-    <article id="list5" class="full list scrollable">
+    </div>
+    <div id="list5" class="full list scrollable">
       <ol id="list-items5" class="list-items"></ol>
-    </article>
+    </div>
     <template id="list-album-template">
       <li class="album list-item">
         <div class="album-coverbox">
@@ -114,8 +114,8 @@ html {
         <span class="plain-key" data-text-content="key"></span>
       </li>
     </template>
-  </section>
-  <section id="main" class="full main">
+  </div>
+  <div id="main" class="full main">
     <div id="main-cover" class="main-cover">
       <div id="main-cover-img" class="main-cover-img"></div>
       <svg id="main-cover-circle" class="main-cover-circle" width="200" height="200" viewBox="0 0 200 200">
@@ -125,9 +125,9 @@ html {
     </div>
     <span id="main-box-title" class="main-box-text main-box-title">no title</span>
     <span id="main-box-artist" class="main-box-text main-box-artist">no artist</span>
-  </section>
+  </div>
 </main>
-<section id="popup-box" class="popup-box">
+<div id="popup-box" class="popup-box">
   <section id="popup-fixme" class="popup hide">
     <h3 class="popup-title">{{ or .NotifyFixme "FIXME" }}</h3>
     <span class="popup-description"></span>
@@ -141,7 +141,7 @@ html {
           data-does-not-respond="{{ or .NotifyNetworkDoesNotRespond "does not respond properly. Reconnecting..." }}"
       ></span>
   </section>
-</section>
+</div>
 <div id=modal-background class="modal-background hide">
 </div>
 <div id=modal-outer class="modal-outer hide">
@@ -211,7 +211,7 @@ html {
       </ol>
       <ol class="modal-song-box-sub modal-song-box-items">
         <li class="modal-song-box-bigitem">
-          <img class="modal-song-box-item-img" id="modal-song-box-cover" src="/assets/nocover.svg"/>
+          <img class="modal-song-box-item-img" id="modal-song-box-cover" src="/assets/nocover.svg" alt="cover"/>
         <li class="modal-song-box-item">
           <div class="modal-song-box-item-key">{{ or .SongInfoDate "Date" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-Date"></div>
@@ -241,11 +241,11 @@ html {
     </button>
     <nav class="system-box-nav">
       <button type="button" id="system-box-nav-back" class="header-item system-box-nav-back root" title="{{ or .titletBack "Back" }}" aria-label="{{ or .ariaLabelBack "Back" }}">
-        <div class="header-item-iconlabel">
+        <span class="header-item-iconlabel">
           <svg class="header-item-icon reversible-icon" width="24" height="32" viewBox="0 0 150 200">
             <path class="stroke" d="M 100,40 40,100 100,160"/>
           </svg>
-        </div>
+        </span>
       </button>
     </nav>
     <div class="system-box">
@@ -258,8 +258,8 @@ html {
       </nav>
 
       <article id="system-appearance" class="scrollable system-article fallback">
-        <h1 class="system-article-sub-header">{{ or .General "General" }}</h1>
-        <article class="system-article-sub">
+        <h2 class="system-article-sub-header">{{ or .General "General" }}</h2>
+        <div class="system-article-sub">
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-theme-label">{{ or .Theme "Theme" }}</div>
@@ -294,17 +294,17 @@ html {
               <div class="system-setting-desc" id="appearance-circled-image-label">{{ or .CircledImage "Circled image" }}</div>
               <input type="checkbox" id="appearance-circled-image" class="slideswitch" aria-labelledby="appearance-circled-image-label">
           </ul>
-        </article>
-        <h1 class="system-article-sub-header">{{ or .Playlist "Playlist" }}</h1>
-        <article class="system-article-sub">
+        </div>
+        <h2 class="system-article-sub-header">{{ or .Playlist "Playlist" }}</h2>
+        <div class="system-article-sub">
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-playlist-gridview-album-label">{{ or .GridviewAlbum "Gridview album" }}</div>
               <input type="checkbox" id="appearance-playlist-gridview-album" class="slideswitch" aria-labelledby="appearance-playlist-gridview-album-label">
           </ul>
-        </article>
-        <h1 class="system-article-sub-header" id="volume-header">{{ or .Volume "Volume" }}</h1>
-        <article class="system-article-sub" id="volume-all">
+        </div>
+        <h2 class="system-article-sub-header" id="volume-header">{{ or .Volume "Volume" }}</h2>
+        <div class="system-article-sub" id="volume-all">
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-volume-label">{{ or .ShowVolumeNob "Show volume nob" }}</div>
@@ -320,12 +320,12 @@ html {
                 <option value="100">100</option>
               </select>
           </ul>
-        </article>
+        </div>
       </article>
 
       <article id="system-playlist" class="scrollable system-article">
-        <h1 class="system-article-sub-header">{{ or .Playback "Playback" }}</h1>
-        <article class="system-article-sub">
+        <h2 class="system-article-sub-header">{{ or .Playback "Playback" }}</h2>
+        <div class="system-article-sub">
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-playlist-follows-playback-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
@@ -342,18 +342,18 @@ html {
                 <label class="radio-check" for="playlist-playback-tracks_list">{{ or .PlaySelectedList "Selected list" }}</label>
               </div>
           </ul>
-        </article>
+        </div>
       </article>
 
 
       <article id="system-database" class="scrollable system-article">
-        <h1 class="system-article-sub-header">{{ or .Library "Library" }}</h1>
-        <article class="system-article-sub">
+        <h2 class="system-article-sub-header">{{ or .Library "Library" }}</h2>
+        <div class="system-article-sub">
           <ul class="system-settings">
             <li class="list-item system-setting">
               <button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .Rescan "Rescan" }}</button>
             <li class="list-item system-setting">
-              <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><time class="system-setting-value" id=stat-db-update></time>
+              <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><time class="system-setting-value" id=stat-db-update>0</time>
             <li class="list-item system-setting">
               <div class="system-setting-desc">{{ or .Tracks "Tracks:" }}</div><div class="system-setting-value" id=stat-tracks></div>
             <li class="list-item system-setting">
@@ -363,12 +363,12 @@ html {
             <li class="list-item system-setting">
               <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
           </ul>
-        </article>
+        </div>
       </article>
 
       <article id="system-outputs" class="scrollable system-article">
-        <h1 class="system-article-sub-header">{{ or .Devices "Devices" }}</h1>
-        <article class="system-article-sub">
+        <h2 class="system-article-sub-header">{{ or .Devices "Devices" }}</h2>
+        <div class="system-article-sub">
           <ul class="system-settings" id="devices"></ul>
           <template id="device-template">
             <li class="system-setting list-item">
@@ -376,11 +376,11 @@ html {
               <input class="slideswitch" type="checkbox">
             </li>
           </template>
-        </article>
+        </div>
       </article>
 
       <article id="system-info" class="scrollable system-article">
-        <h1 class="system-article-sub-header">{{ or .ThisApplication "This Application" }}</h1>
+        <h2 class="system-article-sub-header">{{ or .ThisApplication "This Application" }}</h2>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -392,7 +392,7 @@ html {
               <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
             </div>
         </ul>
-        <h1 class="system-article-sub-header">{{ or .Compiler "Compiler" }}</h1>
+        <h2 class="system-article-sub-header">{{ or .Compiler "Compiler" }}</h2>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -404,14 +404,14 @@ html {
               <a class="license-link" href="https://golang.org/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
             </div>
         </ul>
-        <h1 class="system-article-sub-header">{{ or .Renderer "Renderer" }}</h1>
+        <h2 class="system-article-sub-header">{{ or .Renderer "Renderer" }}</h2>
         <ul class="information-list">
           <li>
             <div class="information-box" id=user-agent></div>
           <li>
             <button id=system-reload class="system-setting-value button-simple" type="button">{{ or .ReloadApplication "Reload Application" }}</button>
         </ul>
-        <h1 class="system-article-sub-header">{{ or .Credits "Credits" }}</h1>
+        <h2 class="system-article-sub-header">{{ or .Credits "Credits" }}</h2>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
