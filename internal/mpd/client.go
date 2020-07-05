@@ -171,6 +171,11 @@ func (c *Client) Previous(ctx context.Context) error {
 	return c.ok(ctx, "previous")
 }
 
+// SeekCur seeks to the position t within the current song
+func (c *Client) SeekCur(ctx context.Context, t float64) error {
+	return c.ok(ctx, "seekcur", t)
+}
+
 // The Queue
 
 // PlaylistInfo displays a list of all songs in the playlist.

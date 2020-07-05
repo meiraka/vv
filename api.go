@@ -582,41 +582,55 @@ func (h *api) statusPost(alter http.Handler) http.HandlerFunc {
 		}
 		ctx := r.Context()
 		now := time.Now().UTC()
+		changed := false
 		if s.Volume != nil {
 			if err := h.client.SetVol(ctx, *s.Volume); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
+			changed = true
 		}
 		if s.Repeat != nil {
 			if err := h.client.Repeat(ctx, *s.Repeat); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
+			changed = true
 		}
 		if s.Random != nil {
 			if err := h.client.Random(ctx, *s.Random); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
+			changed = true
 		}
 		if s.Single != nil {
 			if err := h.client.Single(ctx, *s.Single); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
+			changed = true
 		}
 		if s.Oneshot != nil {
 			if err := h.client.OneShot(ctx); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
+			changed = true
 		}
 		if s.Consume != nil {
 			if err := h.client.Consume(ctx, *s.Consume); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
+			changed = true
+		}
+		if s.SongElapsed != nil {
+			if err := h.client.SeekCur(ctx, *s.SongElapsed); err != nil {
+				writeHTTPError(w, http.StatusInternalServerError, err)
+				return
+			}
+			changed = true
 		}
 		if s.State != nil {
 			var err error
@@ -637,9 +651,13 @@ func (h *api) statusPost(alter http.Handler) http.HandlerFunc {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
+			changed = true
 		}
 		r.Method = "GET"
-		alter.ServeHTTP(w, setUpdateTime(r, now))
+		if changed {
+			r = setUpdateTime(r, now)
+		}
+		alter.ServeHTTP(w, r)
 	}
 }
 

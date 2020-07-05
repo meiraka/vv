@@ -229,7 +229,7 @@ vv.storage = {
             color_threshold: 128,
             background_image: true,
             background_image_blur: 32,
-            circled_image: true,
+            circled_image: false,
             volume: true,
             volume_max: "100",
             playlist_follows_playback: true,
@@ -1005,6 +1005,7 @@ vv.control = {
     output(id, on) {
         vv.request.post(`/api/music/outputs`, { [id]: { enabled: on } });
     },
+    seek(pos) { vv.request.post("/api/music", { song_elapsed: pos }); },
     _fetch(target, store) {
         vv.request.get(
             target,
@@ -1329,6 +1330,8 @@ vv.view.main = {
             vv.storage.current.Title;
         document.getElementById("main-box-artist").textContent =
             vv.storage.current.Artist;
+        document.getElementById("main-seek-label-total").textContent =
+            vv.storage.current.Length;
         if (vv.storage.current.cover) {
             document.getElementById("main-cover-img").style.backgroundImage =
                 `url("${vv.storage.current.cover[0]}")`;
@@ -1341,9 +1344,7 @@ vv.view.main = {
         if (vv.storage.current === null || !vv.storage.current.Time) {
             return;
         }
-        if (vv.view.main.hidden() ||
-            document.getElementById("main-cover-circle")
-                .classList.contains("hide")) {
+        if (vv.view.main.hidden()) {
             return;
         }
         const c = document.getElementById("main-cover-circle-active");
@@ -1352,6 +1353,13 @@ vv.view.main = {
             elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control;
         }
         const total = parseInt(vv.storage.current.Time[0], 10);
+        if (!isNaN(elapsed / total)) {
+            document.getElementById("main-seek").value = elapsed / total;
+        }
+
+        if (document.getElementById("main-cover-circle").classList.contains("hide")) {
+            return;
+        }
         const d = (elapsed * 360 / 1000 / total - 90) * (Math.PI / 180);
         if (isNaN(d)) {
             return;
@@ -1375,6 +1383,11 @@ vv.view.main = {
             if (vv.storage.current !== null) {
                 vv.view.modal.song(vv.storage.current);
             }
+        });
+        vv.control.disableSwipe(document.getElementById("main-seek"));
+        document.getElementById("main-seek").addEventListener("input", (e) => {
+            const target = parseInt(e.currentTarget.value, 10) * parseInt(vv.storage.current.Time[0], 10) / 1000;
+            vv.control.seek(target);
         });
         vv.view.main.onPreferences();
         vv.control.swipe(

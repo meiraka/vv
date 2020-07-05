@@ -123,8 +123,16 @@ html {
           <path class="main-cover-circle-inactive stroke" d="M 100,10 L 100,10 A 90,90 0 0,1 100,190 L 100,190 A 90,90 0 0,1 100,10"></path>
       </svg>
     </div>
-    <span id="main-box-title" class="main-box-text main-box-title">no title</span>
-    <span id="main-box-artist" class="main-box-text main-box-artist">no artist</span>
+    <div class="main-box">
+      <div class="main-seek-box">
+        <span id="main-seek-label-elapsed" class="main-seek-label-elapsed elapsed">00:00</span>
+        <div class="main-seek"><input id="main-seek" class="main-seek-widget" type="range" value="0" min="0" max="1000" step="0.1" aria-labelledby="main-seek-label-elapsed"></div>
+        <span id="main-seek-label-total" class="main-seek-label-total">00:00</span>
+      </div>
+
+      <span id="main-box-title" class="main-box-text main-box-title">no title</span>
+      <span id="main-box-artist" class="main-box-text main-box-artist">no artist</span>
+    </div>
   </div>
 </main>
 <div id="popup-box" class="popup-box">
