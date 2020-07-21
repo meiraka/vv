@@ -19,6 +19,7 @@ import (
 type AssetsConfig struct {
 	LocalAssets bool
 	Extra       map[string]string
+    ExtraDate time.Time
 }
 
 // NewAssetsHandler returns hander for asset files.
@@ -127,6 +128,9 @@ func (c *AssetsConfig) i18nAssetsHandler(rpath string, b []byte, hash []byte) ht
 				return
 			}
 			l := info.ModTime()
+            if l.Before(c.ExtraDate) {
+                l = c.ExtraDate
+            }
 			if !modifiedSince(r, l) {
 				w.WriteHeader(304)
 				return

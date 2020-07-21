@@ -49,7 +49,7 @@ func main() {
 
 func v2() {
 	ctx := context.TODO()
-	config, err := ParseConfig([]string{"/etc/xdg/vv"})
+	config, date, err := ParseConfig([]string{"/etc/xdg/vv"})
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
@@ -96,6 +96,7 @@ func v2() {
 	assets := AssetsConfig{
 		LocalAssets: config.debug,
 		Extra:       map[string]string{"TREE": string(tree), "TREE_ORDER": string(treeOrder)},
+		ExtraDate:   date,
 	}.NewAssetsHandler()
 	api, err := APIConfig{
 		MusicDirectory: config.MPD.MusicDirectory,

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+    "time"
 	"path/filepath"
 
 	"github.com/spf13/pflag"
@@ -27,20 +28,26 @@ type Config struct {
 }
 
 // ParseConfig parse yaml config and flags.
-func ParseConfig(dir []string) (*Config, error) {
+func ParseConfig(dir []string) (*Config, time.Time, error) {
 	c := &Config{}
+    date := time.Time{}
 	for _, d := range dir {
 		path := filepath.Join(d, "config.yaml")
 		_, err := os.Stat(path)
 		if err == nil {
 			f, err := os.Open(path)
 			if err != nil {
-				return nil, err
+				return nil, date, err
 			}
+            s, err := f.Stat()
+            if err != nil {
+                return nil, date, err
+            }
+            date = s.ModTime()
 			defer f.Close()
 			c := Config{}
 			if err := yaml.NewDecoder(f).Decode(&c); err != nil {
-				return nil, err
+				return nil, date, err
 			}
 		}
 	}
@@ -65,7 +72,7 @@ func ParseConfig(dir []string) (*Config, error) {
 	}
 	c.debug = *d
 	c.setDefault()
-	return c, nil
+	return c, date, nil
 }
 
 func (c *Config) setDefault() {
