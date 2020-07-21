@@ -1057,6 +1057,9 @@ button:hover {
 
 .system-setting-desc-box {
   flex: 1 1 auto;
+  display: flex;
+  flex-flow: row wrap;
+  padding: 8px 8px 8px 0;
 }
 .system-setting-desc {
   font-size: 18px;
@@ -1066,11 +1069,18 @@ button:hover {
   flex: 1 1 auto;
   padding: 8px 8px 8px 0;
 }
+.system-setting-desc-box .system-setting-desc {
+  padding: 0;
+  flex: 1 1 100%;
+}
 .system-setting-desc-help {
   color: var(--sub-text-color);
   font-size: 12px;
   overflow: hidden;
-  padding: 0 10px 0 0;
+  padding: 0;
+}
+.system-setting-desc-help.disabled {
+  display: none;
 }
 
 .system-setting-value-expand {

@@ -1877,6 +1877,11 @@ vv.view.system = {
                 const c = document.querySelector("#device-template").content;
                 const e = c.querySelector("li");
                 e.querySelector(".system-setting-desc").textContent = o.name;
+                if (o.plugin) {
+                    e.querySelector(".plugin").textContent = o.plugin;
+                } else {
+                    e.querySelector(".plugin").classList.add("disabled");
+                }
                 const ch = e.querySelector(".slideswitch");
                 ch.setAttribute("aria-label", o.name);
                 ch.dataset.deviceid = id;
