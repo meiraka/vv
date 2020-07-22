@@ -217,7 +217,7 @@ func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string,
 
 // The music database
 
-// Albumart locates album art for the given song and return a chunk of an album art image file at offset.
+// AlbumArt locates album art for the given song and return a chunk of an album art image file at offset.
 func (c *Client) AlbumArt(ctx context.Context, uri string) ([]byte, error) {
 	return c.readBinary(ctx, "albumart", quote(uri))
 }
