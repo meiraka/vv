@@ -148,6 +148,7 @@ var (
 	supportTreeViews = []string{"plain", "album", "song"}
 )
 
+// ListNode represents smart playlist node.
 type ListNode struct {
 	Sort []string    `json:"sort"`
 	Tree [][2]string `json:"tree"`
