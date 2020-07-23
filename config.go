@@ -21,8 +21,8 @@ type Config struct {
 		Addr string `yaml:"addr"`
 	} `yaml:"server"`
 	Playlist struct {
-		Tree      map[string]*ListNode `yaml:"tree"`
-		TreeOrder []string             `yaml:"tree_order"`
+		Tree      map[string]*ConfigListNode `yaml:"tree"`
+		TreeOrder []string                   `yaml:"tree_order"`
 	}
 	debug bool
 }
@@ -114,7 +114,7 @@ func (c *Config) Validate() error {
 }
 
 var (
-	defaultTree = map[string]*ListNode{
+	defaultTree = map[string]*ConfigListNode{
 		"AlbumArtist": {
 			Sort: []string{"AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
 			Tree: [][2]string{{"AlbumArtist", "plain"}, {"Album", "album"}, {"Title", "song"}},
@@ -148,14 +148,14 @@ var (
 	supportTreeViews = []string{"plain", "album", "song"}
 )
 
-// ListNode represents smart playlist node.
-type ListNode struct {
+// ConfigListNode represents smart playlist node.
+type ConfigListNode struct {
 	Sort []string    `json:"sort"`
 	Tree [][2]string `json:"tree"`
 }
 
-// Validate ListNode data struct.
-func (l *ListNode) Validate() error {
+// Validate ConfigListNode data struct.
+func (l *ConfigListNode) Validate() error {
 	if len(l.Tree) > 4 {
 		return fmt.Errorf("maximum tree length is 4; got %d", len(l.Tree))
 	}
