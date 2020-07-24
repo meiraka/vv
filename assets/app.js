@@ -255,14 +255,12 @@ vv.storage = {
             callback();
             return;
         }
-        const req = window.indexedDB.open("storage", 1);
-        req.onerror = () => { };
-        req.onupgradeneeded = vv.storage._idbUpdateTables;
-        req.onsuccess = e => {
+        const open = window.indexedDB.open("storage", 1);
+        open.onerror = () => { };
+        open.onupgradeneeded = vv.storage._idbUpdateTables;
+        open.onsuccess = e => {
             const db = e.target.result;
-            const t = db.transaction("cache", "readonly");
-            const so = t.objectStore("cache");
-            const req = so.get(key);
+            const req = db.transaction("cache", "readonly").objectStore("cache").get(key);
             req.onsuccess = e => {
                 const ret = e.target.result;
                 if (ret && ret.value && ret.date) {
@@ -288,21 +286,20 @@ vv.storage = {
             localStorage[key + "_last_modified"] = date;
             return;
         }
-        const req = window.indexedDB.open("storage", 1);
-        req.onerror = () => { };
-        req.onupgradeneeded = vv.storage._idbUpdateTables;
-        req.onsuccess = e => {
+        const open = window.indexedDB.open("storage", 1);
+        open.onerror = () => { };
+        open.onupgradeneeded = vv.storage._idbUpdateTables;
+        open.onsuccess = e => {
             const db = e.target.result;
-            const t = db.transaction("cache", "readwrite");
-            const so = t.objectStore("cache");
-            const req = so.get(key);
+            const os = db.transaction("cache", "readwrite").objectStore("cache");
+            const req = os.get(key);
             req.onerror = () => { db.close(); };
             req.onsuccess = e => {
                 const ret = e.target.result;
                 if (ret && ret.date && ret.date === date) {
                     return;
                 }
-                const req = so.put({ id: key, value: value, date: date });
+                const req = os.put({ id: key, value: value, date: date });
                 req.onerror = () => { db.close(); };
                 req.onsuccess = () => { db.close(); };
             };
