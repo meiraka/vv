@@ -283,7 +283,7 @@ html {
               </div>
             <li class="list-item system-setting" id="config-appearance-color-threshold">
               <div class="system-setting-desc" id="appearance-color-threshold-label">{{ or .CoverArtColorThreshold "CoverArt Color threshold" }}</div>
-              <div class="system-setting-value-expand"><input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label"></div>
+              <input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-background-image-label">{{ or .BackgroundImage "Background image" }}</div>
               <input type="checkbox" id="appearance-background-image" class="slideswitch" aria-labelledby="appearance-background-image-label">

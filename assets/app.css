@@ -1083,10 +1083,6 @@ button:hover {
   display: none;
 }
 
-.system-setting-value-expand {
-  flex: 1 1 auto;
-}
-
 .system-article-sub.hide,
 .system-article-sub-header.hide,
 .system-setting.hide {
@@ -1135,10 +1131,10 @@ button:hover {
 }
 
 .config-range {
+  flex: 1 1 auto;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  width: 100%;
   appearance: none;
   -webkit-appearance: none;
   height: 30px;
