@@ -8,6 +8,7 @@ const vv = {
     library: {},
     view: { main: {}, list: {}, system: {}, popup: {}, modal: {}, footer: {} },
     control: {},
+    ui: {},
     request: {}
 };
 vv.pubsub = {
@@ -797,167 +798,7 @@ vv.control = {
     addEventListener(e, f) { vv.pubsub.add(vv.control._listener, e, f); },
     removeEventListener(e, f) { vv.pubsub.rm(vv.control._listener, e, f); },
     raiseEvent(e) { vv.pubsub.raise(vv.control._listener, e); },
-    swipe(element, f, resetFunc, leftElement, conditionFunc) {
-        element.swipe_target = f;
-        let starttime = 0;
-        let now = 0;
-        let x = 0;
-        let y = 0;
-        let diff_x = 0;
-        let diff_y = 0;
-        let swipe = false;
-        const start = e => {
-            if ((e.buttons && e.buttons !== 1) ||
-                (conditionFunc && !conditionFunc())) {
-                return;
-            }
-            const t = e.touches ? e.touches[0] : e;
-            x = t.screenX;
-            y = t.screenY;
-            starttime = (new Date()).getTime();
-            swipe = true;
-        };
-        const finalize = e => {
-            starttime = 0;
-            now = 0;
-            x = 0;
-            y = 0;
-            diff_x = 0;
-            diff_y = 0;
-            swipe = false;
-            e.currentTarget.classList.remove("swipe");
-            e.currentTarget.classList.add("swiped");
-            if (leftElement) {
-                leftElement.classList.remove("swipe");
-                leftElement.classList.add("swiped");
-            }
-            if (!resetFunc) {
-                e.currentTarget.style.transform = "";
-                if (leftElement) {
-                    leftElement.style.transform = "";
-                }
-            }
-            setTimeout(() => {
-                element.classList.remove("swiped");
-                if (leftElement) {
-                    leftElement.classList.remove("swiped");
-                }
-            });
-        };
-        const cancel = e => {
-            if (swipe) {
-                finalize(e);
-                if (resetFunc) {
-                    resetFunc();
-                }
-            }
-        };
-        const move = e => {
-            if (e.buttons === 0 || (e.buttons && e.buttons !== 1) || !swipe ||
-                (conditionFunc && !conditionFunc())) {
-                cancel(e);
-                return;
-            }
-            const t = e.touches ? e.touches[0] : e;
-            diff_x = x - t.screenX;
-            diff_y = y - t.screenY;
-            now = (new Date()).getTime();
-            if (now - starttime < 200 && Math.abs(diff_y) > Math.abs(diff_x)) {
-                cancel(e);
-            } else if (Math.abs(diff_x) > 3) {
-                e.currentTarget.classList.add("swipe");
-                e.currentTarget.style.transform = `translate3d(${diff_x * -1}px,0,0)`;
-                if (leftElement) {
-                    leftElement.classList.add("swipe");
-                    leftElement.style.transform =
-                        `translate3d(${diff_x * -1 - e.currentTarget.offsetWidth}px,0,0)`;
-                }
-            }
-        };
-        const end = e => {
-            if ((e.buttons && e.buttons !== 1) || !swipe ||
-                (conditionFunc && !conditionFunc())) {
-                cancel(e);
-                return;
-            }
-            const p = e.currentTarget.clientWidth / diff_x;
-            if ((p > -4 && p < 0) ||
-                (now - starttime < 200 && Math.abs(diff_y) < Math.abs(diff_x) &&
-                    diff_x < 0)) {
-                finalize(e);
-                f(e);
-            } else {
-                cancel(e);
-            }
-        };
-        if ("ontouchend" in element) {
-            element.addEventListener("touchstart", start, { passive: true });
-            element.addEventListener("touchmove", move, { passive: true });
-            element.addEventListener("touchend", end, { passive: true });
-        } else {
-            element.addEventListener("mousedown", start, { passive: true });
-            element.addEventListener("mousemove", move, { passive: true });
-            element.addEventListener("mouseup", end, { passive: true });
-        }
-    },
-    disableSwipe(element) {
-        const f = (e) => { e.stopPropagation(); };
-        if ("ontouchend" in element) {
-            element.addEventListener("touchstart", f, { passive: true });
-            element.addEventListener("touchmove", f, { passive: true });
-            element.addEventListener("touchend", f, { passive: true });
-        } else {
-            element.addEventListener("mousedown", f, { passive: true });
-            element.addEventListener("mousemove", f, { passive: true });
-            element.addEventListener("mouseup", f, { passive: true });
-        }
-    },
-    click(element, f) {
-        element.click_target = f;
-        const enter = e => { e.currentTarget.classList.add("hover"); };
-        const leave = e => { e.currentTarget.classList.remove("hover"); };
-        const start = e => {
-            if (e.buttons && e.buttons !== 1) {
-                return;
-            }
-            const t = e.touches ? e.touches[0] : e;
-            e.currentTarget.x = t.screenX;
-            e.currentTarget.y = t.screenY;
-            e.currentTarget.touch = true;
-            e.currentTarget.classList.add("active");
-        };
-        const move = e => {
-            if (e.buttons && e.buttons !== 1 || !e.currentTarget.touch) {
-                return;
-            }
-            const t = e.touches ? e.touches[0] : e;
-            if (Math.abs(e.currentTarget.x - t.screenX) >= 5 ||
-                Math.abs(e.currentTarget.y - t.screenY) >= 5) {
-                e.currentTarget.touch = false;
-                e.currentTarget.classList.remove("active");
-            }
-        };
-        const end = e => {
-            if (e.buttons && e.buttons !== 1) {
-                return;
-            }
-            e.currentTarget.classList.remove("active");
-            if (e.currentTarget.touch) {
-                f(e);
-            }
-        };
-        if ("ontouchend" in element) {
-            element.addEventListener("touchstart", start, { passive: true });
-            element.addEventListener("touchmove", move, { passive: true });
-            element.addEventListener("touchend", end, { passive: true });
-        } else {
-            element.addEventListener("mousedown", start, { passive: true });
-            element.addEventListener("mousemove", move, { passive: true });
-            element.addEventListener("mouseup", end, { passive: true });
-            element.addEventListener("mouseenter", enter, { passive: true });
-            element.addEventListener("mouseleave", leave, { passive: true });
-        }
-    },
+
     rescan_library() {
         vv.request.post("/api/music/library", { updating: true });
         vv.storage.control.update_library = true;
@@ -1174,6 +1015,170 @@ vv.control = {
 };
 vv.control.load();
 
+vv.ui = {
+    swipe(element, f, resetFunc, leftElement, conditionFunc) {
+        element.swipe_target = f;
+        let starttime = 0;
+        let now = 0;
+        let x = 0;
+        let y = 0;
+        let diff_x = 0;
+        let diff_y = 0;
+        let swipe = false;
+        const start = e => {
+            if ((e.buttons && e.buttons !== 1) ||
+                (conditionFunc && !conditionFunc())) {
+                return;
+            }
+            const t = e.touches ? e.touches[0] : e;
+            x = t.screenX;
+            y = t.screenY;
+            starttime = (new Date()).getTime();
+            swipe = true;
+        };
+        const finalize = e => {
+            starttime = 0;
+            now = 0;
+            x = 0;
+            y = 0;
+            diff_x = 0;
+            diff_y = 0;
+            swipe = false;
+            e.currentTarget.classList.remove("swipe");
+            e.currentTarget.classList.add("swiped");
+            if (leftElement) {
+                leftElement.classList.remove("swipe");
+                leftElement.classList.add("swiped");
+            }
+            if (!resetFunc) {
+                e.currentTarget.style.transform = "";
+                if (leftElement) {
+                    leftElement.style.transform = "";
+                }
+            }
+            setTimeout(() => {
+                element.classList.remove("swiped");
+                if (leftElement) {
+                    leftElement.classList.remove("swiped");
+                }
+            });
+        };
+        const cancel = e => {
+            if (swipe) {
+                finalize(e);
+                if (resetFunc) {
+                    resetFunc();
+                }
+            }
+        };
+        const move = e => {
+            if (e.buttons === 0 || (e.buttons && e.buttons !== 1) || !swipe ||
+                (conditionFunc && !conditionFunc())) {
+                cancel(e);
+                return;
+            }
+            const t = e.touches ? e.touches[0] : e;
+            diff_x = x - t.screenX;
+            diff_y = y - t.screenY;
+            now = (new Date()).getTime();
+            if (now - starttime < 200 && Math.abs(diff_y) > Math.abs(diff_x)) {
+                cancel(e);
+            } else if (Math.abs(diff_x) > 3) {
+                e.currentTarget.classList.add("swipe");
+                e.currentTarget.style.transform = `translate3d(${diff_x * -1}px,0,0)`;
+                if (leftElement) {
+                    leftElement.classList.add("swipe");
+                    leftElement.style.transform =
+                        `translate3d(${diff_x * -1 - e.currentTarget.offsetWidth}px,0,0)`;
+                }
+            }
+        };
+        const end = e => {
+            if ((e.buttons && e.buttons !== 1) || !swipe ||
+                (conditionFunc && !conditionFunc())) {
+                cancel(e);
+                return;
+            }
+            const p = e.currentTarget.clientWidth / diff_x;
+            if ((p > -4 && p < 0) ||
+                (now - starttime < 200 && Math.abs(diff_y) < Math.abs(diff_x) &&
+                    diff_x < 0)) {
+                finalize(e);
+                f(e);
+            } else {
+                cancel(e);
+            }
+        };
+        if ("ontouchend" in element) {
+            element.addEventListener("touchstart", start, { passive: true });
+            element.addEventListener("touchmove", move, { passive: true });
+            element.addEventListener("touchend", end, { passive: true });
+        } else {
+            element.addEventListener("mousedown", start, { passive: true });
+            element.addEventListener("mousemove", move, { passive: true });
+            element.addEventListener("mouseup", end, { passive: true });
+        }
+    },
+    disableSwipe(element) {
+        const f = (e) => { e.stopPropagation(); };
+        if ("ontouchend" in element) {
+            element.addEventListener("touchstart", f, { passive: true });
+            element.addEventListener("touchmove", f, { passive: true });
+            element.addEventListener("touchend", f, { passive: true });
+        } else {
+            element.addEventListener("mousedown", f, { passive: true });
+            element.addEventListener("mousemove", f, { passive: true });
+            element.addEventListener("mouseup", f, { passive: true });
+        }
+    },
+    click(element, f) {
+        element.click_target = f;
+        const enter = e => { e.currentTarget.classList.add("hover"); };
+        const leave = e => { e.currentTarget.classList.remove("hover"); };
+        const start = e => {
+            if (e.buttons && e.buttons !== 1) {
+                return;
+            }
+            const t = e.touches ? e.touches[0] : e;
+            e.currentTarget.x = t.screenX;
+            e.currentTarget.y = t.screenY;
+            e.currentTarget.touch = true;
+            e.currentTarget.classList.add("active");
+        };
+        const move = e => {
+            if (e.buttons && e.buttons !== 1 || !e.currentTarget.touch) {
+                return;
+            }
+            const t = e.touches ? e.touches[0] : e;
+            if (Math.abs(e.currentTarget.x - t.screenX) >= 5 ||
+                Math.abs(e.currentTarget.y - t.screenY) >= 5) {
+                e.currentTarget.touch = false;
+                e.currentTarget.classList.remove("active");
+            }
+        };
+        const end = e => {
+            if (e.buttons && e.buttons !== 1) {
+                return;
+            }
+            e.currentTarget.classList.remove("active");
+            if (e.currentTarget.touch) {
+                f(e);
+            }
+        };
+        if ("ontouchend" in element) {
+            element.addEventListener("touchstart", start, { passive: true });
+            element.addEventListener("touchmove", move, { passive: true });
+            element.addEventListener("touchend", end, { passive: true });
+        } else {
+            element.addEventListener("mousedown", start, { passive: true });
+            element.addEventListener("mousemove", move, { passive: true });
+            element.addEventListener("mouseup", end, { passive: true });
+            element.addEventListener("mouseenter", enter, { passive: true });
+            element.addEventListener("mouseleave", leave, { passive: true });
+        }
+    }
+}
+
 // background
 {
     let rgbg = { r: 128, g: 128, b: 128, gray: 128 };
@@ -1283,7 +1288,7 @@ vv.control.load();
     vv.control.addEventListener("preferences", update);
     vv.control.addEventListener("preferences", update_theme);
     vv.control.addEventListener("start", update);
-    vv.control.addEventListener("start", e => {
+    vv.control.addEventListener("start", () => {
         var darkmode = window.matchMedia("(prefers-color-scheme: dark)");
         if (darkmode.addEventListener) {
             darkmode.addEventListener("change", update_theme);
@@ -1379,18 +1384,18 @@ vv.view.main = {
         document.getElementById("control-volume").addEventListener("change", e => {
             vv.control.volume(parseInt(e.currentTarget.value, 10));
         });
-        vv.control.click(document.getElementById("main-cover"), () => {
+        vv.ui.click(document.getElementById("main-cover"), () => {
             if (vv.storage.current !== null) {
                 vv.view.modal.song(vv.storage.current);
             }
         });
-        vv.control.disableSwipe(document.getElementById("main-seek"));
+        vv.ui.disableSwipe(document.getElementById("main-seek"));
         document.getElementById("main-seek").addEventListener("input", (e) => {
             const target = parseInt(e.currentTarget.value, 10) * parseInt(vv.storage.current.Time[0], 10) / 1000;
             vv.control.seek(target);
         });
         vv.view.main.onPreferences();
-        vv.control.swipe(
+        vv.ui.swipe(
             document.getElementById("main"), vv.view.list.show, null,
             document.getElementById("lists"), () => { return window.innerHeight >= window.innerWidth; });
     }
@@ -1655,7 +1660,7 @@ vv.view.list = {
             }
             const li = vv.view.list._element(
                 songs[i], key, style, ul.classList.contains("grid"), false);
-            vv.control.click(
+            vv.ui.click(
                 li.querySelector("li"), vv.view.list._listHandler, false);
             newul.appendChild(li);
         }
@@ -1800,19 +1805,19 @@ vv.view.list = {
     onStart() {
         vv.library.addEventListener("update", vv.view.list._updateForce);
         vv.library.addEventListener("changed", vv.view.list._update);
-        vv.control.swipe(
+        vv.ui.swipe(
             document.getElementById("list1"), vv.library.up,
             vv.view.list._updatepos, document.getElementById("list0"));
-        vv.control.swipe(
+        vv.ui.swipe(
             document.getElementById("list2"), vv.library.up,
             vv.view.list._updatepos, document.getElementById("list1"));
-        vv.control.swipe(
+        vv.ui.swipe(
             document.getElementById("list3"), vv.library.up,
             vv.view.list._updatepos, document.getElementById("list2"));
-        vv.control.swipe(
+        vv.ui.swipe(
             document.getElementById("list4"), vv.library.up,
             vv.view.list._updatepos, document.getElementById("list3"));
-        vv.control.swipe(
+        vv.ui.swipe(
             document.getElementById("list5"), vv.library.up,
             vv.view.list._updatepos, document.getElementById("list4"));
     }
@@ -1841,11 +1846,11 @@ vv.view.system = {
         } else if (obj.type === "range") {
             obj.value = String(vv.storage.preferences[mainkey][subkey]);
             getter = () => { return parseInt(obj.value, 10); };
-            obj.addEventListener("input", (e) => {
+            obj.addEventListener("input", () => {
                 vv.storage.preferences[mainkey][subkey] = obj.value;
                 vv.control.raiseEvent("preferences");
             });
-            vv.control.disableSwipe(obj);
+            vv.ui.disableSwipe(obj);
         } else if (obj.type === "radio") {
             if (obj.value === vv.storage.preferences[mainkey][subkey]) {
                 obj.checked = "checked";
@@ -1982,7 +1987,7 @@ vv.view.system = {
         };
         for (const nav of navs) {
             nav.addEventListener("click", showChild);
-            vv.control.swipe(
+            vv.ui.swipe(
                 document.getElementById(nav.dataset.target), showParent, null,
                 document.getElementById("system-nav"),
                 () => { return window.innerWidth <= 760; });
