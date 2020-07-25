@@ -231,6 +231,7 @@ vv.storage = {
             background_image: true,
             background_image_blur: 32,
             circled_image: false,
+            crossfading_image: true,
             volume: true,
             volume_max: "100",
             playlist_follows_playback: true,
@@ -1256,7 +1257,21 @@ vv.ui = {
         img.src = path;
     };
     const update = () => {
-        const e = document.getElementById("background-image");
+        let e = document.getElementById("background-image");
+        const e2 = document.getElementById("background-image2");
+        if (vv.storage.preferences.appearance.crossfading_image) {
+            if (e.style.opacity === "0") {
+                e.style.opacity = "1";
+                e2.style.opacity = "0";
+            } else {
+                e.style.opacity = "0";
+                e2.style.opacity = "1";
+                e = e2;
+            }
+        } else {
+            e.style.opacity = "1";
+            e2.style.opacity = "0";
+        }
         if (vv.storage.preferences.appearance.background_image) {
             e.classList.remove("hide");
             document.getElementById("background-image").classList.remove("hide");
@@ -1335,10 +1350,25 @@ vv.view.main = {
         document.getElementById("main-seek-label-total").textContent =
             vv.storage.current.Length;
         if (vv.storage.current.cover) {
-            document.getElementById("main-cover-img").style.backgroundImage =
-                `url("${vv.storage.current.cover[0]}")`;
+            let e = document.getElementById("main-cover-img");
+            const e2 = document.getElementById("main-cover-img2");
+            if (vv.storage.preferences.appearance.crossfading_image) {
+                if (e.style.opacity === "0") {
+                    e.style.opacity = "1";
+                    e2.style.opacity = "0";
+                } else {
+                    e.style.opacity = "0";
+                    e2.style.opacity = "1";
+                    e = e2;
+                }
+            } else {
+                e.style.opacity = "1";
+                e2.style.opacity = "0";
+            }
+            e.src = vv.storage.current.cover[0];
         } else {
-            document.getElementById("main-cover-img").style.backgroundImage = "";
+            document.getElementById("main-cover-img").style.opacity = "0";
+            document.getElementById("main-cover-img2").style.opacity = "0";
         }
     },
     onCurrent() { vv.view.main.update(); },
@@ -1936,6 +1966,7 @@ vv.view.system = {
         vv.view.system._initconfig("appearance-background-image");
         vv.view.system._initconfig("appearance-background-image-blur");
         vv.view.system._initconfig("appearance-circled-image");
+        vv.view.system._initconfig("appearance-crossfading-image");
         vv.view.system._initconfig("appearance-playlist-gridview-album");
         vv.view.system._initconfig("appearance-playlist-follows-playback");
         vv.view.system._initconfig("appearance-volume");

@@ -89,10 +89,15 @@ header {
 }
 
 .background-image {
+  position: fixed;
+  top: 0;
+  left: 0;
   background-position: center;
   margin: -64px;
   height: calc(100% + 128px);
   width: calc(100% + 128px);
+  transition: opacity 0.2s 0s ease-out;
+  opacity: 1;
 }
 
 footer {
@@ -341,12 +346,10 @@ svg .stroke {
   display: none;
 }
 
-.background-overlay {
-  transition: background-color 0.2s 0s ease-out;
-}
 
 .background-overlay {
   background-color: var(--overlay);
+  transition: background-color 0.2s 0s ease-out;
 }
 
 .scrollbar-styling .scrollable {
@@ -810,16 +813,17 @@ button:hover {
   width: 90%;
   height: 90%;
   min-height: 10px;
-  background-position: center center;
-  background-size: contain;
-  background-repeat: no-repeat;
   border-radius: 1%;
   overflow: hidden;
+  object-fit: contain;
+  object-position: center bottom;
+  opacity: 1;
+  transition: opacity 0.2s 0s ease-out;
 }
 
 .circled .main-cover-img {
-  background-size: cover;
   border-radius: 100%;
+  object-fit: cover;
 }
 
 .main-cover-circle {
