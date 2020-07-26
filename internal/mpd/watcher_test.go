@@ -25,7 +25,7 @@ func TestWatcher(t *testing.T) {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
 	ts.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
-	if got, want := readChan(ctx, t, c.C), "player"; got != want {
+	if got, want := readChan(ctx, t, c.Event()), "player"; got != want {
 		t.Fatalf("got client %s; want %s", got, want)
 	}
 	ts.Expect(ctx, &mpdtest.WR{Read: "idle\n"})

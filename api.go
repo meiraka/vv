@@ -73,7 +73,7 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 	}
 	go func() {
 		defer h.jsonCache.Close()
-		for e := range w.C {
+		for e := range w.Event() {
 			ctx, cancel := context.WithTimeout(context.Background(), c.BackgroundTimeout)
 			switch e {
 			case "reconnect":

@@ -20,7 +20,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 	ctx, cancel := context.WithCancel(context.Background())
 	closed := make(chan struct{})
 	w := &Watcher{
-		C:      c,
+		c:      c,
 		closed: closed,
 		pool:   pool,
 		cancel: cancel,
@@ -91,8 +91,12 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 type Watcher struct {
 	pool   *pool
 	closed <-chan struct{}
-	C      <-chan string
+	c      <-chan string
 	cancel func()
+}
+
+func (w *Watcher) Event() <-chan string {
+	return w.c
 }
 
 // Close closes connection
