@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/songs"
+	"github.com/meiraka/vv/internal/songs/cover"
 )
 
 const (
@@ -28,28 +29,33 @@ type APIConfig struct {
 	Cover             []string
 }
 
+type coverSearcher interface {
+	ServeHTTP(w http.ResponseWriter, r *http.Request)
+	AddTags(map[string][]string) map[string][]string
+}
+
 // NewAPIHandler creates json api handler.
 func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
 	}
-	if len(c.Cover) == 0 {
-		c.Cover = []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"}
-	}
-	var cover *songs.LocalCoverSearcher
+	covers := map[string]coverSearcher{}
 	if len(c.MusicDirectory) != 0 {
-		var err error
-		cover, err = songs.NewLocalCoverSearcher(httpImagePath, c.MusicDirectory, c.Cover)
+		if len(c.Cover) == 0 {
+			c.Cover = []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"}
+		}
+		searcher, err := cover.NewLocalSearcher(httpImagePath, c.MusicDirectory, c.Cover)
 		if err != nil {
 			return nil, err
 		}
+		covers[httpImagePath] = searcher
 	}
 	h := &api{
 		config:    &c,
 		client:    cl,
 		watcher:   w,
 		jsonCache: newJSONCache(),
-		cover:     cover,
+		covers:    covers,
 	}
 	if err := h.updateVersion(); err != nil {
 		return nil, err
@@ -101,7 +107,7 @@ type api struct {
 	watcher   *mpd.Watcher
 	jsonCache *jsonCache
 	upgrader  websocket.Upgrader
-	cover     *songs.LocalCoverSearcher
+	covers    map[string]coverSearcher
 
 	mu          sync.Mutex
 	playlist    []map[string][]string
@@ -143,17 +149,23 @@ func (h *api) handle() http.HandlerFunc {
 		case "/api/music/outputs":
 			musicOutputs(w, r)
 		default:
-			if strings.HasPrefix(r.URL.Path, httpImagePath) {
-				h.cover.ServeHTTP(w, r)
-			} else {
-				http.NotFound(w, r)
+			for k, v := range h.covers {
+				if strings.HasPrefix(r.URL.Path, k) {
+					v.ServeHTTP(w, r)
+					return
+				}
 			}
+			http.NotFound(w, r)
 		}
 	}
 }
 
 func (h *api) convSong(s map[string][]string) map[string][]string {
-	return h.cover.AddTags(songs.AddTags(s))
+	s = songs.AddTags(s)
+	for _, v := range h.covers {
+		s = v.AddTags(s)
+	}
+	return s
 }
 
 func (h *api) convSongs(s []map[string][]string) []map[string][]string {
