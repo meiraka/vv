@@ -120,14 +120,14 @@ type api struct {
 
 func (h *api) handle() http.HandlerFunc {
 	version := h.jsonCache.Handler("/api/version")
-	music := h.statusWebSocket(h.statusPost(h.jsonCache.Handler("/api/music")))
+	music := h.statusWebSocket(h.statusHandler())
 	musicStats := h.jsonCache.Handler("/api/music/stats")
-	musicPlaylist := h.playlistPost(h.jsonCache.Handler("/api/music/playlist"))
+	musicPlaylist := h.playlistHandler()
 	musicPlaylistSongs := h.jsonCache.Handler("/api/music/playlist/songs")
 	musicPlaylistSongsCurrent := h.jsonCache.Handler("/api/music/playlist/songs/current")
-	musicLibrary := h.libraryPost(h.jsonCache.Handler("/api/music/library"))
+	musicLibrary := h.libraryHandler()
 	musicLibrarySongs := h.jsonCache.Handler("/api/music/library/songs")
-	musicOutputs := h.outputPost(h.jsonCache.Handler("/api/music/outputs"))
+	musicOutputs := h.outputHandler()
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/version":
@@ -202,12 +202,13 @@ func (h *api) updatePlaylistInfo() error {
 	})
 }
 
-func (h *api) playlistPost(alter http.Handler) http.HandlerFunc {
+func (h *api) playlistHandler() http.HandlerFunc {
 	sem := make(chan struct{}, 1)
 	sem <- struct{}{}
+	get := h.jsonCache.Handler("/api/music/playlist")
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			alter.ServeHTTP(w, r)
+			get.ServeHTTP(w, r)
 			return
 		}
 		var req httpPlaylistInfo
@@ -256,11 +257,11 @@ func (h *api) playlistPost(alter http.Handler) http.HandlerFunc {
 				return
 			}
 			r.Method = http.MethodGet
-			alter.ServeHTTP(w, setUpdateTime(r, now))
+			get.ServeHTTP(w, setUpdateTime(r, now))
 			return
 		}
 		r.Method = http.MethodGet
-		alter.ServeHTTP(w, setUpdateTime(r, time.Now().UTC()))
+		get.ServeHTTP(w, setUpdateTime(r, time.Now().UTC()))
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 			defer cancel()
@@ -318,7 +319,8 @@ type httpLibraryInfo struct {
 	Updating bool `json:"updating"`
 }
 
-func (h *api) libraryPost(alter http.Handler) http.HandlerFunc {
+func (h *api) libraryHandler() http.HandlerFunc {
+	alter := h.jsonCache.Handler("/api/music/library")
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			alter.ServeHTTP(w, r)
@@ -423,7 +425,8 @@ func (h *api) updateStatus(ctx context.Context) error {
 	})
 }
 
-func (h *api) statusPost(alter http.Handler) http.HandlerFunc {
+func (h *api) statusHandler() http.HandlerFunc {
+	alter := h.jsonCache.Handler("/api/music")
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			alter.ServeHTTP(w, r)
@@ -620,7 +623,8 @@ func (h *api) updateOutputs(ctx context.Context) error {
 	return h.jsonCache.SetIfModified("/api/music/outputs", data)
 }
 
-func (h *api) outputPost(alter http.Handler) http.HandlerFunc {
+func (h *api) outputHandler() http.HandlerFunc {
+	alter := h.jsonCache.Handler("/api/music/outputs")
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			alter.ServeHTTP(w, r)
