@@ -4,18 +4,8 @@ import (
 	"context"
 )
 
-// BeginCommandList creates a new CommandList
-func (c *Client) BeginCommandList() *CommandList {
-	return &CommandList{
-		c:        c,
-		commands: [][]interface{}{},
-		parser:   []func(*conn) error{},
-	}
-}
-
 // CommandList represents Client commandlist.
 type CommandList struct {
-	c        *Client
 	commands [][]interface{}
 	parser   []func(*conn) error
 }
@@ -44,15 +34,15 @@ func (cl *CommandList) Play(pos int) {
 	})
 }
 
-// End executes commandlist.
-func (cl *CommandList) End(ctx context.Context) error {
+// ExecCommandList executes commandlist.
+func (c *Client) ExecCommandList(ctx context.Context, cl *CommandList) error {
 	commands := append([][]interface{}{{"command_list_ok_begin"}}, cl.commands...)
 	commands = append(commands, []interface{}{"command_list_end"})
 	defer func() {
 		cl.commands = [][]interface{}{}
 		cl.parser = []func(*conn) error{}
 	}()
-	return cl.c.pool.Exec(ctx, func(conn *conn) error {
+	return c.pool.Exec(ctx, func(conn *conn) error {
 		for i := range commands {
 			if _, err := conn.Writeln(commands[i]...); err != nil {
 				return err

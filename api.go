@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path"
 	"runtime"
 	"strconv"
 	"strings"
@@ -29,16 +28,6 @@ type APIConfig struct {
 	Cover             []string
 }
 
-// addHTTPPrefix adds prefix path /api/music/storage to song cover path.
-func addHTTPPrefix(m map[string][]string) map[string][]string {
-	if v, ok := m["cover"]; ok {
-		for i := range v {
-			v[i] = path.Join(httpImagePath, v[i])
-		}
-	}
-	return m
-}
-
 // NewAPIHandler creates json api handler.
 func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
 	if c.BackgroundTimeout == 0 {
@@ -50,7 +39,7 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 	var cover *songs.LocalCoverSearcher
 	if len(c.MusicDirectory) != 0 {
 		var err error
-		cover, err = songs.NewLocalCoverSearcher(c.MusicDirectory, c.Cover)
+		cover, err = songs.NewLocalCoverSearcher(httpImagePath, c.MusicDirectory, c.Cover)
 		if err != nil {
 			return nil, err
 		}
@@ -133,14 +122,6 @@ func (h *api) handle() http.HandlerFunc {
 	musicLibrary := h.libraryPost(h.jsonCache.Handler("/api/music/library"))
 	musicLibrarySongs := h.jsonCache.Handler("/api/music/library/songs")
 	musicOutputs := h.outputPost(h.jsonCache.Handler("/api/music/outputs"))
-	image := ImageHandler(h.config.MusicDirectory)
-	musicImage := http.StripPrefix(httpImagePath, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !h.cover.Cached(r.URL.Path) {
-			http.NotFound(w, r)
-			return
-		}
-		image.ServeHTTP(w, r)
-	}))
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/version":
@@ -163,7 +144,7 @@ func (h *api) handle() http.HandlerFunc {
 			musicOutputs(w, r)
 		default:
 			if strings.HasPrefix(r.URL.Path, httpImagePath) {
-				musicImage.ServeHTTP(w, r)
+				h.cover.ServeHTTP(w, r)
 			} else {
 				http.NotFound(w, r)
 			}
@@ -172,7 +153,7 @@ func (h *api) handle() http.HandlerFunc {
 }
 
 func (h *api) convSong(s map[string][]string) map[string][]string {
-	return addHTTPPrefix(h.cover.AddTags(songs.AddTags(s)))
+	return h.cover.AddTags(songs.AddTags(s))
 }
 
 func (h *api) convSongs(s []map[string][]string) []map[string][]string {
@@ -240,7 +221,7 @@ func (h *api) playlistPost(alter http.Handler) http.HandlerFunc {
 		h.mu.Lock()
 		librarySort, filters, newpos := songs.WeakFilterSort(h.library, req.Sort, req.Filters, req.Must, 9999, req.Current)
 		update := !songs.SortEqual(h.playlist, librarySort)
-		cl := h.client.BeginCommandList()
+		cl := &mpd.CommandList{}
 		cl.Clear()
 		for i := range librarySort {
 			cl.Add(librarySort[i]["file"][0])
@@ -277,7 +258,7 @@ func (h *api) playlistPost(alter http.Handler) http.HandlerFunc {
 				return
 			}
 			defer func() { sem <- struct{}{} }()
-			if err := cl.End(ctx); err != nil {
+			if err := h.client.ExecCommandList(ctx, cl); err != nil {
 				h.mu.Lock()
 				h.sort = nil
 				h.filters = nil

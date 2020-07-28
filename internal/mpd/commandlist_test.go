@@ -29,10 +29,10 @@ func TestCommandList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
-	cl := c.BeginCommandList()
+	cl := &CommandList{}
 	cl.Clear()
 	cl.Add("/foo/bar")
-	if err := cl.End(ctx); err != nil {
+	if err := c.ExecCommandList(ctx, cl); err != nil {
 		t.Errorf("CommandList got error %v; want nil", err)
 	}
 	if err := c.Close(ctx); err != nil {
@@ -57,11 +57,11 @@ func TestCommandListCommandError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
-	cl := c.BeginCommandList()
+	cl := &CommandList{}
 	cl.Clear()
 	cl.Play(0)
 	cl.Add("/foo/bar")
-	if err, want := cl.End(ctx), newCommandError("ACK [2@1] {} Bad song index"); !reflect.DeepEqual(err, want) {
+	if err, want := c.ExecCommandList(ctx, cl), newCommandError("ACK [2@1] {} Bad song index"); !reflect.DeepEqual(err, want) {
 		t.Errorf("CommandList got error %v; want %v", err, want)
 	}
 	if err := c.Close(ctx); err != nil {
@@ -91,11 +91,11 @@ func TestCommandListNetworkError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
-	cl := c.BeginCommandList()
+	cl := &CommandList{}
 	cl.Clear()
 	cl.Play(0)
 	cl.Add("/foo/bar")
-	if err := cl.End(ctx); err == nil {
+	if err := c.ExecCommandList(ctx, cl); err == nil {
 		t.Error("CommandList got nil; want non nil error at network error")
 	}
 	wg.Wait()

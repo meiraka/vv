@@ -1612,10 +1612,10 @@ vv.view.list = {
             }
         } else if (style === "album") {
             const cover = c.querySelector(".album-cover");
-            if (song.cover) {
+            if (song.cover && song.cover.length !== 0) {
                 const base = largeImage ? 150 : 70;
                 const imgsize = parseInt(base * window.devicePixelRatio, 10);
-                cover.src = `${song.cover}?width=${imgsize}&height=${imgsize}`;
+                cover.src = `${song.cover[0]}?width=${imgsize}&height=${imgsize}`;
             } else {
                 cover.src = "/assets/nocover.svg";
             }
