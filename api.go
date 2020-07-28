@@ -18,10 +18,6 @@ import (
 	"github.com/meiraka/vv/internal/songs/cover"
 )
 
-const (
-	httpImagePath = "/api/music/images/"
-)
-
 // APIConfig holds HTTPHandler config
 type APIConfig struct {
 	BackgroundTimeout time.Duration
@@ -44,11 +40,11 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 		if len(c.Cover) == 0 {
 			c.Cover = []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"}
 		}
-		searcher, err := cover.NewLocalSearcher(httpImagePath, c.MusicDirectory, c.Cover)
+		var err error
+		covers["/api/music/images/"], err = cover.NewLocalSearcher("/api/music/images/", c.MusicDirectory, c.Cover)
 		if err != nil {
 			return nil, err
 		}
-		covers[httpImagePath] = searcher
 	}
 	h := &api{
 		config:    &c,
