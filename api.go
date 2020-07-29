@@ -56,7 +56,7 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 	if err := h.updateVersion(); err != nil {
 		return nil, err
 	}
-	all := []func(context.Context) error{h.updateLibrary, h.updatePlaylist, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats}
+	all := []func(context.Context) error{h.updateLibrarySongs, h.updatePlaylistSongs, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats}
 	for _, v := range all {
 		if err := v(ctx); err != nil {
 			return nil, err
@@ -73,11 +73,11 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 					v(ctx)
 				}
 			case "database":
-				h.updateLibrary(ctx)
+				h.updateLibrarySongs(ctx)
 				h.updateStatus(ctx)
 				h.updateStats(ctx)
 			case "playlist":
-				h.updatePlaylist(ctx)
+				h.updatePlaylistSongs(ctx)
 			case "player":
 				h.updateStatus(ctx)
 				h.updateCurrentSong(ctx)
@@ -190,7 +190,7 @@ type httpPlaylistInfo struct {
 	Must    int        `json:"must,omitempty"`
 }
 
-func (h *api) updatePlaylistInfo() error {
+func (h *api) updatePlaylist() error {
 	return h.jsonCache.SetIfModified("/api/music/playlist", &httpPlaylistInfo{
 		Current: h.current,
 		Sort:    h.sort,
@@ -201,10 +201,10 @@ func (h *api) updatePlaylistInfo() error {
 func (h *api) playlistHandler() http.HandlerFunc {
 	sem := make(chan struct{}, 1)
 	sem <- struct{}{}
-	get := h.jsonCache.Handler("/api/music/playlist")
+	fallback := h.jsonCache.Handler("/api/music/playlist")
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			get.ServeHTTP(w, r)
+			fallback.ServeHTTP(w, r)
 			return
 		}
 		var req httpPlaylistInfo
@@ -253,11 +253,11 @@ func (h *api) playlistHandler() http.HandlerFunc {
 				return
 			}
 			r.Method = http.MethodGet
-			get.ServeHTTP(w, setUpdateTime(r, now))
+			fallback.ServeHTTP(w, setUpdateTime(r, now))
 			return
 		}
 		r.Method = http.MethodGet
-		get.ServeHTTP(w, setUpdateTime(r, time.Now().UTC()))
+		fallback.ServeHTTP(w, setUpdateTime(r, time.Now().UTC()))
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 			defer cancel()
@@ -279,7 +279,7 @@ func (h *api) playlistHandler() http.HandlerFunc {
 	}
 }
 
-func (h *api) updatePlaylist(ctx context.Context) error {
+func (h *api) updatePlaylistSongs(ctx context.Context) error {
 	l, err := h.client.PlaylistInfo(ctx)
 	if err != nil {
 		return err
@@ -296,7 +296,7 @@ func (h *api) updatePlaylist(ctx context.Context) error {
 		h.sort = nil
 		h.filters = nil
 		h.librarySort = nil
-		h.updatePlaylistInfo()
+		h.updatePlaylist()
 	}
 	h.mu.Unlock()
 
@@ -316,10 +316,10 @@ type httpLibraryInfo struct {
 }
 
 func (h *api) libraryHandler() http.HandlerFunc {
-	alter := h.jsonCache.Handler("/api/music/library")
+	fallback := h.jsonCache.Handler("/api/music/library")
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			alter.ServeHTTP(w, r)
+			fallback.ServeHTTP(w, r)
 			return
 		}
 		var req httpLibraryInfo
@@ -338,11 +338,11 @@ func (h *api) libraryHandler() http.HandlerFunc {
 			return
 		}
 		r.Method = http.MethodGet
-		alter.ServeHTTP(w, setUpdateTime(r, now))
+		fallback.ServeHTTP(w, setUpdateTime(r, now))
 	}
 }
 
-func (h *api) updateLibrary(ctx context.Context) error {
+func (h *api) updateLibrarySongs(ctx context.Context) error {
 	l, err := h.client.ListAllInfo(ctx, "/")
 	if err != nil {
 		return err
@@ -357,7 +357,7 @@ func (h *api) updateLibrary(ctx context.Context) error {
 	h.sort = nil
 	h.filters = nil
 	h.librarySort = nil
-	h.updatePlaylistInfo()
+	h.updatePlaylist()
 
 	h.mu.Unlock()
 	return nil
@@ -412,7 +412,7 @@ func (h *api) updateStatus(ctx context.Context) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.current = pos
-	if err := h.updatePlaylistInfo(); err != nil {
+	if err := h.updatePlaylist(); err != nil {
 		return err
 	}
 	_, updating := s["updating_db"]
@@ -422,10 +422,10 @@ func (h *api) updateStatus(ctx context.Context) error {
 }
 
 func (h *api) statusHandler() http.HandlerFunc {
-	alter := h.jsonCache.Handler("/api/music")
+	fallback := h.jsonCache.Handler("/api/music")
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			alter.ServeHTTP(w, r)
+			fallback.ServeHTTP(w, r)
 			return
 		}
 		var s httpMusicStatus
@@ -510,11 +510,11 @@ func (h *api) statusHandler() http.HandlerFunc {
 		if changed {
 			r = setUpdateTime(r, now)
 		}
-		alter.ServeHTTP(w, r)
+		fallback.ServeHTTP(w, r)
 	}
 }
 
-func (h *api) statusWebSocket(alter http.Handler) http.HandlerFunc {
+func (h *api) statusWebSocket(fallback http.Handler) http.HandlerFunc {
 	subs := make([]chan string, 0, 10)
 	var mu sync.Mutex
 
@@ -532,12 +532,12 @@ func (h *api) statusWebSocket(alter http.Handler) http.HandlerFunc {
 	}()
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Upgrade") != "websocket" {
-			alter.ServeHTTP(w, r)
+			fallback.ServeHTTP(w, r)
 			return
 		}
 		ws, err := h.upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			alter.ServeHTTP(w, r)
+			fallback.ServeHTTP(w, r)
 			return
 		}
 		c := make(chan string, 100)
@@ -620,10 +620,10 @@ func (h *api) updateOutputs(ctx context.Context) error {
 }
 
 func (h *api) outputHandler() http.HandlerFunc {
-	alter := h.jsonCache.Handler("/api/music/outputs")
+	fallback := h.jsonCache.Handler("/api/music/outputs")
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			alter.ServeHTTP(w, r)
+			fallback.ServeHTTP(w, r)
 			return
 		}
 		var req map[string]*httpOutput
@@ -649,7 +649,7 @@ func (h *api) outputHandler() http.HandlerFunc {
 			}
 		}
 		r.Method = http.MethodGet
-		alter.ServeHTTP(w, r)
+		fallback.ServeHTTP(w, r)
 
 	}
 }
