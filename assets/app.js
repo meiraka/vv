@@ -1277,7 +1277,7 @@ vv.ui = {
             document.getElementById("background-image").classList.remove("hide");
             let cover = "/assets/nocover.svg";
             let coverForCalc = "/assets/nocover.svg";
-            if (vv.storage.current !== null && vv.storage.current.cover) {
+            if (vv.storage.current !== null && vv.storage.current.cover && vv.storage.current.cover[0]) {
                 cover = vv.storage.current.cover[0];
                 const imgsize = parseInt(70 * window.devicePixelRatio, 10);
                 coverForCalc =
@@ -1349,27 +1349,26 @@ vv.view.main = {
             vv.storage.current.Artist;
         document.getElementById("main-seek-label-total").textContent =
             vv.storage.current.Length;
-        if (vv.storage.current.cover) {
-            let e = document.getElementById("main-cover-img");
-            const e2 = document.getElementById("main-cover-img2");
-            if (vv.storage.preferences.appearance.crossfading_image) {
-                if (e.style.opacity === "0") {
-                    e.style.opacity = "1";
-                    e2.style.opacity = "0";
-                } else {
-                    e.style.opacity = "0";
-                    e2.style.opacity = "1";
-                    e = e2;
-                }
-            } else {
+        let cover = "/assets/nocover.svg";
+        if (vv.storage.current.cover && vv.storage.current.cover[0]) {
+            cover = vv.storage.current.cover[0];
+        }
+        let e = document.getElementById("main-cover-img");
+        const e2 = document.getElementById("main-cover-img2");
+        if (vv.storage.preferences.appearance.crossfading_image) {
+            if (e.style.opacity === "0") {
                 e.style.opacity = "1";
                 e2.style.opacity = "0";
+            } else {
+                e.style.opacity = "0";
+                e2.style.opacity = "1";
+                e = e2;
             }
-            e.src = vv.storage.current.cover[0];
         } else {
-            document.getElementById("main-cover-img").style.opacity = "0";
-            document.getElementById("main-cover-img2").style.opacity = "0";
+            e.style.opacity = "1";
+            e2.style.opacity = "0";
         }
+        e.src = cover;
     },
     onCurrent() { vv.view.main.update(); },
     onPoll() {
@@ -2379,9 +2378,9 @@ vv.view.modal = {
             doc.appendChild(newdoc);
         }
         const cover = document.getElementById("modal-song-box-cover");
-        if (song.cover) {
+        if (song.cover && song.cover[0]) {
             const imgsize = window.devicePixelRatio * 112;
-            cover.src = `${song.cover}?width=${imgsize}&height=${imgsize}`;
+            cover.src = `${song.cover[0]}?width=${imgsize}&height=${imgsize}`;
         } else {
             cover.src = "/assets/nocover.svg";
         }
