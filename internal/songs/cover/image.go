@@ -95,3 +95,8 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
 	w.Write(b)
 }
+
+func ext(b []byte) (string, error) {
+	_, format, err := image.DecodeConfig(bytes.NewReader(b))
+	return format, err
+}
