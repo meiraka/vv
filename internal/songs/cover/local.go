@@ -63,8 +63,13 @@ func (l *LocalSearcher) AddTags(m map[string][]string) map[string][]string {
 	defer l.mu.Unlock()
 	v, ok := l.cache[localDir]
 	if ok {
-		d := make([]string, len(v))
-		copy(d, v)
+		d, ok := m["cover"]
+		if !ok {
+			d = make([]string, len(v))
+			copy(d, v)
+		} else {
+			d = append(d, v...)
+		}
 		m["cover"] = d
 		return m
 	}
@@ -79,8 +84,13 @@ func (l *LocalSearcher) AddTags(m map[string][]string) map[string][]string {
 		}
 	}
 	l.cache[localDir] = v
-	d := make([]string, len(v))
-	copy(d, v)
+	d, ok := m["cover"]
+	if !ok {
+		d = make([]string, len(v))
+		copy(d, v)
+	} else {
+		d = append(d, v...)
+	}
 	m["cover"] = d
 	return m
 }
