@@ -333,6 +333,9 @@ func (c *Client) readBinary(ctx context.Context, cmd, uri string) (b []byte, err
 	err = c.pool.Exec(ctx, func(conn *conn) error {
 		var m map[string]string
 		m, b, err = conn.ReadBinary(cmd, uri, 0)
+		if err != nil {
+			return err
+		}
 		size, err := strconv.Atoi(m["size"])
 		if err != nil {
 			return err
