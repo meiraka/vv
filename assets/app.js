@@ -956,11 +956,15 @@ vv.control = {
             setTimeout(polling, 1000);
         };
         const start = () => {
-            vv.control.raiseEvent("start");
-            vv.view.list.show();
-            vv.control.raiseEvent("current");
-            vv.control._listennotify();
-            polling();
+            try {
+                vv.control.raiseEvent("start");
+                vv.view.list.show();
+                vv.control.raiseEvent("current");
+                vv.control._listennotify();
+                polling();
+            } catch (e) {
+                alert(e);
+            }
         };
         if (vv.storage.loaded) {
             start();
@@ -1951,7 +1955,7 @@ vv.view.system = {
         });
 
         if (window.matchMedia("(prefers-color-scheme: dark)").matches === window.matchMedia("(prefers-color-scheme: light)").matches) {
-            document.getElementById("appearance-theme-prefer-system").disabled = true;
+            document.getElementById("appearance-theme_prefer-system").disabled = true;
             if (vv.storage.preferences.appearance.theme === "prefer-system") {
                 vv.storage.preferences.appearance.theme = "prefer-coverart";
             }
