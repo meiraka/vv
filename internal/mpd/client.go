@@ -329,32 +329,37 @@ func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
 	})
 }
 
-func (c *Client) readBinary(ctx context.Context, cmd, uri string) (b []byte, err error) {
+func (c *Client) readBinaryPart(ctx context.Context, cmd, uri string, pos int) (m map[string]string, b []byte, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		var m map[string]string
-		m, b, err = conn.ReadBinary(cmd, uri, 0)
-		if err != nil {
-			return err
-		}
-		size, err := strconv.Atoi(m["size"])
-		if err != nil {
-			return err
-		}
-		for {
-			if size == len(b) {
-				return nil
-			}
-			if size < len(b) {
-				return errors.New("oversize")
-			}
-			_, nb, err := conn.ReadBinary(cmd, uri, len(b))
-			if err != nil {
-				return err
-			}
-			b = append(b, nb...)
-		}
+		m, b, err = conn.ReadBinary(cmd, uri, pos)
+		return err
 	})
 	return
+
+}
+
+func (c *Client) readBinary(ctx context.Context, cmd, uri string) ([]byte, error) {
+	m, b, err := c.readBinaryPart(ctx, cmd, uri, 0)
+	if err != nil {
+		return nil, err
+	}
+	size, err := strconv.Atoi(m["size"])
+	if err != nil {
+		return nil, err
+	}
+	for {
+		if size == len(b) {
+			return b, nil
+		}
+		if size < len(b) {
+			return nil, errors.New("oversize")
+		}
+		_, nb, err := c.readBinaryPart(ctx, cmd, uri, len(b))
+		if err != nil {
+			return nil, err
+		}
+		b = append(b, nb...)
+	}
 }
 
 func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]string, err error) {

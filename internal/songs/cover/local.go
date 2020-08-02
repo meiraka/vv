@@ -12,12 +12,13 @@ import (
 
 // LocalSearcher searches song conver art
 type LocalSearcher struct {
-	prefix string
-	dir    string
-	files  []string
-	cache  map[string][]string
-	rcache map[string]string
-	mu     sync.RWMutex
+	httpPrefix     string
+	musicDirectory string
+	files          []string
+	cache          map[string][]string
+	url2img        map[string]string
+	mu             sync.RWMutex
+	event          chan struct{}
 }
 
 // NewLocalSearcher creates LocalSearcher.
@@ -27,17 +28,19 @@ func NewLocalSearcher(httpPrefix string, dir string, files []string) (*LocalSear
 		return nil, err
 	}
 	return &LocalSearcher{
-		prefix: httpPrefix,
-		dir:    dir,
-		files:  files,
-		cache:  map[string][]string{},
-		rcache: map[string]string{},
+		httpPrefix:     httpPrefix,
+		musicDirectory: dir,
+		files:          files,
+		cache:          map[string][]string{},
+		url2img:        map[string]string{},
 	}, nil
 }
 
 // ServeHTTP serves local cover art with httpPrefix
 func (l *LocalSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path, ok := l.rcache[r.URL.Path]
+	l.mu.RLock()
+	path, ok := l.url2img[r.URL.Path]
+	l.mu.RUnlock()
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -45,53 +48,70 @@ func (l *LocalSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	serveImage(path, w, r)
 }
 
+// Rescan rescans no cover songs images.
+func (l *LocalSearcher) Rescan(songs []map[string][]string) {
+	t := make(map[string]struct{}, len(songs))
+	for i := range songs {
+		if k, ok := l.songDirPath(songs[i]); ok {
+			t[k] = struct{}{}
+		}
+	}
+	for k := range t {
+		l.updateCache(k)
+	}
+}
+
+func (l *LocalSearcher) songDirPath(song map[string][]string) (string, bool) {
+	file, ok := song["file"]
+	if !ok {
+		return "", false
+	}
+	if len(file) != 1 {
+		return "", false
+	}
+	localPath := filepath.Join(filepath.FromSlash(l.musicDirectory), filepath.FromSlash(file[0]))
+	return filepath.Dir(localPath), true
+}
+
+func (l *LocalSearcher) updateCache(songDirPath string) []string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	ret := []string{}
+	for _, n := range l.files {
+		rpath := filepath.Join(songDirPath, n)
+		_, err := os.Stat(rpath)
+		if err == nil {
+			cover := path.Join(l.httpPrefix, strings.TrimPrefix(strings.TrimPrefix(filepath.ToSlash(rpath), filepath.ToSlash(l.musicDirectory)), "/"))
+			ret = append(ret, cover)
+			l.url2img[cover] = rpath
+		}
+	}
+	l.cache[songDirPath] = ret
+	return ret
+}
+
 // AddTags adds cover path to m
 func (l *LocalSearcher) AddTags(m map[string][]string) map[string][]string {
 	if l == nil {
 		return m
 	}
-	file, ok := m["file"]
+	songDirPath, ok := l.songDirPath(m)
 	if !ok {
 		return m
 	}
-	if len(file) != 1 {
-		return m
-	}
-	localPath := filepath.Join(filepath.FromSlash(l.dir), filepath.FromSlash(file[0]))
-	localDir := filepath.Dir(localPath)
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	v, ok := l.cache[localDir]
-	if ok {
-		d, ok := m["cover"]
-		if !ok {
-			d = make([]string, len(v))
-			copy(d, v)
-		} else {
-			d = append(d, v...)
-		}
-		m["cover"] = d
-		return m
-	}
-	v = []string{}
-	for _, n := range l.files {
-		rpath := filepath.Join(localDir, n)
-		_, err := os.Stat(rpath)
-		if err == nil {
-			cover := path.Join(l.prefix, strings.TrimPrefix(strings.TrimPrefix(filepath.ToSlash(rpath), filepath.ToSlash(l.dir)), "/"))
-			v = append(v, cover)
-			l.rcache[cover] = rpath
-		}
-	}
-	l.cache[localDir] = v
+
 	d, ok := m["cover"]
 	if !ok {
-		d = make([]string, len(v))
-		copy(d, v)
-	} else {
-		d = append(d, v...)
+		d = []string{}
 	}
-	m["cover"] = d
+	l.mu.RLock()
+	v, ok := l.cache[songDirPath]
+	l.mu.RUnlock()
+	if ok {
+		m["cover"] = append(d, v...)
+		return m
+	}
+	m["cover"] = append(d, l.updateCache(songDirPath)...)
 	return m
 }
 

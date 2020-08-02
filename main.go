@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/meiraka/vv/internal/mpd"
+	"github.com/meiraka/vv/internal/songs/cover"
 )
 
 const staticVersion = "v0.6.2+"
@@ -90,8 +92,21 @@ func v2() {
 			config.MPD.MusicDirectory = dir
 		}
 	}
-	if !strings.HasPrefix(config.MPD.MusicDirectory, "/") {
-		config.MPD.MusicDirectory = ""
+	coverSearchers := map[string]CoverSearcher{}
+	if config.Server.Cover.Local && !strings.HasPrefix(config.MPD.MusicDirectory, "/") && len(config.MPD.MusicDirectory) != 0 {
+		searcher, err := cover.NewLocalSearcher("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
+		if err != nil {
+			log.Fatalf("failed to initialize coverart: %v", err)
+		}
+		coverSearchers["/api/music/images/local/"] = searcher
+	}
+	if config.Server.Cover.Remote {
+		searcher, err := cover.NewRemoteSearcher("/api/music/images/remote/", cl, filepath.Join(config.Server.CacheDirectory, "imgcache"))
+		if err != nil {
+			log.Fatalf("failed to initialize coverart: %v", err)
+		}
+		coverSearchers["/api/music/images/remote/"] = searcher
+		defer searcher.Close()
 	}
 	assets := AssetsConfig{
 		LocalAssets: config.debug,
@@ -99,7 +114,7 @@ func v2() {
 		ExtraDate:   date,
 	}.NewAssetsHandler()
 	api, err := APIConfig{
-		MusicDirectory: config.MPD.MusicDirectory,
+		CoverSearchers: coverSearchers,
 	}.NewAPIHandler(ctx, cl, w)
 	if err != nil {
 		log.Fatalf("failed to initialize api handler: %v", err)

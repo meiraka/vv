@@ -18,7 +18,12 @@ type Config struct {
 		MusicDirectory string `yaml:"music_directory"`
 	} `yaml:"mpd"`
 	Server struct {
-		Addr string `yaml:"addr"`
+		Addr           string `yaml:"addr"`
+		CacheDirectory string `yaml:"cache_directory"`
+		Cover          struct {
+			Local  bool `yaml:"local"`
+			Remote bool `yaml:"remote"`
+		} `yaml:"cover"`
 	} `yaml:"server"`
 	Playlist struct {
 		Tree      map[string]*ConfigListNode `yaml:"tree"`
@@ -30,6 +35,8 @@ type Config struct {
 // ParseConfig parse yaml config and flags.
 func ParseConfig(dir []string) (*Config, time.Time, error) {
 	c := &Config{}
+	c.Server.Cover.Local = true
+	c.Server.CacheDirectory = filepath.Join(os.TempDir(), "vv")
 	date := time.Time{}
 	for _, d := range dir {
 		path := filepath.Join(d, "config.yaml")
@@ -56,6 +63,7 @@ func ParseConfig(dir []string) (*Config, time.Time, error) {
 	ma := pflag.String("mpd.addr", "", "mpd server address to connect")
 	mm := pflag.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
 	sa := pflag.String("server.addr", "", "this app serving address")
+	si := pflag.Bool("server.cover.remote", false, "enable coverart via mpd api")
 	d := pflag.BoolP("debug", "d", false, "use local assets if exists")
 	pflag.Parse()
 	if len(*mn) != 0 {
@@ -69,6 +77,9 @@ func ParseConfig(dir []string) (*Config, time.Time, error) {
 	}
 	if len(*sa) != 0 {
 		c.Server.Addr = *sa
+	}
+	if *si {
+		c.Server.Cover.Remote = true
 	}
 	c.debug = *d
 	c.setDefault()

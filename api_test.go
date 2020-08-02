@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
+	"github.com/meiraka/vv/internal/songs/cover"
 )
 
 const (
@@ -477,6 +478,7 @@ func TestAPIPHandlerJSON(t *testing.T) {
 }
 
 func TestAPIPHandlerBinary(t *testing.T) {
+	// TODO: move to internal/songs/cover
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	main, err := mpdtest.NewServer("OK MPD 0.19")
@@ -516,10 +518,13 @@ func TestAPIPHandlerBinary(t *testing.T) {
 		main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "OK\n"})
 		main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 	}()
+	searcher, err := cover.NewLocalSearcher("/api/music/images/", "./", []string{"app.png"})
+	if err != nil {
+		t.Fatalf("failed to init cover searcher")
+	}
 	h, err := APIConfig{
 		BackgroundTimeout: time.Second,
-		MusicDirectory:    "./",
-		Cover:             []string{"app.png"},
+		CoverSearchers:    map[string]CoverSearcher{"/api/music/images/": searcher},
 	}.NewAPIHandler(ctx, c, wl)
 	if err != nil {
 		t.Fatalf("NewHTTPHandler got error %v; want nil", err)

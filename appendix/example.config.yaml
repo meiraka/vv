@@ -9,6 +9,14 @@ mpd:
 server:
     # this app serving address
     addr: ":8080"
+    # this app cache directory(default: https://golang.org/pkg/os/#TempDir + vv)
+    cache_directory: "/tmp/vv"
+    cover:
+      # search album cover image in mpd.music_directory(default: true)
+      local: true
+      # search album cover image via mpd api(default: false)
+      # this feature uses server.cache_directory
+      remote: true
 
 playlist:
   tree:

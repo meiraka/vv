@@ -884,6 +884,7 @@ vv.control = {
         vv.control._fetch("/api/music", "control");
         vv.control._fetch("/api/music/library/songs", "library");
         vv.control._fetch("/api/music/stats", "stats");
+        vv.control._fetch("/api/music/images", "images");
     },
     _notify_last_update: (new Date()).getTime(),
     _notify_last_connection: (new Date()).getTime(),
@@ -928,6 +929,8 @@ vv.control = {
                     vv.control._fetch("/api/music/stats", "stats");
                 } else if (e.data === "/api/music/playlist") {
                     vv.control._fetch("/api/music/playlist", "sorted");
+                } else if (e.data === "/api/music/images") {
+                    vv.control._fetch("/api/music/images", "images");
                 }
                 const now = (new Date()).getTime();
                 if (now - vv.control._notify_last_update > 10000) {
@@ -1940,6 +1943,15 @@ vv.view.system = {
             e.disabled = false;
         }
     },
+    onImages() {
+        console.log("img");
+        const e = document.getElementById("library-rescan-images");
+        if (vv.storage.images.updating && !e.disabled) {
+            e.disabled = true;
+        } else if (!vv.storage.images.updating && e.disabled) {
+            e.disabled = false;
+        }
+    },
     onStart() {
         // preferences
         vv.view.system.onPreferences();
@@ -1981,6 +1993,11 @@ vv.view.system = {
         });
         document.getElementById("library-rescan").addEventListener("click", () => {
             vv.control.rescan_library();
+        });
+        document.getElementById("library-rescan-images").addEventListener("click", () => {
+            vv.request.post("/api/music/images", { updating: true });
+            vv.storage.images.updating = true;
+            vv.control.raiseEvent("images");
         });
         // info
         document.getElementById("user-agent").textContent = navigator.userAgent;
@@ -2080,6 +2097,7 @@ vv.view.system = {
 vv.control.addEventListener("start", vv.view.system.onStart);
 vv.control.addEventListener("version", vv.view.system.onVersion);
 vv.control.addEventListener("control", vv.view.system.onControl);
+vv.control.addEventListener("images", vv.view.system.onImages);
 vv.control.addEventListener("status", vv.view.system.onStats);
 vv.control.addEventListener("preferences", vv.view.system.onPreferences);
 vv.control.addEventListener("outputs", vv.view.system.onOutputs);

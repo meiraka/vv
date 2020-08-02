@@ -364,7 +364,9 @@ html {
         <div class="system-article-sub">
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .Rescan "Rescan" }}</button>
+              <button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .RescanSongs "Rescan Songs" }}</button>
+            <li class="list-item system-setting">
+              <button id=library-rescan-images class="system-setting-value button-simple" type="button">{{ or .RescanImages "Rescan Images" }}</button>
             <li class="list-item system-setting">
               <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last library update:" }}</div><time class="system-setting-value" id=stat-db-update>0</time>
             <li class="list-item system-setting">
