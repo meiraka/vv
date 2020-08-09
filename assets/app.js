@@ -1264,25 +1264,35 @@ vv.ui = {
         img.src = path;
     };
     const update = () => {
+        let cover = "/assets/nocover.svg";
+        if (vv.storage.current !== null && vv.storage.current.cover && vv.storage.current.cover[0]) {
+            cover = vv.storage.current.cover[0];
+        }
         let e = document.getElementById("background-image");
         const e2 = document.getElementById("background-image2");
         if (vv.storage.preferences.appearance.crossfading_image) {
             if (e.style.opacity === "0") {
-                e.style.opacity = "1";
-                e2.style.opacity = "0";
+                if (e2.dataset.src === cover) {
+                    e = e2;
+                } else {
+                    e.style.opacity = "1";
+                    e2.style.opacity = "0";
+                }
             } else {
-                e.style.opacity = "0";
-                e2.style.opacity = "1";
-                e = e2;
+                if (e.dataset.src !== cover) {
+                    e.style.opacity = "0";
+                    e2.style.opacity = "1";
+                    e = e2;
+                }
             }
         } else {
             e.style.opacity = "1";
             e2.style.opacity = "0";
         }
+        e.dataset.src = cover;
         if (vv.storage.preferences.appearance.background_image) {
             e.classList.remove("hide");
             document.getElementById("background-image").classList.remove("hide");
-            let cover = "/assets/nocover.svg";
             let coverForCalc = "/assets/nocover.svg";
             if (vv.storage.current !== null && vv.storage.current.cover && vv.storage.current.cover[0]) {
                 cover = vv.storage.current.cover[0];
@@ -1364,18 +1374,25 @@ vv.view.main = {
         const e2 = document.getElementById("main-cover-img2");
         if (vv.storage.preferences.appearance.crossfading_image) {
             if (e.style.opacity === "0") {
-                e.style.opacity = "1";
-                e2.style.opacity = "0";
+                if (e2.dataset.src === cover) {
+                    e = e2;
+                } else {
+                    e.style.opacity = "1";
+                    e2.style.opacity = "0";
+                }
             } else {
-                e.style.opacity = "0";
-                e2.style.opacity = "1";
-                e = e2;
+                if (e.dataset.src !== cover) {
+                    e.style.opacity = "0";
+                    e2.style.opacity = "1";
+                    e = e2;
+                }
             }
         } else {
             e.style.opacity = "1";
             e2.style.opacity = "0";
         }
         e.src = cover;
+        e.dataset.src = cover;
     },
     onCurrent() { vv.view.main.update(); },
     onPoll() {
