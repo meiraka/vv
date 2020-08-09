@@ -9,9 +9,14 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/syndtr/goleveldb/leveldb"
+)
+
+const (
+	timeout = 5 * time.Second
 )
 
 // RemoteSearcher searches song cover art by mpd albumart api.
@@ -123,7 +128,9 @@ func (s *RemoteSearcher) updateCache(songPath string) []string {
 		}
 		filename = filename[0:i]
 	}
-	b, err := s.client.AlbumArt(context.TODO(), songPath)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	b, err := s.client.AlbumArt(ctx, songPath)
 	if err != nil {
 		// set zero value for not found
 		// TODO: check error value
