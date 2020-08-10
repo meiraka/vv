@@ -323,6 +323,31 @@ func (c *Client) Config(ctx context.Context) (map[string]string, error) {
 	return c.mapStr(ctx, "config")
 }
 
+// Commands returns which commands the current user has access to.
+func (c *Client) Commands(ctx context.Context) (commands []string, err error) {
+	err = c.pool.Exec(ctx, func(conn *conn) error {
+		if _, err := conn.Writeln("commands"); err != nil {
+			return err
+		}
+		commands = []string{}
+		for {
+			line, err := conn.Readln()
+			if err != nil {
+				return err
+			}
+			if line == "OK" {
+				return nil
+			}
+			i := strings.Index(line, ": ")
+			if i < 0 {
+				return newCommandError(line)
+			}
+			commands = append(commands, line[i+2:])
+		}
+	})
+	return
+}
+
 func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
 	return c.pool.Exec(ctx, func(conn *conn) error {
 		return conn.OK(cmd...)

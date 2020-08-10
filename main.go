@@ -76,6 +76,10 @@ func v2() {
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
+	commands, err := cl.Commands(ctx)
+	if err != nil {
+		log.Fatalf("failed to check mpd supported functions: %v", err)
+	}
 	// get music dir from local mpd connection
 	if config.MPD.Network == "unix" && config.MPD.MusicDirectory == "" {
 		if c, err := cl.Config(ctx); err == nil {
@@ -93,20 +97,30 @@ func v2() {
 		}
 	}
 	coverSearchers := map[string]CoverSearcher{}
-	if config.Server.Cover.Local && !strings.HasPrefix(config.MPD.MusicDirectory, "/") && len(config.MPD.MusicDirectory) != 0 {
-		searcher, err := cover.NewLocalSearcher("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
-		if err != nil {
-			log.Fatalf("failed to initialize coverart: %v", err)
+	if config.Server.Cover.Local {
+		if !strings.HasPrefix(config.MPD.MusicDirectory, "/") {
+			log.Printf("config.server.cover.local is disabled: mpd.music_directory is not absolute local directory path: %v", config.MPD.MusicDirectory)
+		} else if len(config.MPD.MusicDirectory) == 0 {
+			log.Println("config.server.cover.local is disabled: mpd.music_directory is empty")
+		} else {
+			searcher, err := cover.NewLocalSearcher("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
+			if err != nil {
+				log.Fatalf("failed to initialize coverart: %v", err)
+			}
+			coverSearchers["/api/music/images/local/"] = searcher
 		}
-		coverSearchers["/api/music/images/local/"] = searcher
 	}
 	if config.Server.Cover.Remote {
-		searcher, err := cover.NewRemoteSearcher("/api/music/images/remote/", cl, filepath.Join(config.Server.CacheDirectory, "imgcache"))
-		if err != nil {
-			log.Fatalf("failed to initialize coverart: %v", err)
+		if !contains(commands, "albumart") {
+			log.Println("config.server.cover.remote is disabled: mpd does not support albumart command")
+		} else {
+			searcher, err := cover.NewRemoteSearcher("/api/music/images/remote/", cl, filepath.Join(config.Server.CacheDirectory, "imgcache"))
+			if err != nil {
+				log.Fatalf("failed to initialize coverart: %v", err)
+			}
+			coverSearchers["/api/music/images/remote/"] = searcher
+			defer searcher.Close()
 		}
-		coverSearchers["/api/music/images/remote/"] = searcher
-		defer searcher.Close()
 	}
 	assets := AssetsConfig{
 		LocalAssets: config.debug,
@@ -155,4 +169,13 @@ func v2() {
 	if err := w.Close(ctx); err != nil {
 		log.Printf("failed to close mpd connection(event): %v", err)
 	}
+}
+
+func contains(list []string, item string) bool {
+	for _, n := range list {
+		if item == n {
+			return true
+		}
+	}
+	return false
 }
