@@ -230,7 +230,7 @@ vv.storage = {
             theme: "prefer-coverart",
             color_threshold: 128,
             background_image: true,
-            background_image_blur: 32,
+            background_image_blur: "32px",
             circled_image: false,
             crossfading_image: true,
             volume: true,
@@ -345,10 +345,10 @@ vv.storage = {
     },
     load() {
         try {
-            if (localStorage.version !== "v2") {
+            if (localStorage.version !== "v3") {
                 localStorage.clear();
             }
-            localStorage.version = "v2";
+            localStorage.version = "v3";
             if (localStorage.root && localStorage.root.length !== 0) {
                 vv.storage.root = localStorage.root;
                 if (vv.storage.root !== "root") {
@@ -1310,7 +1310,7 @@ vv.ui = {
                 e.style.backgroundImage = newimage;
             }
             e.style.filter =
-                `blur(${vv.storage.preferences.appearance.background_image_blur}px)`;
+                `blur(${vv.storage.preferences.appearance.background_image_blur})`;
         } else {
             e.classList.add("hide");
             document.getElementById("background-image").classList.add("hide");
