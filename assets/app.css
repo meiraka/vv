@@ -1702,8 +1702,8 @@ footer {
 .modal-system {
   align-items: stretch;
   justify-content: flex-start;
-  min-width: 90%;
-  max-width: 90%;
+  width: 90%;
+  max-width: 1000px;
   height: 80%;
 }
 
