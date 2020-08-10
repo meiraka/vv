@@ -212,6 +212,7 @@ vv.storage = {
     current: null,
     control: {},
     library: [],
+    library_info: {},
     outputs: [],
     stats: {},
     last_modified: {},
@@ -799,8 +800,8 @@ vv.control = {
 
     rescan_library() {
         vv.request.post("/api/music/library", { updating: true });
-        vv.storage.control.update_library = true;
-        vv.control.raiseEvent("control");
+        vv.storage.library_info.updating = true;
+        vv.control.raiseEvent("library_info");
     },
     prev() { vv.request.post("/api/music", { state: "previous" }); },
     play_pause() {
@@ -882,6 +883,7 @@ vv.control = {
         vv.control._fetch("/api/music/outputs", "outputs");
         vv.control._fetch("/api/music/playlist/songs/current", "current");
         vv.control._fetch("/api/music", "control");
+        vv.control._fetch("/api/music/library", "library_info");
         vv.control._fetch("/api/music/library/songs", "library");
         vv.control._fetch("/api/music/stats", "stats");
         vv.control._fetch("/api/music/images", "images");
@@ -919,6 +921,8 @@ vv.control = {
             if (e && e.data) {
                 if (e.data === "/api/music/library/songs") {
                     vv.control._fetch("/api/music/library/songs", "library");
+                } else if (e.data === "/api/music/library") {
+                    vv.control._fetch("/api/music/library", "library_info");
                 } else if (e.data === "/api/music") {
                     vv.control._fetch("/api/music", "control");
                 } else if (e.data === "/api/music/playlist/songs/current") {
@@ -1952,16 +1956,15 @@ vv.view.system = {
         }
         ul.appendChild(newul);
     },
-    onControl() {
+    onLibraryInfo() {
         const e = document.getElementById("library-rescan");
-        if (vv.storage.control.update_library && !e.disabled) {
+        if (vv.storage.library_info.updating && !e.disabled) {
             e.disabled = true;
-        } else if (!vv.storage.control.update_library && e.disabled) {
+        } else if (!vv.storage.library_info.updating && e.disabled) {
             e.disabled = false;
         }
     },
     onImages() {
-        console.log("img");
         const e = document.getElementById("library-rescan-images");
         if (vv.storage.images.updating && !e.disabled) {
             e.disabled = true;
@@ -2113,7 +2116,7 @@ vv.view.system = {
 };
 vv.control.addEventListener("start", vv.view.system.onStart);
 vv.control.addEventListener("version", vv.view.system.onVersion);
-vv.control.addEventListener("control", vv.view.system.onControl);
+vv.control.addEventListener("library_info", vv.view.system.onLibraryInfo);
 vv.control.addEventListener("images", vv.view.system.onImages);
 vv.control.addEventListener("status", vv.view.system.onStats);
 vv.control.addEventListener("preferences", vv.view.system.onPreferences);
