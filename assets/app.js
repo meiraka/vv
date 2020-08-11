@@ -966,7 +966,6 @@ vv.control = {
             try {
                 vv.control.raiseEvent("start");
                 vv.view.list.show();
-                vv.control.raiseEvent("current");
                 vv.control._listennotify();
                 polling();
             } catch (e) {
@@ -998,9 +997,9 @@ vv.control = {
         let unsorted = (!vv.storage.sorted || !vv.storage.sorted.hasOwnProperty("sort") || vv.storage.sorted.sort === null);
         const focusremove = (key, remove) => {
             const n = () => {
-                if (unsorted && vv.storage.sorted && vv.storage.current !== null) {
+                if (unsorted && vv.storage.sorted && vv.storage.current !== null && vv.storage.library.length !== 0) {
                     if (vv.storage.sorted &&
-                        vv.storage.preferences.appearance.playlist_follows_playback.view_follow) {
+                        vv.storage.preferences.appearance.playlist_follows_playback) {
                         vv.library.abs(vv.storage.current);
                     }
                     unsorted = false;
@@ -1010,6 +1009,7 @@ vv.control = {
             return n;
         };
         vv.control.addEventListener("current", focus);
+        vv.control.addEventListener("start", focus);
         vv.control.addEventListener(
             "library", () => { vv.library.update(vv.storage.library); });
         if (unsorted) {
@@ -1452,6 +1452,7 @@ vv.view.main = {
         vv.ui.swipe(
             document.getElementById("main"), vv.view.list.show, null,
             document.getElementById("lists"), () => { return window.innerHeight >= window.innerWidth; });
+        vv.view.main.onCurrent();
     }
 };
 vv.control.addEventListener("poll", vv.view.main.onPoll);
@@ -1874,6 +1875,7 @@ vv.view.list = {
         vv.ui.swipe(
             document.getElementById("list5"), vv.library.up,
             vv.view.list._updatepos, document.getElementById("list4"));
+        vv.view.list.onCurrent();
     }
 };
 vv.control.addEventListener("current", vv.view.list.onCurrent);
