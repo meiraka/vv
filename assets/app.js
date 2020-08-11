@@ -868,10 +868,8 @@ vv.control = {
                     vv.storage.last_modified_ms[store] = Date.parse(modified) + diff;
                     vv.storage.last_modified[store] = modified;
                     vv.storage.etag[store] = etag;
-                    if (store === "library") {
-                        vv.storage.save.library();
-                    } else if (store === "sorted") {
-                        vv.storage.save.sorted();
+                    if (vv.storage.save[store]) {
+                        vv.storage.save[store]();
                     }
                     vv.control.raiseEvent(store);
                 }
@@ -987,7 +985,6 @@ vv.control = {
     },
     load() {
         const focus = () => {
-            vv.storage.save.current();
             if (vv.storage.preferences.appearance.playlist_follows_playback &&
                 vv.storage.current !== null) {
                 vv.library.abs(vv.storage.current);
