@@ -144,6 +144,16 @@ func (c *Client) OneShot(ctx context.Context) error {
 	return c.ok(ctx, "single", "oneshot")
 }
 
+// ReplayGainMode sets the replay gain mode.
+func (c *Client) ReplayGainMode(ctx context.Context, mode string) error {
+	return c.ok(ctx, "replay_gain_mode", mode)
+}
+
+// ReplayGainStatus prints replay gain options.
+func (c *Client) ReplayGainStatus(ctx context.Context) (map[string]string, error) {
+	return c.mapStr(ctx, "replay_gain_status")
+}
+
 // SetVol sets the volume to vol.
 func (c *Client) SetVol(ctx context.Context, vol int) error {
 	return c.ok(ctx, "setvol", vol)

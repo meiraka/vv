@@ -1328,8 +1328,11 @@ button:hover {
   padding: 4px 24px 0 24px;
 }
 
-.tool-select {
+.tool-select,
+.tool-input-number {
   outline: 0;
+  padding: 0 12px;
+  box-sizing: border-box;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -1347,16 +1350,19 @@ button:hover {
 }
 
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
-  .tool-select {
+  .tool-select,
+  .tool-input-number {
     width: 50px;
   }
 }
 
-.tool-select:hover {
+.tool-select:hover,
+.tool-input-number:hover {
   cursor: pointer;
 }
 
-.tool-select:-moz-focusring {
+.tool-select:-moz-focusring,
+.tool-input-number:-moz-focusring {
   outline: 0;
   color: transparent;
   transition: none;

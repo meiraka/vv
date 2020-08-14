@@ -66,6 +66,7 @@ func TestAPIPHandlerJSON(t *testing.T) {
 	go func() {
 		main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 		main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 		main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 		main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 		main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})
@@ -89,7 +90,7 @@ func TestAPIPHandlerJSON(t *testing.T) {
 	}{
 		{
 			req:  NewRequest(http.MethodGet, ts.URL+"/api/music", nil),
-			want: map[int]string{http.StatusOK: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`},
+			want: map[int]string{http.StatusOK: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
 		},
 		{
 			req:  NewRequest(http.MethodGet, ts.URL+"/api/music/playlist", nil),
@@ -122,12 +123,13 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"repeat":true}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
-				http.StatusOK:       `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "repeat 1\n", Write: "OK\n"})
 				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
@@ -135,12 +137,13 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"random":true}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
-				http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "random 1\n", Write: "OK\n"})
 				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
@@ -148,12 +151,14 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"oneshot":true}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
-				http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "single oneshot\n", Write: "OK\n"})
 				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
+
 				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: oneshot\nconsume: 0\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
@@ -165,12 +170,13 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"single":true}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1}`,
-				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "single 1\n", Write: "OK\n"})
 				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 0\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
@@ -178,12 +184,13 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"consume":true}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1}`,
-				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "consume 1\n", Write: "OK\n"})
 				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
@@ -191,8 +198,8 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"play"}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
-				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "play -1\n", Write: "OK\n"})
@@ -206,8 +213,8 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"next"}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
-				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "next\n", Write: "OK\n"})
@@ -221,8 +228,8 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"previous"}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
-				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "previous\n", Write: "OK\n"})
@@ -236,8 +243,8 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"state":"pause"}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1}`,
-				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "pause 1\n", Write: "OK\n"})
@@ -251,13 +258,41 @@ func TestAPIPHandlerJSON(t *testing.T) {
 		{
 			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"volume":100}`)),
 			want: map[int]string{
-				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
-				http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1}`,
+				http.StatusAccepted: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 			},
 			f: func() {
 				main.Expect(ctx, &mpdtest.WR{Read: "setvol 100\n", Write: "OK\n"})
 				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: mixer\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: 100\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
+			},
+			websocket: []string{"/api/music"},
+		},
+		{
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"replay_gain":"track"}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
+				http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"track","crossfade":0}`,
+			},
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_mode track\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: track\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: 100\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
+			},
+			websocket: []string{"/api/music"},
+		},
+		{
+			req: NewRequest(http.MethodPost, ts.URL+"/api/music", strings.NewReader(`{"crossfade":1}`)),
+			want: map[int]string{
+				http.StatusAccepted: `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"track","crossfade":0}`,
+				http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"track","crossfade":1}`,
+			},
+			f: func() {
+				main.Expect(ctx, &mpdtest.WR{Read: "crossfade 1\n", Write: "OK\n"})
+				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: track\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: 100\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nxfade: 1\nOK\n"})
 			},
 			websocket: []string{"/api/music"},
 		},
@@ -394,6 +429,7 @@ func TestAPIPHandlerJSON(t *testing.T) {
 				sub.Disconnect(ctx)
 				main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"})

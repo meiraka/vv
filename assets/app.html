@@ -386,6 +386,21 @@ html {
       </article>
 
       <article id="system-outputs" class="scrollable system-article">
+        <h2 class="system-article-sub-header">{{ or .Options "Options" }}</h2>
+        <div class="system-article-sub">
+          <ul class="system-settings"></ul>
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="outputs-options-replay-gain-label">{{ or .ReplayGain "Replay gain" }}</div>
+              <select class="tool-select value" id="outputs-options-replay-gain" aria-labelledby="outputs-options-replay-gain-label">
+                <option value="off">{{ or .ReplayGainOff "off" }}</option>
+                <option value="track">{{ or .ReplayGainTrack "track" }}</option>
+                <option value="album">{{ or .ReplayGainAlbum "album" }}</option>
+              </select>
+            <li class="list-item system-setting">
+              <div class="system-setting-desc" id="outputs-options-crossfade-label">{{ or .Crossfade "Crossfade" }}</div>
+              <input type="number" min="0" step="1" value="0" class="tool-input-number value" id="outputs-options-crossfade" aria-labelledby="outputs-options-crossfade">
+          </ul>
+        </div>
         <h2 class="system-article-sub-header">{{ or .Devices "Devices" }}</h2>
         <div class="system-article-sub">
           <ul class="system-settings" id="devices"></ul>

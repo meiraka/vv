@@ -1971,19 +1971,23 @@ vv.view.system = {
             e.disabled = false;
         }
     },
+    onControl() {
+
+        if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
+            document.getElementById("volume-header").classList.remove("hide");
+            document.getElementById("volume-all").classList.remove("hide");
+        } else {
+            document.getElementById("volume-header").classList.add("hide");
+            document.getElementById("volume-all").classList.add("hide");
+        }
+        document.getElementById("outputs-options-replay-gain").value = vv.storage.control.replay_gain;
+        document.getElementById("outputs-options-crossfade").value = vv.storage.control.crossfade.toString(10);
+    },
     onStart() {
         // preferences
         vv.view.system.onPreferences();
 
-        vv.control.addEventListener("control", () => {
-            if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
-                document.getElementById("volume-header").classList.remove("hide");
-                document.getElementById("volume-all").classList.remove("hide");
-            } else {
-                document.getElementById("volume-header").classList.add("hide");
-                document.getElementById("volume-all").classList.add("hide");
-            }
-        });
+        vv.control.addEventListener("control", vv.view.system.onControl);
 
         if (window.matchMedia("(prefers-color-scheme: dark)").matches === window.matchMedia("(prefers-color-scheme: light)").matches) {
             document.getElementById("appearance-theme_prefer-system").disabled = true;
@@ -2018,6 +2022,14 @@ vv.view.system = {
             vv.storage.images.updating = true;
             vv.control.raiseEvent("images");
         });
+
+        document.getElementById("outputs-options-replay-gain").addEventListener("change", (e) => {
+            vv.request.post("/api/music", { replay_gain: e.currentTarget.value });
+        });
+        document.getElementById("outputs-options-crossfade").addEventListener("input", (e) => {
+            vv.request.post("/api/music", { crossfade: parseInt(e.currentTarget.value) });
+        });
+
         // info
         document.getElementById("user-agent").textContent = navigator.userAgent;
 

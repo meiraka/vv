@@ -41,7 +41,7 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 	if err := h.updateVersion(); err != nil {
 		return nil, err
 	}
-	all := []func(context.Context) error{h.updateLibrarySongs, h.updatePlaylistSongs, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats}
+	all := []func(context.Context) error{h.updateLibrarySongs, h.updatePlaylistSongs, h.updateOptions, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats}
 	for _, v := range all {
 		if err := v(ctx); err != nil {
 			return nil, err
@@ -70,6 +70,7 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 			case "mixer":
 				h.updateStatus(ctx)
 			case "options":
+				h.updateOptions(ctx)
 				h.updateStatus(ctx)
 			case "update":
 				h.updateStatus(ctx)
@@ -93,6 +94,7 @@ type api struct {
 	playlist    []map[string][]string
 	library     []map[string][]string
 	librarySort []map[string][]string
+	replayGain  map[string]string
 	sort        []string
 	filters     [][]string
 	current     int
@@ -360,6 +362,19 @@ type httpMusicStatus struct {
 	Consume     *bool    `json:"consume,omitempty"`
 	State       *string  `json:"state,omitempty"`
 	SongElapsed *float64 `json:"song_elapsed,omitempty"`
+	ReplayGain  *string  `json:"replay_gain"`
+	Crossfade   *int     `json:"crossfade"`
+}
+
+func (h *api) updateOptions(ctx context.Context) error {
+	s, err := h.client.ReplayGainStatus(ctx)
+	if err != nil {
+		return err
+	}
+	h.mu.Lock()
+	h.replayGain = s
+	h.mu.Unlock()
+	return nil
 }
 
 func (h *api) updateStatus(ctx context.Context) error {
@@ -383,6 +398,13 @@ func (h *api) updateStatus(ctx context.Context) error {
 	}
 	// force update to Last-Modified header to calc current SongElapsed
 	// TODO: add millisec update time to JSON
+	h.mu.Lock()
+	replayGain := h.replayGain["replay_gain_mode"]
+	h.mu.Unlock()
+	crossfade, err := strconv.Atoi(s["xfade"])
+	if err != nil {
+		crossfade = 0
+	}
 	if err := h.jsonCache.Set("/api/music", &httpMusicStatus{
 		Volume:      volume,
 		Repeat:      boolPtr(s["repeat"] == "1"),
@@ -392,6 +414,8 @@ func (h *api) updateStatus(ctx context.Context) error {
 		Consume:     boolPtr(s["consume"] == "1"),
 		State:       stringPtr(s["state"]),
 		SongElapsed: &elapsed,
+		ReplayGain:  &replayGain,
+		Crossfade:   &crossfade,
 	}); err != nil {
 		return err
 	}
@@ -466,6 +490,20 @@ func (h *api) statusHandler() http.HandlerFunc {
 		}
 		if s.SongElapsed != nil {
 			if err := h.client.SeekCur(ctx, *s.SongElapsed); err != nil {
+				writeHTTPError(w, http.StatusInternalServerError, err)
+				return
+			}
+			changed = true
+		}
+		if s.ReplayGain != nil {
+			if err := h.client.ReplayGainMode(ctx, *s.ReplayGain); err != nil {
+				writeHTTPError(w, http.StatusInternalServerError, err)
+				return
+			}
+			changed = true
+		}
+		if s.Crossfade != nil {
+			if err := h.client.Crossfade(ctx, time.Duration(*s.Crossfade)*time.Second); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				return
 			}
