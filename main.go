@@ -96,7 +96,8 @@ func v2() {
 			config.MPD.MusicDirectory = dir
 		}
 	}
-	coverSearchers := map[string]CoverSearcher{}
+	m := http.NewServeMux()
+	coverSearchers := make([]CoverSearcher, 0, 2)
 	if config.Server.Cover.Local {
 		if !strings.HasPrefix(config.MPD.MusicDirectory, "/") {
 			log.Printf("config.server.cover.local is disabled: mpd.music_directory is not absolute local directory path: %v", config.MPD.MusicDirectory)
@@ -107,7 +108,9 @@ func v2() {
 			if err != nil {
 				log.Fatalf("failed to initialize coverart: %v", err)
 			}
-			coverSearchers["/api/music/images/local/"] = searcher
+			m.Handle("/api/music/images/local/", searcher)
+			coverSearchers = append(coverSearchers, searcher)
+
 		}
 	}
 	if config.Server.Cover.Remote {
@@ -118,7 +121,8 @@ func v2() {
 			if err != nil {
 				log.Fatalf("failed to initialize coverart: %v", err)
 			}
-			coverSearchers["/api/music/images/remote/"] = searcher
+			m.Handle("/api/music/images/remote/", searcher)
+			coverSearchers = append(coverSearchers, searcher)
 			defer searcher.Close()
 		}
 	}
@@ -133,7 +137,6 @@ func v2() {
 	if err != nil {
 		log.Fatalf("failed to initialize api handler: %v", err)
 	}
-	m := http.NewServeMux()
 	m.Handle("/", assets)
 	m.Handle("/api/", api)
 

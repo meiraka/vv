@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -20,11 +19,10 @@ import (
 // APIConfig holds HTTPHandler config
 type APIConfig struct {
 	BackgroundTimeout time.Duration
-	CoverSearchers    map[string]CoverSearcher
+	CoverSearchers    []CoverSearcher
 }
 
 type CoverSearcher interface {
-	ServeHTTP(w http.ResponseWriter, r *http.Request)
 	Rescan([]map[string][]string)
 	AddTags(map[string][]string) map[string][]string
 }
@@ -134,12 +132,6 @@ func (h *api) handle() http.HandlerFunc {
 		case "/api/music/images":
 			musicImages(w, r)
 		default:
-			for k, v := range h.config.CoverSearchers {
-				if strings.HasPrefix(r.URL.Path, k) {
-					v.ServeHTTP(w, r)
-					return
-				}
-			}
 			http.NotFound(w, r)
 		}
 	}
@@ -726,6 +718,10 @@ func (h *api) imagesHandler() http.HandlerFunc {
 			for _, v := range h.config.CoverSearchers {
 				v.Rescan(h.library)
 			}
+			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
+			defer cancel()
+			h.updateCurrentSong(ctx)
+			h.updateLibrarySongs(ctx)
 			h.jsonCache.SetIfModified("/api/music/images", &httpCover{Updating: false})
 		}()
 		now := time.Now().UTC()
