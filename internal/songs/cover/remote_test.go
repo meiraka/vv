@@ -66,8 +66,7 @@ func TestRemoteSearcher(t *testing.T) {
 			} {
 				for i := 0; i < 2; i++ {
 					t.Run(fmt.Sprint(tt.in, i), func(t *testing.T) {
-						song := searcher.AddTags(tt.in)
-						covers := song["cover"]
+						covers := searcher.GetURLs(tt.in)
 						if len(covers) == 0 && tt.hasCover {
 							t.Fatalf("got no covers; want 1 cover")
 						}
@@ -154,8 +153,7 @@ func TestRemoteSearcherRescan(t *testing.T) {
 				searcher.Rescan([]map[string][]string{tt.in})
 				for i := 0; i < 2; i++ {
 					t.Run(fmt.Sprint(tt.in, i), func(t *testing.T) {
-						song := searcher.AddTags(tt.in)
-						covers := song["cover"]
+						covers := searcher.GetURLs(tt.in)
 						if len(covers) == 0 && tt.hasCover {
 							t.Fatalf("got no covers; want 1 cover")
 						}

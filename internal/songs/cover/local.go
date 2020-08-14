@@ -90,29 +90,23 @@ func (l *LocalSearcher) updateCache(songDirPath string) []string {
 	return ret
 }
 
-// AddTags adds cover path to m
-func (l *LocalSearcher) AddTags(m map[string][]string) map[string][]string {
+// GetURLs returns cover path for m
+func (l *LocalSearcher) GetURLs(m map[string][]string) []string {
 	if l == nil {
-		return m
+		return nil
 	}
 	songDirPath, ok := l.songDirPath(m)
 	if !ok {
-		return m
+		return nil
 	}
 
-	d, ok := m["cover"]
-	if !ok {
-		d = []string{}
-	}
 	l.mu.RLock()
 	v, ok := l.cache[songDirPath]
 	l.mu.RUnlock()
 	if ok {
-		m["cover"] = append(d, v...)
-		return m
+		return v
 	}
-	m["cover"] = append(d, l.updateCache(songDirPath)...)
-	return m
+	return l.updateCache(songDirPath)
 }
 
 /*modifiedSince compares If-Modified-Since header given time.Time.*/

@@ -17,29 +17,30 @@ func TestLocalCover(t *testing.T) {
 	}
 	for _, tt := range []struct {
 		in         map[string][]string
-		want       map[string][]string
+		want       []string
 		wantHeader http.Header
 		wantBinary []byte
 	}{
 		{
 			in:         map[string][]string{"file": {"assets/test.flac"}},
-			want:       map[string][]string{"file": {"assets/test.flac"}, "cover": {"/foo/assets/app.png"}},
+			want:       []string{"/foo/assets/app.png"},
 			wantHeader: http.Header{"Content-Type": {"image/png"}},
 			wantBinary: readFile(t, filepath.Join("..", "..", "..", "assets", "app.png")),
 		},
 		{
 			in:   map[string][]string{"file": {"notfound/test.flac"}},
-			want: map[string][]string{"file": {"notfound/test.flac"}, "cover": {}}},
+			want: []string{},
+		},
 	} {
 		t.Run(fmt.Sprint(tt.in), func(t *testing.T) {
-			song := searcher.AddTags(tt.in)
-			if !reflect.DeepEqual(song, tt.want) {
-				t.Errorf("got AddTags=%v; want %v", song, tt.want)
+			covers := searcher.GetURLs(tt.in)
+			if !reflect.DeepEqual(covers, tt.want) {
+				t.Errorf("got GetURLs=%v; want %v", covers, tt.want)
 			}
-			if len(song["covers"]) == 0 {
+			if len(covers) == 0 {
 				return
 			}
-			cover := song["covers"][0]
+			cover := covers[0]
 			req := httptest.NewRequest("GET", cover, nil)
 			w := httptest.NewRecorder()
 			searcher.ServeHTTP(w, req)
@@ -53,7 +54,7 @@ func TestLocalCover(t *testing.T) {
 				}
 			}
 			got, _ := ioutil.ReadAll(resp.Body)
-			if !reflect.DeepEqual(got, tt.want) {
+			if !reflect.DeepEqual(got, tt.wantBinary) {
 				t.Errorf("got invalid binary response")
 			}
 

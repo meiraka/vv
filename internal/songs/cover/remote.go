@@ -171,24 +171,18 @@ func (s *RemoteSearcher) updateCache(songPath string) []string {
 	return append(ret, path.Join(s.httpPrefix, value))
 }
 
-// AddTags adds cover path to m
-func (s *RemoteSearcher) AddTags(m map[string][]string) map[string][]string {
+// GetURLs returns cover path for m
+func (s *RemoteSearcher) GetURLs(m map[string][]string) []string {
 	if s == nil {
-		return m
+		return nil
 	}
 	songPath, ok := s.songPath(m)
 	if !ok {
-		return m
-	}
-	d, ok := m["cover"]
-	if !ok {
-		d = make([]string, 0, 1)
+		return nil
 	}
 	cover, err := s.getURLPath(songPath)
 	if err == nil {
-		m["cover"] = append(d, cover...)
-		return m
+		return cover
 	}
-	m["cover"] = append(d, s.updateCache(songPath)...)
-	return m
+	return s.updateCache(songPath)
 }

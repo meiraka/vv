@@ -24,7 +24,7 @@ type APIConfig struct {
 
 type CoverSearcher interface {
 	Rescan([]map[string][]string)
-	AddTags(map[string][]string) map[string][]string
+	GetURLs(map[string][]string) []string
 }
 
 // NewAPIHandler creates json api handler.
@@ -139,8 +139,13 @@ func (h *api) handle() http.HandlerFunc {
 
 func (h *api) convSong(s map[string][]string) map[string][]string {
 	s = songs.AddTags(s)
+	delete(s, "cover")
+	var cover []string
 	for _, v := range h.config.CoverSearchers {
-		s = v.AddTags(s)
+		cover = append(cover, v.GetURLs(s)...)
+	}
+	if len(cover) != 0 {
+		s["cover"] = cover
 	}
 	return s
 }
