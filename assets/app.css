@@ -1090,6 +1090,14 @@ button:hover {
   display: none;
 }
 
+.system-setting-value {
+    text-align: right;
+    padding: 8px 0;
+}
+time.system-setting-value {
+    flex: 0 1 50%;
+}
+
 .system-article-sub.hide,
 .system-article-sub-header.hide,
 .system-setting.hide {
@@ -1352,7 +1360,7 @@ button:hover {
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
   .tool-select,
   .tool-input-number {
-    width: 50px;
+    width: 80px;
   }
 }
 
