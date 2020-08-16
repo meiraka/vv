@@ -227,6 +227,12 @@ vv.storage = {
             playback_tracks: "all",
             playback_tracks_custom: {},
         },
+        httpoutput: {
+            volume: "0.2",
+            volume_max: "1",
+            streams: {},
+            stream: "",
+        },
         appearance: {
             theme: "prefer-coverart",
             color_threshold: 128,
@@ -850,7 +856,7 @@ vv.control = {
         const filters = vv.library.filters(pos);
         let must = 0;
         if (vv.storage.preferences.playlist.playback_tracks == "list") {
-            must = filters.length -1;
+            must = filters.length - 1;
         } else if (vv.storage.preferences.playlist.playback_tracks) {
             const root = vv.library.rootname();
             if (root !== "root") {
@@ -1959,6 +1965,11 @@ vv.view.system = {
             ul.removeChild(ul.lastChild);
         }
         const newul = document.createDocumentFragment();
+        const inputs = document.getElementById("httpstream-select");
+        const newInputs = document.createDocumentFragment();
+        let streamIndex = 1;
+        let streamChanged = false;
+        let streams = {};
         for (const id in vv.storage.outputs) {
             if (vv.storage.outputs.hasOwnProperty(id)) {
                 const o = vv.storage.outputs[id];
@@ -1981,6 +1992,50 @@ vv.view.system = {
                         e.currentTarget.checked);
                 });
                 newul.appendChild(d);
+                if (o.stream && o.enabled) {
+                    const on = document.createElement("option");
+                    on.value = o.stream;
+                    on.textContent = o.name
+                    newInputs.appendChild(on)
+                    streams[o.name] = o.stream;
+                    const t = inputs.children[streamIndex];
+                    if (!t || t.textContent !== o.name || t.value !== o.stream) {
+                        streamChanged = true;
+                    }
+                    streamIndex++;
+                }
+            }
+        }
+        for (const input of Array.from(inputs.children)) {
+            if (input.value !== "" && !streams[input.textContent]) {
+                streamChanged = true;
+            }
+        }
+        if (streamChanged) {
+            while (inputs.lastChild) {
+                inputs.removeChild(inputs.lastChild);
+            }
+            const off = document.createElement("option");
+            off.value = "";
+            off.textContent = inputs.dataset.disabledLabel;
+            inputs.appendChild(off);
+            inputs.appendChild(newInputs);
+            if (streamIndex === 1) {
+                document.getElementById("httpstream-header").classList.add("hide");
+                document.getElementById("httpstream").classList.add("hide");
+            } else {
+                document.getElementById("httpstream-header").classList.remove("hide");
+                document.getElementById("httpstream").classList.remove("hide");
+            }
+            inputs.value = vv.storage.preferences.httpoutput.stream;
+            inputs.value = inputs.value;
+            vv.storage.preferences.httpoutput.stream = inputs.value;
+            vv.storage.preferences.httpoutput.streams = streams;
+            vv.storage.save.preferences();
+            if (inputs.value === "") {
+                let e = document.createEvent("HTMLEvents");
+                e.initEvent("change", false, true);
+                inputs.dispatchEvent(e);
             }
         }
         ul.appendChild(newul);
@@ -2012,6 +2067,14 @@ vv.view.system = {
         }
         document.getElementById("outputs-options-replay-gain").value = vv.storage.control.replay_gain;
         document.getElementById("outputs-options-crossfade").value = vv.storage.control.crossfade.toString(10);
+        const audio = document.getElementById("httpstream-audio");
+        if (vv.storage.control.state === "play") {
+            if (audio.paused) {
+                audio.load();
+            }
+        } else {
+            audio.pause();
+        }
     },
     onStart() {
         // preferences
@@ -2146,6 +2209,65 @@ vv.view.system = {
             }
         }
         ul.appendChild(newul);
+        const inputs = document.getElementById("httpstream-select");
+        const newInputs = document.createDocumentFragment();
+        let streamCnt = 0;
+        for (const name in vv.storage.preferences.httpoutput.streams) {
+            if (vv.storage.preferences.httpoutput.streams.hasOwnProperty(name)) {
+                const on = document.createElement("option");
+                on.value = vv.storage.preferences.httpoutput.streams[name];
+                on.textContent = name;
+                newInputs.appendChild(on);
+                streamCnt++;
+            }
+        }
+        if (streamCnt === 0) {
+            document.getElementById("httpstream-header").classList.add("hide");
+            document.getElementById("httpstream").classList.add("hide");
+        }
+        inputs.appendChild(newInputs);
+        inputs.value = vv.storage.preferences.httpoutput.stream;
+        inputs.value = inputs.value;
+        vv.storage.preferences.httpoutput.stream = inputs.value;
+        const audio = document.getElementById("httpstream-audio");
+        audio.autoplay = true;
+        audio.volume = vv.storage.preferences.httpoutput.volume;
+        if (inputs.value !== "") {
+            audio.src = inputs.value;
+            audio.load();
+        } else {
+            document.getElementById("httpstream-volume-box").classList.add("hide");
+            document.getElementById("httpstream-max-volume-box").classList.add("hide");
+        }
+        const volume = document.getElementById("httpstream-volume");
+        volume.value = vv.storage.preferences.httpoutput.volume;
+        volume.max = vv.storage.preferences.httpoutput.volume_max;
+        const maxvolume = document.getElementById("httpstream-max-volume");
+        maxvolume.value = vv.storage.preferences.httpoutput.volume_max;
+        inputs.addEventListener("change", () => {
+            audio.pause();
+            audio.src = inputs.value;
+            if (inputs.value !== "") {
+                audio.load();
+                document.getElementById("httpstream-volume-box").classList.remove("hide");
+                document.getElementById("httpstream-max-volume-box").classList.remove("hide");
+            } else {
+                document.getElementById("httpstream-volume-box").classList.add("hide");
+                document.getElementById("httpstream-max-volume-box").classList.add("hide");
+            }
+            vv.storage.preferences.httpoutput.stream = inputs.value;
+            vv.storage.save.preferences();
+        });
+        volume.addEventListener("change", () => {
+            audio.volume = volume.value;
+            vv.storage.preferences.httpoutput.volume = volume.value;
+            vv.storage.save.preferences();
+        });
+        maxvolume.addEventListener("change", () => {
+            volume.max = maxvolume.value;
+            vv.storage.preferences.httpoutput.volume_max = maxvolume.value;
+            vv.storage.save.preferences();
+        });
     },
     _zfill2(i) {
         if (i < 100) {

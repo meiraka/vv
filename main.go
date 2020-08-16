@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"log"
@@ -20,29 +19,6 @@ import (
 const staticVersion = "v0.6.2+"
 
 var version = "v0.7.0+"
-
-func getMusicDirectory(confpath string) (string, error) {
-	f, err := os.Open(confpath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-	sc := bufio.NewScanner(f)
-	for i := 1; sc.Scan(); i++ {
-		if err := sc.Err(); err != nil {
-			return "", err
-		}
-		l := sc.Text()
-		l = strings.TrimSpace(l)
-		if strings.HasPrefix(l, "music_directory") {
-			q := strings.TrimSpace(strings.TrimPrefix(l, "music_directory"))
-			if strings.HasPrefix(q, "\"") && strings.HasSuffix(q, "\"") {
-				return strings.Trim(q, "\""), nil
-			}
-		}
-	}
-	return "", nil
-}
 
 //go:generate go run internal/cmd/fix-assets/main.go
 func main() {
@@ -90,10 +66,22 @@ func v2() {
 	}
 
 	// get music dir from local mpd config
+	mpdConf, _ := mpd.ParseConfig("/etc/mpd.conf")
 	if config.MPD.MusicDirectory == "" {
-		dir, err := getMusicDirectory("/etc/mpd.conf")
-		if err == nil {
-			config.MPD.MusicDirectory = dir
+		if mpdConf != nil {
+			config.MPD.MusicDirectory = mpdConf.MusicDirectory
+		}
+	}
+	proxy := map[string]string{}
+	if mpdConf != nil {
+		host := "localhost"
+		if config.MPD.Network == "tcp" {
+			host = strings.Split(config.MPD.Addr, ":")[0]
+		}
+		for _, dev := range mpdConf.AudioOutputs {
+			if len(dev.Port) != 0 {
+				proxy[dev.Name] = "http://" + host + ":" + dev.Port
+			}
 		}
 	}
 	m := http.NewServeMux()
@@ -133,6 +121,7 @@ func v2() {
 	}.NewAssetsHandler()
 	api, err := APIConfig{
 		CoverSearchers: coverSearchers,
+		AudioProxy:     proxy,
 	}.NewAPIHandler(ctx, cl, w)
 	if err != nil {
 		log.Fatalf("failed to initialize api handler: %v", err)

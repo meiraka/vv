@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"path"
 	"runtime"
 	"strconv"
 	"sync"
@@ -20,6 +23,7 @@ import (
 type APIConfig struct {
 	BackgroundTimeout time.Duration
 	CoverSearchers    []CoverSearcher
+	AudioProxy        map[string]string // audio device - server addr pair
 }
 
 type CoverSearcher interface {
@@ -111,6 +115,7 @@ func (h *api) handle() http.HandlerFunc {
 	musicLibrarySongs := h.jsonCache.Handler("/api/music/library/songs")
 	musicOutputs := h.outputHandler()
 	musicImages := h.imagesHandler()
+	musicStream := h.outputStreamHandler()
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/version":
@@ -134,6 +139,12 @@ func (h *api) handle() http.HandlerFunc {
 		case "/api/music/images":
 			musicImages(w, r)
 		default:
+			for k := range h.config.AudioProxy {
+				if "/api/music/outputs/"+k == r.URL.Path {
+					musicStream(w, r)
+					return
+				}
+			}
 			http.NotFound(w, r)
 		}
 	}
@@ -624,6 +635,7 @@ type httpOutput struct {
 	Plugin    string `json:"plugin,omitempty"`
 	Enabled   *bool  `json:"enabled"`
 	Attribute string `json:"attribute,omitempty"` // TODO fix type
+	Stream    string `json:"stream,omitempty"`
 }
 
 func (h *api) updateOutputs(ctx context.Context) error {
@@ -633,11 +645,17 @@ func (h *api) updateOutputs(ctx context.Context) error {
 	}
 	data := make(map[string]*httpOutput, len(l))
 	for _, v := range l {
+		name := v["outputname"]
+		var stream string
+		if _, ok := h.config.AudioProxy[name]; ok {
+			stream = fmt.Sprintf("/api/music/outputs/%s", name)
+		}
 		data[v["outputid"]] = &httpOutput{
-			Name:      v["outputname"],
+			Name:      name,
 			Plugin:    v["plugin"],
 			Enabled:   boolPtr(v["outputenabled"] == "1"),
 			Attribute: v["attribute"],
+			Stream:    stream,
 		}
 	}
 	return h.jsonCache.SetIfModified("/api/music/outputs", data)
@@ -675,6 +693,30 @@ func (h *api) outputHandler() http.HandlerFunc {
 		r.Method = http.MethodGet
 		fallback.ServeHTTP(w, r)
 
+	}
+}
+
+func (h *api) outputStreamHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dev := path.Base(r.URL.Path)
+		addr, ok := h.config.AudioProxy[dev]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		resp, err := http.Get(addr)
+		if err != nil {
+			log.Println(addr, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+		for k, v := range resp.Header {
+			for i := range v {
+				w.Header().Add(k, v[i])
+			}
+		}
+		io.Copy(w, resp.Body)
 	}
 }
 

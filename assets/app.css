@@ -1349,6 +1349,7 @@ time.system-setting-value {
   line-height: 30px;
   vertical-align: middle;
   text-align-last: center;
+  text-overflow: ellipsis;
   border: none;
   border-radius: 30px;
   font-size: 16px;
