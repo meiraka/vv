@@ -343,7 +343,7 @@ html {
       <article id="system-playlist" class="scrollable system-article">
         <h2 class="system-article-sub-header">{{ or .Playback "Playback" }}</h2>
         <div class="system-article-sub">
-          <ul class="system-settings">
+          <ul class="system-settings" id="playlist-playback">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-playlist-follows-playback-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
               <input type="checkbox" id="appearance-playlist-follows-playback" class="slideswitch" aria-labelledby="appearance-playlist-follows-playback-label">
@@ -357,7 +357,17 @@ html {
                 <label class="radio-check" for="playlist-playback-tracks_all">{{ or .PlayAllTracks "All tracks" }}</label>
                 <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_list" value="list"/>
                 <label class="radio-check" for="playlist-playback-tracks_list">{{ or .PlaySelectedList "Selected list" }}</label>
+                <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_custom" value="custom"/>
+                <label class="radio-check" for="playlist-playback-tracks_custom">{{ or .PlayCustomList "Custom" }}</label>
               </div>
+             </li>
+            <template id="playlist-playback-tracks-custom-template">
+              <li class="list-item system-setting playlist-playback-tracks-custom">
+                  <div class="system-setting-desc" data-prefix="{{ or .playbackTreeLabelPrefix "" }}" data-suffix="{{ or .playbackTreeLabelSuffix " Tree" }}"></div>
+                  <select class="tool-select value big" data-all-tracks="{{ or .allTracks "All tracks" }}"></select>
+              </li>
+            </template>
+
           </ul>
         </div>
       </article>

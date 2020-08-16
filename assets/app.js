@@ -225,6 +225,7 @@ vv.storage = {
         },
         playlist: {
             playback_tracks: "all",
+            playback_tracks_custom: {},
         },
         appearance: {
             theme: "prefer-coverart",
@@ -400,6 +401,20 @@ vv.storage = {
             vv.storage.preferences.feature.show_scrollbars_when_scrolling = true;
         } else {
             document.body.classList.add("scrollbar-styling");
+        }
+        for (const key in vv.storage.preferences.playlist.playback_tracks_custom) {
+            if (!(key in TREE)) {
+                delete vv.storage.preferences.playlist.playback_tracks_custom[key];
+            }
+        }
+        for (const key in TREE) {
+            if (!(key in vv.storage.preferences.playlist.playback_tracks_custom)) {
+                vv.storage.preferences.playlist.playback_tracks_custom[key] = 0;
+            } else {
+                if (vv.storage.preferences.playlist.playback_tracks_custom[key] >= TREE[key].tree.length) {
+                    vv.storage.preferences.playlist.playback_tracks_custom[key] = 0;
+                }
+            }
         }
     }
 };
@@ -833,7 +848,15 @@ vv.control = {
     },
     play(pos) {
         const filters = vv.library.filters(pos);
-        const must = (vv.storage.preferences.playlist.playback_tracks === "all") ? 0 : filters.length - 1;
+        let must = 0;
+        if (vv.storage.preferences.playlist.playback_tracks == "list") {
+            must = filters.length -1;
+        } else if (vv.storage.preferences.playlist.playback_tracks) {
+            const root = vv.library.rootname();
+            if (root !== "root") {
+                must = vv.storage.preferences.playlist.playback_tracks_custom[root];
+            }
+        }
         vv.request.post("/api/music/playlist", {
             sort: vv.library.sortkeys(),
             filters: filters,
@@ -1922,6 +1945,13 @@ vv.view.system = {
         } else {
             document.getElementById("config-appearance-color-threshold").classList.add("hide");
         }
+        for (const e of document.querySelectorAll(`.playlist-playback-tracks-custom`)) {
+            if (vv.storage.preferences.playlist.playback_tracks === "custom") {
+                e.classList.remove("hide");
+            } else {
+                e.classList.add("hide");
+            }
+        }
     },
     onOutputs() {
         const ul = document.getElementById("devices");
@@ -2011,6 +2041,7 @@ vv.view.system = {
         vv.view.system._initconfig("appearance-volume-max");
         vv.view.system._initconfig("playlist-playback-tracks_all");
         vv.view.system._initconfig("playlist-playback-tracks_list");
+        vv.view.system._initconfig("playlist-playback-tracks_custom");
         document.getElementById("system-reload").addEventListener("click", () => {
             location.reload();
         });
@@ -2072,6 +2103,49 @@ vv.view.system = {
                 () => { return window.innerWidth <= 760; });
         }
         document.getElementById("system-box-nav-back").addEventListener("click", showParent);
+
+        const ul = document.getElementById("playlist-playback");
+        const newul = document.createDocumentFragment();
+        for (let i = 0, imax = TREE_ORDER.length; i < imax; i++) {
+            const label = TREE_ORDER[i];
+            if (vv.storage.preferences.playlist.playback_tracks_custom.hasOwnProperty(label)) {
+                const c = document.querySelector("#playlist-playback-tracks-custom-template").content;
+                const e = c.querySelector("li");
+                const l = e.querySelector(".system-setting-desc");
+                l.textContent = l.dataset.prefix + label + l.dataset.suffix;
+                if (vv.storage.preferences.playlist.playback_tracks !== "custom") {
+                    e.classList.add("hide");
+                }
+                const ts = e.querySelector(".tool-select");
+                ts.setAttribute("aria-label", label);
+                ts.dataset.label = label;
+                while (ts.lastChild) {
+                    ts.removeChild(ts.lastChild);
+                }
+                const all = document.createElement("option");
+                all.textContent = ts.dataset.allTracks;
+                all.value = "0";
+                ts.appendChild(all);
+                for (let j = 0, jmax = TREE[label].tree.length - 1; j < jmax; j++) {
+                    const filter = document.createElement("option");
+                    filter.textContent = TREE[label].tree[j][0];
+                    filter.value = j + 1;
+                    ts.appendChild(filter);
+                }
+                const d = document.importNode(c, true);
+                const tso = d.querySelector(".tool-select");
+                tso.value = (vv.storage.preferences.playlist.playback_tracks_custom[label]).toString(10);
+                tso.addEventListener("change", e => {
+                    const v = parseInt(e.currentTarget.value);
+                    if (!isNaN(v)) {
+                        vv.storage.preferences.playlist.playback_tracks_custom[e.currentTarget.dataset.label] = v;
+                        vv.storage.save.preferences();
+                    }
+                });
+                newul.appendChild(d);
+            }
+        }
+        ul.appendChild(newul);
     },
     _zfill2(i) {
         if (i < 100) {

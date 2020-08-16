@@ -1351,16 +1351,24 @@ time.system-setting-value {
   text-align-last: center;
   border: none;
   border-radius: 30px;
-  font-size: 18px;
+  font-size: 16px;
   transition: background-color 0.2s 0s ease-out, color 0.2s 0s ease-out;
   background-color: var(--button-outline);
   color: var(--button-inner);
+}
+
+.tool-select.big {
+  width: 120px;
 }
 
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
   .tool-select,
   .tool-input-number {
     width: 80px;
+    font-size: 14px;
+  }
+  .tool-select.big {
+    width: 100px;
   }
 }
 
