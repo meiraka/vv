@@ -52,7 +52,6 @@ func ParseConfig(dir []string) (*Config, time.Time, error) {
 			}
 			date = s.ModTime()
 			defer f.Close()
-			c := Config{}
 			if err := yaml.NewDecoder(f).Decode(&c); err != nil {
 				return nil, date, err
 			}
