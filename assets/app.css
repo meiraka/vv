@@ -161,7 +161,7 @@ footer {
   }
 }
 
-@media (orientation: landscape) {
+@media (min-height: 450px) and (orientation: landscape) {
   .full {
     width: 50vw;
   }
@@ -177,6 +177,20 @@ footer {
   footer {
     flex: 0 0 90px; /* flex-basis: auto does not effect safari */
     height: 90px;
+  }
+}
+
+@media (max-height: 450px) and (orientation: landscape) {
+  .main {
+    order: 0;
+    flex: 0 0 auto;
+    width: 100vh;
+    height: 100vh;
+    left: 0;
+  }
+  .lists {
+    order: 1;
+    flex: 1 0 auto;
   }
 }
 
@@ -786,6 +800,10 @@ button:hover {
   flex: 0 0 auto;
 }
 
+.main-cover-overlay {
+  display: none;
+}
+
 @media (orientation: portrait) {
   .main-cover {
     width: 90vw;
@@ -804,6 +822,56 @@ button:hover {
     max-height: calc(100vh - 250px);
     flex: 0 0 auto;
   }
+}
+
+@media (max-height: 450px) and (orientation: landscape) {
+  .main-cover {
+    width: 100vh;
+    height: 100vh;
+    max-width: 100vh;
+    max-height: 100vh;
+  }
+  .main-box {
+    display: none;
+  }
+
+  .main-cover-overlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--overlay);
+    transition: opacity 0.2s 0s ease-out;
+    opacity: 0;
+    animation: offop 2s linear 0s;
+    border-radius: 1%;
+  }
+  .main-cover-overlay.hover {
+      opacity: 1;
+  }
+  .main-cover-overlay.changed,
+  .main-cover-overlay.active {
+    animation: none;
+  }
+}
+
+@keyframes offop {
+  0% {
+    opacity: 1.0;
+  }
+  90% {
+    opacity: 1.0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.main-cover-overlay {
+  position: absolute;
+  left: 5%;
+  top: 5%;
+  width: 90%;
+  height: 90%;
 }
 
 .main-cover-img {
@@ -1473,6 +1541,13 @@ footer {
   justify-content: space-between;
 }
 
+@media (max-height: 450px) and (orientation: landscape) {
+  footer,
+  header {
+    display: none;
+  }
+}
+
 .control-playback {
   display: flex;
   align-items: center;
@@ -1506,13 +1581,13 @@ footer {
   stroke-width: 12;
 }
 
-.control-playback-toggleplay .play,
-.control-playback-toggleplay .pause {
+.control-playback-toggleplay-icon .play,
+.control-playback-toggleplay-icon .pause {
   opacity: 0;
 }
 
-.control-playback-toggleplay.play .play,
-.control-playback-toggleplay.pause .pause {
+.play .control-playback-toggleplay-icon .play,
+.pause .control-playback-toggleplay-icon .pause {
   opacity: 1;
 }
 

@@ -1374,6 +1374,22 @@ vv.view.main = {
         } else {
             c.classList.add("disabled");
         }
+        const o = document.getElementById("main-cover-overlay");
+        if (vv.storage.control.state === "play") {
+            o.classList.add("pause");
+            if (o.classList.contains("play")) {
+                o.classList.remove("play");
+                o.classList.add("changed");
+                requestAnimationFrame(() => { o.classList.remove("changed"); }, 10);
+            }
+        } else {
+            o.classList.add("play");
+            if (o.classList.contains("pause")) {
+                o.classList.remove("pause");
+                o.classList.add("changed");
+                requestAnimationFrame(() => { o.classList.remove("changed"); }, 10);
+            }
+        }
     },
     show() {
         document.body.classList.add("view-main");
@@ -1464,7 +1480,12 @@ vv.view.main = {
         document.getElementById("control-volume").addEventListener("change", e => {
             vv.control.volume(parseInt(e.currentTarget.value, 10));
         });
-        vv.ui.click(document.getElementById("main-cover"), () => {
+        vv.ui.click(document.getElementById("main-cover-overlay"), () => {
+            if (window.matchMedia("(max-height: 450px) and (orientation: landscape)").matches) {
+                vv.control.play_pause();
+            }
+        });
+        vv.ui.click(document.getElementById("main-box-title"), () => {
             if (vv.storage.current !== null) {
                 vv.view.modal.song(vv.storage.current);
             }
