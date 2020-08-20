@@ -37,10 +37,11 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 		c.BackgroundTimeout = 30 * time.Second
 	}
 	h := &api{
-		config:    &c,
-		client:    cl,
-		watcher:   w,
-		jsonCache: newJSONCache(),
+		config:       &c,
+		client:       cl,
+		watcher:      w,
+		jsonCache:    newJSONCache(),
+		playlistInfo: &httpPlaylistInfo{},
 	}
 	if err := h.updateVersion(); err != nil {
 		return nil, err
@@ -94,14 +95,12 @@ type api struct {
 	jsonCache *jsonCache
 	upgrader  websocket.Upgrader
 
-	mu          sync.Mutex
-	playlist    []map[string][]string
-	library     []map[string][]string
-	librarySort []map[string][]string
-	replayGain  map[string]string
-	sort        []string
-	filters     [][]string
-	current     int
+	mu           sync.Mutex
+	playlist     []map[string][]string
+	library      []map[string][]string
+	librarySort  []map[string][]string
+	replayGain   map[string]string
+	playlistInfo *httpPlaylistInfo
 }
 
 func (h *api) handle() http.HandlerFunc {
@@ -190,11 +189,7 @@ type httpPlaylistInfo struct {
 }
 
 func (h *api) updatePlaylist() error {
-	return h.jsonCache.SetIfModified("/api/music/playlist", &httpPlaylistInfo{
-		Current: h.current,
-		Sort:    h.sort,
-		Filters: h.filters,
-	})
+	return h.jsonCache.SetIfModified("/api/music/playlist", h.playlistInfo)
 }
 
 func (h *api) playlistHandler() http.HandlerFunc {
@@ -235,8 +230,9 @@ func (h *api) playlistHandler() http.HandlerFunc {
 			cl.Add(librarySort[i]["file"][0])
 		}
 		cl.Play(newpos)
-		h.sort = req.Sort
-		h.filters = filters
+		h.playlistInfo.Sort = req.Sort
+		h.playlistInfo.Filters = filters
+		h.playlistInfo.Must = req.Must
 		h.librarySort = librarySort
 		h.mu.Unlock()
 		if !update {
@@ -245,8 +241,9 @@ func (h *api) playlistHandler() http.HandlerFunc {
 			if err := h.client.Play(ctx, newpos); err != nil {
 				writeHTTPError(w, http.StatusInternalServerError, err)
 				h.mu.Lock()
-				h.sort = nil
-				h.filters = nil
+				h.playlistInfo.Sort = nil
+				h.playlistInfo.Filters = nil
+				h.playlistInfo.Must = 0
 				h.librarySort = nil
 				h.mu.Unlock()
 				return
@@ -268,8 +265,9 @@ func (h *api) playlistHandler() http.HandlerFunc {
 			defer func() { sem <- struct{}{} }()
 			if err := h.client.ExecCommandList(ctx, cl); err != nil {
 				h.mu.Lock()
-				h.sort = nil
-				h.filters = nil
+				h.playlistInfo.Sort = nil
+				h.playlistInfo.Filters = nil
+				h.playlistInfo.Must = 0
 				h.librarySort = nil
 				h.mu.Unlock()
 				return
@@ -291,9 +289,10 @@ func (h *api) updatePlaylistSongs(ctx context.Context) error {
 
 	h.mu.Lock()
 	h.playlist = v
-	if h.sort != nil && !songs.SortEqual(h.playlist, h.librarySort) {
-		h.sort = nil
-		h.filters = nil
+	if h.playlistInfo.Sort != nil && !songs.SortEqual(h.playlist, h.librarySort) {
+		h.playlistInfo.Sort = nil
+		h.playlistInfo.Filters = nil
+		h.playlistInfo.Must = 0
 		h.librarySort = nil
 		h.updatePlaylist()
 	}
@@ -353,8 +352,9 @@ func (h *api) updateLibrarySongs(ctx context.Context) error {
 	}
 	h.mu.Lock()
 	h.library = v
-	h.sort = nil
-	h.filters = nil
+	h.playlistInfo.Sort = nil
+	h.playlistInfo.Filters = nil
+	h.playlistInfo.Must = 0
 	h.librarySort = nil
 	h.updatePlaylist()
 
@@ -432,7 +432,7 @@ func (h *api) updateStatus(ctx context.Context) error {
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.current = pos
+	h.playlistInfo.Current = pos
 	if err := h.updatePlaylist(); err != nil {
 		return err
 	}

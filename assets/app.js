@@ -178,21 +178,23 @@ vv.songs = {
             return true;
         });
     },
-    weakFilter(songs, filters, max) {
-        if (songs.length <= max) {
+    weakFilter(songs, filters, must, max) {
+        if (songs.length <= max && must === 0) {
             return songs;
         }
+        let i = 0;
         for (const filter of filters) {
+            if (songs.length <= max && must <= i) {
+                return songs;
+            }
             const newsongs = [];
             for (const song of songs) {
                 if (vv.song.getOne(song, filter[0]) === filter[1]) {
                     newsongs.push(song);
                 }
             }
-            if (newsongs.length <= max) {
-                return newsongs;
-            }
             songs = newsongs;
+            i++;
         }
         if (songs.length > max) {
             const ret = [];
@@ -647,9 +649,9 @@ vv.library = {
                 return;
             }
         }
-        if (songs.length > vv.consts.playlistLength) {
-            songs = vv.songs.weakFilter(
-                songs, vv.storage.sorted.filters || [], vv.consts.playlistLength);
+        if (songs.length > vv.consts.playlistLength || vv.storage.sorted.must) {
+            const must = vv.storage.sorted.must ? vv.storage.sorted.must : 0;
+            songs = vv.songs.weakFilter(songs, vv.storage.sorted.filters || [], must, vv.consts.playlistLength);
         }
         if (!songs[pos]) {
             return;
