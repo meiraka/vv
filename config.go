@@ -90,7 +90,7 @@ func (c *Config) setDefault() {
 		c.MPD.Network = "tcp"
 	}
 	if c.MPD.Addr == "" {
-		c.MPD.Addr = ":6600"
+		c.MPD.Addr = "localhost:6600"
 	}
 	if c.Server.Addr == "" {
 		c.Server.Addr = ":8080"

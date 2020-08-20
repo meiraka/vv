@@ -76,7 +76,10 @@ func v2() {
 	if mpdConf != nil {
 		host := "localhost"
 		if config.MPD.Network == "tcp" {
-			host = strings.Split(config.MPD.Addr, ":")[0]
+			h := strings.Split(config.MPD.Addr, ":")[0]
+			if len(h) != 0 {
+				host = h
+			}
 		}
 		for _, dev := range mpdConf.AudioOutputs {
 			if len(dev.Port) != 0 {
