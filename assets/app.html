@@ -122,8 +122,8 @@ html {
       <img id="main-cover-img2" class="main-cover-img"></img>
       <div id="main-cover-overlay" class="main-cover-overlay ">
         <svg class="control-playback-toggleplay-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
-          <path class="fill play" d="M 70,60 140,100 70,140 z"/>
-          <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
+          <path class="fill control-playback-play" d="M 70,60 140,100 70,140 z"/>
+          <path class="fill control-playback-pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
           <path class="stroke" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
         </svg>
       </div>
@@ -567,8 +567,8 @@ html {
     </button>
     <button class="control-button control-playback-toggleplay play" id="control-toggleplay" type="button" value="play/pause" title="{{ or .titlePlayOrPause "Play / Pause" }}" data-aria-label-play="{{ or .ariaLabelPlaySong "Play song" }}" data-aria-label-pause="{{ or .ariaLabelPauseSong "Pause song" }}">
       <svg class="control-playback-toggleplay-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
-        <path class="fill play" d="M 70,60 140,100 70,140 z"/>
-        <path class="fill pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
+        <path class="fill control-playback-play" d="M 70,60 140,100 70,140 z"/>
+        <path class="fill control-playback-pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
         <path class="stroke" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
       </svg>
     </button>

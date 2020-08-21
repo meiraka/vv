@@ -1581,13 +1581,13 @@ footer {
   stroke-width: 12;
 }
 
-.control-playback-toggleplay-icon .play,
-.control-playback-toggleplay-icon .pause {
+.control-playback-play,
+.control-playback-pause {
   opacity: 0;
 }
 
-.play .control-playback-toggleplay-icon .play,
-.pause .control-playback-toggleplay-icon .pause {
+.play .control-playback-play,
+.pause .control-playback-pause {
   opacity: 1;
 }
 
