@@ -16,9 +16,7 @@ import (
 	"github.com/meiraka/vv/internal/songs/cover"
 )
 
-const staticVersion = "v0.6.2+"
-
-var version = "v0.7.0+"
+var version = "v0.8.0+"
 
 //go:generate go run internal/cmd/fix-assets/main.go
 func main() {
