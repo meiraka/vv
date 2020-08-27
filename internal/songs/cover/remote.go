@@ -57,6 +57,7 @@ func NewRemoteSearcher(httpPrefix string, c *mpd.Client, cacheDir string) (*Remo
 	return s, nil
 }
 
+// Rescan rescans all songs images.
 func (s *RemoteSearcher) Rescan(songs []map[string][]string) {
 	t := make(map[string]string, len(songs))
 	for i := range songs {
@@ -87,10 +88,10 @@ func (s *RemoteSearcher) Close() error {
 }
 
 // ServeHTTP serves local cover art with httpPrefix
-func (l *RemoteSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	l.mu.RLock()
-	path, ok := l.url2img[r.URL.Path]
-	l.mu.RUnlock()
+func (s *RemoteSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	path, ok := s.url2img[r.URL.Path]
+	s.mu.RUnlock()
 	if !ok {
 		http.NotFound(w, r)
 		return

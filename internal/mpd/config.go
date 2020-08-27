@@ -14,6 +14,7 @@ type Config struct {
 	AudioOutputs   []*ConfigAudioOutput
 }
 
+// ConfigAudioOutput represents MPD audio_output struct.
 type ConfigAudioOutput struct {
 	Type string
 	Name string

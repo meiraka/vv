@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"image"
 
-	_ "image/gif"
+	_ "image/gif" // support gif cover load
 	"image/jpeg"
-	_ "image/png"
+	_ "image/png" // support png cover load
 	"io"
 	"math"
 	"mime"
@@ -15,7 +15,7 @@ import (
 	"path"
 	"strconv"
 
-	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/bmp" // support bmp cover load
 
 	"golang.org/x/image/draw"
 )

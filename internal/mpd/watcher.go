@@ -95,6 +95,7 @@ type Watcher struct {
 	cancel func()
 }
 
+// Event returns event channel which sends idle command outputs.
 func (w *Watcher) Event() <-chan string {
 	return w.c
 }

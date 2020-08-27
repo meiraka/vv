@@ -48,7 +48,7 @@ func (l *LocalSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	serveImage(path, w, r)
 }
 
-// Rescan rescans no cover songs images.
+// Rescan rescans all songs images.
 func (l *LocalSearcher) Rescan(songs []map[string][]string) {
 	t := make(map[string]struct{}, len(songs))
 	for i := range songs {

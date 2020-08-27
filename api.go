@@ -26,6 +26,7 @@ type APIConfig struct {
 	AudioProxy        map[string]string // audio device - server addr pair
 }
 
+// CoverSearcher provides song cover url and rescan api.
 type CoverSearcher interface {
 	Rescan([]map[string][]string)
 	GetURLs(map[string][]string) []string
