@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 )
 
 // LocalSearcher searches song conver art
@@ -107,13 +106,4 @@ func (l *LocalSearcher) GetURLs(m map[string][]string) []string {
 		return v
 	}
 	return l.updateCache(songDirPath)
-}
-
-/*modifiedSince compares If-Modified-Since header given time.Time.*/
-func modifiedSince(r *http.Request, l time.Time) bool {
-	t, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since"))
-	if err != nil {
-		return true
-	}
-	return !l.Before(t.Add(time.Second))
 }

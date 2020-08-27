@@ -3,6 +3,7 @@ package cover
 import (
 	"bytes"
 	"image"
+	"time"
 
 	_ "image/gif" // support gif cover load
 	"image/jpeg"
@@ -96,7 +97,17 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
+// ext guesses image extention by binary.
 func ext(b []byte) (string, error) {
 	_, format, err := image.DecodeConfig(bytes.NewReader(b))
 	return format, err
+}
+
+/*modifiedSince compares If-Modified-Since header given time.Time.*/
+func modifiedSince(r *http.Request, l time.Time) bool {
+	t, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since"))
+	if err != nil {
+		return true
+	}
+	return !l.Before(t.Add(time.Second))
 }
