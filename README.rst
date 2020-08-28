@@ -26,11 +26,11 @@ Options
 .. code-block:: shell
 
   -d, --debug                        use local assets if exists
-      --mpd.addr string              mpd server address to connect (default "localhost:6600")
+      --mpd.addr string              mpd server address to connect
       --mpd.music_directory string   set music_directory in mpd.conf value to search album cover image
-      --mpd.network string           mpd server network to connect (default "tcp")
-      --server.addr string           this app serving address (default ":8080")
-      --server.keepalive             use HTTP keep-alive (default true)
+      --mpd.network string           mpd server network to connect
+      --server.addr string           this app serving address
+      --server.cover.remote          enable coverart via mpd api
 
 Configuration
 =============
