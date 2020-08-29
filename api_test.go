@@ -463,6 +463,20 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			},
 		},
+		"GET /api/music/outputs dop": {
+			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			tests: []*testRequest{
+				{
+					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
+						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 1\noutputname: My ALSA Device\noutputenabled: 1\nattribute: allowed_formats=\nattribute: dop=0\nOK\n"})
+					},
+					preWebSocket: []string{"/api/music/outputs"},
+					method:       http.MethodGet, path: "/api/music/outputs",
+					want: map[int]string{http.StatusOK: `{"1":{"name":"My ALSA Device","enabled":true,"attributes":{"dop":false,"allowed_formats":[]}}}`},
+				},
+			},
+		},
 		"GET /api/music/outputs with stream url": {
 			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true, AudioProxy: map[string]string{"My HTTP Stream": "http://localhost:8080/"}},
 			tests: []*testRequest{
@@ -525,6 +539,69 @@ func TestAPIJSONPHandler(t *testing.T) {
 				{
 					method: http.MethodGet, path: "/api/music/outputs",
 					want: map[int]string{http.StatusOK: `{"0":{"name":"My ALSA Device","enabled":false}}`},
+				},
+			}},
+		`POST /api/music/outputs {"0":{"attributes":{"dop":true}}}`: {
+			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			tests: []*testRequest{
+				{
+					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"attributes":{"dop":true}}}`),
+					want: map[int]string{
+						http.StatusAccepted: "",
+						http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attributes":{"dop":true}}}`,
+					},
+					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
+						main.Expect(ctx, &mpdtest.WR{Read: "outputset \"0\" \"dop\" \"1\"\n", Write: "OK\n"})
+						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 0\nplugin: alsa\nattribute: dop=1\nOK\n"})
+					},
+					postWebSocket: []string{"/api/music/outputs"},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/outputs",
+					want: map[int]string{http.StatusOK: `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attributes":{"dop":true}}}`},
+				},
+			}},
+		`POST /api/music/outputs {"0":{"attributes":{"allowed_formats":[]}}}`: {
+			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			tests: []*testRequest{
+				{
+					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"attributes":{"allowed_formats":[]}}}`),
+					want: map[int]string{
+						http.StatusAccepted: "",
+						http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attributes":{"allowed_formats":[]}}}`,
+					},
+					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
+						main.Expect(ctx, &mpdtest.WR{Read: "outputset \"0\" \"allowed_formats\" \"\"\n", Write: "OK\n"})
+						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 0\nplugin: alsa\nattribute: allowed_formats=\nOK\n"})
+					},
+					postWebSocket: []string{"/api/music/outputs"},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/outputs",
+					want: map[int]string{http.StatusOK: `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attributes":{"allowed_formats":[]}}}`},
+				},
+			}},
+		`POST /api/music/outputs {"0":{"attributes":{"allowed_formats":["96000:16:*","192000:24:*","dsd32:*=dop"]}}}`: {
+			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			tests: []*testRequest{
+				{
+					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"attributes":{"allowed_formats":["96000:16:*","192000:24:*","dsd32:*=dop"]}}}`),
+					want: map[int]string{
+						http.StatusAccepted: "",
+						http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attributes":{"allowed_formats":["96000:16:*","192000:24:*","dsd32:*=dop"]}}}`,
+					},
+					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
+						main.Expect(ctx, &mpdtest.WR{Read: "outputset \"0\" \"allowed_formats\" \"96000:16:* 192000:24:* dsd32:*=dop\"\n", Write: "OK\n"})
+						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 0\nplugin: alsa\nattribute: allowed_formats=96000:16:* 192000:24:* dsd32:*=dop\nOK\n"})
+					},
+					postWebSocket: []string{"/api/music/outputs"},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/outputs",
+					want: map[int]string{http.StatusOK: `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attributes":{"allowed_formats":["96000:16:*","192000:24:*","dsd32:*=dop"]}}}`},
 				},
 			}},
 		`POST /api/music/playlist {invalid json}`: {

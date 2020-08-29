@@ -295,9 +295,54 @@ func (c *Client) EnableOutput(ctx context.Context, id string) error {
 	return c.ok(ctx, "enableoutput", id)
 }
 
+// Output represents mpd output struct.
+type Output struct {
+	ID         string
+	Name       string
+	Enabled    bool
+	Plugin     string
+	Attributes map[string]string
+}
+
 // Outputs shows information about all outputs.
-func (c *Client) Outputs(ctx context.Context) ([]map[string]string, error) {
-	return c.listMap(ctx, "outputid: ", "outputs")
+func (c *Client) Outputs(ctx context.Context) (outputs []*Output, err error) {
+	var output *Output
+	err = c.listFunc(ctx, func(line string) error {
+		if strings.HasPrefix(line, "outputid:") {
+			output = &Output{}
+			outputs = append(outputs, output)
+		}
+		i := strings.Index(line, ": ")
+		if i < 0 {
+			return newCommandError(line)
+		}
+		key, value := line[0:i], line[i+2:]
+		if key == "outputid" {
+			output.ID = value
+		} else if key == "outputname" {
+			output.Name = value
+		} else if key == "outputenabled" {
+			output.Enabled = (value == "1")
+		} else if key == "plugin" {
+			output.Plugin = value
+		} else if key == "attribute" {
+			i := strings.Index(value, "=")
+			if i < 0 {
+				return nil
+			}
+			if output.Attributes == nil {
+				output.Attributes = make(map[string]string)
+			}
+			output.Attributes[value[0:i]] = value[i+1:]
+		}
+		return nil
+	}, "outputs")
+	return
+}
+
+// OutputSet sets a runtime attribute.
+func (c *Client) OutputSet(ctx context.Context, id, name, value string) error {
+	return c.ok(ctx, "outputset", quote(id), quote(name), quote(value))
 }
 
 func (c *Client) healthCheck(ctx context.Context) {
@@ -450,6 +495,26 @@ func (c *Client) listMap(ctx context.Context, newKey string, cmd ...interface{})
 		}
 	})
 	return
+}
+
+func (c *Client) listFunc(ctx context.Context, f func(string) error, cmd ...interface{}) error {
+	return c.pool.Exec(ctx, func(conn *conn) error {
+		if _, err := conn.Writeln(cmd...); err != nil {
+			return err
+		}
+		for {
+			line, err := conn.Readln()
+			if err != nil {
+				return err
+			}
+			if line == "OK" {
+				return nil
+			}
+			if err := f(line); err != nil {
+				return err
+			}
+		}
+	})
 }
 
 // quote escaping strings values for mpd.

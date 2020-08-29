@@ -2004,15 +2004,30 @@ vv.view.system = {
                 } else {
                     e.querySelector(".plugin").classList.add("disabled");
                 }
-                const ch = e.querySelector(".slideswitch");
-                ch.setAttribute("aria-label", o.name);
-                ch.dataset.deviceid = id;
-                ch.checked = o.enabled;
+                const sw = e.querySelector(".device-switch");
+                sw.setAttribute("aria-label", o.name);
+                sw.dataset.deviceid = id;
+                sw.checked = o.enabled;
+                const dop = e.querySelector(".device-dop");
+                dop.classList.add("hide");
+                const dopSW = e.querySelector(".device-dop-switch");
+                dopSW.dataset.deviceid = id;
+                if (o.attributes) {
+                    if (o.attributes.hasOwnProperty("dop") && o.enabled) {
+                        dop.classList.remove("hide");
+                        dopSW.checked = o.attributes.dop;
+                    }
+                }
                 const d = document.importNode(c, true);
-                d.querySelector(".slideswitch").addEventListener("change", e => {
+                d.querySelector(".device-switch").addEventListener("change", e => {
                     vv.control.output(
                         parseInt(e.currentTarget.dataset.deviceid, 10),
                         e.currentTarget.checked);
+                });
+                d.querySelector(".device-dop-switch").addEventListener("change", e => {
+                    vv.request.post("/api/music/outputs", {
+                        [parseInt(e.currentTarget.dataset.deviceid, 10)]: { "attributes": { "dop": e.currentTarget.checked } }
+                    });
                 });
                 newul.appendChild(d);
                 if (o.stream && o.enabled) {

@@ -57,6 +57,7 @@ var translateData = map[language.Tag]map[string]string{
 		"ShowVolumeNob":               "音量バーを表示",
 		"MaxVolume":                   "音量の最大値",
 		"Devices":                     "デバイス",
+		"DeviceDoPHelp":               "DSDストリームをPCMフレームに乗せて送信し、受信側のDACでDSDストリームに戻します。DoPに対応していないDACでは使用しないでください",
 		"Tracks":                      "トラック数:",
 		"Artists":                     "アーティスト数:",
 		"Albums":                      "アルバム数:",

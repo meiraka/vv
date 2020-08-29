@@ -146,7 +146,7 @@ func TestClient(t *testing.T) {
 				"outputs\n": {
 					cmd:   func(ctx context.Context) (interface{}, error) { return c.Outputs(ctx) },
 					write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n",
-					want:  []map[string]string{{"outputid": "0", "outputname": "My ALSA Device", "plugin": "alsa", "outputenabled": "0", "attribute": "dop=0"}},
+					want:  []*Output{{ID: "0", Name: "My ALSA Device", Plugin: "alsa", Enabled: false, Attributes: map[string]string{"dop": "0"}}},
 				},
 			} {
 				t.Run(read, func(t *testing.T) {

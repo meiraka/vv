@@ -391,6 +391,10 @@ svg .stroke {
   border-bottom: dashed 1px var(--border-color);
 }
 
+.list-item-group {
+  flex: 1 1 auto;
+}
+
 .header-items {
   display: flex;
   align-items: center;
@@ -1133,7 +1137,7 @@ button:hover {
 .system-setting-desc-box {
   flex: 1 1 auto;
   display: flex;
-  flex-flow: row wrap;
+  flex-flow: column wrap;
   padding: 8px 8px 8px 0;
 }
 .system-setting-desc {
@@ -1144,7 +1148,22 @@ button:hover {
   flex: 1 1 auto;
   padding: 8px 8px 8px 0;
 }
-.system-setting-desc-box .system-setting-desc {
+.system-setting-desc,
+.system-setting-desc-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  padding: 8px 8px 8px 0;
+}
+.system-setting-desc {
+  font-size: 18px;
+}
+.system-setting-desc-sub {
+  font-size: 16px;
+}
+
+.system-setting-desc-boxed {
   padding: 0;
   flex: 1 1 100%;
 }
@@ -1302,18 +1321,20 @@ time.system-setting-value {
   padding: 0;
   display: block;
   height: 30px;
-  width: calc(100px);
+  width: 100px;
   border-width: 0;
   border-radius: 30px;
   transition: background-color 0.2s 0s ease-out, width 0.2s 0s ease-out, border 0.2s 0s ease-out;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   background-color: rgba(var(--button-outline-rgb), 0);
   border: solid 3px var(--button-outline);
+  flex: 0 0 100px;
 }
 
 @media (max-width: 500px), (max-width: 600px) and (orientation: landscape) {
   .slideswitch {
     width: 50px;
+    flex: 0 0 50px;
   }
 }
 

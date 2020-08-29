@@ -11,6 +11,7 @@ import (
 	"path"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -643,11 +644,15 @@ func (h *api) statusWebSocket(fallback http.Handler) http.HandlerFunc {
 }
 
 type httpOutput struct {
-	Name      string `json:"name"`
-	Plugin    string `json:"plugin,omitempty"`
-	Enabled   *bool  `json:"enabled"`
-	Attribute string `json:"attribute,omitempty"` // TODO fix type
-	Stream    string `json:"stream,omitempty"`
+	Name       string               `json:"name"`
+	Plugin     string               `json:"plugin,omitempty"`
+	Enabled    *bool                `json:"enabled"`
+	Attributes *httpOutputAttrbutes `json:"attributes,omitempty"`
+	Stream     string               `json:"stream,omitempty"`
+}
+type httpOutputAttrbutes struct {
+	DoP            *bool     `json:"dop,omitempty"`
+	AllowedFormats *[]string `json:"allowed_formats,omitempty"`
 }
 
 func (h *api) updateOutputs(ctx context.Context) error {
@@ -657,18 +662,30 @@ func (h *api) updateOutputs(ctx context.Context) error {
 	}
 	data := make(map[string]*httpOutput, len(l))
 	for _, v := range l {
-		name := v["outputname"]
 		var stream string
-		if _, ok := h.config.AudioProxy[name]; ok {
-			stream = fmt.Sprintf("/api/music/outputs/%s", name)
+		if _, ok := h.config.AudioProxy[v.Name]; ok {
+			stream = fmt.Sprintf("/api/music/outputs/%s", v.Name)
 		}
-		data[v["outputid"]] = &httpOutput{
-			Name:      name,
-			Plugin:    v["plugin"],
-			Enabled:   boolPtr(v["outputenabled"] == "1"),
-			Attribute: v["attribute"],
-			Stream:    stream,
+		output := &httpOutput{
+			Name:    v.Name,
+			Plugin:  v.Plugin,
+			Enabled: &v.Enabled,
+			Stream:  stream,
 		}
+		if v.Attributes != nil {
+			output.Attributes = &httpOutputAttrbutes{}
+			if dop, ok := v.Attributes["dop"]; ok {
+				output.Attributes.DoP = boolPtr(dop == "1")
+			}
+			if allowedFormats, ok := v.Attributes["allowed_formats"]; ok {
+				if len(allowedFormats) == 0 {
+					output.Attributes.AllowedFormats = stringSlicePtr([]string{})
+				} else {
+					output.Attributes.AllowedFormats = stringSlicePtr(strings.Split(allowedFormats, " "))
+				}
+			}
+		}
+		data[v.ID] = output
 	}
 	return h.jsonCache.SetIfModified("/api/music/outputs", data)
 }
@@ -687,10 +704,11 @@ func (h *api) outputHandler() http.HandlerFunc {
 		}
 		ctx := r.Context()
 		now := time.Now().UTC()
+		changed := false
 		for k, v := range req {
 			if v.Enabled != nil {
 				var err error
-				r = setUpdateTime(r, now)
+				changed = true
 				if *v.Enabled {
 					err = h.client.EnableOutput(ctx, k)
 				} else {
@@ -701,6 +719,25 @@ func (h *api) outputHandler() http.HandlerFunc {
 					return
 				}
 			}
+			if v.Attributes != nil {
+				if v.Attributes.DoP != nil {
+					changed = true
+					if err := h.client.OutputSet(ctx, k, "dop", btoa(*v.Attributes.DoP, "1", "0")); err != nil {
+						writeHTTPError(w, http.StatusInternalServerError, err)
+						return
+					}
+				}
+				if v.Attributes.AllowedFormats != nil {
+					changed = true
+					if err := h.client.OutputSet(ctx, k, "allowed_formats", strings.Join(*v.Attributes.AllowedFormats, " ")); err != nil {
+						writeHTTPError(w, http.StatusInternalServerError, err)
+						return
+					}
+				}
+			}
+		}
+		if changed {
+			r = setUpdateTime(r, now)
 		}
 		r.Method = http.MethodGet
 		fallback.ServeHTTP(w, r)
@@ -835,5 +872,12 @@ func writeHTTPError(w http.ResponseWriter, status int, err error) {
 	w.Write(b)
 }
 
-func boolPtr(b bool) *bool       { return &b }
-func stringPtr(s string) *string { return &s }
+func boolPtr(b bool) *bool                { return &b }
+func stringPtr(s string) *string          { return &s }
+func stringSlicePtr(s []string) *[]string { return &s }
+func btoa(b bool, t, f string) string {
+	if b {
+		return t
+	}
+	return f
+}

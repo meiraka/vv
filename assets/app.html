@@ -423,11 +423,22 @@ html {
           <ul class="system-settings" id="devices"></ul>
           <template id="device-template">
             <li class="system-setting list-item">
-              <div class="system-setting-desc-box">
-                <div class="system-setting-desc"></div>
-                <div class="system-setting-desc-help plugin"></div>
-              </div>
-              <input class="slideswitch" type="checkbox">
+              <ul class="system-settings list-item-group">
+                <li class="system-setting child-list-item">
+                  <div class="system-setting-desc-box">
+                    <div class="system-setting-desc system-setting-desc-boxed"></div>
+                    <div class="system-setting-desc-help plugin"></div>
+                  </div>
+                  <input class="slideswitch device-switch" type="checkbox">
+                </li>
+                <li class="system-setting child-list-item device-dop">
+                  <div class="system-setting-desc-box">
+                    <div class="system-setting-desc-sub system-setting-desc-boxed">{{ or .DeviceDoP "DSD over PCM" }}</div>
+                    <div class="system-setting-desc-help">{{ or .DeviceDoPHelp "This wraps DSD samples in fake PCM frames, then DoP-compatible DAC reassembles the original DSD data stream. Do not enable if this DAC does not support DoP." }}</div>
+                  </div>
+                  <input class="slideswitch device-dop-switch" type="checkbox">
+                </li>
+              </ul>
             </li>
           </template>
         </div>
@@ -437,7 +448,7 @@ html {
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc-box">
-                <div class="system-setting-desc" id="httpstream-select-label">{{ or .ClientOutputSource "Source" }}</div>
+                <div class="system-setting-desc system-setting-desc-boxed" id="httpstream-select-label">{{ or .ClientOutputSource "Source" }}</div>
                 <div class="system-setting-desc-help">{{ or .ClientOutputSourceHelp "Play HTTP stream from selected device" }}</div>
               </div>
               <select class="tool-select big value" id="httpstream-select" data-disabled-label="{{ or .HTTPStreamDisabled "disabled" }}" aria-labelledby="httpstream-select">
