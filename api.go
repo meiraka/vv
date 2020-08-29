@@ -24,6 +24,7 @@ type APIConfig struct {
 	BackgroundTimeout time.Duration
 	CoverSearchers    []CoverSearcher
 	AudioProxy        map[string]string // audio device - server addr pair
+	skipInit          bool
 }
 
 // CoverSearcher provides song cover url and rescan api.
@@ -48,9 +49,11 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 		return nil, err
 	}
 	all := []func(context.Context) error{h.updateLibrarySongs, h.updatePlaylistSongs, h.updateOptions, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats}
-	for _, v := range all {
-		if err := v(ctx); err != nil {
-			return nil, err
+	if !c.skipInit {
+		for _, v := range all {
+			if err := v(ctx); err != nil {
+				return nil, err
+			}
 		}
 	}
 	go func() {
@@ -116,6 +119,14 @@ func (h *api) handle() http.HandlerFunc {
 	musicOutputs := h.outputHandler()
 	musicImages := h.imagesHandler()
 	musicStream := h.outputStreamHandler()
+LOOP:
+	for {
+		select {
+		case <-h.jsonCache.Event():
+		default:
+			break LOOP
+		}
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/version":
