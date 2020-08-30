@@ -2205,7 +2205,7 @@ vv.view.system = {
         }
         document.getElementById("system-box-nav-back").addEventListener("click", showParent);
 
-        const ul = document.getElementById("playlist-playback");
+        const ul = document.getElementById("playlist-playback-range");
         const newul = document.createDocumentFragment();
         for (let i = 0, imax = TREE_ORDER.length; i < imax; i++) {
             const label = TREE_ORDER[i];

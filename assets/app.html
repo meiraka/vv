@@ -279,20 +279,23 @@ html {
         <div class="system-article-sub">
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-theme-label">{{ or .Theme "Theme" }}</div>
-              <div class="radio-box">
-                <input type="radio" name="appearance-theme" id="appearance-theme_light" value="light"/>
-                <label class="radio-check" for="appearance-theme_light">{{ or .ThemeLight "Light" }}</label>
-                <input type="radio" name="appearance-theme" id="appearance-theme_dark" value="dark"/>
-                <label class="radio-check" for="appearance-theme_dark">{{ or .ThemeDark "Dark" }}</label>
-                <input type="radio" name="appearance-theme" id="appearance-theme_prefer-system" value="prefer-system"/>
-                <label class="radio-check" for="appearance-theme_prefer-system">{{ or .ThemeSystem "Prefer System" }}</label>
-                <input type="radio" name="appearance-theme" id="appearance-theme_prefer-coverart" value="prefer-coverart"/>
-                <label class="radio-check" for="appearance-theme_prefer-coverart">{{ or .ThemeCoverArt "Prefer CoverArt" }}</label>
-              </div>
-            <li class="list-item system-setting" id="config-appearance-color-threshold">
-              <div class="system-setting-desc" id="appearance-color-threshold-label">{{ or .CoverArtColorThreshold "Threshold" }}</div>
-              <input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label">
+              <ul class="system-settings list-item-group">
+                <li class="system-setting child-list-item">
+                  <div class="system-setting-desc" id="appearance-theme-label">{{ or .Theme "Theme" }}</div>
+                  <div class="radio-box">
+                    <input type="radio" name="appearance-theme" id="appearance-theme_light" value="light"/>
+                    <label class="radio-check" for="appearance-theme_light">{{ or .ThemeLight "Light" }}</label>
+                    <input type="radio" name="appearance-theme" id="appearance-theme_dark" value="dark"/>
+                    <label class="radio-check" for="appearance-theme_dark">{{ or .ThemeDark "Dark" }}</label>
+                    <input type="radio" name="appearance-theme" id="appearance-theme_prefer-system" value="prefer-system"/>
+                    <label class="radio-check" for="appearance-theme_prefer-system">{{ or .ThemeSystem "Prefer System" }}</label>
+                    <input type="radio" name="appearance-theme" id="appearance-theme_prefer-coverart" value="prefer-coverart"/>
+                    <label class="radio-check" for="appearance-theme_prefer-coverart">{{ or .ThemeCoverArt "Prefer CoverArt" }}</label>
+                  </div>
+                <li class="system-setting child-list-item" id="config-appearance-color-threshold">
+                  <div class="system-setting-desc-sub system-setting-desc" id="appearance-color-threshold-label">{{ or .CoverArtColorThreshold "Threshold" }}</div>
+                  <input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label">
+              </ul>
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-background-image-label">{{ or .BackgroundImage "Background image" }}</div>
               <input type="checkbox" id="appearance-background-image" class="slideswitch" aria-labelledby="appearance-background-image-label">
@@ -350,30 +353,34 @@ html {
       <article id="system-playlist" class="scrollable system-article">
         <h2 class="system-article-sub-header">{{ or .Playback "Playback" }}</h2>
         <div class="system-article-sub">
-          <ul class="system-settings" id="playlist-playback">
+          <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-playlist-follows-playback-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
               <input type="checkbox" id="appearance-playlist-follows-playback" class="slideswitch" aria-labelledby="appearance-playlist-follows-playback-label">
             <li class="list-item system-setting">
-              <div class="system-setting-desc-box">
-                <div class="system-setting-desc" id="playlist-playback-tracks">{{ or .PlaybackRange "Playback Range" }}</div>
-                <div class="system-setting-desc-help">{{ or .PlaybackRangeHelp "This settings will applied from the next track selection." }}</div>
-              </div>
-              <div class="radio-box">
-                <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_all" value="all"/>
-                <label class="radio-check" for="playlist-playback-tracks_all">{{ or .PlayAllTracks "All tracks" }}</label>
-                <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_list" value="list"/>
-                <label class="radio-check" for="playlist-playback-tracks_list">{{ or .PlaySelectedList "Selected list" }}</label>
-                <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_custom" value="custom"/>
-                <label class="radio-check" for="playlist-playback-tracks_custom">{{ or .PlayCustomList "Custom" }}</label>
-              </div>
-             </li>
-            <template id="playlist-playback-tracks-custom-template">
-              <li class="list-item system-setting playlist-playback-tracks-custom">
-                  <div class="system-setting-desc" data-prefix="{{ or .playbackTreeLabelPrefix "" }}" data-suffix="{{ or .playbackTreeLabelSuffix " Tree" }}"></div>
-                  <select class="tool-select value big" data-all-tracks="{{ or .allTracks "All tracks" }}"></select>
-              </li>
-            </template>
+              <ul class="system-settings list-item-group" id="playlist-playback-range">
+                <li class="system-setting child-list-item">
+                  <div class="system-setting-desc-box">
+                    <div class="system-setting-desc-boxed" id="playlist-playback-tracks">{{ or .PlaybackRange "Playback Range" }}</div>
+                    <div class="system-setting-desc-help">{{ or .PlaybackRangeHelp "This settings will applied from the next track selection." }}</div>
+                  </div>
+                  <div class="radio-box">
+                    <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_all" value="all"/>
+                    <label class="radio-check" for="playlist-playback-tracks_all">{{ or .PlayAllTracks "All tracks" }}</label>
+                    <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_list" value="list"/>
+                    <label class="radio-check" for="playlist-playback-tracks_list">{{ or .PlaySelectedList "Selected list" }}</label>
+                    <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_custom" value="custom"/>
+                    <label class="radio-check" for="playlist-playback-tracks_custom">{{ or .PlayCustomList "Custom" }}</label>
+                  </div>
+                </li>
+                <template id="playlist-playback-tracks-custom-template">
+                  <li class="system-setting child-list-item playlist-playback-tracks-custom">
+                      <div class="system-setting-desc system-setting-desc-sub" data-prefix="{{ or .playbackTreeLabelPrefix "" }}" data-suffix="{{ or .playbackTreeLabelSuffix " Tree" }}"></div>
+                      <select class="tool-select value big" data-all-tracks="{{ or .allTracks "All tracks" }}"></select>
+                  </li>
+                </template>
+              </ul>
+            </li>
 
           </ul>
         </div>
