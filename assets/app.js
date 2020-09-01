@@ -6,7 +6,7 @@ const vv = {
     songs: {},
     storage: {},
     library: {},
-    view: { main: {}, list: {}, system: {}, popup: {}, modal: {}, footer: {} },
+    view: { main: {}, list: {}, system: {}, popup: {}, modal: {}, footer: {}, submodal: {} },
     control: {},
     ui: {},
     request: {}
@@ -2012,10 +2012,16 @@ vv.view.system = {
                 dop.classList.add("hide");
                 const dopSW = e.querySelector(".device-dop-switch");
                 dopSW.dataset.deviceid = id;
+                const allowedFormats = e.querySelector(".device-allowed-formats");
+                allowedFormats.classList.add("hide");
+                e.querySelector(".device-allowed-formats").dataset.deviceid = id;
                 if (o.attributes) {
                     if (o.attributes.hasOwnProperty("dop") && o.enabled) {
                         dop.classList.remove("hide");
                         dopSW.checked = o.attributes.dop;
+                    }
+                    if (o.attributes.hasOwnProperty("allowed_formats") && o.enabled) {
+                        allowedFormats.classList.remove("hide");
                     }
                 }
                 const d = document.importNode(c, true);
@@ -2028,6 +2034,9 @@ vv.view.system = {
                     vv.request.post("/api/music/outputs", {
                         [parseInt(e.currentTarget.dataset.deviceid, 10)]: { "attributes": { "dop": e.currentTarget.checked } }
                     });
+                });
+                d.querySelector(".device-allowed-formats").addEventListener("click", (e) => {
+                    vv.view.submodal.showAllowedFormats(parseInt(e.currentTarget.dataset.deviceid, 10));
                 });
                 newul.appendChild(d);
                 if (o.stream && o.enabled) {
@@ -2677,6 +2686,125 @@ vv.view.modal = {
     }
 };
 vv.control.addEventListener("start", vv.view.modal.onStart);
+vv.view.submodal = {
+    showAllowedFormats(t) {
+        if (!vv.storage.outputs[t] || !vv.storage.outputs[t].attributes || !vv.storage.outputs[t].attributes.allowed_formats) {
+            return;
+        }
+        const lists = vv.storage.outputs[t].attributes.allowed_formats;
+        const b = document.getElementById("submodal-outer");
+        const w = document.getElementById("submodal-allowed-formats");
+        w.dataset.deviceid = t;
+        let e = document.createEvent("HTMLEvents");
+        e.initEvent("change", false, true);
+        if (lists.length === 0) {
+            const o = document.getElementById("allowed-formats-auto");
+            o.checked = true;
+            o.dispatchEvent(e);
+        } else {
+            const o = document.getElementById("allowed-formats-custom");
+            o.checked = true;
+            o.dispatchEvent(e);
+        }
+        for (const n of w.querySelectorAll(".slideswitch")) {
+            n.checked = false;
+            for (let i = 0, imax = lists.length; i < imax; i++) {
+                if (lists[i] === n.name) {
+                    n.checked = true;
+                }
+            }
+        }
+        b.classList.remove("hide");
+        w.classList.remove("hide");
+    },
+    hide() {
+        document.getElementById("submodal-outer").classList.add("hide");
+        for (const w of Array.from(document.getElementsByClassName("submodal-window"))) {
+            w.classList.add("hide");
+        }
+    },
+    onStart() {
+        for (const w of Array.from(document.getElementsByClassName("submodal-window-close"))) {
+            w.addEventListener("click", vv.view.submodal.hide);
+        }
+        document.getElementById("submodal-outer").addEventListener("click", vv.view.submodal.hide);
+        const allowedFormats = document.getElementById("submodal-allowed-formats");
+        allowedFormats.addEventListener("click", (e) => { e.stopPropagation(); });
+        document.getElementById("allowed-formats-auto").addEventListener("change", () => {
+            for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
+                n.disabled = true;
+                n.classList.add("disabled");
+                n.checked = false;
+            }
+            vv.request.post("/api/music/outputs", {
+                [parseInt(document.getElementById("submodal-allowed-formats").dataset.deviceid, 10)]: { "attributes": { "allowed_formats": [] } }
+            });
+        });
+        document.getElementById("allowed-formats-custom").addEventListener("change", () => {
+            for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
+                n.disabled = false;
+                n.classList.remove("disabled");
+            }
+        });
+        for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
+            const fmt = n.name.split(":");
+            if (fmt.length === 2) {
+                n.dataset.sample = fmt[0];
+                n.dataset.bits = "1";
+                n.dataset.dop = fmt[1].substring(1);
+            } else if (fmt.length === 3) {
+                n.dataset.sample = fmt[0];
+                n.dataset.bits = fmt[1];
+            }
+            n.addEventListener("change", (e) => {
+                const t = e.currentTarget;
+                const dsd = allowedFormats.querySelector(".allowed-formats-dsd");
+                const pcm = allowedFormats.querySelector(".allowed-formats-pcm");
+                if (t.checked) {
+                    if (t.dataset.bits === "1") {
+                        for (const sw of dsd.querySelectorAll(".slideswitch")) {
+                            if (t.dataset.sample === sw.dataset.sample && t.dataset.dop !== sw.dataset.dop) {
+                                sw.checked = false; // toggle dop
+                                break;
+                            }
+                        }
+                    } else {
+                        const sample = parseInt(n.dataset.sample, 10);
+                        const bits = parseInt(t.dataset.bits, 10);
+                        for (const sw of pcm.querySelectorAll(".slideswitch")) {
+                            const swsample = parseInt(sw.dataset.sample, 10);
+                            const swbits = parseInt(sw.dataset.bits, 10);
+                            if (t.dataset.sample === sw.dataset.sample && t.dataset.bits == sw.dataset.bits) {
+                                break;
+                            }
+                            if (swsample <= sample && swbits <= bits) {
+                                sw.checked = true;
+                            }
+                        }
+                    }
+                }
+                const allowedPCM = [];
+                const allowedDSD = [];
+                for (const sw of pcm.querySelectorAll(".slideswitch")) {
+                    if (sw.checked) {
+                        allowedPCM.push(sw.name);
+                    }
+                }
+                for (const sw of dsd.querySelectorAll(".slideswitch")) {
+                    if (sw.checked) {
+                        allowedDSD.push(sw.name);
+                    }
+                }
+                allowedPCM.sort().reverse();
+                allowedDSD.sort().reverse();
+                vv.request.post("/api/music/outputs", {
+                    [parseInt(document.getElementById("submodal-allowed-formats").dataset.deviceid, 10)]: { "attributes": { "allowed_formats": allowedPCM.concat(allowedDSD) } }
+                });
+            });
+        }
+    }
+}
+vv.control.addEventListener("start", vv.view.submodal.onStart);
 
 // keyboard events
 {
@@ -2738,6 +2866,13 @@ vv.control.addEventListener("start", vv.view.modal.onStart);
     };
     vv.control.addEventListener("start", () => {
         document.addEventListener("keydown", e => {
+            if (!document.getElementById("submodal-outer")
+                .classList.contains("hide")) {
+                if (e.key === "Escape" || e.key === "Esc") {
+                    vv.view.submodal.hide();
+                }
+                return;
+            }
             if (!document.getElementById("modal-background")
                 .classList.contains("hide")) {
                 if (e.key === "Escape" || e.key === "Esc") {
