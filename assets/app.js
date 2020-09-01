@@ -2305,6 +2305,7 @@ vv.view.system = {
             vv.storage.preferences.httpoutput.stream = inputs.value;
             vv.storage.save.preferences();
         });
+        vv.ui.disableSwipe(volume);
         volume.addEventListener("change", () => {
             audio.volume = volume.value;
             vv.storage.preferences.httpoutput.volume = volume.value;
