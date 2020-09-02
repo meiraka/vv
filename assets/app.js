@@ -1693,6 +1693,8 @@ vv.view.list = {
                 const base = largeImage ? 150 : 70;
                 const imgsize = parseInt(base * window.devicePixelRatio, 10);
                 cover.src = `${song.cover[0]}?width=${imgsize}&height=${imgsize}`;
+                cover.width = imgsize;
+                cover.height = imgsize;
             } else {
                 cover.src = "/assets/nocover.svg";
             }
