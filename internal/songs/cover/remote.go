@@ -173,17 +173,17 @@ func (s *RemoteSearcher) updateCache(songPath string) []string {
 }
 
 // GetURLs returns cover path for m
-func (s *RemoteSearcher) GetURLs(m map[string][]string) []string {
+func (s *RemoteSearcher) GetURLs(m map[string][]string) ([]string, bool) {
 	if s == nil {
-		return nil
+		return nil, true
 	}
 	songPath, ok := s.songPath(m)
 	if !ok {
-		return nil
+		return nil, true
 	}
 	cover, err := s.getURLPath(songPath)
 	if err == nil {
-		return cover
+		return cover, true
 	}
-	return s.updateCache(songPath)
+	return nil, false
 }

@@ -449,6 +449,15 @@ func TestAPIJSONPHandler(t *testing.T) {
 					want: map[int]string{http.StatusOK: `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"track","crossfade":1}`},
 				},
 			}},
+		"GET /api/music/images": {
+			config: APIConfig{skipInit: true},
+			tests: []*testRequest{
+				{
+					method: http.MethodGet, path: "/api/music/images",
+					want: map[int]string{http.StatusOK: `{"updating":false}`},
+				},
+			},
+		},
 		"GET /api/music/outputs": {
 			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{

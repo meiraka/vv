@@ -90,20 +90,20 @@ func (l *LocalSearcher) updateCache(songDirPath string) []string {
 }
 
 // GetURLs returns cover path for m
-func (l *LocalSearcher) GetURLs(m map[string][]string) []string {
+func (l *LocalSearcher) GetURLs(m map[string][]string) ([]string, bool) {
 	if l == nil {
-		return nil
+		return nil, true
 	}
 	songDirPath, ok := l.songDirPath(m)
 	if !ok {
-		return nil
+		return nil, true
 	}
 
 	l.mu.RLock()
 	v, ok := l.cache[songDirPath]
 	l.mu.RUnlock()
 	if ok {
-		return v
+		return v, true
 	}
-	return l.updateCache(songDirPath)
+	return l.updateCache(songDirPath), true
 }

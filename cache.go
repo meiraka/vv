@@ -48,6 +48,33 @@ func (c *jsonCache) SetIfModified(path string, i interface{}) error {
 	return c.set(path, i, false)
 }
 
+func (c *jsonCache) SetIfNone(path string, i interface{}) error {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	pos := c.getPos(path)
+	if c.data[pos] != nil {
+		return nil
+	}
+	n, err := json.Marshal(i)
+	if err != nil {
+		return err
+	}
+
+	c.data[pos] = n
+	c.date[pos] = time.Now().UTC()
+	gz, err := makeGZip(n)
+	if err == nil {
+		c.gzdata[pos] = gz
+	} else {
+		c.gzdata[pos] = nil
+	}
+	select {
+	case c.event <- path:
+	default:
+	}
+	return nil
+}
+
 func (c *jsonCache) getPos(path string) int {
 	for i := range c.index {
 		if c.index[i] == path {
@@ -97,7 +124,6 @@ func (c *jsonCache) Get(path string) (data, gzdata []byte, l time.Time) {
 		}
 	}
 	return nil, nil, time.Time{}
-
 }
 
 func (c *jsonCache) Handler(path string) http.HandlerFunc {

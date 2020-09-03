@@ -33,7 +33,7 @@ func TestLocalCover(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprint(tt.in), func(t *testing.T) {
-			covers := searcher.GetURLs(tt.in)
+			covers, _ := searcher.GetURLs(tt.in)
 			if !reflect.DeepEqual(covers, tt.want) {
 				t.Errorf("got GetURLs=%v; want %v", covers, tt.want)
 			}

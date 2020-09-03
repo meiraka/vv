@@ -31,7 +31,7 @@ type APIConfig struct {
 // CoverSearcher provides song cover url and rescan api.
 type CoverSearcher interface {
 	Rescan([]map[string][]string)
-	GetURLs(map[string][]string) []string
+	GetURLs(map[string][]string) ([]string, bool)
 }
 
 // NewAPIHandler creates json api handler.
@@ -45,6 +45,7 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 		watcher:      w,
 		jsonCache:    newJSONCache(),
 		playlistInfo: &httpPlaylistInfo{},
+		imgUpdateSem: make(chan struct{}, 1),
 	}
 	if err := h.updateVersion(); err != nil {
 		return nil, err
@@ -106,6 +107,7 @@ type api struct {
 	librarySort  []map[string][]string
 	replayGain   map[string]string
 	playlistInfo *httpPlaylistInfo
+	imgUpdateSem chan struct{}
 }
 
 func (h *api) handle() http.HandlerFunc {
@@ -162,23 +164,36 @@ LOOP:
 	}
 }
 
-func (h *api) convSong(s map[string][]string) map[string][]string {
+func (h *api) convSong(s map[string][]string) (map[string][]string, bool) {
 	s = songs.AddTags(s)
 	delete(s, "cover")
 	var cover []string
+	updated := true
 	for _, v := range h.config.CoverSearchers {
-		cover = append(cover, v.GetURLs(s)...)
+		urls, ok := v.GetURLs(s)
+		if !ok {
+			updated = false
+		}
+		cover = append(cover, urls...)
 	}
 	if len(cover) != 0 {
 		s["cover"] = cover
 	}
-	return s
+	return s, updated
 }
 
 func (h *api) convSongs(s []map[string][]string) []map[string][]string {
 	ret := make([]map[string][]string, len(s))
+	needUpdates := make([]map[string][]string, 0, len(s))
 	for i := range s {
-		ret[i] = h.convSong(s[i])
+		song, ok := h.convSong(s[i])
+		ret[i] = song
+		if !ok {
+			needUpdates = append(needUpdates, song)
+		}
+	}
+	if len(needUpdates) != 0 {
+		go h.updateImages(needUpdates)
 	}
 	return ret
 }
@@ -319,7 +334,8 @@ func (h *api) updateCurrentSong(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return h.jsonCache.SetIfModified("/api/music/playlist/songs/current", h.convSong(l))
+	l, _ = h.convSong(l)
+	return h.jsonCache.SetIfModified("/api/music/playlist/songs/current", l)
 }
 
 type httpLibraryInfo struct {
@@ -822,11 +838,27 @@ type httpCover struct {
 	Updating bool `json:"updating"`
 }
 
+func (h *api) updateImages(songs []map[string][]string) {
+	select {
+	case h.imgUpdateSem <- struct{}{}:
+	default:
+		return
+	}
+	defer func() { <-h.imgUpdateSem }()
+	h.jsonCache.SetIfModified("/api/music/images", &httpCover{Updating: true})
+	for _, v := range h.config.CoverSearchers {
+		v.Rescan(songs)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
+	defer cancel()
+	h.updateCurrentSong(ctx)
+	h.updateLibrarySongs(ctx)
+	h.jsonCache.SetIfModified("/api/music/images", &httpCover{Updating: false})
+}
+
 func (h *api) imagesHandler() http.HandlerFunc {
-	sem := make(chan struct{}, 1)
-	sem <- struct{}{}
 	fallback := h.jsonCache.Handler("/api/music/images")
-	h.jsonCache.Set("/api/music/images", &httpCover{})
+	h.jsonCache.SetIfNone("/api/music/images", &httpCover{})
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			fallback.ServeHTTP(w, r)
@@ -841,23 +873,7 @@ func (h *api) imagesHandler() http.HandlerFunc {
 			writeHTTPError(w, http.StatusBadRequest, errors.New("requires updating=true"))
 			return
 		}
-		go func() {
-			select {
-			case <-sem:
-			default:
-				return
-			}
-			defer func() { sem <- struct{}{} }()
-			h.jsonCache.SetIfModified("/api/music/images", &httpCover{Updating: true})
-			for _, v := range h.config.CoverSearchers {
-				v.Rescan(h.library)
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
-			defer cancel()
-			h.updateCurrentSong(ctx)
-			h.updateLibrarySongs(ctx)
-			h.jsonCache.SetIfModified("/api/music/images", &httpCover{Updating: false})
-		}()
+		go h.updateImages(h.library)
 		now := time.Now().UTC()
 		r.Method = http.MethodGet
 		fallback.ServeHTTP(w, setUpdateTime(r, now))
