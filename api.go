@@ -175,6 +175,9 @@ func (h *api) convSong(s map[string][]string) (map[string][]string, bool) {
 			updated = false
 		}
 		cover = append(cover, urls...)
+		if len(cover) != 0 {
+			break
+		}
 	}
 	if len(cover) != 0 {
 		s["cover"] = cover
