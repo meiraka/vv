@@ -5,8 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -23,7 +25,7 @@ func TestLocalCover(t *testing.T) {
 	}{
 		{
 			in:         map[string][]string{"file": {"assets/test.flac"}},
-			want:       []string{"/foo/assets/app.png"},
+			want:       []string{"/foo/assets/app.png?d=" + strconv.FormatInt(stat(t, filepath.Join("..", "..", "..", "assets", "app.png")).ModTime().Unix(), 10)},
 			wantHeader: http.Header{"Content-Type": {"image/png"}},
 			wantBinary: readFile(t, filepath.Join("..", "..", "..", "assets", "app.png")),
 		},
@@ -70,4 +72,11 @@ func readFile(t *testing.T, path string) []byte {
 	}
 	return b
 
+}
+func stat(t *testing.T, path string) os.FileInfo {
+	s, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("failed to stat file: %v", err)
+	}
+	return s
 }

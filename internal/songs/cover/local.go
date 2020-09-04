@@ -2,9 +2,11 @@ package cover
 
 import (
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -78,10 +80,11 @@ func (l *LocalSearcher) updateCache(songDirPath string) []string {
 	ret := []string{}
 	for _, n := range l.files {
 		rpath := filepath.Join(songDirPath, n)
-		_, err := os.Stat(rpath)
+		s, err := os.Stat(rpath)
 		if err == nil {
 			cover := path.Join(l.httpPrefix, strings.TrimPrefix(strings.TrimPrefix(filepath.ToSlash(rpath), filepath.ToSlash(l.musicDirectory)), "/"))
-			ret = append(ret, cover)
+
+			ret = append(ret, cover+"?"+url.Values{"d": {strconv.FormatInt(s.ModTime().Unix(), 10)}}.Encode())
 			l.url2img[cover] = rpath
 		}
 	}

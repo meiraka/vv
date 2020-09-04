@@ -34,7 +34,7 @@ func NewRemoteSearcher(httpPrefix string, c *mpd.Client, cacheDir string) (*Remo
 	if err := os.MkdirAll(cacheDir, 0766); err != nil {
 		return nil, err
 	}
-	db, err := leveldb.OpenFile(filepath.Join(cacheDir, "db"), nil)
+	db, err := leveldb.OpenFile(filepath.Join(cacheDir, "db2"), nil)
 	if err != nil {
 		return nil, err
 	}

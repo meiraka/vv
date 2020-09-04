@@ -1329,8 +1329,8 @@ vv.ui = {
             if (vv.storage.current !== null && vv.storage.current.cover && vv.storage.current.cover[0]) {
                 cover = vv.storage.current.cover[0];
                 const imgsize = parseInt(70 * window.devicePixelRatio, 10);
-                coverForCalc =
-                    `${cover}?width=${imgsize}&height=${imgsize}`;
+                const s = (cover.lastIndexOf("?") == -1) ? "?" : "&";
+                coverForCalc = `${cover}${s}width=${imgsize}&height=${imgsize}`;
             }
             const newimage = `url("${cover}")`;
             if (e.style.backgroundImage !== newimage) {
@@ -1692,7 +1692,8 @@ vv.view.list = {
             if (song.cover && song.cover.length !== 0) {
                 const base = largeImage ? 150 : 70;
                 const imgsize = parseInt(base * window.devicePixelRatio, 10);
-                cover.src = `${song.cover[0]}?width=${imgsize}&height=${imgsize}`;
+                const s = (song.cover[0].lastIndexOf("?") == -1) ? "?" : "&";
+                cover.src = `${song.cover[0]}${s}width=${imgsize}&height=${imgsize}`;
                 cover.width = imgsize;
                 cover.height = imgsize;
             } else {
@@ -2679,7 +2680,8 @@ vv.view.modal = {
         const cover = document.getElementById("modal-song-box-cover");
         if (song.cover && song.cover[0]) {
             const imgsize = window.devicePixelRatio * 112;
-            cover.src = `${song.cover[0]}?width=${imgsize}&height=${imgsize}`;
+            const s = (song.cover[0].lastIndexOf("?") == -1) ? "?" : "&";
+            cover.src = `${song.cover[0]}${s}width=${imgsize}&height=${imgsize}`;
         } else {
             cover.src = "/assets/nocover.svg";
         }

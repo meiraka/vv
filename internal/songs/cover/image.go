@@ -68,7 +68,11 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	ws, hs := q.Get("width"), q.Get("height")
 	if len(ws) == 0 || len(hs) == 0 {
-		w.Header().Add("Cache-Control", "max-age=86400")
+		if r.URL.Query().Get("d") != "" {
+			w.Header().Add("Cache-Control", "max-age=31536000")
+		} else {
+			w.Header().Add("Cache-Control", "max-age=86400")
+		}
 		w.Header().Add("Content-Length", strconv.FormatInt(i.Size(), 10))
 		w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
 		w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
@@ -90,7 +94,11 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.Header().Add("Cache-Control", "max-age=86400")
+	if r.URL.Query().Get("d") != "" {
+		w.Header().Add("Cache-Control", "max-age=31536000")
+	} else {
+		w.Header().Add("Cache-Control", "max-age=86400")
+	}
 	w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 	w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
 	w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
