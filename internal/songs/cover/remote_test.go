@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/meiraka/vv/internal/mpd"
@@ -73,7 +75,7 @@ func TestRemoteSearcherRescan(t *testing.T) {
 	defer os.RemoveAll(testDir)
 	png := readFile(t, filepath.Join(path, "..", "..", "..", "assets", "app.png"))
 
-	for _, label := range []string{"empty db", "use db"} {
+	for rescanIndex, label := range []string{"empty db", "use db"} {
 		t.Run(label, func(t *testing.T) {
 			searcher, err := NewRemoteSearcher("/api/images", c, testDir)
 			if err != nil {
@@ -103,12 +105,14 @@ func TestRemoteSearcherRescan(t *testing.T) {
 				},
 			} {
 				searcher.Rescan([]map[string][]string{tt.in})
+				t.Logf("rescan: %v", tt.in)
 				for i := 0; i < 2; i++ {
 					t.Run(fmt.Sprint(tt.in, i), func(t *testing.T) {
 						covers, ok := searcher.GetURLs(tt.in)
 						if !ok {
 							t.Error("cover is not indexed")
 						}
+						t.Logf("urls: %v", covers)
 						if len(covers) == 0 && tt.hasCover {
 							t.Fatalf("got no covers; want 1 cover")
 						}
@@ -119,6 +123,14 @@ func TestRemoteSearcherRescan(t *testing.T) {
 							return
 						}
 						cover := covers[0]
+						u, err := url.Parse(cover)
+						if err != nil {
+							t.Fatalf("failed to parse url %s: %v", cover, err)
+						}
+						want := url.Values{"v": {strconv.Itoa(rescanIndex)}}
+						if !reflect.DeepEqual(u.Query(), want) {
+							t.Errorf("got query %+v; want %+v", u, want)
+						}
 						req := httptest.NewRequest("GET", cover, nil)
 						w := httptest.NewRecorder()
 						searcher.ServeHTTP(w, req)

@@ -94,7 +94,7 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if r.URL.Query().Get("d") != "" {
+	if q := r.URL.Query(); q.Get("d") != "" || q.Get("v") != "" {
 		w.Header().Add("Cache-Control", "max-age=31536000")
 	} else {
 		w.Header().Add("Cache-Control", "max-age=86400")

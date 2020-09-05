@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -50,6 +51,10 @@ func NewRemoteSearcher(httpPrefix string, c *mpd.Client, cacheDir string) (*Remo
 	for iter.Next() {
 		value := string(iter.Value())
 		if len(value) != 0 {
+			i := strings.LastIndex(value, "?")
+			if i > 0 {
+				value = value[0:i]
+			}
 			s.url2img[path.Join(s.httpPrefix, value)] = filepath.Join(s.cacheDir, value)
 		}
 	}
@@ -116,14 +121,27 @@ func (s *RemoteSearcher) updateCache(songPath string) []string {
 	key := []byte(path.Dir(songPath))
 
 	filename := ""
+	var version int64
 	if name, err := s.db.Get(key, nil); err == leveldb.ErrNotFound {
 	} else if err != nil {
 		s.db.Put(key, []byte{}, nil)
 		return ret
 	} else {
 		filename = string(name)
+		// get version
+		i := strings.LastIndex(filename, "=")
+		if i > 0 {
+			if v, err := strconv.ParseInt(filename[i+1:], 10, 64); err == nil {
+				version = v
+				if version == 9223372036854775807 {
+					version = 0
+				} else {
+					version = version + 1
+				}
+			}
+		}
 		// remove ext
-		i := strings.LastIndex(filename, ".")
+		i = strings.LastIndex(filename, ".")
 		if i < 0 {
 			i = len(filename)
 		}
@@ -161,7 +179,7 @@ func (s *RemoteSearcher) updateCache(songPath string) []string {
 	}
 	// stores filename to db
 	value := filepath.Base(f.Name())
-	if err := s.db.Put(key, []byte(value), nil); err != nil {
+	if err := s.db.Put(key, []byte(value+"?v="+strconv.FormatInt(version, 10)), nil); err != nil {
 		os.Remove(filepath.Join(s.cacheDir, value))
 		return ret
 	}
