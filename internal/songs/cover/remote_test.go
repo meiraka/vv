@@ -36,7 +36,7 @@ func TestRemoteSearcher(t *testing.T) {
 		t.Fatalf("failed to cleanup test dir")
 	}
 	defer os.RemoveAll(testDir)
-	searcher, err := NewRemoteSearcher("/api/images", c, testDir)
+	searcher, err := RemoteSearcherConfig{}.NewRemoteSearcher("/api/images", c, testDir)
 	if err != nil {
 		t.Fatalf("failed to initialize searcher: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestRemoteSearcherRescan(t *testing.T) {
 
 	for rescanIndex, label := range []string{"empty db", "use db"} {
 		t.Run(label, func(t *testing.T) {
-			searcher, err := NewRemoteSearcher("/api/images", c, testDir)
+			searcher, err := RemoteSearcherConfig{}.NewRemoteSearcher("/api/images", c, testDir)
 			if err != nil {
 				t.Fatalf("failed to initialize searcher: %v", err)
 			}

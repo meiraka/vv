@@ -106,7 +106,9 @@ func v2() {
 		if !contains(commands, "albumart") {
 			log.Println("config.server.cover.remote is disabled: mpd does not support albumart command")
 		} else {
-			searcher, err := cover.NewRemoteSearcher("/api/music/images/remote/", cl, filepath.Join(config.Server.CacheDirectory, "imgcache"))
+			searcher, err := cover.RemoteSearcherConfig{
+				Timeout: time.Minute,
+			}.NewRemoteSearcher("/api/music/images/remote/", cl, filepath.Join(config.Server.CacheDirectory, "imgcache"))
 			if err != nil {
 				log.Fatalf("failed to initialize coverart: %v", err)
 			}

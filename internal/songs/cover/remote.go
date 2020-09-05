@@ -2,7 +2,9 @@ package cover
 
 import (
 	"context"
+	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -16,12 +18,14 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-const (
-	timeout = 5 * time.Second
-)
+// RemoteSearcherConfig represents optional searcher settings.
+type RemoteSearcherConfig struct {
+	Timeout time.Duration // fetching request timeout per file
+}
 
 // RemoteSearcher searches song cover art by mpd albumart api.
 type RemoteSearcher struct {
+	config     *RemoteSearcherConfig
 	httpPrefix string
 	cacheDir   string
 	client     *mpd.Client
@@ -31,7 +35,7 @@ type RemoteSearcher struct {
 }
 
 // NewRemoteSearcher creates MPDSearcher.
-func NewRemoteSearcher(httpPrefix string, c *mpd.Client, cacheDir string) (*RemoteSearcher, error) {
+func (c RemoteSearcherConfig) NewRemoteSearcher(httpPrefix string, client *mpd.Client, cacheDir string) (*RemoteSearcher, error) {
 	if err := os.MkdirAll(cacheDir, 0766); err != nil {
 		return nil, err
 	}
@@ -41,9 +45,10 @@ func NewRemoteSearcher(httpPrefix string, c *mpd.Client, cacheDir string) (*Remo
 	}
 
 	s := &RemoteSearcher{
+		config:     &c,
 		httpPrefix: httpPrefix,
 		cacheDir:   cacheDir,
-		client:     c,
+		client:     client,
 		db:         db,
 		url2img:    map[string]string{},
 	}
@@ -70,8 +75,9 @@ func (s *RemoteSearcher) Rescan(songs []map[string][]string) {
 			t[path.Dir(k)] = k
 		}
 	}
+	ctx := context.Background()
 	for _, k := range t {
-		s.updateCache(k)
+		s.updateCache(ctx, k)
 	}
 }
 
@@ -116,7 +122,7 @@ func (s *RemoteSearcher) getURLPath(songPath string) ([]string, error) {
 	return []string{path.Join(s.httpPrefix, string(name))}, nil
 }
 
-func (s *RemoteSearcher) updateCache(songPath string) []string {
+func (s *RemoteSearcher) updateCache(ctx context.Context, songPath string) []string {
 	ret := make([]string, 0, 1)
 	key := []byte(path.Dir(songPath))
 
@@ -124,7 +130,6 @@ func (s *RemoteSearcher) updateCache(songPath string) []string {
 	var version int64
 	if name, err := s.db.Get(key, nil); err == leveldb.ErrNotFound {
 	} else if err != nil {
-		s.db.Put(key, []byte{}, nil)
 		return ret
 	} else {
 		filename = string(name)
@@ -147,19 +152,24 @@ func (s *RemoteSearcher) updateCache(songPath string) []string {
 		}
 		filename = filename[0:i]
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	if s.config.Timeout != 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, s.config.Timeout)
+		defer cancel()
+	}
 	b, err := s.client.AlbumArt(ctx, songPath)
 	if err != nil {
+		log.Printf("failed to fetch cover art for %s: %v", songPath, err)
 		// set zero value for not found
-		// TODO: check error value
-		s.db.Put(key, []byte{}, nil)
+		var perr *mpd.CommandError
+		if errors.As(err, &perr) {
+			s.db.Put(key, []byte{}, nil)
+		}
 		return ret
 	}
 	// save image to random filename.
 	ext, err := ext(b)
 	if err != nil {
-		s.db.Put(key, []byte{}, nil)
 		return ret
 	}
 	var f *os.File
@@ -169,12 +179,10 @@ func (s *RemoteSearcher) updateCache(songPath string) []string {
 		f, err = os.Create(filepath.Join(s.cacheDir, filename+"."+ext))
 	}
 	if err != nil {
-		s.db.Put(key, []byte{}, nil)
 		return ret
 	}
 	f.Write(b)
 	if err := f.Close(); err != nil {
-		s.db.Put(key, []byte{}, nil)
 		return ret
 	}
 	// stores filename to db
