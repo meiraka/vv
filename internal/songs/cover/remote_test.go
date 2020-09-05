@@ -104,7 +104,7 @@ func TestRemoteSearcherRescan(t *testing.T) {
 					hasCover: false,
 				},
 			} {
-				searcher.Rescan([]map[string][]string{tt.in})
+				searcher.Rescan(context.TODO(), []map[string][]string{tt.in})
 				t.Logf("rescan: %v", tt.in)
 				for i := 0; i < 2; i++ {
 					t.Run(fmt.Sprint(tt.in, i), func(t *testing.T) {

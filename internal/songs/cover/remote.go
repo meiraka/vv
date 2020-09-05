@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -68,15 +67,19 @@ func (c RemoteSearcherConfig) NewRemoteSearcher(httpPrefix string, client *mpd.C
 }
 
 // Rescan rescans all songs images.
-func (s *RemoteSearcher) Rescan(songs []map[string][]string) {
+func (s *RemoteSearcher) Rescan(ctx context.Context, songs []map[string][]string) {
 	t := make(map[string]string, len(songs))
 	for i := range songs {
 		if k, ok := s.songPath(songs[i]); ok {
 			t[path.Dir(k)] = k
 		}
 	}
-	ctx := context.Background()
 	for _, k := range t {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		s.updateCache(ctx, k)
 	}
 }
@@ -122,15 +125,14 @@ func (s *RemoteSearcher) getURLPath(songPath string) ([]string, error) {
 	return []string{path.Join(s.httpPrefix, string(name))}, nil
 }
 
-func (s *RemoteSearcher) updateCache(ctx context.Context, songPath string) []string {
-	ret := make([]string, 0, 1)
+func (s *RemoteSearcher) updateCache(ctx context.Context, songPath string) error {
 	key := []byte(path.Dir(songPath))
 
 	filename := ""
 	var version int64
 	if name, err := s.db.Get(key, nil); err == leveldb.ErrNotFound {
 	} else if err != nil {
-		return ret
+		return err
 	} else {
 		filename = string(name)
 		// get version
@@ -159,18 +161,18 @@ func (s *RemoteSearcher) updateCache(ctx context.Context, songPath string) []str
 	}
 	b, err := s.client.AlbumArt(ctx, songPath)
 	if err != nil {
-		log.Printf("failed to fetch cover art for %s: %v", songPath, err)
 		// set zero value for not found
 		var perr *mpd.CommandError
 		if errors.As(err, &perr) {
 			s.db.Put(key, []byte{}, nil)
+			return nil
 		}
-		return ret
+		return err
 	}
 	// save image to random filename.
 	ext, err := ext(b)
 	if err != nil {
-		return ret
+		return err
 	}
 	var f *os.File
 	if len(filename) == 0 {
@@ -179,23 +181,23 @@ func (s *RemoteSearcher) updateCache(ctx context.Context, songPath string) []str
 		f, err = os.Create(filepath.Join(s.cacheDir, filename+"."+ext))
 	}
 	if err != nil {
-		return ret
+		return err
 	}
 	f.Write(b)
 	if err := f.Close(); err != nil {
-		return ret
+		return err
 	}
 	// stores filename to db
 	value := filepath.Base(f.Name())
 	if err := s.db.Put(key, []byte(value+"?v="+strconv.FormatInt(version, 10)), nil); err != nil {
 		os.Remove(filepath.Join(s.cacheDir, value))
-		return ret
+		return err
 	}
 	s.mu.Lock()
 	s.url2img[path.Join(s.httpPrefix, value)] = filepath.Join(s.cacheDir, value)
 	s.mu.Unlock()
 	_, err = s.getURLPath(songPath)
-	return append(ret, path.Join(s.httpPrefix, value))
+	return err
 }
 
 // GetURLs returns cover path for m

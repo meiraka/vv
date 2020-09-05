@@ -1,6 +1,7 @@
 package cover
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"os"
@@ -50,7 +51,7 @@ func (l *LocalSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Rescan rescans all songs images.
-func (l *LocalSearcher) Rescan(songs []map[string][]string) {
+func (l *LocalSearcher) Rescan(ctx context.Context, songs []map[string][]string) {
 	t := make(map[string]struct{}, len(songs))
 	for i := range songs {
 		if k, ok := l.songDirPath(songs[i]); ok {
@@ -58,6 +59,11 @@ func (l *LocalSearcher) Rescan(songs []map[string][]string) {
 		}
 	}
 	for k := range t {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		l.updateCache(k)
 	}
 }

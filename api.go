@@ -30,7 +30,7 @@ type APIConfig struct {
 
 // CoverSearcher provides song cover url and rescan api.
 type CoverSearcher interface {
-	Rescan([]map[string][]string)
+	Rescan(context.Context, []map[string][]string)
 	GetURLs(map[string][]string) ([]string, bool)
 }
 
@@ -60,6 +60,7 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 	}
 	go func() {
 		defer h.jsonCache.Close()
+
 		for e := range w.Event() {
 			ctx, cancel := context.WithTimeout(context.Background(), c.BackgroundTimeout)
 			switch e {
@@ -933,7 +934,7 @@ func (h *api) updateImages(songs []map[string][]string) {
 	defer func() { <-h.imgUpdateSem }()
 	h.jsonCache.SetIfModified("/api/music/images", &httpCover{Updating: true})
 	for _, v := range h.config.CoverSearchers {
-		v.Rescan(songs)
+		v.Rescan(context.Background(), songs)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 	defer cancel()
