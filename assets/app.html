@@ -386,7 +386,6 @@ html {
         </div>
       </article>
 
-
       <article id="system-database" class="scrollable system-article">
         <h2 class="system-article-sub-header">{{ or .Library "Library" }}</h2>
         <div class="system-article-sub">
@@ -406,6 +405,21 @@ html {
             <li class="list-item system-setting">
               <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
           </ul>
+        </div>
+        <h2 id="storage-header" class="system-article-sub-header">{{ or .Storage "Storage" }}</h2>
+        <div id="storage" class="system-article-sub">
+          <template id="storage-template">
+            <li class="system-setting list-item">
+              <div class="system-setting-desc-box">
+                <div class="system-setting-desc system-setting-desc-boxed"></div>
+                <div class="system-setting-desc-help uri"></div>
+              </div>
+              <button class="system-setting-value button-simple unmount" type="button">{{ or .UnmountStorage "Unmount" }}</button>
+            </li>
+          </template>
+          <ul id="storage-list" class="system-settings">
+          </ul>
+          <button id="storage-mount" class="system-setting-value button-simple" type="button">{{ or .MountStorage "Mount storage" }}</button>
         </div>
       </article>
 
@@ -584,7 +598,28 @@ html {
   </div>
 </div>
 
+<div id=submodal-background class="submodal-background hide"></div>
 <div id="submodal-outer" class="submodal-outer hide">
+  <div id="submodal-storage-mount" class="submodal-window hide">
+    <button id="submodal-help-close" class=submodal-window-close type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
+      <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
+        <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
+      </svg>
+    </button>
+    <h1 class="modal-window-header">{{ or .Storage "Storage" }}</h1>
+    <ul class="modal-input-list">
+      <li class="modal-input-box">
+        <label class="modal-input-label" for="storage-path">{{ or .StoragePath "Name" }}</label>
+        <input class="modal-input-text" type="text" id="storage-path">
+      <li class="modal-input-box">
+        <label class="modal-input-label" for="storage-uri">{{ or .StorageURI "URI" }}</label>
+        <input class="modal-input-text" type="text" id="storage-uri" placeholder="protocol://host/path">
+    </ul>
+    <span id="storage-error" class="warning-text"></span>
+    <footer class="modal-window-footer">
+      <button class="system-setting-value button-simple" id="storage-ok" type="button">{{ or .MountStorage "Mount Storage" }}</button>
+    </footer>
+  </div>
   <div id="submodal-allowed-formats" class="submodal-window submodal-allowed-formats hide">
     <button id="submodal-help-close" class=submodal-window-close type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">

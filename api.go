@@ -50,7 +50,7 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 	if err := h.updateVersion(); err != nil {
 		return nil, err
 	}
-	all := []func(context.Context) error{h.updateLibrarySongs, h.updatePlaylistSongs, h.updateOptions, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats}
+	all := []func(context.Context) error{h.updateLibrarySongs, h.updatePlaylistSongs, h.updateOptions, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats, h.updateStorage}
 	if !c.skipInit {
 		for _, v := range all {
 			if err := v(ctx); err != nil {
@@ -87,6 +87,8 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 				h.updateStatus(ctx)
 			case "output":
 				h.updateOutputs(ctx)
+			case "mount":
+				h.updateStorage(ctx)
 			}
 			cancel()
 		}
@@ -122,6 +124,7 @@ func (h *api) handle() http.HandlerFunc {
 	musicOutputs := h.outputHandler()
 	musicImages := h.imagesHandler()
 	musicStream := h.outputStreamHandler()
+	musicStorage := h.storageHandler()
 LOOP:
 	for {
 		select {
@@ -152,6 +155,8 @@ LOOP:
 			musicOutputs(w, r)
 		case "/api/music/images":
 			musicImages(w, r)
+		case "/api/music/storage":
+			musicStorage(w, r)
 		default:
 			for k := range h.config.AudioProxy {
 				if "/api/music/outputs/"+k == r.URL.Path {
@@ -835,6 +840,84 @@ func (h *api) updateStats(ctx context.Context) error {
 
 	// force update to Last-Modified header to calc current playing time
 	return h.jsonCache.Set("/api/music/stats", ret)
+}
+
+type httpStorage struct {
+	URI      *string `json:"uri,omitempty"`
+	Updating bool    `json:"updating,omitempty"`
+}
+
+func (h *api) updateStorage(ctx context.Context) error {
+	ret := map[string]*httpStorage{}
+	ms, err := h.client.ListMounts(ctx)
+	if err != nil {
+		// skip command error to support old mpd
+		var perr *mpd.CommandError
+		if errors.As(err, &perr) {
+			h.jsonCache.SetIfModified("/api/music/storage", ret)
+			return nil
+		}
+		return err
+	}
+	for _, m := range ms {
+		ret[m["mount"]] = &httpStorage{
+			URI: stringPtr(m["storage"]),
+		}
+	}
+	h.jsonCache.SetIfModified("/api/music/storage", ret)
+	return nil
+}
+
+func (h *api) storageHandler() http.HandlerFunc {
+	fallback := h.jsonCache.Handler("/api/music/storage")
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			fallback.ServeHTTP(w, r)
+			return
+		}
+		var req map[string]*httpStorage
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeHTTPError(w, http.StatusBadRequest, err)
+			return
+		}
+		ctx := r.Context()
+		for k, v := range req {
+			if k == "" {
+				writeHTTPError(w, http.StatusBadRequest, errors.New("storage name is empty"))
+				return
+			}
+			if v.Updating {
+				if _, err := h.client.Update(ctx, k); err != nil {
+					writeHTTPError(w, http.StatusInternalServerError, err)
+					return
+				}
+			} else if v.URI != nil {
+				if err := h.client.Mount(ctx, k, *v.URI); err != nil {
+					writeHTTPError(w, http.StatusInternalServerError, err)
+					return
+				}
+				if _, err := h.client.Update(ctx, k); err != nil {
+					writeHTTPError(w, http.StatusInternalServerError, err)
+					return
+				}
+			} else {
+				if err := h.client.Unmount(ctx, k); err != nil {
+					writeHTTPError(w, http.StatusInternalServerError, err)
+					return
+				}
+				if _, err := h.client.Update(ctx, ""); err != nil {
+					writeHTTPError(w, http.StatusInternalServerError, err)
+					return
+				}
+			}
+		}
+		if len(req) != 0 {
+			now := time.Now().UTC()
+			r = setUpdateTime(r, now)
+		}
+		r.Method = http.MethodGet
+		fallback.ServeHTTP(w, r)
+	}
 }
 
 type httpCover struct {

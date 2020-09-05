@@ -56,6 +56,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 0\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
 			},
 			tests: []*testRequest{
 				{
@@ -90,12 +91,48 @@ func TestAPIJSONPHandler(t *testing.T) {
 					method: http.MethodGet, path: "/api/music/stats",
 					want: map[int]string{http.StatusOK: `{"uptime":667505,"playtime":0,"artists":835,"albums":528,"songs":5715,"library_playtime":1475220,"library_update":1560656023}`},
 				},
+				{
+					method: http.MethodGet, path: "/api/music/storage",
+					want: map[int]string{http.StatusOK: `{"":{"uri":"/home/foo/music"},"foo":{"uri":"nfs://192.168.1.4/export/mp3"}}`},
+				},
 			},
 		},
 		"reconnect": {
 			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
 
 			tests: []*testRequest{
+				{
+					method: http.MethodGet, path: "/api/music/playlist",
+					want: map[int]string{http.StatusOK: ""},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/playlist/songs",
+					want: map[int]string{http.StatusOK: ""},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/library",
+					want: map[int]string{http.StatusOK: ""},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/library/songs",
+					want: map[int]string{http.StatusOK: ""},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/playlist/songs/current",
+					want: map[int]string{http.StatusOK: ""},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/outputs",
+					want: map[int]string{http.StatusOK: ""},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/stats",
+					want: map[int]string{http.StatusOK: ""},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/storage",
+					want: map[int]string{http.StatusOK: ""},
+				},
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
@@ -107,9 +144,10 @@ func TestAPIJSONPHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 0\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 					},
-					preWebSocket: []string{"/api/music/library/songs", "/api/music/playlist", "/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/outputs", "/api/music/stats"},
+					preWebSocket: []string{"/api/music/library/songs", "/api/music/playlist", "/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/outputs", "/api/music/stats", "/api/music/storage"},
 					method:       http.MethodGet, path: "/api/music",
 					want: map[int]string{http.StatusOK: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
 				},
@@ -140,6 +178,10 @@ func TestAPIJSONPHandler(t *testing.T) {
 				{
 					method: http.MethodGet, path: "/api/music/stats",
 					want: map[int]string{http.StatusOK: `{"uptime":667505,"playtime":0,"artists":835,"albums":528,"songs":5715,"library_playtime":1475220,"library_update":1560656023}`},
+				},
+				{
+					method: http.MethodGet, path: "/api/music/storage",
+					want: map[int]string{http.StatusOK: `{"":{"uri":"/home/foo/music"},"foo":{"uri":"nfs://192.168.1.4/export/mp3"}}`},
 				},
 			},
 		},
@@ -458,6 +500,84 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			},
 		},
+		"GET /api/music/storage unknown command": {
+			config: APIConfig{skipInit: true},
+			tests: []*testRequest{
+				{
+					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
+						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: mount\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "ACK [5@0] {} unknown command \"listmounts\"\nOK\n"})
+					},
+					preWebSocket: []string{"/api/music/storage"},
+					method:       http.MethodGet, path: "/api/music/storage",
+					want: map[int]string{http.StatusOK: `{}`},
+				},
+			},
+		},
+		"GET /api/music/storage": {
+			config: APIConfig{skipInit: true},
+			tests: []*testRequest{
+				{
+					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
+						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: mount\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
+					},
+					preWebSocket: []string{"/api/music/storage"},
+					method:       http.MethodGet, path: "/api/music/storage",
+					want: map[int]string{http.StatusOK: `{"":{"uri":"/home/foo/music"},"foo":{"uri":"nfs://192.168.1.4/export/mp3"}}`},
+				},
+			},
+		},
+		`POST /api/music/storage {"foo":{"uri":"nfs://192.168.1.4/export/mp3"}}`: {
+			config: APIConfig{skipInit: true},
+			tests: []*testRequest{
+				{
+					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
+						main.Expect(ctx, &mpdtest.WR{Read: "mount \"foo\" \"nfs://192.168.1.4/export/mp3\"\n", Write: "OK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "update foo\n", Write: "OK\n"})
+						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: mount\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
+					},
+					method: http.MethodPost, path: "/api/music/storage", body: strings.NewReader(`{"foo":{"uri":"nfs://192.168.1.4/export/mp3"}}`),
+					want: map[int]string{
+						http.StatusAccepted: "",
+						http.StatusOK:       `{"":{"uri":"/home/foo/music"},"foo":{"uri":"nfs://192.168.1.4/export/mp3"}}`,
+					},
+					postWebSocket: []string{"/api/music/storage"},
+				},
+			},
+		},
+		`POST /api/music/storage {"foo":{"uri":null}}`: {
+			config: APIConfig{skipInit: true},
+			tests: []*testRequest{
+				{
+					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
+						main.Expect(ctx, &mpdtest.WR{Read: "unmount \"foo\"\n", Write: "OK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "update \n", Write: "OK\n"})
+						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: mount\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nOK\n"})
+					},
+					method: http.MethodPost, path: "/api/music/storage", body: strings.NewReader(`{"foo":{"uri":null}}`),
+					want: map[int]string{
+						http.StatusAccepted: "",
+						http.StatusOK:       `{"":{"uri":"/home/foo/music"}}`,
+					},
+					postWebSocket: []string{"/api/music/storage"},
+				},
+			},
+		},
+		`POST /api/music/storage {"foo":{"updating":true}}`: {
+			config: APIConfig{skipInit: true},
+			tests: []*testRequest{
+				{
+					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
+						main.Expect(ctx, &mpdtest.WR{Read: "update foo\n", Write: "OK\n"})
+					},
+					method: http.MethodPost, path: "/api/music/storage", body: strings.NewReader(`{"foo":{"updating":true}}`),
+					want: map[int]string{http.StatusAccepted: ""},
+				},
+			},
+		},
 		"GET /api/music/outputs": {
 			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
@@ -639,6 +759,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 0\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
 			},
 			tests: []*testRequest{
 				{ // update playlist and current song

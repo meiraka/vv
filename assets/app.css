@@ -258,6 +258,7 @@ body {
   --overlay: rgba(255, 255, 255, 0.4);
   --scrollbar: rgba(48, 48, 48, 0.2);
   --scrollbar-hover: rgba(48, 48, 48, 0.6);
+  --warning-text: #ff3d3d;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -278,6 +279,7 @@ body {
     --overlay: rgba(0, 0, 0, 0.4);
     --scrollbar: rgba(208, 208, 208, 0.2);
     --scrollbar-hover: rgba(208, 208, 208, 0.6);
+    --warning-text: #ff4646;
   }
 }
 
@@ -304,6 +306,7 @@ body {
   --overlay: rgba(255, 255, 255, 0.4);
   --scrollbar: rgba(48, 48, 48, 0.2);
   --scrollbar-hover: rgba(48, 48, 48, 0.6);
+  --warning-text: #ff3d3d;
 }
 
 .dark {
@@ -323,11 +326,16 @@ body {
   --overlay: rgba(0, 0, 0, 0.4);
   --scrollbar: rgba(208, 208, 208, 0.2);
   --scrollbar-hover: rgba(208, 208, 208, 0.6);
+  --warning-text: #ff4646;
 }
 
 body {
   color: var(--text-color);
   background-color: var(--bg-color);
+}
+
+.warning-text {
+  color: var(--warning-text);
 }
 
 kbd {
@@ -1419,7 +1427,7 @@ time.system-setting-value {
 .button-simple {
   border-radius: 24px;
   height: 30px;
-  margin: 0;
+  margin: 6.5px 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1812,6 +1820,7 @@ footer {
   overflow: hidden;
 }
 
+.submodal-background,
 .modal-background {
   opacity: 0.6;
   background-color: var(--bg-color);
@@ -1845,6 +1854,8 @@ footer {
   flex-flow: column nowrap;
   align-items: center;
   justify-content: center;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
 .submodal-allowed-formats {
@@ -1930,6 +1941,12 @@ footer {
   margin: 6px;
 }
 
+.modal-window-footer {
+  padding: 0 3px;
+  display: flex;
+  flex-flow: row-reverse nowrap;
+}
+
 @media (min-width: 1440px) {
   .modal-song {
     width: 50%;
@@ -1948,10 +1965,17 @@ footer {
   }
 }
 
+.modal-input-list,
 .modal-song-box {
   display: flex;
   flex-flow: row wrap;
   width: 100%;
+}
+
+.modal-input-list {
+  margin: 0;
+  padding: 0;
+  justify-content: center;
 }
 
 .modal-song-box-items {
@@ -1992,6 +2016,7 @@ footer {
   width: 100%;
 }
 
+.modal-input-box,
 .modal-song-box-item {
   padding: 0;
   margin: 0;
@@ -1999,16 +2024,36 @@ footer {
   flex-flow: column nowrap;
 }
 
+.modal-input-box {
+  flex: 1 1 auto;
+  max-width: 100%;
+  width: 250px;
+}
+
 .modal-song-box-bigitem {
   height: 120px;
 }
 
+.modal-input-label,
+.modal-input-text,
 .modal-song-box-item-key,
 .modal-song-box-item-value,
 .modal-song-box-item-emptyvalue,
 .modal-song-box-item-values {
   box-sizing: border-box;
   flex: 1 1 auto;
+}
+.modal-input-text {
+  font-size: 18px;
+  border-radius: 3px;
+  border: 0;
+  margin: 3px;
+  color: var(--button-inner);
+  background-color: var(--button-outline);
+}
+
+.modal-input-label {
+  margin: 3px;
 }
 
 .modal-song-box-item-key,

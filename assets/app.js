@@ -216,6 +216,7 @@ vv.storage = {
     library: [],
     library_info: {},
     outputs: [],
+    storage: {},
     stats: {},
     last_modified: {},
     etag: {},
@@ -786,7 +787,7 @@ vv.request = {
         }
         xhr.send();
     },
-    post(path, obj) {
+    post(path, obj, callback) {
         const key = "POST " + path;
         if (vv.request._requests[key]) {
             vv.request._requests[key].abort();
@@ -796,7 +797,9 @@ vv.request = {
         xhr.responseType = "json";
         xhr.timeout = 1000;
         xhr.onload = () => {
-            if (xhr.status !== 200 && xhr.status !== 202) {
+            if (callback && xhr.response) {
+                callback(xhr.response);
+            } else if (xhr.status !== 200 && xhr.status !== 202) {
                 if (xhr.response && xhr.response.error) {
                     vv.view.popup.show("network", xhr.response.error);
                 } else {
@@ -822,6 +825,11 @@ vv.control = {
     raiseEvent(e) { vv.pubsub.raise(vv.control._listener, e); },
 
     rescan_library() {
+        for (const path in vv.storage.storage) {
+            if (path !== "" && vv.storage.storage.hasOwnProperty(path)) {
+                vv.request.post("/api/music/storage", { [path]: { updating: true } });
+            }
+        }
         vv.request.post("/api/music/library", { updating: true });
         vv.storage.library_info.updating = true;
         vv.control.raiseEvent("library_info");
@@ -916,6 +924,7 @@ vv.control = {
         vv.control._fetch("/api/music/library/songs", "library");
         vv.control._fetch("/api/music/stats", "stats");
         vv.control._fetch("/api/music/images", "images");
+        vv.control._fetch("/api/music/storage", "storage");
     },
     _notify_last_update: (new Date()).getTime(),
     _notify_last_connection: (new Date()).getTime(),
@@ -964,6 +973,8 @@ vv.control = {
                     vv.control._fetch("/api/music/playlist", "sorted");
                 } else if (e.data === "/api/music/images") {
                     vv.control._fetch("/api/music/images", "images");
+                } else if (e.data === "/api/music/storage") {
+                    vv.control._fetch("/api/music/storage", "storage");
                 }
                 const now = (new Date()).getTime();
                 if (now - vv.control._notify_last_update > 10000) {
@@ -1985,6 +1996,36 @@ vv.view.system = {
             }
         }
     },
+    onStorage() {
+        if (Object.keys(vv.storage.storage).length === 0) {
+            document.getElementById("storage-header").classList.add("hide");
+            document.getElementById("storage").classList.add("hide");
+            return;
+        }
+        document.getElementById("storage-header").classList.remove("hide");
+        document.getElementById("storage").classList.remove("hide");
+        const ul = document.getElementById("storage-list");
+        while (ul.lastChild) {
+            ul.removeChild(ul.lastChild);
+        }
+        const newul = document.createDocumentFragment();
+        for (const path in vv.storage.storage) {
+            if (path !== "" && vv.storage.storage.hasOwnProperty(path)) {
+                const s = vv.storage.storage[path];
+                const c = document.querySelector("#storage-template").content;
+                const e = c.querySelector("li");
+                e.querySelector(".system-setting-desc").textContent = path;
+                e.querySelector(".uri").textContent = s.uri;
+                e.querySelector(".unmount").dataset.path = path;
+                const d = document.importNode(c, true);
+                d.querySelector(".unmount").addEventListener("click", (e) => {
+                    vv.request.post("/api/music/storage", { [e.currentTarget.dataset.path]: { "uri": null } });
+                });
+                newul.appendChild(d);
+            }
+        }
+        ul.appendChild(newul);
+    },
     onOutputs() {
         const ul = document.getElementById("devices");
         while (ul.lastChild) {
@@ -2157,6 +2198,19 @@ vv.view.system = {
         vv.view.system._initconfig("playlist-playback-tracks_custom");
         document.getElementById("system-reload").addEventListener("click", () => {
             location.reload();
+        });
+        document.getElementById("storage-mount").addEventListener("click", () => {
+            vv.view.submodal.showStorageMount();
+        });
+        document.getElementById("storage-ok").addEventListener("click", () => {
+            vv.request.post("/api/music/storage", { [document.getElementById("storage-path").value]: { "uri": document.getElementById("storage-uri").value } }, (e) => {
+                if (e.error) {
+                    console.log(e);
+                    document.getElementById("storage-error").textContent = e.error;
+                    return;
+                }
+                vv.view.submodal.hide();
+            })
         });
         document.getElementById("library-rescan").addEventListener("click", () => {
             vv.control.rescan_library();
@@ -2379,6 +2433,7 @@ vv.control.addEventListener("images", vv.view.system.onImages);
 vv.control.addEventListener("status", vv.view.system.onStats);
 vv.control.addEventListener("preferences", vv.view.system.onPreferences);
 vv.control.addEventListener("outputs", vv.view.system.onOutputs);
+vv.control.addEventListener("storage", vv.view.system.onStorage);
 
 // header
 {
@@ -2692,12 +2747,19 @@ vv.view.modal = {
 };
 vv.control.addEventListener("start", vv.view.modal.onStart);
 vv.view.submodal = {
+    showStorageMount() {
+        document.getElementById("storage-path").value = "";
+        document.getElementById("storage-uri").value = "";
+        document.getElementById("storage-error").textContent = "";
+        document.getElementById("submodal-background").classList.remove("hide");
+        document.getElementById("submodal-outer").classList.remove("hide");
+        document.getElementById("submodal-storage-mount").classList.remove("hide");
+    },
     showAllowedFormats(t) {
         if (!vv.storage.outputs[t] || !vv.storage.outputs[t].attributes || !vv.storage.outputs[t].attributes.allowed_formats) {
             return;
         }
         const lists = vv.storage.outputs[t].attributes.allowed_formats;
-        const b = document.getElementById("submodal-outer");
         const w = document.getElementById("submodal-allowed-formats");
         w.dataset.deviceid = t;
         let e = document.createEvent("HTMLEvents");
@@ -2719,10 +2781,12 @@ vv.view.submodal = {
                 }
             }
         }
-        b.classList.remove("hide");
+        document.getElementById("submodal-background").classList.remove("hide");
+        document.getElementById("submodal-outer").classList.remove("hide");
         w.classList.remove("hide");
     },
     hide() {
+        document.getElementById("submodal-background").classList.add("hide");
         document.getElementById("submodal-outer").classList.add("hide");
         for (const w of Array.from(document.getElementsByClassName("submodal-window"))) {
             w.classList.add("hide");
@@ -2733,8 +2797,10 @@ vv.view.submodal = {
             w.addEventListener("click", vv.view.submodal.hide);
         }
         document.getElementById("submodal-outer").addEventListener("click", vv.view.submodal.hide);
+        for (const w of Array.from(document.getElementsByClassName("submodal-window"))) {
+            w.addEventListener("click", (e) => { e.stopPropagation(); });
+        }
         const allowedFormats = document.getElementById("submodal-allowed-formats");
-        allowedFormats.addEventListener("click", (e) => { e.stopPropagation(); });
         document.getElementById("allowed-formats-auto").addEventListener("change", () => {
             for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
                 n.disabled = true;

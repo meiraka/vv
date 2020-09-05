@@ -283,6 +283,23 @@ func (c *Client) Update(ctx context.Context, uri string) (map[string]string, err
 	return c.mapStr(ctx, "update", uri)
 }
 
+// Mounts and neighbors
+
+// Mount the specified storage uri at the given path.
+func (c *Client) Mount(ctx context.Context, path, url string) error {
+	return c.ok(ctx, "mount", quote(path), quote(url))
+}
+
+// Unmount the specified path.
+func (c *Client) Unmount(ctx context.Context, path string) error {
+	return c.ok(ctx, "unmount", quote(path))
+}
+
+// ListMounts queries a list of all mounts.
+func (c *Client) ListMounts(ctx context.Context) ([]map[string]string, error) {
+	return c.listMap(ctx, "mount", "listmounts")
+}
+
 // Audio output devices
 
 // DisableOutput turns an output off.
