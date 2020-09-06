@@ -16,6 +16,7 @@ type Config struct {
 		Network        string `yaml:"network"`
 		Addr           string `yaml:"addr"`
 		MusicDirectory string `yaml:"music_directory"`
+		Conf           string `yaml:"conf"`
 	} `yaml:"mpd"`
 	Server struct {
 		Addr           string `yaml:"addr"`
@@ -33,13 +34,14 @@ type Config struct {
 }
 
 // ParseConfig parse yaml config and flags.
-func ParseConfig(dir []string) (*Config, time.Time, error) {
+func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 	c := &Config{}
 	c.Server.Cover.Local = true
 	c.Server.CacheDirectory = filepath.Join(os.TempDir(), "vv")
+	c.MPD.Conf = "/etc/mpd.conf"
 	date := time.Time{}
 	for _, d := range dir {
-		path := filepath.Join(d, "config.yaml")
+		path := filepath.Join(d, name)
 		_, err := os.Stat(path)
 		if err == nil {
 			f, err := os.Open(path)
@@ -61,6 +63,7 @@ func ParseConfig(dir []string) (*Config, time.Time, error) {
 	mn := pflag.String("mpd.network", "", "mpd server network to connect")
 	ma := pflag.String("mpd.addr", "", "mpd server address to connect")
 	mm := pflag.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
+	mc := pflag.String("mpd.conf", "", "set mpd.conf path to get music_directory and http audio output")
 	sa := pflag.String("server.addr", "", "this app serving address")
 	si := pflag.Bool("server.cover.remote", false, "enable coverart via mpd api")
 	d := pflag.BoolP("debug", "d", false, "use local assets if exists")
@@ -73,6 +76,9 @@ func ParseConfig(dir []string) (*Config, time.Time, error) {
 	}
 	if len(*mm) != 0 {
 		c.MPD.MusicDirectory = *mm
+	}
+	if len(*mc) != 0 {
+		c.MPD.Conf = *mc
 	}
 	if len(*sa) != 0 {
 		c.Server.Addr = *sa

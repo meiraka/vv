@@ -27,6 +27,7 @@ Options
 
   -d, --debug                        use local assets if exists
       --mpd.addr string              mpd server address to connect
+      --mpd.conf string              set mpd.conf path to get music_directory and http audio output
       --mpd.music_directory string   set music_directory in mpd.conf value to search album cover image
       --mpd.network string           mpd server network to connect
       --server.addr string           this app serving address

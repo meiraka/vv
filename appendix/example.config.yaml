@@ -1,21 +1,31 @@
 mpd:
-    # mpd server network to connect
+    # mpd server network protocol to connect
+    # default: tcp
     network: "tcp"
     # mpd server address to connect
+    # default: localhost:6600
     addr: "localhost:6600"
     # set music_directory in mpd.conf value to search album cover image.
+    # default: music_directory in mpd.conf if exists
     music_directory: "/path/to/music/dir"
+    # mpd.conf path to get music_directory and http audio output.
+    # default: /etc/mpd.conf
+    conf: "/etc/mpd.conf"
 
 server:
     # this app serving address
+    # default: :8080
     addr: ":8080"
-    # this app cache directory(default: https://golang.org/pkg/os/#TempDir + vv)
+    # this app cache directory
+    # default: https://golang.org/pkg/os/#TempDir + vv
     cache_directory: "/tmp/vv"
     cover:
-      # search album cover image in mpd.music_directory(default: true)
+      # search album cover image in mpd.music_directory
+      # default: true
       local: true
-      # search album cover image via mpd api(default: false)
+      # search album cover image via mpd api
       # this feature uses server.cache_directory
+      # default: false
       remote: true
 
 playlist:
@@ -24,8 +34,8 @@ playlist:
       sort: ["AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"]
       tree: [["AlbumArtist", "plain"], ["Album", "album"], ["Title", "song"]]
     Album:
-      sort: ["AlbumArtist-Date-Album", "DiscNumber", "TrackNumber", "Title", "file"]
-      tree: [["AlbumArtist-Date-Album", "album"], ["Title", "song"]]
+      sort: ["Date-Album", "DiscNumber", "TrackNumber", "Title", "file"]
+      tree: [["Date-Album", "album"], ["Title", "song"]]
     Artist:
       sort: ["Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"]
       tree: [["Artist", "plain"], ["Title", "song"]]

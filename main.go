@@ -25,7 +25,7 @@ func main() {
 
 func v2() {
 	ctx := context.TODO()
-	config, date, err := ParseConfig([]string{"/etc/xdg/vv"})
+	config, date, err := ParseConfig([]string{"/etc/xdg/vv"}, "config.yaml")
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
