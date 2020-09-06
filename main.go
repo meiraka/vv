@@ -16,7 +16,7 @@ import (
 	"github.com/meiraka/vv/internal/songs/cover"
 )
 
-var version = "v0.9.1+"
+var version = "v0.10.0+"
 
 //go:generate go run internal/cmd/fix-assets/main.go
 func main() {
