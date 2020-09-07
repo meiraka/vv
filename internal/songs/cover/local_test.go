@@ -13,9 +13,9 @@ import (
 )
 
 func TestLocalCover(t *testing.T) {
-	searcher, err := NewLocalSearcher("/foo", filepath.Join("..", "..", "../"), []string{"app.png"})
+	api, err := NewLocal("/foo", filepath.Join("..", "..", "../"), []string{"app.png"})
 	if err != nil {
-		t.Fatalf("failed to initialize LocalSearcher: %v", err)
+		t.Fatalf("failed to initialize cover.Local: %v", err)
 	}
 	for _, tt := range []struct {
 		in         map[string][]string
@@ -35,7 +35,7 @@ func TestLocalCover(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprint(tt.in), func(t *testing.T) {
-			covers, _ := searcher.GetURLs(tt.in)
+			covers, _ := api.GetURLs(tt.in)
 			if !reflect.DeepEqual(covers, tt.want) {
 				t.Errorf("got GetURLs=%v; want %v", covers, tt.want)
 			}
@@ -45,7 +45,7 @@ func TestLocalCover(t *testing.T) {
 			cover := covers[0]
 			req := httptest.NewRequest("GET", cover, nil)
 			w := httptest.NewRecorder()
-			searcher.ServeHTTP(w, req)
+			api.ServeHTTP(w, req)
 			resp := w.Result()
 			if resp.StatusCode != 200 {
 				t.Errorf("got status %d; want 200", resp.StatusCode)

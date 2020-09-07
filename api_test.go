@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
+	"github.com/meiraka/vv/internal/songs/cover"
 )
 
 const (
@@ -917,7 +918,8 @@ func TestAPIJSONPHandler(t *testing.T) {
 			if tt.initFunc != nil {
 				go tt.initFunc(ctx, main)
 			}
-			h, err := tt.config.NewAPIHandler(ctx, c, wl)
+			b := cover.NewBatch([]cover.Cover{})
+			h, err := tt.config.NewAPIHandler(ctx, c, wl, b)
 			if err != nil {
 				t.Fatalf("NewHTTPHandler got error %v; want nil", err)
 			}
@@ -994,6 +996,9 @@ func TestAPIJSONPHandler(t *testing.T) {
 						}
 					}
 				})
+			}
+			if err := b.Shutdown(ctx); err != nil {
+				t.Errorf("cover.Batch.Shutdown got err %v; want nil", err)
 			}
 			go func() {
 				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: ""})

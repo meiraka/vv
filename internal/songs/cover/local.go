@@ -12,8 +12,8 @@ import (
 	"sync"
 )
 
-// LocalSearcher searches song conver art
-type LocalSearcher struct {
+// Local provides http server song conver art from local filesystem.
+type Local struct {
 	httpPrefix     string
 	musicDirectory string
 	files          []string
@@ -23,13 +23,13 @@ type LocalSearcher struct {
 	event          chan struct{}
 }
 
-// NewLocalSearcher creates LocalSearcher.
-func NewLocalSearcher(httpPrefix string, dir string, files []string) (*LocalSearcher, error) {
+// NewLocal creates Local.
+func NewLocal(httpPrefix string, dir string, files []string) (*Local, error) {
 	dir, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
 	}
-	return &LocalSearcher{
+	return &Local{
 		httpPrefix:     httpPrefix,
 		musicDirectory: dir,
 		files:          files,
@@ -38,8 +38,8 @@ func NewLocalSearcher(httpPrefix string, dir string, files []string) (*LocalSear
 	}, nil
 }
 
-// ServeHTTP serves local cover art with httpPrefix
-func (l *LocalSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// ServeHTTP serves cover art with httpPrefix
+func (l *Local) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	l.mu.RLock()
 	path, ok := l.url2img[r.URL.Path]
 	l.mu.RUnlock()
@@ -51,24 +51,16 @@ func (l *LocalSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Rescan rescans all songs images.
-func (l *LocalSearcher) Rescan(ctx context.Context, songs []map[string][]string) {
-	t := make(map[string]struct{}, len(songs))
-	for i := range songs {
-		if k, ok := l.songDirPath(songs[i]); ok {
-			t[k] = struct{}{}
-		}
+func (l *Local) Rescan(ctx context.Context, song map[string][]string) error {
+	k, ok := l.songDirPath(song)
+	if !ok {
+		return nil
 	}
-	for k := range t {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-		l.updateCache(k)
-	}
+	l.updateCache(k)
+	return nil
 }
 
-func (l *LocalSearcher) songDirPath(song map[string][]string) (string, bool) {
+func (l *Local) songDirPath(song map[string][]string) (string, bool) {
 	file, ok := song["file"]
 	if !ok {
 		return "", false
@@ -80,7 +72,7 @@ func (l *LocalSearcher) songDirPath(song map[string][]string) (string, bool) {
 	return filepath.Dir(localPath), true
 }
 
-func (l *LocalSearcher) updateCache(songDirPath string) []string {
+func (l *Local) updateCache(songDirPath string) []string {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	ret := []string{}
@@ -99,7 +91,7 @@ func (l *LocalSearcher) updateCache(songDirPath string) []string {
 }
 
 // GetURLs returns cover path for m
-func (l *LocalSearcher) GetURLs(m map[string][]string) ([]string, bool) {
+func (l *Local) GetURLs(m map[string][]string) ([]string, bool) {
 	if l == nil {
 		return nil, true
 	}

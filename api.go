@@ -18,24 +18,18 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/songs"
+	"github.com/meiraka/vv/internal/songs/cover"
 )
 
 // APIConfig holds HTTPHandler config
 type APIConfig struct {
 	BackgroundTimeout time.Duration
-	CoverSearchers    []CoverSearcher
 	AudioProxy        map[string]string // audio device - server addr pair
 	skipInit          bool
 }
 
-// CoverSearcher provides song cover url and rescan api.
-type CoverSearcher interface {
-	Rescan(context.Context, []map[string][]string)
-	GetURLs(map[string][]string) ([]string, bool)
-}
-
 // NewAPIHandler creates json api handler.
-func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher) (http.Handler, error) {
+func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, s *cover.Batch) (http.Handler, error) {
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
 	}
@@ -43,26 +37,64 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 		config:       &c,
 		client:       cl,
 		watcher:      w,
+		covers:       s,
 		jsonCache:    newJSONCache(),
 		playlistInfo: &httpPlaylistInfo{},
-		imgUpdateSem: make(chan struct{}, 1),
 	}
-	if err := h.updateVersion(); err != nil {
+	if err := h.runCacheUpdater(ctx); err != nil {
 		return nil, err
 	}
+	return h.handle(), nil
+}
+
+type api struct {
+	config    *APIConfig
+	client    *mpd.Client
+	watcher   *mpd.Watcher
+	jsonCache *jsonCache
+	upgrader  websocket.Upgrader
+	covers    *cover.Batch
+
+	mu           sync.Mutex
+	playlist     []map[string][]string
+	library      []map[string][]string
+	librarySort  []map[string][]string
+	replayGain   map[string]string
+	playlistInfo *httpPlaylistInfo
+}
+
+func (h *api) runCacheUpdater(ctx context.Context) error {
+	if err := h.updateVersion(); err != nil {
+		return err
+	}
 	all := []func(context.Context) error{h.updateLibrarySongs, h.updatePlaylistSongs, h.updateOptions, h.updateStatus, h.updateCurrentSong, h.updateOutputs, h.updateStats, h.updateStorage}
-	if !c.skipInit {
+	if !h.config.skipInit {
 		for _, v := range all {
 			if err := v(ctx); err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		defer h.jsonCache.Close()
-
-		for e := range w.Event() {
-			ctx, cancel := context.WithTimeout(context.Background(), c.BackgroundTimeout)
+		defer wg.Done()
+		h.jsonCache.SetIfNone("/api/music/images", &httpImages{})
+		for updating := range h.covers.Event() {
+			h.jsonCache.SetIfModified("/api/music/images", &httpImages{Updating: updating})
+			if !updating {
+				ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
+				h.updateCurrentSong(ctx)
+				h.updateLibrarySongs(ctx)
+				cancel()
+			}
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for e := range h.watcher.Event() {
+			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 			switch e {
 			case "reconnect":
 				h.updateVersion()
@@ -94,23 +126,11 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 			cancel()
 		}
 	}()
-	return h.handle(), nil
-}
-
-type api struct {
-	config    *APIConfig
-	client    *mpd.Client
-	watcher   *mpd.Watcher
-	jsonCache *jsonCache
-	upgrader  websocket.Upgrader
-
-	mu           sync.Mutex
-	playlist     []map[string][]string
-	library      []map[string][]string
-	librarySort  []map[string][]string
-	replayGain   map[string]string
-	playlistInfo *httpPlaylistInfo
-	imgUpdateSem chan struct{}
+	go func() {
+		wg.Wait()
+		h.jsonCache.Close()
+	}()
+	return nil
 }
 
 func (h *api) handle() http.HandlerFunc {
@@ -173,18 +193,7 @@ LOOP:
 func (h *api) convSong(s map[string][]string) (map[string][]string, bool) {
 	s = songs.AddTags(s)
 	delete(s, "cover")
-	var cover []string
-	updated := true
-	for _, v := range h.config.CoverSearchers {
-		urls, ok := v.GetURLs(s)
-		if !ok {
-			updated = false
-		}
-		cover = append(cover, urls...)
-		if len(cover) != 0 {
-			break
-		}
-	}
+	cover, updated := h.covers.GetURLs(s)
 	if len(cover) != 0 {
 		s["cover"] = cover
 	}
@@ -202,7 +211,7 @@ func (h *api) convSongs(s []map[string][]string) []map[string][]string {
 		}
 	}
 	if len(needUpdates) != 0 {
-		go h.updateImages(needUpdates)
+		h.covers.Update(needUpdates)
 	}
 	return ret
 }
@@ -921,37 +930,19 @@ func (h *api) storageHandler() http.HandlerFunc {
 	}
 }
 
-type httpCover struct {
+type httpImages struct {
 	Updating bool `json:"updating"`
-}
-
-func (h *api) updateImages(songs []map[string][]string) {
-	select {
-	case h.imgUpdateSem <- struct{}{}:
-	default:
-		return
-	}
-	defer func() { <-h.imgUpdateSem }()
-	h.jsonCache.SetIfModified("/api/music/images", &httpCover{Updating: true})
-	for _, v := range h.config.CoverSearchers {
-		v.Rescan(context.Background(), songs)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
-	defer cancel()
-	h.updateCurrentSong(ctx)
-	h.updateLibrarySongs(ctx)
-	h.jsonCache.SetIfModified("/api/music/images", &httpCover{Updating: false})
 }
 
 func (h *api) imagesHandler() http.HandlerFunc {
 	fallback := h.jsonCache.Handler("/api/music/images")
-	h.jsonCache.SetIfNone("/api/music/images", &httpCover{})
+	h.jsonCache.SetIfNone("/api/music/images", &httpImages{})
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			fallback.ServeHTTP(w, r)
 			return
 		}
-		var req httpCover
+		var req httpImages
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeHTTPError(w, http.StatusBadRequest, err)
 			return
@@ -960,7 +951,7 @@ func (h *api) imagesHandler() http.HandlerFunc {
 			writeHTTPError(w, http.StatusBadRequest, errors.New("requires updating=true"))
 			return
 		}
-		go h.updateImages(h.library)
+		h.covers.Update(h.library)
 		now := time.Now().UTC()
 		r.Method = http.MethodGet
 		fallback.ServeHTTP(w, setUpdateTime(r, now))

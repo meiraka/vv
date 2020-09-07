@@ -16,17 +16,18 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 	if err != nil {
 		return nil, err
 	}
-	c := make(chan string, 10)
+	event := make(chan string, 10)
 	ctx, cancel := context.WithCancel(context.Background())
 	closed := make(chan struct{})
 	w := &Watcher{
-		c:      c,
+		event:  event,
 		closed: closed,
 		pool:   pool,
 		cancel: cancel,
 	}
 	go func() {
 		defer close(closed)
+		defer close(event)
 		var err error
 		for {
 			select {
@@ -38,7 +39,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 			err = w.pool.Exec(context.Background() /* do not use ctx to graceful shutdown */, func(conn *conn) error {
 				if err != nil {
 					select {
-					case c <- "reconnect":
+					case event <- "reconnect":
 					default:
 					}
 				}
@@ -71,7 +72,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 					}
 					if strings.HasPrefix(line, "changed: ") {
 						select {
-						case c <- strings.TrimPrefix(line, "changed: "):
+						case event <- strings.TrimPrefix(line, "changed: "):
 						default:
 						}
 					} else if line != "OK" {
@@ -91,13 +92,13 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 type Watcher struct {
 	pool   *pool
 	closed <-chan struct{}
-	c      <-chan string
+	event  chan string
 	cancel func()
 }
 
 // Event returns event channel which sends idle command outputs.
 func (w *Watcher) Event() <-chan string {
-	return w.c
+	return w.event
 }
 
 // Close closes connection

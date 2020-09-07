@@ -98,19 +98,19 @@ func v2() {
 		}
 	}
 	m := http.NewServeMux()
-	coverSearchers := make([]CoverSearcher, 0, 2)
+	covers := make([]cover.Cover, 0, 2)
 	if config.Server.Cover.Local {
 		if !strings.HasPrefix(config.MPD.MusicDirectory, "/") {
 			log.Printf("config.server.cover.local is disabled: mpd.music_directory is not absolute local directory path: %v", config.MPD.MusicDirectory)
 		} else if len(config.MPD.MusicDirectory) == 0 {
 			log.Println("config.server.cover.local is disabled: mpd.music_directory is empty")
 		} else {
-			searcher, err := cover.NewLocalSearcher("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
+			c, err := cover.NewLocal("api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
 			if err != nil {
 				log.Fatalf("failed to initialize coverart: %v", err)
 			}
-			m.Handle("/api/music/images/local/", searcher)
-			coverSearchers = append(coverSearchers, searcher)
+			m.Handle("/api/music/images/local/", c)
+			covers = append(covers, c)
 
 		}
 	}
@@ -118,26 +118,24 @@ func v2() {
 		if !contains(commands, "albumart") {
 			log.Println("config.server.cover.remote is disabled: mpd does not support albumart command")
 		} else {
-			searcher, err := cover.RemoteSearcherConfig{
-				Timeout: time.Minute,
-			}.NewRemoteSearcher("/api/music/images/remote/", cl, filepath.Join(config.Server.CacheDirectory, "imgcache"))
+			c, err := cover.NewRemote("/api/music/images/remote/", cl, filepath.Join(config.Server.CacheDirectory, "imgcache"))
 			if err != nil {
 				log.Fatalf("failed to initialize coverart: %v", err)
 			}
-			m.Handle("/api/music/images/remote/", searcher)
-			coverSearchers = append(coverSearchers, searcher)
-			defer searcher.Close()
+			m.Handle("/api/music/images/remote/", c)
+			covers = append(covers, c)
+			defer c.Close()
 		}
 	}
+	batch := cover.NewBatch(covers)
 	assets := AssetsConfig{
 		LocalAssets: config.debug,
 		Extra:       map[string]string{"TREE": string(tree), "TREE_ORDER": string(treeOrder)},
 		ExtraDate:   date,
 	}.NewAssetsHandler()
 	api, err := APIConfig{
-		CoverSearchers: coverSearchers,
-		AudioProxy:     proxy,
-	}.NewAPIHandler(ctx, cl, w)
+		AudioProxy: proxy,
+	}.NewAPIHandler(ctx, cl, w, batch)
 	if err != nil {
 		log.Fatalf("failed to initialize api handler: %v", err)
 	}
@@ -175,6 +173,9 @@ func v2() {
 	}
 	if err := w.Close(ctx); err != nil {
 		log.Printf("failed to close mpd connection(event): %v", err)
+	}
+	if err := batch.Shutdown(ctx); err != nil {
+		log.Printf("failed to stop image api: %v", err)
 	}
 }
 

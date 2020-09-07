@@ -17,7 +17,7 @@ import (
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
 )
 
-func TestRemoteSearcher(t *testing.T) {
+func TestRemote(t *testing.T) {
 	svr, err := mpdtest.NewServer("OK MPD 0.19")
 	if err != nil {
 		t.Fatalf("failed to create mpd test server: %v", err)
@@ -36,17 +36,17 @@ func TestRemoteSearcher(t *testing.T) {
 		t.Fatalf("failed to cleanup test dir")
 	}
 	defer os.RemoveAll(testDir)
-	searcher, err := RemoteSearcherConfig{}.NewRemoteSearcher("/api/images", c, testDir)
+	api, err := NewRemote("/api/images", c, testDir)
 	if err != nil {
-		t.Fatalf("failed to initialize searcher: %v", err)
+		t.Fatalf("failed to initialize cover.Remote: %v", err)
 	}
-	defer searcher.Close()
+	defer api.Close()
 	for _, tt := range []map[string][]string{
 		{"file": {"assets/test.flac"}},
 		{"file": {"notfound/test.flac"}},
 	} {
 		t.Run(fmt.Sprint(tt), func(t *testing.T) {
-			covers, ok := searcher.GetURLs(tt)
+			covers, ok := api.GetURLs(tt)
 			if len(covers) != 0 || ok {
 				t.Errorf("got %v %v; want nil, false", covers, ok)
 			}
@@ -54,7 +54,7 @@ func TestRemoteSearcher(t *testing.T) {
 	}
 }
 
-func TestRemoteSearcherRescan(t *testing.T) {
+func TestRemoteRescan(t *testing.T) {
 	svr, err := mpdtest.NewServer("OK MPD 0.19")
 	if err != nil {
 		t.Fatalf("failed to create mpd test server: %v", err)
@@ -77,16 +77,16 @@ func TestRemoteSearcherRescan(t *testing.T) {
 
 	for rescanIndex, label := range []string{"empty db", "use db"} {
 		t.Run(label, func(t *testing.T) {
-			searcher, err := RemoteSearcherConfig{}.NewRemoteSearcher("/api/images", c, testDir)
+			api, err := NewRemote("/api/images", c, testDir)
 			if err != nil {
-				t.Fatalf("failed to initialize searcher: %v", err)
+				t.Fatalf("failed to initialize cover.Remote: %v", err)
 			}
 			go func() {
 				ctx := context.Background()
 				svr.Expect(ctx, &mpdtest.WR{Read: `albumart "assets/test.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png), len(png), png)})
 				svr.Expect(ctx, &mpdtest.WR{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"})
 			}()
-			defer searcher.Close()
+			defer api.Close()
 			for _, tt := range []struct {
 				in         map[string][]string
 				hasCover   bool
@@ -104,11 +104,11 @@ func TestRemoteSearcherRescan(t *testing.T) {
 					hasCover: false,
 				},
 			} {
-				searcher.Rescan(context.TODO(), []map[string][]string{tt.in})
+				api.Rescan(context.TODO(), tt.in)
 				t.Logf("rescan: %v", tt.in)
 				for i := 0; i < 2; i++ {
 					t.Run(fmt.Sprint(tt.in, i), func(t *testing.T) {
-						covers, ok := searcher.GetURLs(tt.in)
+						covers, ok := api.GetURLs(tt.in)
 						if !ok {
 							t.Error("cover is not indexed")
 						}
@@ -133,7 +133,7 @@ func TestRemoteSearcherRescan(t *testing.T) {
 						}
 						req := httptest.NewRequest("GET", cover, nil)
 						w := httptest.NewRecorder()
-						searcher.ServeHTTP(w, req)
+						api.ServeHTTP(w, req)
 						resp := w.Result()
 						if resp.StatusCode != 200 {
 							t.Errorf("got status %d; want 200", resp.StatusCode)

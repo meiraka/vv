@@ -25,8 +25,9 @@ func TestWatcher(t *testing.T) {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
 	ts.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
-	if got, want := readChan(ctx, t, c.Event()), "player"; got != want {
-		t.Fatalf("got client %s; want %s", got, want)
+	got, ok := readChan(ctx, t, c.Event())
+	if want := "player"; !ok || got != want {
+		t.Fatalf("got client %s, %v; want %s, true", got, ok, want)
 	}
 	ts.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 	errs := make(chan error, 1)
@@ -36,13 +37,17 @@ func TestWatcher(t *testing.T) {
 	if err := <-errs; err != nil {
 		t.Errorf("Close got error %v; want nil", err)
 	}
+	got, ok = readChan(ctx, t, c.Event())
+	if ok {
+		t.Errorf("got \"%s\", %v; want \"\", false", got, ok)
+	}
 
 }
 
-func readChan(ctx context.Context, t *testing.T, c <-chan string) (ret string) {
+func readChan(ctx context.Context, t *testing.T, c <-chan string) (ret string, ok bool) {
 	t.Helper()
 	select {
-	case ret = <-c:
+	case ret, ok = <-c:
 	case <-ctx.Done():
 		t.Fatalf("read timeout %v", ctx.Err())
 	}

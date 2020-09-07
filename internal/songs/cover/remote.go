@@ -11,20 +11,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-// RemoteSearcherConfig represents optional searcher settings.
-type RemoteSearcherConfig struct {
-	Timeout time.Duration // fetching request timeout per file
-}
-
-// RemoteSearcher searches song cover art by mpd albumart api.
-type RemoteSearcher struct {
-	config     *RemoteSearcherConfig
+// Remote provides http server and song cover art from mpd albumart api.
+type Remote struct {
 	httpPrefix string
 	cacheDir   string
 	client     *mpd.Client
@@ -33,8 +26,8 @@ type RemoteSearcher struct {
 	mu         sync.RWMutex
 }
 
-// NewRemoteSearcher creates MPDSearcher.
-func (c RemoteSearcherConfig) NewRemoteSearcher(httpPrefix string, client *mpd.Client, cacheDir string) (*RemoteSearcher, error) {
+// NewRemote initializes Remote with cacheDir.
+func NewRemote(httpPrefix string, client *mpd.Client, cacheDir string) (*Remote, error) {
 	if err := os.MkdirAll(cacheDir, 0766); err != nil {
 		return nil, err
 	}
@@ -43,8 +36,7 @@ func (c RemoteSearcherConfig) NewRemoteSearcher(httpPrefix string, client *mpd.C
 		return nil, err
 	}
 
-	s := &RemoteSearcher{
-		config:     &c,
+	s := &Remote{
 		httpPrefix: httpPrefix,
 		cacheDir:   cacheDir,
 		client:     client,
@@ -67,24 +59,15 @@ func (c RemoteSearcherConfig) NewRemoteSearcher(httpPrefix string, client *mpd.C
 }
 
 // Rescan rescans all songs images.
-func (s *RemoteSearcher) Rescan(ctx context.Context, songs []map[string][]string) {
-	t := make(map[string]string, len(songs))
-	for i := range songs {
-		if k, ok := s.songPath(songs[i]); ok {
-			t[path.Dir(k)] = k
-		}
+func (s *Remote) Rescan(ctx context.Context, song map[string][]string) error {
+	k, ok := s.songPath(song)
+	if !ok {
+		return nil
 	}
-	for _, k := range t {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-		s.updateCache(ctx, k)
-	}
+	return s.updateCache(ctx, k)
 }
 
-func (s *RemoteSearcher) songPath(song map[string][]string) (string, bool) {
+func (s *Remote) songPath(song map[string][]string) (string, bool) {
 	file, ok := song["file"]
 	if !ok {
 		return "", false
@@ -96,13 +79,13 @@ func (s *RemoteSearcher) songPath(song map[string][]string) (string, bool) {
 }
 
 // Close finalizes cache db, coroutines.
-func (s *RemoteSearcher) Close() error {
+func (s *Remote) Close() error {
 	s.db.Close()
 	return nil
 }
 
 // ServeHTTP serves local cover art with httpPrefix
-func (s *RemoteSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Remote) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mu.RLock()
 	path, ok := s.url2img[r.URL.Path]
 	s.mu.RUnlock()
@@ -113,7 +96,7 @@ func (s *RemoteSearcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	serveImage(path, w, r)
 }
 
-func (s *RemoteSearcher) getURLPath(songPath string) ([]string, error) {
+func (s *Remote) getURLPath(songPath string) ([]string, error) {
 	key := []byte(path.Dir(songPath))
 	name, err := s.db.Get(key, nil)
 	if err != nil {
@@ -125,7 +108,7 @@ func (s *RemoteSearcher) getURLPath(songPath string) ([]string, error) {
 	return []string{path.Join(s.httpPrefix, string(name))}, nil
 }
 
-func (s *RemoteSearcher) updateCache(ctx context.Context, songPath string) error {
+func (s *Remote) updateCache(ctx context.Context, songPath string) error {
 	key := []byte(path.Dir(songPath))
 
 	filename := ""
@@ -153,11 +136,6 @@ func (s *RemoteSearcher) updateCache(ctx context.Context, songPath string) error
 			i = len(filename)
 		}
 		filename = filename[0:i]
-	}
-	if s.config.Timeout != 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, s.config.Timeout)
-		defer cancel()
 	}
 	b, err := s.client.AlbumArt(ctx, songPath)
 	if err != nil {
@@ -201,7 +179,7 @@ func (s *RemoteSearcher) updateCache(ctx context.Context, songPath string) error
 }
 
 // GetURLs returns cover path for m
-func (s *RemoteSearcher) GetURLs(m map[string][]string) ([]string, bool) {
+func (s *Remote) GetURLs(m map[string][]string) ([]string, bool) {
 	if s == nil {
 		return nil, true
 	}
