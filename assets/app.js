@@ -236,6 +236,9 @@ vv.storage = {
             streams: {},
             stream: "",
         },
+        outputs: {
+            volume_max: "100",
+        },
         appearance: {
             theme: "prefer-coverart",
             color_threshold: 128,
@@ -244,7 +247,6 @@ vv.storage = {
             circled_image: false,
             crossfading_image: true,
             volume: true,
-            volume_max: "100",
             playlist_follows_playback: true,
             playlist_gridview_album: true,
         }
@@ -371,12 +373,16 @@ vv.storage = {
                     if (c.hasOwnProperty(i)) {
                         for (const j in c[i]) {
                             if (c[i].hasOwnProperty(j)) {
-                                if (vv.storage.preferences[i]) {
+                                if (vv.storage.preferences[i] && vv.storage.preferences[i].hasOwnProperty(j)) {
                                     vv.storage.preferences[i][j] = c[i][j];
                                 }
                             }
                         }
                     }
+                }
+                // convert old settings
+                if (c.appearance && c.appearance.volume_max) {
+                    vv.storage.preferences.outputs.volume_max = c.appearance.volume_max;
                 }
             }
             if (localStorage.current && localStorage.current_last_modified) {
@@ -1995,6 +2001,7 @@ vv.view.system = {
                 e.classList.add("hide");
             }
         }
+        document.getElementById("outputs-volume").max = vv.storage.preferences.outputs.volume_max;
     },
     onStorage() {
         if (Object.keys(vv.storage.storage).length === 0) {
@@ -2148,16 +2155,18 @@ vv.view.system = {
         }
     },
     onControl() {
-
         if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
+            document.getElementById("outputs-volume").value = vv.storage.control.volume;
+            document.getElementById("outputs-volume-box").classList.remove("hide");
             document.getElementById("volume-header").classList.remove("hide");
             document.getElementById("volume-all").classList.remove("hide");
         } else {
+            document.getElementById("outputs-volume-box").classList.add("hide");
             document.getElementById("volume-header").classList.add("hide");
             document.getElementById("volume-all").classList.add("hide");
         }
-        document.getElementById("outputs-options-replay-gain").value = vv.storage.control.replay_gain;
-        document.getElementById("outputs-options-crossfade").value = vv.storage.control.crossfade.toString(10);
+        document.getElementById("outputs-replay-gain").value = vv.storage.control.replay_gain;
+        document.getElementById("outputs-crossfade").value = vv.storage.control.crossfade.toString(10);
         const audio = document.getElementById("httpstream-audio");
         if (vv.storage.control.state === "play") {
             if (audio.paused) {
@@ -2192,10 +2201,10 @@ vv.view.system = {
         vv.view.system._initconfig("appearance-playlist-gridview-album");
         vv.view.system._initconfig("appearance-playlist-follows-playback");
         vv.view.system._initconfig("appearance-volume");
-        vv.view.system._initconfig("appearance-volume-max");
         vv.view.system._initconfig("playlist-playback-tracks_all");
         vv.view.system._initconfig("playlist-playback-tracks_list");
         vv.view.system._initconfig("playlist-playback-tracks_custom");
+        vv.view.system._initconfig("outputs-volume-max");
         document.getElementById("system-reload").addEventListener("click", () => {
             location.reload();
         });
@@ -2221,10 +2230,10 @@ vv.view.system = {
             vv.control.raiseEvent("images");
         });
 
-        document.getElementById("outputs-options-replay-gain").addEventListener("change", (e) => {
+        document.getElementById("outputs-replay-gain").addEventListener("change", (e) => {
             vv.request.post("/api/music", { replay_gain: e.currentTarget.value });
         });
-        document.getElementById("outputs-options-crossfade").addEventListener("input", (e) => {
+        document.getElementById("outputs-crossfade").addEventListener("input", (e) => {
             vv.request.post("/api/music", { crossfade: parseInt(e.currentTarget.value) });
         });
 
@@ -2313,6 +2322,10 @@ vv.view.system = {
             }
         }
         ul.appendChild(newul);
+
+        document.getElementById("outputs-volume").addEventListener("change", e => {
+            vv.control.volume(parseInt(e.currentTarget.value, 10));
+        });
         const inputs = document.getElementById("httpstream-select");
         const newInputs = document.createDocumentFragment();
         let streamCnt = 0;
@@ -2341,7 +2354,6 @@ vv.view.system = {
             audio.load();
         } else {
             document.getElementById("httpstream-volume-box").classList.add("hide");
-            document.getElementById("httpstream-max-volume-box").classList.add("hide");
         }
         const volume = document.getElementById("httpstream-volume");
         volume.value = vv.storage.preferences.httpoutput.volume;
@@ -2354,10 +2366,8 @@ vv.view.system = {
             if (inputs.value !== "") {
                 audio.load();
                 document.getElementById("httpstream-volume-box").classList.remove("hide");
-                document.getElementById("httpstream-max-volume-box").classList.remove("hide");
             } else {
                 document.getElementById("httpstream-volume-box").classList.add("hide");
-                document.getElementById("httpstream-max-volume-box").classList.add("hide");
             }
             vv.storage.preferences.httpoutput.stream = inputs.value;
             vv.storage.save.preferences();
@@ -2502,7 +2512,7 @@ vv.control.addEventListener("storage", vv.view.system.onStorage);
 vv.view.footer = {
     onPreferences() {
         const c = document.getElementById("control-volume");
-        c.max = parseInt(vv.storage.preferences.appearance.volume_max, 10);
+        c.max = parseInt(vv.storage.preferences.outputs.volume_max, 10);
         if (vv.storage.preferences.appearance.volume) {
             c.classList.remove("hide");
         } else {

@@ -336,16 +336,6 @@ html {
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-volume-label">{{ or .ShowVolumeNob "Show volume nob" }}</div>
               <input type="checkbox" id="appearance-volume" class="slideswitch" aria-labelledby="appearance-volume-label">
-            <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
-              <select class="tool-select value" id="appearance-volume-max" aria-labelledby="appearance-volume-max-label">
-                <option value="50">50</option>
-                <option value="60">60</option>
-                <option value="70">70</option>
-                <option value="80">80</option>
-                <option value="90">90</option>
-                <option value="100">100</option>
-              </select>
           </ul>
         </div>
       </article>
@@ -428,15 +418,35 @@ html {
         <div class="system-article-sub">
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="outputs-options-replay-gain-label">{{ or .ReplayGain "Replay gain" }}</div>
-              <select class="tool-select value" id="outputs-options-replay-gain" aria-labelledby="outputs-options-replay-gain-label">
+              <div class="system-setting-desc" id="outputs-replay-gain-label">{{ or .ReplayGain "Replay gain" }}</div>
+              <select class="tool-select value" id="outputs-replay-gain" aria-labelledby="outputs-replay-gain-label">
                 <option value="off">{{ or .ReplayGainOff "off" }}</option>
                 <option value="track">{{ or .ReplayGainTrack "track" }}</option>
                 <option value="album">{{ or .ReplayGainAlbum "album" }}</option>
               </select>
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="outputs-options-crossfade-label">{{ or .Crossfade "Crossfade" }}</div>
-              <input type="number" min="0" step="1" value="0" class="tool-input-number value" id="outputs-options-crossfade" aria-labelledby="outputs-options-crossfade">
+              <div class="system-setting-desc" id="outputs-crossfade-label">{{ or .Crossfade "Crossfade" }}</div>
+              <input type="number" min="0" step="1" value="0" class="tool-input-number value" id="outputs-crossfade" aria-labelledby="outputs-crossfade">
+            <li class="system-setting list-item" id="outputs-volume-box">
+              <ul class="system-settings list-item-group">
+                <li class="child-list-item system-setting">
+                  <div class="system-setting-desc" id="outputs-volume-label">{{ or .Volume "Volume" }}</div>
+                  <input id="outputs-volume" type="range" min=0 max=1 step=1 class="config-range" aria-labelledby="outputs-volume-label">
+                <li class="child-list-item system-setting">
+                  <div class="system-setting-desc-sub" id="outputs-volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
+                  <select class="tool-select value" id="outputs-volume-max" aria-labelledby="outputs-volume-max">
+                    <option value="100">100%</option>
+                    <option value="90">90%</option>
+                    <option value="80">80%</option>
+                    <option value="70">70%</option>
+                    <option value="60">60%</option>
+                    <option value="50">50%</option>
+                    <option value="25">25%</option>
+                    <option value="10">10%</option>
+                    <option value="5">5%</option>
+                  </select>
+              </ul>
+            </li>
           </ul>
         </div>
         <h2 class="system-article-sub-header">{{ or .Devices "Devices" }}</h2>
@@ -482,19 +492,23 @@ html {
               <select class="tool-select big value" id="httpstream-select" data-disabled-label="{{ or .HTTPStreamDisabled "disabled" }}" aria-labelledby="httpstream-select">
                 <option value="">{{ or .HTTPStreamDisabled "disabled" }}</option>
               </select>
-            <li class="list-item system-setting" id="httpstream-volume-box">
-              <div class="system-setting-desc" id="httpstream-volume-label">{{ or .Volume "Volume" }}</div>
-              <input id="httpstream-volume" type="range" min=0 max=1 step=0.001 class="config-range" aria-labelledby="httpstream-volume-label">
-            <li class="list-item system-setting" id="httpstream-max-volume-box">
-              <div class="system-setting-desc" id="httpstream-max-volume-label">{{ or .MaxVolume "Max volume" }}</div>
-              <select class="tool-select value" id="httpstream-max-volume" aria-labelledby="httpstream-max-volume">
-                <option value="1">100%</option>
-                <option value="0.5">50%</option>
-                <option value="0.25">25%</option>
-                <option value="0.1">10%</option>
-                <option value="0.05">5%</option>
-                <option value="0.01">1%</option>
-              </select>
+            <li class="system-setting list-item" id="httpstream-volume-box">
+              <ul class="system-settings list-item-group">
+                <li class="child-list-item system-setting">
+                  <div class="system-setting-desc" id="httpstream-volume-label">{{ or .Volume "Volume" }}</div>
+                  <input id="httpstream-volume" type="range" min=0 max=1 step=0.001 class="config-range" aria-labelledby="httpstream-volume-label">
+                <li class="child-list-item system-setting">
+                  <div class="system-setting-desc-sub" id="httpstream-max-volume-label">{{ or .MaxVolume "Max volume" }}</div>
+                  <select class="tool-select value" id="httpstream-max-volume" aria-labelledby="httpstream-max-volume">
+                    <option value="1">100%</option>
+                    <option value="0.5">50%</option>
+                    <option value="0.25">25%</option>
+                    <option value="0.1">10%</option>
+                    <option value="0.05">5%</option>
+                    <option value="0.01">1%</option>
+                  </select>
+              </ul>
+            </li>
           </ul>
 
         </div>
