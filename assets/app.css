@@ -410,10 +410,6 @@ svg .stroke {
   border-bottom: dashed 1px var(--border-color);
 }
 
-.list-item-group {
-  flex: 1 1 auto;
-}
-
 .header-items {
   display: flex;
   align-items: center;
@@ -1133,10 +1129,6 @@ button:hover {
   }
 }
 
-.system-article-sub {
-  padding: 0 20px 30px 20px;
-}
-
 .system-article-sub-header {
   font-size: 19px;
   padding: 6px 10px;
@@ -1144,13 +1136,19 @@ button:hover {
 }
 
 .system-settings {
-  padding: 0;
+  padding: 0 20px 30px 20px;
   margin: 0;
 }
 
 .system-setting {
   align-items: center;
   display: flex;
+}
+
+.system-setting-group {
+  padding: 0;
+  margin: 0;
+  flex: 1 1 auto;
 }
 
 .system-setting-desc-box {
@@ -1204,8 +1202,7 @@ time.system-setting-value {
     flex: 0 1 50%;
 }
 
-.system-article-sub.hide,
-.system-article-sub-header.hide,
+.hide.system-article-sub,
 .system-setting.hide {
   display: none;
 }

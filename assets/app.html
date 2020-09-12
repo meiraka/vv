@@ -275,12 +275,12 @@ html {
       </nav>
 
       <article id="system-appearance" class="scrollable system-article fallback">
-        <h2 class="system-article-sub-header">{{ or .General "General" }}</h2>
-        <div class="system-article-sub">
+        <div>
+          <h2 class="system-article-sub-header">{{ or .General "General" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <ul class="system-settings list-item-group">
-                <li class="system-setting child-list-item">
+              <ul class="system-setting-group">
+                <li class="system-setting">
                   <div class="system-setting-desc" id="appearance-theme-label">{{ or .Theme "Theme" }}</div>
                   <div class="radio-box">
                     <input type="radio" name="appearance-theme" id="appearance-theme_light" value="light"/>
@@ -292,7 +292,7 @@ html {
                     <input type="radio" name="appearance-theme" id="appearance-theme_prefer-coverart" value="prefer-coverart"/>
                     <label class="radio-check" for="appearance-theme_prefer-coverart">{{ or .ThemeCoverArt "Prefer CoverArt" }}</label>
                   </div>
-                <li class="system-setting child-list-item" id="config-appearance-color-threshold">
+                <li class="system-setting" id="config-appearance-color-threshold">
                   <div class="system-setting-desc-sub system-setting-desc" id="appearance-color-threshold-label">{{ or .CoverArtColorThreshold "Threshold" }}</div>
                   <input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label">
               </ul>
@@ -322,16 +322,16 @@ html {
               <input type="checkbox" id="appearance-crossfading-image" class="slideswitch" aria-labelledby="appearance-crossfading-image-label">
           </ul>
         </div>
-        <h2 class="system-article-sub-header">{{ or .Playlist "Playlist" }}</h2>
-        <div class="system-article-sub">
+        <div>
+          <h2 class="system-article-sub-header">{{ or .Playlist "Playlist" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-playlist-gridview-album-label">{{ or .GridviewAlbum "Gridview album" }}</div>
               <input type="checkbox" id="appearance-playlist-gridview-album" class="slideswitch" aria-labelledby="appearance-playlist-gridview-album-label">
           </ul>
         </div>
-        <h2 class="system-article-sub-header" id="volume-header">{{ or .Volume "Volume" }}</h2>
-        <div class="system-article-sub" id="volume-all">
+        <div id="appearance-volume">
+          <h2 class="system-article-sub-header">{{ or .Volume "Volume" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-volume-label">{{ or .ShowVolumeNob "Show volume nob" }}</div>
@@ -341,15 +341,15 @@ html {
       </article>
 
       <article id="system-playlist" class="scrollable system-article">
-        <h2 class="system-article-sub-header">{{ or .Playback "Playback" }}</h2>
-        <div class="system-article-sub">
+        <div>
+          <h2 class="system-article-sub-header">{{ or .Playback "Playback" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="appearance-playlist-follows-playback-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
               <input type="checkbox" id="appearance-playlist-follows-playback" class="slideswitch" aria-labelledby="appearance-playlist-follows-playback-label">
             <li class="list-item system-setting">
-              <ul class="system-settings list-item-group" id="playlist-playback-range">
-                <li class="system-setting child-list-item">
+              <ul class="system-setting-group" id="playlist-playback-range">
+                <li class="system-setting">
                   <div class="system-setting-desc-box">
                     <div class="system-setting-desc-boxed" id="playlist-playback-tracks">{{ or .PlaybackRange "Playback Range" }}</div>
                     <div class="system-setting-desc-help">{{ or .PlaybackRangeHelp "This settings will applied from the next track selection." }}</div>
@@ -364,7 +364,7 @@ html {
                   </div>
                 </li>
                 <template id="playlist-playback-tracks-custom-template">
-                  <li class="system-setting child-list-item playlist-playback-tracks-custom">
+                  <li class="system-setting playlist-playback-tracks-custom">
                       <div class="system-setting-desc system-setting-desc-sub" data-prefix="{{ or .playbackTreeLabelPrefix "" }}" data-suffix="{{ or .playbackTreeLabelSuffix " Tree" }}"></div>
                       <select class="tool-select value big" data-all-tracks="{{ or .allTracks "All tracks" }}"></select>
                   </li>
@@ -377,8 +377,8 @@ html {
       </article>
 
       <article id="system-database" class="scrollable system-article">
-        <h2 class="system-article-sub-header">{{ or .Library "Library" }}</h2>
-        <div class="system-article-sub">
+        <div>
+          <h2 class="system-article-sub-header">{{ or .Library "Library" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc">{{ or .Songs "Songs" }}</div><button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .RescanSongs "Rescan" }}</button>
@@ -396,8 +396,9 @@ html {
               <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
           </ul>
         </div>
-        <h2 id="storage-header" class="system-article-sub-header">{{ or .Storage "Storage" }}</h2>
-        <div id="storage" class="system-article-sub">
+
+        <div id="storage">
+          <h2 id="storage-header" class="system-article-sub-header">{{ or .Storage "Storage" }}</h2>
           <template id="storage-template">
             <li class="system-setting list-item">
               <div class="system-setting-desc-box">
@@ -414,8 +415,8 @@ html {
       </article>
 
       <article id="system-outputs" class="scrollable system-article">
-        <h2 class="system-article-sub-header">{{ or .Options "Options" }}</h2>
-        <div class="system-article-sub">
+        <div>
+          <h2 class="system-article-sub-header">{{ or .Options "Options" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc" id="outputs-replay-gain-label">{{ or .ReplayGain "Replay gain" }}</div>
@@ -428,11 +429,11 @@ html {
               <div class="system-setting-desc" id="outputs-crossfade-label">{{ or .Crossfade "Crossfade" }}</div>
               <input type="number" min="0" step="1" value="0" class="tool-input-number value" id="outputs-crossfade" aria-labelledby="outputs-crossfade">
             <li class="system-setting list-item" id="outputs-volume-box">
-              <ul class="system-settings list-item-group">
-                <li class="child-list-item system-setting">
+              <ul class="system-setting-group">
+                <li class="system-setting">
                   <div class="system-setting-desc" id="outputs-volume-label">{{ or .Volume "Volume" }}</div>
                   <input id="outputs-volume" type="range" min=0 max=1 step=1 class="config-range" aria-labelledby="outputs-volume-label">
-                <li class="child-list-item system-setting">
+                <li class="system-setting">
                   <div class="system-setting-desc-sub" id="outputs-volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
                   <select class="tool-select value" id="outputs-volume-max" aria-labelledby="outputs-volume-max">
                     <option value="100">100%</option>
@@ -449,27 +450,28 @@ html {
             </li>
           </ul>
         </div>
-        <h2 class="system-article-sub-header">{{ or .Devices "Devices" }}</h2>
-        <div class="system-article-sub">
+
+        <div>
+          <h2 class="system-article-sub-header">{{ or .Devices "Devices" }}</h2>
           <ul class="system-settings" id="devices"></ul>
           <template id="device-template">
             <li class="system-setting list-item">
-              <ul class="system-settings list-item-group">
-                <li class="system-setting child-list-item">
+              <ul class="system-setting-group">
+                <li class="system-setting">
                   <div class="system-setting-desc-box">
                     <div class="system-setting-desc system-setting-desc-boxed"></div>
                     <div class="system-setting-desc-help plugin"></div>
                   </div>
                   <input class="slideswitch device-switch" type="checkbox">
                 </li>
-                <li class="system-setting child-list-item device-dop">
+                <li class="system-setting device-dop">
                   <div class="system-setting-desc-box">
                     <div class="system-setting-desc-sub system-setting-desc-boxed">{{ or .DeviceDoP "DSD over PCM" }}</div>
                     <div class="system-setting-desc-help">{{ or .DeviceDoPHelp "This wraps DSD samples in fake PCM frames, then DoP-compatible DAC reassembles the original DSD data stream. Do not enable if this DAC does not support DoP." }}</div>
                   </div>
                   <input class="slideswitch device-dop-switch" type="checkbox">
                 </li>
-                <li class="system-setting child-list-item device-allowed-formats">
+                <li class="system-setting device-allowed-formats">
                   <div class="system-setting-desc-box">
                     <div class="system-setting-desc-sub system-setting-desc-boxed">{{ or .DeviceAllowedFormats "Allowed formats" }}</div>
                     <div class="system-setting-desc-help">{{ or .DeviceAllowedFormatsHelp "Specifies a list of allowed audio formats." }}</div>
@@ -480,8 +482,9 @@ html {
             </li>
           </template>
         </div>
-        <h2 class="system-article-sub-header" id="httpstream-header">{{ or .ClientOutput "Client output" }}</h2>
-        <div class="system-article-sub" id="httpstream">
+
+        <div id="httpstream">
+          <h2 class="system-article-sub-header">{{ or .ClientOutput "Client output" }}</h2>
           <audio id="httpstream-audio">mpd audio stream</audio>
           <ul class="system-settings">
             <li class="list-item system-setting">
@@ -492,12 +495,12 @@ html {
               <select class="tool-select big value" id="httpstream-select" data-disabled-label="{{ or .HTTPStreamDisabled "disabled" }}" aria-labelledby="httpstream-select">
                 <option value="">{{ or .HTTPStreamDisabled "disabled" }}</option>
               </select>
-            <li class="system-setting list-item" id="httpstream-volume-box">
-              <ul class="system-settings list-item-group">
-                <li class="child-list-item system-setting">
+            <li class="system-setting list-item" id="httpstream-volume-group">
+              <ul class="system-setting-group">
+                <li class="system-setting">
                   <div class="system-setting-desc" id="httpstream-volume-label">{{ or .Volume "Volume" }}</div>
                   <input id="httpstream-volume" type="range" min=0 max=1 step=0.001 class="config-range" aria-labelledby="httpstream-volume-label">
-                <li class="child-list-item system-setting">
+                <li class="system-setting">
                   <div class="system-setting-desc-sub" id="httpstream-max-volume-label">{{ or .MaxVolume "Max volume" }}</div>
                   <select class="tool-select value" id="httpstream-max-volume" aria-labelledby="httpstream-max-volume">
                     <option value="1">100%</option>
@@ -510,8 +513,8 @@ html {
               </ul>
             </li>
           </ul>
-
         </div>
+
       </article>
 
       <article id="system-info" class="scrollable system-article">

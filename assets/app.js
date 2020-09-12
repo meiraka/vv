@@ -2119,10 +2119,8 @@ vv.view.system = {
             inputs.appendChild(off);
             inputs.appendChild(newInputs);
             if (streamIndex === 1) {
-                document.getElementById("httpstream-header").classList.add("hide");
                 document.getElementById("httpstream").classList.add("hide");
             } else {
-                document.getElementById("httpstream-header").classList.remove("hide");
                 document.getElementById("httpstream").classList.remove("hide");
             }
             inputs.value = vv.storage.preferences.httpoutput.stream;
@@ -2158,12 +2156,10 @@ vv.view.system = {
         if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
             document.getElementById("outputs-volume").value = vv.storage.control.volume;
             document.getElementById("outputs-volume-box").classList.remove("hide");
-            document.getElementById("volume-header").classList.remove("hide");
-            document.getElementById("volume-all").classList.remove("hide");
+            document.getElementById("appearance-volume").classList.remove("hide");
         } else {
             document.getElementById("outputs-volume-box").classList.add("hide");
-            document.getElementById("volume-header").classList.add("hide");
-            document.getElementById("volume-all").classList.add("hide");
+            document.getElementById("appearance-volume").classList.add("hide");
         }
         document.getElementById("outputs-replay-gain").value = vv.storage.control.replay_gain;
         document.getElementById("outputs-crossfade").value = vv.storage.control.crossfade.toString(10);
@@ -2339,7 +2335,6 @@ vv.view.system = {
             }
         }
         if (streamCnt === 0) {
-            document.getElementById("httpstream-header").classList.add("hide");
             document.getElementById("httpstream").classList.add("hide");
         }
         inputs.appendChild(newInputs);
@@ -2353,7 +2348,7 @@ vv.view.system = {
             audio.src = inputs.value;
             audio.load();
         } else {
-            document.getElementById("httpstream-volume-box").classList.add("hide");
+            document.getElementById("httpstream-volume-group").classList.add("hide");
         }
         const volume = document.getElementById("httpstream-volume");
         volume.value = vv.storage.preferences.httpoutput.volume;
@@ -2365,9 +2360,9 @@ vv.view.system = {
             audio.src = inputs.value;
             if (inputs.value !== "") {
                 audio.load();
-                document.getElementById("httpstream-volume-box").classList.remove("hide");
+                document.getElementById("httpstream-volume-group").classList.remove("hide");
             } else {
-                document.getElementById("httpstream-volume-box").classList.add("hide");
+                document.getElementById("httpstream-volume-group").classList.add("hide");
             }
             vv.storage.preferences.httpoutput.stream = inputs.value;
             vv.storage.save.preferences();
