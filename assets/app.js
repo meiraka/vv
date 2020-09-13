@@ -243,7 +243,7 @@ vv.storage = {
             theme: "prefer-coverart",
             color_threshold: 128,
             background_image: true,
-            background_image_blur: "32px",
+            background_image_blur: "64px",
             circled_image: false,
             crossfading_image: true,
             volume: true,
