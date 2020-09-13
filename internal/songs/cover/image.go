@@ -68,7 +68,7 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	ws, hs := q.Get("width"), q.Get("height")
 	if len(ws) == 0 || len(hs) == 0 {
-		if r.URL.Query().Get("d") != "" {
+		if r.URL.Query().Get("d") != "" || q.Get("v") != "" {
 			w.Header().Add("Cache-Control", "max-age=31536000")
 		} else {
 			w.Header().Add("Cache-Control", "max-age=86400")

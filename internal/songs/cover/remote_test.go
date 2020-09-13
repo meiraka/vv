@@ -97,7 +97,7 @@ func TestRemoteRescan(t *testing.T) {
 					in:         map[string][]string{"file": {"assets/test.flac"}},
 					hasCover:   true,
 					wantBinary: png,
-					wantHeader: http.Header{"Content-Type": {"image/png"}},
+					wantHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
 				},
 				{
 					in:       map[string][]string{"file": {"notfound/test.flac"}},
