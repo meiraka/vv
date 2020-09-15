@@ -16,6 +16,10 @@ import (
 	"github.com/meiraka/vv/internal/songs/cover"
 )
 
+const (
+	defaultConfigDir = "/etc/xdg/vv"
+)
+
 var version = "v0.10.0+"
 
 //go:generate go run internal/cmd/fix-assets/main.go
@@ -23,9 +27,17 @@ func main() {
 	v2()
 }
 
+func configDirs() []string {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return []string{defaultConfigDir}
+	}
+	return []string{filepath.Join(dir, "vv"), defaultConfigDir}
+}
+
 func v2() {
 	ctx := context.TODO()
-	config, date, err := ParseConfig([]string{"/etc/xdg/vv"}, "config.yaml")
+	config, date, err := ParseConfig(configDirs(), "config.yaml")
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
