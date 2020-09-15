@@ -55,7 +55,7 @@ func v2() {
 		log.Fatalf("failed to check mpd supported functions: %v", err)
 	}
 	// get music dir from local mpd connection
-	if config.MPD.Network == "unix" && config.MPD.MusicDirectory == "" {
+	if config.MPD.IsLocal() && config.MPD.MusicDirectory == "" {
 		if c, err := cl.Config(ctx); err == nil {
 			if dir, ok := c["music_directory"]; ok {
 				config.MPD.MusicDirectory = dir
@@ -64,7 +64,7 @@ func v2() {
 	}
 
 	// get music dir from local mpd config
-	mpdConf, _ := mpd.ParseConfig("/etc/mpd.conf")
+	mpdConf, _ := mpd.ParseConfig(config.MPD.Conf)
 	if config.MPD.MusicDirectory == "" {
 		if mpdConf != nil {
 			config.MPD.MusicDirectory = mpdConf.MusicDirectory
@@ -88,7 +88,7 @@ func v2() {
 	m := http.NewServeMux()
 	coverSearchers := make([]CoverSearcher, 0, 2)
 	if config.Server.Cover.Local {
-		if !strings.HasPrefix(config.MPD.MusicDirectory, "/") {
+		if !filepath.IsAbs(config.MPD.MusicDirectory) {
 			log.Printf("config.server.cover.local is disabled: mpd.music_directory is not absolute local directory path: %v", config.MPD.MusicDirectory)
 		} else if len(config.MPD.MusicDirectory) == 0 {
 			log.Println("config.server.cover.local is disabled: mpd.music_directory is empty")

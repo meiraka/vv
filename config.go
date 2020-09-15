@@ -2,22 +2,39 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
 )
 
+// MPD is mpd config struct.
+type MPD struct {
+	Network        string `yaml:"network"`
+	Addr           string `yaml:"addr"`
+	MusicDirectory string `yaml:"music_directory"`
+	Conf           string `yaml:"conf"`
+}
+
+func (mpd *MPD) IsLocal() bool {
+	if runtime.GOOS == "windows" {
+		if host, _, err := net.SplitHostPort(mpd.Addr); err == nil {
+			if host == "localhost" || host == "127.0.0.1" {
+				return true
+			}
+		}
+	}
+
+	return mpd.Network == "unix"
+}
+
 // Config is vv application config struct.
 type Config struct {
-	MPD struct {
-		Network        string `yaml:"network"`
-		Addr           string `yaml:"addr"`
-		MusicDirectory string `yaml:"music_directory"`
-		Conf           string `yaml:"conf"`
-	} `yaml:"mpd"`
+	MPD    MPD `yaml:"mpd"`
 	Server struct {
 		Addr           string `yaml:"addr"`
 		CacheDirectory string `yaml:"cache_directory"`
@@ -39,6 +56,12 @@ func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 	c.Server.Cover.Local = true
 	c.Server.CacheDirectory = filepath.Join(os.TempDir(), "vv")
 	c.MPD.Conf = "/etc/mpd.conf"
+	if runtime.GOOS == "windows" {
+		// On Windows, mpd.exe use %LOCALAPPDATA%.
+		if dir, err := os.UserCacheDir(); err == nil {
+			c.MPD.Conf = filepath.Join(dir, "mpd", "mpd.conf")
+		}
+	}
 	date := time.Time{}
 	for _, d := range dir {
 		path := filepath.Join(d, name)
