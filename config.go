@@ -20,6 +20,7 @@ type MPD struct {
 	Conf           string `yaml:"conf"`
 }
 
+// IsLocal return true if the mpd works on local network.
 func (mpd *MPD) IsLocal() bool {
 	if runtime.GOOS == "windows" {
 		if host, _, err := net.SplitHostPort(mpd.Addr); err == nil {
