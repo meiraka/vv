@@ -8,7 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"path"
+	"net/url"
 	"runtime"
 	"strconv"
 	"strings"
@@ -177,17 +177,13 @@ LOOP:
 			musicLibrarySongs(w, r)
 		case "/api/music/outputs":
 			musicOutputs(w, r)
+		case "/api/music/outputs/stream":
+			musicStream(w, r)
 		case "/api/music/images":
 			musicImages(w, r)
 		case "/api/music/storage":
 			musicStorage(w, r)
 		default:
-			for k := range h.config.AudioProxy {
-				if "/api/music/outputs/"+k == r.URL.Path {
-					musicStream(w, r)
-					return
-				}
-			}
 			http.NotFound(w, r)
 		}
 	}
@@ -710,7 +706,7 @@ func (h *api) updateOutputs(ctx context.Context) error {
 	for _, v := range l {
 		var stream string
 		if _, ok := h.config.AudioProxy[v.Name]; ok {
-			stream = fmt.Sprintf("/api/music/outputs/%s", v.Name)
+			stream = "/api/music/outputs/stream?" + url.Values{"name": {v.Name}}.Encode()
 		}
 		output := &httpOutput{
 			Name:    v.Name,
@@ -793,7 +789,7 @@ func (h *api) outputHandler() http.HandlerFunc {
 
 func (h *api) outputStreamHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dev := path.Base(r.URL.Path)
+		dev := r.URL.Query().Get("name")
 		url, ok := h.config.AudioProxy[dev]
 		if !ok {
 			http.NotFound(w, r)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -87,7 +88,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 				{
 					method: http.MethodGet, path: "/api/music/outputs",
-					want: map[int]string{http.StatusOK: `{"0":{"name":"My HTTP Stream","enabled":false,"stream":"/api/music/outputs/My HTTP Stream"}}`},
+					want: map[int]string{http.StatusOK: `{"0":{"name":"My HTTP Stream","enabled":false,"stream":"/api/music/outputs/stream?name=My+HTTP+Stream"}}`},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/stats",
@@ -618,7 +619,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 					},
 					preWebSocket: []string{"/api/music/outputs"},
 					method:       http.MethodGet, path: "/api/music/outputs",
-					want: map[int]string{http.StatusOK: `{"1":{"name":"My HTTP Stream","enabled":true,"stream":"/api/music/outputs/My HTTP Stream"}}`},
+					want: map[int]string{http.StatusOK: `{"1":{"name":"My HTTP Stream","enabled":true,"stream":"/api/music/outputs/stream?name=My+HTTP+Stream"}}`},
 				},
 			},
 		},
@@ -1061,11 +1062,11 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 	defer audioProxy.Close()
 	go func() {
 		sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
-		main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 1\noutputname: My HTTP Stream\noutputenabled: 1\nOK\n"})
+		main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 1\noutputname: My / HTTP / Stream\noutputenabled: 1\nOK\n"})
 	}()
 	h, stop, err := APIConfig{
 		skipInit:   true,
-		AudioProxy: map[string]string{"My HTTP Stream": audioProxy.URL},
+		AudioProxy: map[string]string{"My / HTTP / Stream": audioProxy.URL},
 	}.NewAPIHandler(ctx, c, wl, cover.NewBatch([]cover.Cover{}))
 	if err != nil {
 		t.Fatalf("failed to initialize api handler: %v", err)
@@ -1073,10 +1074,27 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 	defer stop()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
+	resp, err := http.Get(ts.URL + "/api/music/outputs")
+	if err != nil {
+		t.Fatalf("failed to get outputs list")
+	}
+	outputs := map[string]struct {
+		Stream string `json:"stream"`
+	}{}
+	err = json.NewDecoder(resp.Body).Decode(&outputs)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatalf("failed to parse outputs list: %v", err)
+	}
+	device, ok := outputs["1"]
+	if !ok {
+		t.Fatalf("failed to parse outputs list: no outputid 1: %v", outputs)
+	}
+
 	t.Run("disconnect from client", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		r, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/api/music/outputs/My HTTP Stream", nil)
+		r, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+device.Stream, nil)
 		if err != nil {
 			t.Fatalf("failed to create test http request: %v", err)
 		}
@@ -1087,13 +1105,13 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 		defer resp.Body.Close()
 		cancel() // cancel stops http client
 		if _, err := io.Copy(ioutil.Discard, resp.Body); err != context.Canceled {
-			t.Errorf("read http stream body got err: %v; want %v", err, context.Canceled)
+			t.Errorf("read http stream %s body got err: %v; want %v", device.Stream, err, context.Canceled)
 		}
 	})
 	t.Run("disconnect by server", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		r, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/api/music/outputs/My HTTP Stream", nil)
+		r, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+device.Stream, nil)
 		if err != nil {
 			t.Fatalf("failed to create test http request: %v", err)
 		}
@@ -1104,7 +1122,7 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 		defer resp.Body.Close()
 		stop() // stop stops http server audio stream
 		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-			t.Errorf("read http stream body got err: %v; want %v", err, nil)
+			t.Errorf("read http stream %s body got err: %v; want %v", device.Stream, err, nil)
 		}
 	})
 	go func() {
