@@ -196,6 +196,7 @@ LOOP:
 func (h *api) stop() {
 	h.mu.Lock()
 	if !h.stopB {
+		h.stopB = true
 		close(h.stopCh)
 	}
 	h.mu.Unlock()
