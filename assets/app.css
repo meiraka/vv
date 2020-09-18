@@ -14,6 +14,10 @@ button::-moz-focus-inner {
   border: 0;
 }
 
+div.hide {
+  display: none;
+}
+
 button {
   color: inherit;
   font-family: inherit;

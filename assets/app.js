@@ -2156,10 +2156,10 @@ vv.view.system = {
         if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
             document.getElementById("outputs-volume").value = vv.storage.control.volume;
             document.getElementById("outputs-volume-box").classList.remove("hide");
-            document.getElementById("appearance-volume").classList.remove("hide");
+            document.getElementById("appearance-volume-box").classList.remove("hide");
         } else {
             document.getElementById("outputs-volume-box").classList.add("hide");
-            document.getElementById("appearance-volume").classList.add("hide");
+            document.getElementById("appearance-volume-box").classList.add("hide");
         }
         document.getElementById("outputs-replay-gain").value = vv.storage.control.replay_gain;
         document.getElementById("outputs-crossfade").value = vv.storage.control.crossfade.toString(10);
