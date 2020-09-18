@@ -270,7 +270,7 @@ vv.storage = {
             return;
         }
         const open = window.indexedDB.open("storage", 1);
-        open.onerror = () => { };
+        open.onerror = () => { callback(); };
         open.onupgradeneeded = vv.storage._idbUpdateTables;
         open.onsuccess = e => {
             const db = e.target.result;
