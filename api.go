@@ -29,7 +29,7 @@ type APIConfig struct {
 }
 
 // NewAPIHandler creates json api handler.
-func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, s *cover.Batch) (http.Handler, error) {
+func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, s *cover.Batch) (handler http.Handler, stop func(), err error) {
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
 	}
@@ -40,11 +40,12 @@ func (c APIConfig) NewAPIHandler(ctx context.Context, cl *mpd.Client, w *mpd.Wat
 		covers:       s,
 		jsonCache:    newJSONCache(),
 		playlistInfo: &httpPlaylistInfo{},
+		stopCh:       make(chan struct{}),
 	}
 	if err := h.runCacheUpdater(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return h.handle(), nil
+	return h.handle(), h.stop, nil
 }
 
 type api struct {
@@ -61,6 +62,8 @@ type api struct {
 	librarySort  []map[string][]string
 	replayGain   map[string]string
 	playlistInfo *httpPlaylistInfo
+	stopCh       chan struct{}
+	stopB        bool
 }
 
 func (h *api) runCacheUpdater(ctx context.Context) error {
@@ -188,6 +191,14 @@ LOOP:
 			http.NotFound(w, r)
 		}
 	}
+}
+
+func (h *api) stop() {
+	h.mu.Lock()
+	if !h.stopB {
+		close(h.stopCh)
+	}
+	h.mu.Unlock()
 }
 
 func (h *api) convSong(s map[string][]string) (map[string][]string, bool) {
@@ -782,14 +793,22 @@ func (h *api) outputHandler() http.HandlerFunc {
 func (h *api) outputStreamHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dev := path.Base(r.URL.Path)
-		addr, ok := h.config.AudioProxy[dev]
+		url, ok := h.config.AudioProxy[dev]
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
-		resp, err := http.Get(addr)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		pr, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
-			log.Println(addr, err)
+			log.Println(url, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		resp, err := http.DefaultClient.Do(pr)
+		if err != nil {
+			log.Println(url, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -799,6 +818,15 @@ func (h *api) outputStreamHandler() http.HandlerFunc {
 				w.Header().Add(k, v[i])
 			}
 		}
+		go func() {
+			select {
+			case <-ctx.Done():
+			case <-h.stopCh:
+				// disconnect audio stream by stop()
+				log.Println("disconnecting audio stream")
+				cancel()
+			}
+		}()
 		io.Copy(w, resp.Body)
 	}
 }

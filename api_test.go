@@ -919,7 +919,8 @@ func TestAPIJSONPHandler(t *testing.T) {
 				go tt.initFunc(ctx, main)
 			}
 			b := cover.NewBatch([]cover.Cover{})
-			h, err := tt.config.NewAPIHandler(ctx, c, wl, b)
+			h, stop, err := tt.config.NewAPIHandler(ctx, c, wl, b)
+			defer stop()
 			if err != nil {
 				t.Fatalf("NewHTTPHandler got error %v; want nil", err)
 			}

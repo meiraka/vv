@@ -133,7 +133,7 @@ func v2() {
 		Extra:       map[string]string{"TREE": string(tree), "TREE_ORDER": string(treeOrder)},
 		ExtraDate:   date,
 	}.NewAssetsHandler()
-	api, err := APIConfig{
+	api, stopAPI, err := APIConfig{
 		AudioProxy: proxy,
 	}.NewAPIHandler(ctx, cl, w, batch)
 	if err != nil {
@@ -149,6 +149,7 @@ func v2() {
 		Handler: m,
 		Addr:    config.Server.Addr,
 	}
+	s.RegisterOnShutdown(stopAPI)
 	errs := make(chan error, 1)
 	go func() {
 		errs <- s.ListenAndServe()
