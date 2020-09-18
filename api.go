@@ -80,9 +80,9 @@ func (h *api) runCacheUpdater(ctx context.Context) error {
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
+	h.jsonCache.SetIfNone("/api/music/images", &httpImages{})
 	go func() {
 		defer wg.Done()
-		h.jsonCache.SetIfNone("/api/music/images", &httpImages{})
 		for updating := range h.covers.Event() {
 			h.jsonCache.SetIfModified("/api/music/images", &httpImages{Updating: updating})
 			if !updating {

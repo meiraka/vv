@@ -91,6 +91,23 @@ func TestBatch(t *testing.T) {
 			t.Errorf("got batch.Shutdown() = %v; want %v", err, context.DeadlineExceeded)
 		}
 	})
+	t.Run("empty", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+		defer cancel()
+		batch := NewBatch([]Cover{})
+		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
+			t.Errorf("batch.Update() = err; want nil")
+		}
+		testEvent(ctx, t, batch.Event(), true, true)
+		testEvent(ctx, t, batch.Event(), false, true)
+		if urls, ok := batch.GetURLs(map[string][]string{"file": {"/foo/bar"}}); len(urls) != 0 || !ok {
+			t.Errorf("GetURLs got %v, %v; want nil, true", urls, ok)
+		}
+		if err := batch.Shutdown(ctx); err != nil {
+			t.Errorf("got batch.Shutdown() = %v; want nil", err)
+		}
+		testEvent(ctx, t, batch.Event(), false, false)
+	})
 }
 
 func testEvent(ctx context.Context, t *testing.T, e <-chan bool, want bool, ok bool) {
