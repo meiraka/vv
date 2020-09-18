@@ -1060,10 +1060,6 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 		}
 	}))
 	defer audioProxy.Close()
-	go func() {
-		sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
-		main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 1\noutputname: My / HTTP / Stream\noutputenabled: 1\nOK\n"})
-	}()
 	h, stop, err := APIConfig{
 		skipInit:   true,
 		AudioProxy: map[string]string{"My / HTTP / Stream": audioProxy.URL},
@@ -1074,6 +1070,24 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 	defer stop()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
+
+	ws, _, err := websocket.DefaultDialer.Dial(strings.Replace(ts.URL, "http://", "ws://", 1)+"/api/music", nil)
+	if err != nil {
+		t.Fatalf("failed to connect websocket: %v", err)
+	}
+	defer ws.Close()
+	timeout, _ := ctx.Deadline()
+	ws.SetReadDeadline(timeout)
+	if _, msg, err := ws.ReadMessage(); string(msg) != "ok" || err != nil {
+		t.Fatalf("got message: %s, %v, want: ok <nil>", msg, err)
+	}
+	// send mpd output event
+	sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
+	main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 1\noutputname: My / HTTP / Stream\noutputenabled: 1\nOK\n"})
+	// wait for cache update
+	if _, msg, err := ws.ReadMessage(); string(msg) != "/api/music/outputs" || err != nil {
+		t.Fatalf("got message: %s, %v, want: ok <nil>", msg, err)
+	}
 	resp, err := http.Get(ts.URL + "/api/music/outputs")
 	if err != nil {
 		t.Fatalf("failed to get outputs list")
