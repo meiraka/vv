@@ -275,7 +275,7 @@ html {
       </nav>
 
       <article id="system-appearance" class="scrollable system-article fallback">
-        <div>
+        <div class="system-article-sub">
           <h2 class="system-article-sub-header">{{ or .General "General" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
@@ -322,7 +322,7 @@ html {
               <input type="checkbox" id="appearance-crossfading-image" class="slideswitch" aria-labelledby="appearance-crossfading-image-label">
           </ul>
         </div>
-        <div>
+        <div class="system-article-sub">
           <h2 class="system-article-sub-header">{{ or .Playlist "Playlist" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
@@ -330,7 +330,7 @@ html {
               <input type="checkbox" id="appearance-playlist-gridview-album" class="slideswitch" aria-labelledby="appearance-playlist-gridview-album-label">
           </ul>
         </div>
-        <div id="appearance-volume-box">
+        <div id="appearance-volume-box" class="system-article-sub">
           <h2 class="system-article-sub-header">{{ or .Volume "Volume" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
@@ -341,7 +341,7 @@ html {
       </article>
 
       <article id="system-playlist" class="scrollable system-article">
-        <div>
+        <div class="system-article-sub">
           <h2 class="system-article-sub-header">{{ or .Playback "Playback" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
@@ -377,7 +377,7 @@ html {
       </article>
 
       <article id="system-database" class="scrollable system-article">
-        <div>
+        <div class="system-article-sub">
           <h2 class="system-article-sub-header">{{ or .Library "Library" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
@@ -397,7 +397,7 @@ html {
           </ul>
         </div>
 
-        <div id="storage">
+        <div id="storage" class="system-article-sub">
           <h2 id="storage-header" class="system-article-sub-header">{{ or .Storage "Storage" }}</h2>
           <template id="storage-template">
             <li class="system-setting list-item">
@@ -410,7 +410,9 @@ html {
           </template>
           <ul id="storage-list" class="system-settings">
           </ul>
-          <button id="storage-mount" class="system-setting-value button-simple" type="button">{{ or .MountStorage "Mount storage" }}</button>
+          <div class="system-settings">
+            <button id="storage-mount" class="system-setting-value button-simple" type="button">{{ or .MountStorage "Mount storage" }}</button>
+          </div>
         </div>
       </article>
 
