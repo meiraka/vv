@@ -280,7 +280,7 @@ func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[strin
 
 // Update updates the music database.
 func (c *Client) Update(ctx context.Context, uri string) (map[string]string, error) {
-	return c.mapStr(ctx, "update", uri)
+	return c.mapStr(ctx, "update", quote(uri))
 }
 
 // Mounts and neighbors

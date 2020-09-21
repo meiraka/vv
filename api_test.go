@@ -537,7 +537,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						main.Expect(ctx, &mpdtest.WR{Read: "mount \"foo\" \"nfs://192.168.1.4/export/mp3\"\n", Write: "OK\n"})
-						main.Expect(ctx, &mpdtest.WR{Read: "update foo\n", Write: "OK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "update \"foo\"\n", Write: "OK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: mount\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
 					},
@@ -556,7 +556,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						main.Expect(ctx, &mpdtest.WR{Read: "unmount \"foo\"\n", Write: "OK\n"})
-						main.Expect(ctx, &mpdtest.WR{Read: "update \n", Write: "OK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "update \"\"\n", Write: "OK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: mount\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nOK\n"})
 					},
@@ -574,7 +574,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			tests: []*testRequest{
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
-						main.Expect(ctx, &mpdtest.WR{Read: "update foo\n", Write: "OK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "update \"foo\"\n", Write: "OK\n"})
 					},
 					method: http.MethodPost, path: "/api/music/storage", body: strings.NewReader(`{"foo":{"updating":true}}`),
 					want: map[int]string{http.StatusAccepted: ""},
@@ -844,7 +844,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 					method: http.MethodPost, path: "/api/music/library", body: strings.NewReader(`{"updating":true}`),
 					want: map[int]string{http.StatusInternalServerError: `{"error":"mpd: update: error"}`},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
-						main.Expect(ctx, &mpdtest.WR{Read: "update \n", Write: "ACK [2@1] {update} error\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "update \"\"\n", Write: "ACK [2@1] {update} error\n"})
 					},
 				},
 			}},
@@ -859,7 +859,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 						http.StatusOK:       `{"updating":true}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
-						main.Expect(ctx, &mpdtest.WR{Read: "update \n", Write: "updating_db: 1\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "update \"\"\n", Write: "updating_db: 1\nOK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: update\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nupdating_db: 1\nOK\n"})
 					},
