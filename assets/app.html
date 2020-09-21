@@ -158,6 +158,20 @@ html {
           data-does-not-respond="{{ or .NotifyNetworkDoesNotRespond "does not respond properly. Reconnecting..." }}"
       ></span>
   </section>
+  <section id="popup-library" class="popup hide">
+    <h3 class="popup-title">{{ or .NotifyLibrary "Library" }}</h3>
+    <span class="popup-description"
+          data-updating="{{ or .NotifyLibraryUpdating "Updating library database..." }}"
+          data-updated="{{ or .NotifyLibraryUpdated "Library database was updated" }}"
+      ></span>
+  </section>
+  <section id="popup-coverart" class="popup hide">
+    <h3 class="popup-title">{{ or .NotifyCoverArt "CoverArt" }}</h3>
+    <span class="popup-description"
+          data-updating="{{ or .NotifyCoverArtUpdating "Updating coverart cache..." }}"
+          data-updated="{{ or .NotifyCoverArtUpdated "CoverArt cache was updated" }}"
+      ></span>
+  </section>
 </div>
 <div id=modal-background class="modal-background hide">
 </div>

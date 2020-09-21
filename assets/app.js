@@ -26,12 +26,12 @@ vv.pubsub = {
             }
         }
     },
-    raise(listener, ev) {
-        if (!(ev in listener)) {
+    raise(listener, type, e) {
+        if (!(type in listener)) {
             return;
         }
-        for (const f of listener[ev]) {
-            f();
+        for (const f of listener[type]) {
+            f(e);
         }
     }
 };
@@ -215,6 +215,7 @@ vv.storage = {
     control: {},
     library: [],
     library_info: {},
+    images: {},
     outputs: [],
     storage: {},
     stats: {},
@@ -826,9 +827,9 @@ vv.request = {
 vv.control = {
     _getOrElse(m, k, v) { return k in m ? m[k] : v; },
     _listener: {},
-    addEventListener(e, f) { vv.pubsub.add(vv.control._listener, e, f); },
-    removeEventListener(e, f) { vv.pubsub.rm(vv.control._listener, e, f); },
-    raiseEvent(e) { vv.pubsub.raise(vv.control._listener, e); },
+    addEventListener(t, f) { vv.pubsub.add(vv.control._listener, t, f); },
+    removeEventListener(t, f) { vv.pubsub.rm(vv.control._listener, t, f); },
+    raiseEvent(t, e) { vv.pubsub.raise(vv.control._listener, t, e); },
 
     rescan_library() {
         for (const path in vv.storage.storage) {
@@ -909,6 +910,7 @@ vv.control = {
                     } catch (e) {
                         // use default value;
                     }
+                    const old = vv.storage[store];
                     vv.storage[store] = ret;
                     vv.storage.last_modified_ms[store] = Date.parse(modified) + diff;
                     vv.storage.last_modified[store] = modified;
@@ -916,7 +918,7 @@ vv.control = {
                     if (vv.storage.save[store]) {
                         vv.storage.save[store]();
                     }
-                    vv.control.raiseEvent(store);
+                    vv.control.raiseEvent(store, { old: old, current: ret });
                 }
             });
     },
@@ -2630,6 +2632,34 @@ vv.view.popup = {
         }
     }
 };
+vv.control.addEventListener("start", () => {
+    vv.control.addEventListener("library_info", (e) => {
+        if (!e || !e.old || !e.current) {
+            return;
+        }
+        if (e.old.updating === e.current.updating) {
+            return;
+        }
+        if (e.current.updating) {
+            vv.view.popup.show("library", "updating");
+        } else if (e.old.hasOwnProperty("updating") && !e.current.updating) {
+            vv.view.popup.show("library", "updated");
+        }
+    });
+    vv.control.addEventListener("images", (e) => {
+        if (!e || !e.old || !e.current) {
+            return;
+        }
+        if (e.old.updating === e.current.updating) {
+            return;
+        }
+        if (e.current.updating) {
+            vv.view.popup.show("coverart", "updating");
+        } else if (e.old.hasOwnProperty("updating") && !e.current.updating) {
+            vv.view.popup.show("coverart", "updated");
+        }
+    });
+});
 
 // elapsed circle/time updater
 {
