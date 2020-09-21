@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func TestParseConfig(t *testing.T) {
+func TestParseConfigExample(t *testing.T) {
 	config, date, err := ParseConfig([]string{"appendix"}, "example.config.yaml")
 	if err != nil {
 		t.Fatalf("failed to parse: %v", err)
@@ -114,6 +114,71 @@ func TestParseConfigDefault(t *testing.T) {
 	want.Playlist.TreeOrder = []string{"AlbumArtist", "Album", "Artist", "Genre", "Date", "Composer", "Performer"}
 	if !reflect.DeepEqual(config, want) {
 		t.Errorf("got %+v; want %+v", config, want)
+	}
+}
+
+func TestParseConfigOptions(t *testing.T) {
+	origArgs := os.Args
+	defer func() { os.Args = origArgs }()
+	os.Args = []string{origArgs[0],
+		"-d",
+		"--mpd.conf", "/local/etc/mpd.conf",
+		"--mpd.network", "unix",
+		"--mpd.addr", "/var/run/mpd/socket",
+		"--mpd.music_directory", "/mnt/Music",
+		"--server.addr", ":80",
+		"--server.cover.remote",
+	}
+	config, date, err := ParseConfig(nil, "example.config.yaml")
+	if err != nil {
+		t.Fatalf("failed to parse: %v", err)
+	}
+	if !date.IsZero() {
+		t.Errorf("got date %v; want zer", date)
+	}
+	want := &Config{}
+	want.debug = true
+	want.MPD.Network = "unix"
+	want.MPD.Addr = "/var/run/mpd/socket"
+	want.MPD.Conf = "/local/etc/mpd.conf"
+	want.MPD.MusicDirectory = "/mnt/Music"
+	want.Server.Addr = ":80"
+	want.Server.CacheDirectory = "/tmp/vv"
+	want.Server.Cover.Local = true
+	want.Server.Cover.Remote = true
+	want.Playlist.Tree = map[string]*ConfigListNode{
+		"AlbumArtist": {
+			Sort: []string{"AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
+			Tree: [][2]string{{"AlbumArtist", "plain"}, {"Album", "album"}, {"Title", "song"}},
+		},
+		"Album": {
+			Sort: []string{"AlbumArtist-Date-Album", "DiscNumber", "TrackNumber", "Title", "file"},
+			Tree: [][2]string{{"AlbumArtist-Date-Album", "album"}, {"Title", "song"}},
+		},
+		"Artist": {
+			Sort: []string{"Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
+			Tree: [][2]string{{"Artist", "plain"}, {"Title", "song"}},
+		},
+		"Genre": {
+			Sort: []string{"Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
+			Tree: [][2]string{{"Genre", "plain"}, {"Album", "album"}, {"Title", "song"}},
+		},
+		"Date": {
+			Sort: []string{"Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
+			Tree: [][2]string{{"Date", "plain"}, {"Album", "album"}, {"Title", "song"}},
+		},
+		"Composer": {
+			Sort: []string{"Composer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
+			Tree: [][2]string{{"Composer", "plain"}, {"Album", "album"}, {"Title", "song"}},
+		},
+		"Performer": {
+			Sort: []string{"Performer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
+			Tree: [][2]string{{"Performer", "plain"}, {"Album", "album"}, {"Title", "song"}},
+		},
+	}
+	want.Playlist.TreeOrder = []string{"AlbumArtist", "Album", "Artist", "Genre", "Date", "Composer", "Performer"}
+	if !reflect.DeepEqual(config, want) {
+		t.Errorf("got \n%+v; want \n%+v", config, want)
 	}
 }
 

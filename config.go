@@ -33,17 +33,6 @@ type Config struct {
 	debug bool
 }
 
-var (
-	// FIXME
-	mn = pflag.String("mpd.network", "", "mpd server network to connect")
-	ma = pflag.String("mpd.addr", "", "mpd server address to connect")
-	mm = pflag.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
-	mc = pflag.String("mpd.conf", "", "set mpd.conf path to get music_directory and http audio output")
-	sa = pflag.String("server.addr", "", "this app serving address")
-	si = pflag.Bool("server.cover.remote", false, "enable coverart via mpd api")
-	d  = pflag.BoolP("debug", "d", false, "use local assets if exists")
-)
-
 // ParseConfig parse yaml config and flags.
 func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 	c := &Config{}
@@ -70,8 +59,15 @@ func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 			}
 		}
 	}
-
-	pflag.Parse()
+	flagset := pflag.NewFlagSet(filepath.Base(os.Args[0]), pflag.ExitOnError)
+	mn := flagset.String("mpd.network", "", "mpd server network to connect")
+	ma := flagset.String("mpd.addr", "", "mpd server address to connect")
+	mm := flagset.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
+	mc := flagset.String("mpd.conf", "", "set mpd.conf path to get music_directory and http audio output")
+	sa := flagset.String("server.addr", "", "this app serving address")
+	si := flagset.Bool("server.cover.remote", false, "enable coverart via mpd api")
+	d := flagset.BoolP("debug", "d", false, "use local assets if exists")
+	flagset.Parse(os.Args)
 	if len(*mn) != 0 {
 		c.MPD.Network = *mn
 	}
