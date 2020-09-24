@@ -595,11 +595,19 @@ button:hover {
   padding: 5px;
 }
 
-.album-cover {
+.small-album-cover {
   width: 70px;
   height: 70px;
   border-radius: 2px;
   object-fit: contain;
+}
+
+.medium-album-cover {
+  width: 150px;
+  height: 150px;
+  border-radius: 2px;
+  object-fit: contain;
+  display: none;
 }
 
 .album-detail-album {
@@ -630,10 +638,12 @@ button:hover {
   padding: 5px;
 }
 
-.albumlist.grid .album-cover {
-  width: 150px;
-  height: 150px;
-  object-fit: contain;
+.albumlist.grid .medium-album-cover {
+  display: block;
+}
+
+.albumlist.grid .small-album-cover {
+  display: none;
 }
 
 .albumlist.grid .album-detail {

@@ -1707,19 +1707,24 @@ vv.view.list = {
                 e.removeAttribute("title");
             }
         } else if (style === "album") {
-            const cover = c.querySelector(".album-cover");
+            const smallCover = c.querySelector(".small-album-cover");
+            const mediumCover = c.querySelector(".medium-album-cover");
             if (song.cover && song.cover.length !== 0) {
-                const base = largeImage ? 150 : 70;
-                const imgsize = parseInt(base * window.devicePixelRatio, 10);
+                const smallImgsize = parseInt(70 * window.devicePixelRatio, 10);
+                const mediumImgsize = parseInt(150 * window.devicePixelRatio, 10);
                 const s = (song.cover[0].lastIndexOf("?") == -1) ? "?" : "&";
-                cover.src = `${song.cover[0]}${s}width=${imgsize}&height=${imgsize}`;
-                cover.width = imgsize;
-                cover.height = imgsize;
+                smallCover.src = `${song.cover[0]}${s}width=${smallImgsize}&height=${smallImgsize}`;
+                smallCover.width = smallImgsize;
+                smallCover.height = smallImgsize;
+                mediumCover.src = `${song.cover[0]}${s}width=${mediumImgsize}&height=${mediumImgsize}`;
+                mediumCover.width = mediumImgsize;
+                mediumCover.height = mediumImgsize;
             } else {
-                cover.src = "/assets/nocover.svg";
+                smallCover.src = "/assets/nocover.svg";
+                mediumCover.src = "/assets/nocover.svg";
             }
-            cover.alt = `Cover art: ${vv.song.get(song, "Album")} ` +
-                `by ${vv.song.get(song, "AlbumArtist")}`;
+            smallCover.alt = `Cover art: ${vv.song.get(song, "Album")} ` + `by ${vv.song.get(song, "AlbumArtist")}`;
+            mediumCover.alt = smallCover.alt;
         }
         return document.importNode(c, true);
     },
