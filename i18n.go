@@ -143,6 +143,12 @@ var translateData = map[language.Tag]map[string]string{
 		"NotifyNetworkTimeout":        "タイムアウト",
 		"NotifyNetworkClosed":         "再接続中...",
 		"NotifyNetworkDoesNotRespond": "再接続中...",
+		"NotifyLibrary":               "ライブラリ",
+		"NotifyLibraryUpdating":       "更新中...",
+		"NotifyLibraryUpdated":        "更新済み",
+		"NotifyCoverArt":              "カバーアート",
+		"NotifyCoverArtUpdating":      "更新中...",
+		"NotifyCoverArtUpdated":       "更新済み",
 	},
 }
 
