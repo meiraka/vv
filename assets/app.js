@@ -815,10 +815,20 @@ vv.request = {
             }
         };
         xhr.ontimeout = () => {
-            vv.view.popup.show("network", "timeout");
+            if (callback) {
+                callback({ error: "timeout" });
+            } else {
+                vv.view.popup.show("network", "timeout");
+            }
             vv.request.abortAll();
         };
-        xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
+        xhr.onerror = () => {
+            if (callback) {
+                callback({ error: "Error" });
+                return;
+            }
+            vv.view.popup.show("network", "Error");
+        };
         xhr.open("POST", path, true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(obj));
@@ -845,7 +855,13 @@ vv.control = {
     play_pause() {
         const state = vv.control._getOrElse(vv.storage.control, "state", "stopped");
         const action = state === "play" ? "pause" : "play";
-        vv.request.post("/api/music", { state: action });
+        vv.request.post("/api/music", { state: action }, (e) => {
+            if (e.error) {
+                vv.view.popup.show("network", e.error);
+            }
+            vv.storage.control.state = state;
+            vv.control.raiseEvent("control");
+        });
         vv.storage.control.state = action;
         if (action === "pause") {
             const now = (new Date()).getTime();
