@@ -847,6 +847,12 @@ vv.control = {
         const action = state === "play" ? "pause" : "play";
         vv.request.post("/api/music", { state: action });
         vv.storage.control.state = action;
+        if (action === "pause") {
+            const now = (new Date()).getTime();
+            const elapsed = parseInt(vv.storage.control.song_elapsed * 1000, 10) + now - vv.storage.last_modified_ms.control;
+            vv.storage.control.song_elapsed = elapsed / 1000;
+            vv.storage.last_modified_ms.control = now;
+        }
         vv.control.raiseEvent("control");
     },
     next() { vv.request.post("/api/music", { state: "next" }); },
