@@ -15,7 +15,7 @@ html {
 }
 </style>
 <!-- <link rel="preload" as="style" href="assets/app.css" type="text/css" media="all" onload="this.rel='stylesheet'"> -->
-<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/app.css?h={{ or .AssetsAppCSSHash "" }}">
 <link rel="manifest" href="/assets/manifest.json">
 <meta name="theme-color" content="#ffffff"/>
 <meta name="Description" content="Music Player Daemon Client">
@@ -24,7 +24,7 @@ html {
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" sizes="192x192" href="/assets/app.png">
 <script>const TREE = JSON.parse({{ or .TREE "{}" }});const TREE_ORDER = JSON.parse({{ or .TREE_ORDER "[]" }});</script>
-<script src="/assets/app.js" async></script>
+<script src="/assets/app.js?h={{ or .AssetsAppJSHash "" }}" async></script>
 <title>vv</title>
 </head>
 <body class="unload light {{ or .direction "ltr" }}">

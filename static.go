@@ -90,12 +90,17 @@ func (c *AssetsConfig) assetsHandler(rpath string, b []byte, hash []byte) http.H
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
-		w.Header().Add("Cache-Control", "max-age=86400")
+		w.Header().Add("ETag", etag)
+		w.Header().Add("Last-Modified", lastModified)
 		if m != "" {
 			w.Header().Add("Content-Type", m)
 		}
-		w.Header().Add("ETag", etag)
-		w.Header().Add("Last-Modified", lastModified)
+		// extend the expiration date for versioned request
+		if r.URL.Query().Get("h") != "" {
+			w.Header().Add("Cache-Control", "max-age=31536000")
+		} else {
+			w.Header().Add("Cache-Control", "max-age=86400")
+		}
 		if gz != nil {
 			w.Header().Add("Vary", "Accept-Encoding")
 			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") && gz != nil {

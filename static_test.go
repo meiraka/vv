@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -43,17 +44,56 @@ func TestAssetsHandler(t *testing.T) {
 	ts := httptest.NewServer(conf.NewAssetsHandler())
 	defer ts.Close()
 	testsets := map[string]struct {
-		path   string
-		header http.Header
-		status int
-		body   []byte
+		path       string
+		header     http.Header
+		status     int
+		wantHeader http.Header
+		wantBody   []byte
 	}{
-		"text no-gzip":  {path: "/assets/app.svg", header: http.Header{"Accept-Encoding": {"identity"}}, status: http.StatusOK, body: AssetsAppSVG},
-		"text gzip":     {path: "/assets/app.svg", header: http.Header{"Accept-Encoding": {"gzip"}}, status: http.StatusOK, body: Gzip(t, AssetsAppSVG)},
-		"if none match": {path: "/assets/app.svg", header: http.Header{"If-None-Match": {fmt.Sprintf(`"%s"`, AssetsAppSVGHash)}}, status: http.StatusNotModified, body: []byte("")},
+		"text no-gzip": {path: "/assets/app.svg", header: http.Header{"Accept-Encoding": {"identity"}}, status: http.StatusOK,
+			wantHeader: http.Header{
+				"Cache-Control":     {"max-age=86400"},
+				"Etag":              {`"` + string(AssetsAppSVGHash) + `"`},
+				"Vary":              {"Accept-Encoding"},
+				"Transfer-Encoding": nil,
+			},
+			wantBody: AssetsAppSVG},
+		"text gzip": {path: "/assets/app.svg", header: http.Header{"Accept-Encoding": {"gzip"}}, status: http.StatusOK,
+			wantHeader: http.Header{
+				"Cache-Control":     {"max-age=86400"},
+				"Etag":              {`"` + string(AssetsAppSVGHash) + `"`},
+				"Vary":              {"Accept-Encoding"},
+				"Transfer-Encoding": nil,
+			},
+			wantBody: Gzip(t, AssetsAppSVG)},
+		"text gzip with param d": {path: "/assets/app.svg?h=0", header: http.Header{"Accept-Encoding": {"gzip"}}, status: http.StatusOK,
+			wantHeader: http.Header{
+				"Cache-Control":     {"max-age=31536000"},
+				"Etag":              {`"` + string(AssetsAppSVGHash) + `"`},
+				"Vary":              {"Accept-Encoding"},
+				"Transfer-Encoding": nil,
+			},
+			wantBody: Gzip(t, AssetsAppSVG)},
+		"if none match": {path: "/assets/app.svg", header: http.Header{"If-None-Match": {fmt.Sprintf(`"%s"`, AssetsAppSVGHash)}}, status: http.StatusNotModified,
+			wantHeader: http.Header{
+				"Transfer-Encoding": nil,
+			},
+			wantBody: []byte("")},
 
-		"binary no-gzip": {path: "/assets/app.png", header: http.Header{"Accept-Encoding": {"identity"}}, status: http.StatusOK, body: AssetsAppPNG},
-		"binary gzip":    {path: "/assets/app.png", header: http.Header{"Accept-Encoding": {"gzip"}}, status: http.StatusOK, body: AssetsAppPNG},
+		"binary no-gzip": {path: "/assets/app.png", header: http.Header{"Accept-Encoding": {"identity"}}, status: http.StatusOK,
+			wantHeader: http.Header{
+				"Cache-Control":     {"max-age=86400"},
+				"Etag":              {`"` + string(AssetsAppPNGHash) + `"`},
+				"Transfer-Encoding": nil,
+			},
+			wantBody: AssetsAppPNG},
+		"binary gzip": {path: "/assets/app.png", header: http.Header{"Accept-Encoding": {"gzip"}}, status: http.StatusOK,
+			wantHeader: http.Header{
+				"Cache-Control":     {"max-age=86400"},
+				"Etag":              {`"` + string(AssetsAppPNGHash) + `"`},
+				"Transfer-Encoding": nil,
+			},
+			wantBody: AssetsAppPNG},
 	}
 	for k, tt := range testsets {
 		t.Run(k, func(t *testing.T) {
@@ -73,8 +113,14 @@ func TestAssetsHandler(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to read response: %v", err)
 			}
-			if !bytes.Equal(got, tt.body) || resp.StatusCode != tt.status {
-				t.Errorf("got %d %s; want %d %s", resp.StatusCode, got, tt.status, tt.body)
+			for k, v := range tt.wantHeader {
+				if got := resp.Header[k]; !reflect.DeepEqual(got, v) {
+					t.Errorf("got header %s %v; want %v", k, got, v)
+				}
+
+			}
+			if !bytes.Equal(got, tt.wantBody) || resp.StatusCode != tt.status {
+				t.Errorf("got %d %s; want %d %s", resp.StatusCode, got, tt.status, tt.wantBody)
 			}
 		})
 	}

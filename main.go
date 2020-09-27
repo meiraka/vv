@@ -130,8 +130,13 @@ func v2() {
 	batch := cover.NewBatch(covers)
 	assets := AssetsConfig{
 		LocalAssets: config.debug,
-		Extra:       map[string]string{"TREE": string(tree), "TREE_ORDER": string(treeOrder)},
-		ExtraDate:   date,
+		Extra: map[string]string{
+			"AssetsAppCSSHash": string(AssetsAppCSSHash),
+			"AssetsAppJSHash":  string(AssetsAppJSHash),
+			"TREE":             string(tree),
+			"TREE_ORDER":       string(treeOrder),
+		},
+		ExtraDate: date,
 	}.NewAssetsHandler()
 	api, stopAPI, err := APIConfig{
 		AudioProxy: proxy,
