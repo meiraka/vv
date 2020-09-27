@@ -2271,9 +2271,6 @@ vv.view.system = {
             document.getElementById("system-box-nav-back").classList.remove("root");
             for (const nav of navs) {
                 if (nav === e.currentTarget) {
-                    if (nav.id === "system-nav-database") {
-                        vv.view.system._update_stats();
-                    }
                     nav.classList.add("on");
                     document.getElementById(nav.dataset.target).classList.add("on");
                 } else {
@@ -2421,7 +2418,7 @@ vv.view.system = {
         const us = parseInt(i - uh * 60 * 60 - um * 60, 10);
         return `${zfill2(uh)}:${zfill2(um)}:${zfill2(us)}`;
     },
-    _update_stats() {
+    onStats() {
         document.getElementById("stat-albums").textContent =
             vv.storage.stats.albums.toString(10);
         document.getElementById("stat-artists").textContent =
@@ -2442,11 +2439,6 @@ vv.view.system = {
         document.getElementById("stat-db-update").textContent =
             db_update.toLocaleString(document.documentElement.lang, options);
     },
-    onStats() {
-        if (document.getElementById("system-database").classList.contains("on")) {
-            vv.view.system._update_stats();
-        }
-    },
     onVersion() {
         if (vv.storage.version.app) {
             document.getElementById("version").textContent = vv.storage.version.app;
@@ -2464,7 +2456,7 @@ vv.control.addEventListener("start", vv.view.system.onStart);
 vv.control.addEventListener("version", vv.view.system.onVersion);
 vv.control.addEventListener("library_info", vv.view.system.onLibraryInfo);
 vv.control.addEventListener("images", vv.view.system.onImages);
-vv.control.addEventListener("status", vv.view.system.onStats);
+vv.control.addEventListener("stats", vv.view.system.onStats);
 vv.control.addEventListener("preferences", vv.view.system.onPreferences);
 vv.control.addEventListener("outputs", vv.view.system.onOutputs);
 vv.control.addEventListener("storage", vv.view.system.onStorage);
