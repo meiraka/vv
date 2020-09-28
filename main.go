@@ -71,6 +71,7 @@ func v2() {
 		if c, err := cl.Config(ctx); err == nil {
 			if dir, ok := c["music_directory"]; ok {
 				config.MPD.MusicDirectory = dir
+				log.Printf("apply mpd.music_directory from mpd connection: %s", dir)
 			}
 		}
 	}
@@ -80,6 +81,7 @@ func v2() {
 	if config.MPD.MusicDirectory == "" {
 		if mpdConf != nil {
 			config.MPD.MusicDirectory = mpdConf.MusicDirectory
+			log.Printf("apply mpd.music_directory from %s: %s", "/etc/mpd.conf", mpdConf.MusicDirectory)
 		}
 	}
 	proxy := map[string]string{}
