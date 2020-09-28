@@ -77,11 +77,11 @@ func v2() {
 	}
 
 	// get music dir from local mpd config
-	mpdConf, _ := mpd.ParseConfig("/etc/mpd.conf")
+	mpdConf, _ := mpd.ParseConfig(config.MPD.Conf)
 	if config.MPD.MusicDirectory == "" {
-		if mpdConf != nil {
+		if mpdConf != nil && len(config.MPD.Conf) != 0 {
 			config.MPD.MusicDirectory = mpdConf.MusicDirectory
-			log.Printf("apply mpd.music_directory from %s: %s", "/etc/mpd.conf", mpdConf.MusicDirectory)
+			log.Printf("apply mpd.music_directory from %s: %s", config.MPD.Conf, mpdConf.MusicDirectory)
 		}
 	}
 	proxy := map[string]string{}
