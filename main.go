@@ -100,10 +100,10 @@ func v2() {
 	m := http.NewServeMux()
 	covers := make([]cover.Cover, 0, 2)
 	if config.Server.Cover.Local {
-		if !strings.HasPrefix(config.MPD.MusicDirectory, "/") {
-			log.Printf("config.server.cover.local is disabled: mpd.music_directory is not absolute local directory path: %v", config.MPD.MusicDirectory)
-		} else if len(config.MPD.MusicDirectory) == 0 {
+		if len(config.MPD.MusicDirectory) == 0 {
 			log.Println("config.server.cover.local is disabled: mpd.music_directory is empty")
+		} else if !strings.HasPrefix(config.MPD.MusicDirectory, "/") {
+			log.Printf("config.server.cover.local is disabled: mpd.music_directory is not absolute local directory path: %v", config.MPD.MusicDirectory)
 		} else {
 			c, err := cover.NewLocal("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
 			if err != nil {
