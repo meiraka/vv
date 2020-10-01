@@ -432,7 +432,7 @@ html {
       </article>
 
       <article id="system-outputs" class="scrollable system-article">
-        <div>
+        <div class="system-article-sub">
           <h2 class="system-article-sub-header">{{ or .Options "Options" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
@@ -468,7 +468,7 @@ html {
           </ul>
         </div>
 
-        <div>
+        <div class="system-article-sub">
           <h2 class="system-article-sub-header">{{ or .Devices "Devices" }}</h2>
           <ul class="system-settings" id="devices"></ul>
           <template id="device-template">
@@ -500,7 +500,7 @@ html {
           </template>
         </div>
 
-        <div id="httpstream">
+        <div class="system-article-sub" id="httpstream">
           <h2 class="system-article-sub-header">{{ or .ClientOutput "Client output" }}</h2>
           <audio id="httpstream-audio">mpd audio stream</audio>
           <ul class="system-settings">
