@@ -858,9 +858,9 @@ vv.control = {
         vv.request.post("/api/music", { state: action }, (e) => {
             if (e.error) {
                 vv.view.popup.show("network", e.error);
+                vv.storage.control.state = state;
+                vv.control.raiseEvent("control");
             }
-            vv.storage.control.state = state;
-            vv.control.raiseEvent("control");
         });
         vv.storage.control.state = action;
         const now = (new Date()).getTime();
