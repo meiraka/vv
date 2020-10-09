@@ -69,7 +69,7 @@ func v2() {
 	// get music dir from local mpd connection
 	if config.MPD.Network == "unix" && config.MPD.MusicDirectory == "" {
 		if c, err := cl.Config(ctx); err == nil {
-			if dir, ok := c["music_directory"]; ok {
+			if dir, ok := c["music_directory"]; ok && filepath.IsAbs(dir) {
 				config.MPD.MusicDirectory = dir
 				log.Printf("apply mpd.music_directory from mpd connection: %s", dir)
 			}
@@ -79,7 +79,7 @@ func v2() {
 	// get music dir from local mpd config
 	mpdConf, _ := mpd.ParseConfig(config.MPD.Conf)
 	if config.MPD.MusicDirectory == "" {
-		if mpdConf != nil && len(config.MPD.Conf) != 0 {
+		if mpdConf != nil && filepath.IsAbs(config.MPD.Conf) {
 			config.MPD.MusicDirectory = mpdConf.MusicDirectory
 			log.Printf("apply mpd.music_directory from %s: %s", config.MPD.Conf, mpdConf.MusicDirectory)
 		}
@@ -104,8 +104,6 @@ func v2() {
 	if config.Server.Cover.Local {
 		if len(config.MPD.MusicDirectory) == 0 {
 			log.Println("config.server.cover.local is disabled: mpd.music_directory is empty")
-		} else if !strings.HasPrefix(config.MPD.MusicDirectory, "/") {
-			log.Printf("config.server.cover.local is disabled: mpd.music_directory is not absolute local directory path: %v", config.MPD.MusicDirectory)
 		} else {
 			c, err := cover.NewLocal("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
 			if err != nil {
