@@ -450,6 +450,7 @@ html {
                 <li class="system-setting">
                   <div class="system-setting-desc" id="outputs-volume-label">{{ or .Volume "Volume" }}</div>
                   <input id="outputs-volume" type="range" min=0 max=1 step=1 class="config-range" aria-labelledby="outputs-volume-label">
+                  <label class="config-range-string" for="outputs-volume" id="outputs-volume-string">100</label>
                 <li class="system-setting">
                   <div class="system-setting-desc-sub" id="outputs-volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
                   <select class="tool-select value" id="outputs-volume-max" aria-labelledby="outputs-volume-max">
@@ -517,6 +518,7 @@ html {
                 <li class="system-setting">
                   <div class="system-setting-desc" id="httpstream-volume-label">{{ or .Volume "Volume" }}</div>
                   <input id="httpstream-volume" type="range" min=0 max=1 step=0.001 class="config-range" aria-labelledby="httpstream-volume-label">
+                  <label class="config-range-string" for="httpstream-volume" id="httpstream-volume-string">100</label>
                 <li class="system-setting">
                   <div class="system-setting-desc-sub" id="httpstream-max-volume-label">{{ or .MaxVolume "Max volume" }}</div>
                   <select class="tool-select value" id="httpstream-max-volume" aria-labelledby="httpstream-max-volume">

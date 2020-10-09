@@ -1279,6 +1279,14 @@ time.system-setting-value {
   background-color: transparent;
 }
 
+.config-range-string {
+  width: 60px;
+  padding: 0 5px;
+  text-align-last: center;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 .config-range:hover {
   cursor: pointer;
 }

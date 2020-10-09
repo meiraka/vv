@@ -2184,6 +2184,7 @@ vv.view.system = {
     onControl() {
         if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
             document.getElementById("outputs-volume").value = vv.storage.control.volume;
+            document.getElementById("outputs-volume-string").textContent = vv.storage.control.volume + "%";
             document.getElementById("outputs-volume-box").classList.remove("hide");
             document.getElementById("appearance-volume-box").classList.remove("hide");
         } else {
@@ -2345,8 +2346,12 @@ vv.view.system = {
         }
         ul.appendChild(newul);
 
-        document.getElementById("outputs-volume").addEventListener("change", e => {
+        const mpdVolume = document.getElementById("outputs-volume");
+        mpdVolume.addEventListener("change", e => {
             vv.control.volume(parseInt(e.currentTarget.value, 10));
+        });
+        mpdVolume.addEventListener("input", e => {
+            document.getElementById("outputs-volume-string").textContent = e.currentTarget.value + "%";
         });
         const inputs = document.getElementById("httpstream-select");
         const newInputs = document.createDocumentFragment();
@@ -2367,25 +2372,26 @@ vv.view.system = {
         inputs.value = vv.storage.preferences.httpoutput.stream;
         inputs.value = inputs.value;
         vv.storage.preferences.httpoutput.stream = inputs.value;
-        const audio = document.getElementById("httpstream-audio");
-        audio.autoplay = true;
-        audio.volume = vv.storage.preferences.httpoutput.volume;
+        const httpAudio = document.getElementById("httpstream-audio");
+        httpAudio.autoplay = true;
+        httpAudio.volume = vv.storage.preferences.httpoutput.volume;
         if (inputs.value !== "") {
-            audio.src = inputs.value;
-            audio.load();
+            httpAudio.src = inputs.value;
+            httpAudio.load();
         } else {
             document.getElementById("httpstream-volume-group").classList.add("hide");
         }
-        const volume = document.getElementById("httpstream-volume");
-        volume.value = vv.storage.preferences.httpoutput.volume;
-        volume.max = vv.storage.preferences.httpoutput.volume_max;
-        const maxvolume = document.getElementById("httpstream-max-volume");
-        maxvolume.value = vv.storage.preferences.httpoutput.volume_max;
+        const httpVolume = document.getElementById("httpstream-volume");
+        httpVolume.value = vv.storage.preferences.httpoutput.volume;
+        httpVolume.max = vv.storage.preferences.httpoutput.volume_max;
+        const httpMaxVolume = document.getElementById("httpstream-max-volume");
+        httpMaxVolume.value = vv.storage.preferences.httpoutput.volume_max;
+        document.getElementById("httpstream-volume-string").textContent = (vv.storage.preferences.httpoutput.volume * 100).toFixed(1) + "%";
         inputs.addEventListener("change", () => {
-            audio.pause();
-            audio.src = inputs.value;
+            httpAudio.pause();
+            httpAudio.src = inputs.value;
             if (inputs.value !== "") {
-                audio.load();
+                httpAudio.load();
                 document.getElementById("httpstream-volume-group").classList.remove("hide");
             } else {
                 document.getElementById("httpstream-volume-group").classList.add("hide");
@@ -2393,15 +2399,18 @@ vv.view.system = {
             vv.storage.preferences.httpoutput.stream = inputs.value;
             vv.storage.save.preferences();
         });
-        vv.ui.disableSwipe(volume);
-        volume.addEventListener("change", () => {
-            audio.volume = volume.value;
-            vv.storage.preferences.httpoutput.volume = volume.value;
+        vv.ui.disableSwipe(httpVolume);
+        httpVolume.addEventListener("change", () => {
+            httpAudio.volume = httpVolume.value;
+            vv.storage.preferences.httpoutput.volume = httpVolume.value;
             vv.storage.save.preferences();
         });
-        maxvolume.addEventListener("change", () => {
-            volume.max = maxvolume.value;
-            vv.storage.preferences.httpoutput.volume_max = maxvolume.value;
+        httpVolume.addEventListener("input", e => {
+            document.getElementById("httpstream-volume-string").textContent = (e.currentTarget.value * 100).toFixed(1) + "%";
+        });
+        httpMaxVolume.addEventListener("change", () => {
+            httpVolume.max = httpMaxVolume.value;
+            vv.storage.preferences.httpoutput.volume_max = httpMaxVolume.value;
             vv.storage.save.preferences();
         });
     },
