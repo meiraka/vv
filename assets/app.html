@@ -159,6 +159,14 @@ html {
           data-does-not-respond="{{ or .NotifyNetworkDoesNotRespond "does not respond properly. Reconnecting..." }}"
       ></span>
   </section>
+  <section id="popup-client-output" class="popup hide">
+    <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
+    <span class="popup-description"
+          data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
+          data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
+          data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported source" }}"
+      ></span>
+  </section>
   <section id="popup-library" class="popup hide">
     <h3 class="popup-title">{{ or .NotifyLibrary "Library" }}</h3>
     <span class="popup-description"

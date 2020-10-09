@@ -2374,6 +2374,22 @@ vv.view.system = {
         vv.storage.preferences.httpoutput.stream = inputs.value;
         const httpAudio = document.getElementById("httpstream-audio");
         httpAudio.autoplay = true;
+        httpAudio.addEventListener("error", (e) => {
+            if (inputs.value === "") {
+                return;
+            }
+            switch (e.target.error.code) {
+                case e.target.error.MEDIA_ERR_NETWORK:
+                    vv.view.popup.show("client-output", "networkError");
+                    break;
+                case e.target.error.MEDIA_ERR_DECODE:
+                    vv.view.popup.show("client-output", "decodeError");
+                    break;
+                case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    vv.view.popup.show("client-output", "unsupportedSource");
+                    break;
+            }
+        });
         httpAudio.volume = vv.storage.preferences.httpoutput.volume;
         if (inputs.value !== "") {
             httpAudio.src = inputs.value;
