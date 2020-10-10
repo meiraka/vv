@@ -151,43 +151,53 @@ html {
     <span class="popup-description"></span>
   </section>
   <section id="popup-network" class="popup hide">
-    <h3 class="popup-title">{{ or .NotifyNetwork "Network" }}</h3>
-    <span class="popup-description"
-          data-timeout-retry="{{ or .NotifyNetworkTimeoutRetry "Request timeout. Retrying..." }}"
-          data-timeout="{{ or .NotifyNetworkTimeout "Request timeout." }}"
-          data-closed="{{ or .NotifyNetworkClosed "Closed. Reconnecting..." }}"
-          data-does-not-respond="{{ or .NotifyNetworkDoesNotRespond "does not respond properly. Reconnecting..." }}"
-      ></span>
+    <div class="popup-area">
+      <h3 class="popup-title">{{ or .NotifyNetwork "Network" }}</h3>
+      <span class="popup-description"
+            data-timeout-retry="{{ or .NotifyNetworkTimeoutRetry "Request timeout. Retrying..." }}"
+            data-timeout="{{ or .NotifyNetworkTimeout "Request timeout." }}"
+            data-closed="{{ or .NotifyNetworkClosed "Closed. Reconnecting..." }}"
+            data-does-not-respond="{{ or .NotifyNetworkDoesNotRespond "does not respond properly. Reconnecting..." }}"
+        ></span>
+    </div>
   </section>
   <section id="popup-client-output-temporary" class="popup popup-wb hide">
-    <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
-    <span class="popup-description"
-          data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
-          data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
-          data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
-      ></span>
-    <div class="popup-buttons"><button id="popup-client-output-temporary-button" class="button-simple" type="button">{{ or .NotifyClientOutputRetry "Retry" }}</button></div>
+    <div class="popup-area">
+      <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
+      <span class="popup-description"
+            data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
+            data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
+            data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
+        ></span>
+      <div class="popup-buttons"><button id="popup-client-output-temporary-button" class="popup-button" type="button">{{ or .NotifyClientOutputRetry "Retry" }}</button></div>
+    </div>
   </section>
   <section id="popup-client-output" class="popup popup-wb hide">
-    <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
-    <span class="popup-description"
-          data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
-      ></span>
-    <div class="popup-buttons"><button id="popup-client-output-button" class="button-simple" type="button">{{ or .NotifyClientOutputOpenSettings "Open settings" }}</button></div>
+    <div class="popup-area">
+      <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
+      <span class="popup-description"
+            data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
+        ></span>
+      <div class="popup-buttons"><button id="popup-client-output-button" class="popup-button" type="button">{{ or .NotifyClientOutputOpenSettings "Open settings" }}</button></div>
+    </div>
   </section>
   <section id="popup-library" class="popup hide">
-    <h3 class="popup-title">{{ or .NotifyLibrary "Library" }}</h3>
-    <span class="popup-description"
-          data-updating="{{ or .NotifyLibraryUpdating "Updating library database..." }}"
-          data-updated="{{ or .NotifyLibraryUpdated "Library database was updated" }}"
-      ></span>
+    <div class="popup-area">
+      <h3 class="popup-title">{{ or .NotifyLibrary "Library" }}</h3>
+      <span class="popup-description"
+            data-updating="{{ or .NotifyLibraryUpdating "Updating library database..." }}"
+            data-updated="{{ or .NotifyLibraryUpdated "Library database was updated" }}"
+        ></span>
+    </div>
   </section>
   <section id="popup-coverart" class="popup hide">
-    <h3 class="popup-title">{{ or .NotifyCoverArt "CoverArt" }}</h3>
-    <span class="popup-description"
-          data-updating="{{ or .NotifyCoverArtUpdating "Updating coverart cache..." }}"
-          data-updated="{{ or .NotifyCoverArtUpdated "CoverArt cache was updated" }}"
-      ></span>
+    <div class="popup-area">
+      <h3 class="popup-title">{{ or .NotifyCoverArt "CoverArt" }}</h3>
+      <span class="popup-description"
+            data-updating="{{ or .NotifyCoverArtUpdating "Updating coverart cache..." }}"
+            data-updated="{{ or .NotifyCoverArtUpdated "CoverArt cache was updated" }}"
+        ></span>
+    </div>
   </section>
 </div>
 <div id=modal-background class="modal-background hide">
