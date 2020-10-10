@@ -2677,6 +2677,13 @@ vv.view.popup = {
     }
 };
 vv.control.addEventListener("start", () => {
+    document.getElementById("popup-client-output").addEventListener("click", () => {
+        vv.view.popup.hide("client-output");
+        vv.view.system.show();
+        let e = document.createEvent("HTMLEvents");
+        e.initEvent("click", false, true);
+        document.getElementById("system-nav-outputs").dispatchEvent(e);
+    });
     vv.control.addEventListener("library_info", (e) => {
         if (!e || !e.old || !e.current) {
             return;
