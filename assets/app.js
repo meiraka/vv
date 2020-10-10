@@ -2373,7 +2373,6 @@ vv.view.system = {
         inputs.value = inputs.value;
         vv.storage.preferences.httpoutput.stream = inputs.value;
         const httpAudio = document.getElementById("httpstream-audio");
-        httpAudio.autoplay = true;
         httpAudio.addEventListener("error", (e) => {
             if (inputs.value === "") {
                 return;
@@ -2393,10 +2392,32 @@ vv.view.system = {
                     vv.view.popup.show("client-output", "unsupportedSource");
                     err.textContent = err.dataset["unsupportedSource"];
                     break;
+
             }
         });
         httpAudio.addEventListener("canplaythrough", () => {
             document.getElementById("httpstream-error").textContent = "";
+            const p = httpAudio.play();
+            if (p) {
+                p.then(() => { }).catch((e) => {
+                    const err = document.getElementById("httpstream-error");
+                    console.log(e);
+                    switch (e.name) {
+                        case "NotAllowedError":
+                            vv.view.popup.show("client-output", "notAllowed");
+                            err.textContent = err.dataset["notAllowed"];
+                            break;
+                        case "NotSupportedError":
+                            vv.view.popup.show("client-output", "unsupportedSource");
+                            err.textContent = err.dataset["unsupportedSource"];
+                            break;
+                        default:
+                            vv.view.popup.show("client-output", e.message);
+                            err.textContent = e.message;
+                            break;
+                    }
+                });
+            }
         });
         httpAudio.volume = vv.storage.preferences.httpoutput.volume;
         if (inputs.value !== "") {

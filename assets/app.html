@@ -165,6 +165,7 @@ html {
           data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
           data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
           data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
+          data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
       ></span>
   </section>
   <section id="popup-library" class="popup hide">
@@ -521,6 +522,7 @@ html {
                     data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
                     data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
                     data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
+                    data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
                     ></div>
               </div>
               <select class="tool-select big value" id="httpstream-select" data-disabled-label="{{ or .HTTPStreamDisabled "disabled" }}" aria-labelledby="httpstream-select">
