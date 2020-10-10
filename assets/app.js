@@ -2374,7 +2374,7 @@ vv.view.system = {
         vv.storage.preferences.httpoutput.stream = inputs.value;
         const httpAudio = document.getElementById("httpstream-audio");
         httpAudio.addEventListener("error", (e) => {
-            if (inputs.value === "") {
+            if (vv.storage.control.state !== "play") {
                 return;
             }
             const err = document.getElementById("httpstream-error");
@@ -2435,11 +2435,12 @@ vv.view.system = {
         inputs.addEventListener("change", () => {
             httpAudio.pause();
             document.getElementById("httpstream-error").textContent = "";
-            httpAudio.src = inputs.value;
             if (inputs.value !== "") {
+                httpAudio.src = inputs.value;
                 httpAudio.load();
                 document.getElementById("httpstream-volume-group").classList.remove("hide");
             } else {
+                httpAudio.removeAttribute("src");
                 document.getElementById("httpstream-volume-group").classList.add("hide");
             }
             vv.storage.preferences.httpoutput.stream = inputs.value;
