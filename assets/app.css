@@ -1594,11 +1594,19 @@ input[type=radio]:checked + .radio-check:before {
   height: 90px;
 }
 
+.popup-wb.show {
+  height: 134px;
+}
+
 .popup-title {
   margin: 5px;
 }
 
 .popup-description {
+  margin: 5px;
+}
+
+.popup-buttons {
   margin: 5px;
 }
 

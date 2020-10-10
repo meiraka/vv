@@ -159,14 +159,21 @@ html {
           data-does-not-respond="{{ or .NotifyNetworkDoesNotRespond "does not respond properly. Reconnecting..." }}"
       ></span>
   </section>
-  <section id="popup-client-output" class="popup hide">
+  <section id="popup-client-output-temporary" class="popup popup-wb hide">
     <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
     <span class="popup-description"
           data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
           data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
-          data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
           data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
       ></span>
+    <div class="popup-buttons"><button id="popup-client-output-temporary-button" class="button-simple" type="button">{{ or .NotifyClientOutputRetry "Retry" }}</button></div>
+  </section>
+  <section id="popup-client-output" class="popup popup-wb hide">
+    <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
+    <span class="popup-description"
+          data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
+      ></span>
+    <div class="popup-buttons"><button id="popup-client-output-button" class="button-simple" type="button">{{ or .NotifyClientOutputOpenSettings "Open settings" }}</button></div>
   </section>
   <section id="popup-library" class="popup hide">
     <h3 class="popup-title">{{ or .NotifyLibrary "Library" }}</h3>

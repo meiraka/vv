@@ -2381,37 +2381,46 @@ vv.view.system = {
             err.textContent = "";
             switch (e.target.error.code) {
                 case e.target.error.MEDIA_ERR_NETWORK:
-                    vv.view.popup.show("client-output", "networkError");
+                    vv.view.popup.show("client-output-temporary", "networkError", true);
+                    vv.view.popup.hide("client-output");
                     err.textContent = err.dataset["networkError"];
                     break;
                 case e.target.error.MEDIA_ERR_DECODE:
-                    vv.view.popup.show("client-output", "decodeError");
+                    vv.view.popup.show("client-output-temporary", "decodeError", true);
+                    vv.view.popup.hide("client-output");
                     err.textContent = err.dataset["decodeError"];
                     break;
                 case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                    vv.view.popup.show("client-output", "unsupportedSource");
+                    vv.view.popup.hide("client-output-temporary");
+                    vv.view.popup.show("client-output", "unsupportedSource", true);
                     err.textContent = err.dataset["unsupportedSource"];
                     break;
 
             }
         });
         httpAudio.addEventListener("canplaythrough", () => {
-            document.getElementById("httpstream-error").textContent = "";
+            const err = document.getElementById("httpstream-error");
             const p = httpAudio.play();
             if (p) {
-                p.then(() => { }).catch((e) => {
-                    const err = document.getElementById("httpstream-error");
+                p.then(() => {
+                    vv.view.popup.hide("client-output-temporary");
+                    vv.view.popup.hide("client-output");
+                    err.textContent = "";
+                }).catch((e) => {
                     console.log(e);
                     switch (e.name) {
                         case "NotAllowedError":
-                            vv.view.popup.show("client-output", "notAllowed");
+                            vv.view.popup.show("client-output-temporary", "notAllowed", true);
+                            vv.view.popup.hide("client-output");
                             err.textContent = err.dataset["notAllowed"];
                             break;
                         case "NotSupportedError":
-                            vv.view.popup.show("client-output", "unsupportedSource");
+                            vv.view.popup.hide("client-output-temporary");
+                            vv.view.popup.show("client-output", "unsupportedSource", true);
                             err.textContent = err.dataset["unsupportedSource"];
                             break;
                         default:
+                            vv.view.popup.hide("client-output-temporary");
                             vv.view.popup.show("client-output", e.message);
                             err.textContent = e.message;
                             break;
@@ -2665,7 +2674,7 @@ vv.control.addEventListener("control", vv.view.footer.onControl);
 vv.control.addEventListener("preferences", vv.view.footer.onPreferences);
 
 vv.view.popup = {
-    show(target, description) {
+    show(target, description, never) {
         const obj = document.getElementById("popup-" + target);
         if (!obj) {
             vv.view.popup.show("fixme", `popup-${target} is not found in html`);
@@ -2680,6 +2689,9 @@ vv.view.popup = {
         obj.classList.add("show");
         obj.timestamp = (new Date()).getTime();
         obj.ttl = obj.timestamp + 4000;
+        if (never) {
+            return;
+        }
         setTimeout(() => {
             if ((new Date()).getTime() - obj.ttl > 0) {
                 obj.classList.remove("show");
@@ -2708,7 +2720,11 @@ vv.view.popup = {
     }
 };
 vv.control.addEventListener("start", () => {
-    document.getElementById("popup-client-output").addEventListener("click", () => {
+    document.getElementById("popup-client-output-temporary-button").addEventListener("click", () => {
+        vv.view.popup.hide("client-output-temporary");
+        document.getElementById("httpstream-audio").load();
+    });
+    document.getElementById("popup-client-output-button").addEventListener("click", () => {
         vv.view.popup.hide("client-output");
         vv.view.system.show();
         let e = document.createEvent("HTMLEvents");
