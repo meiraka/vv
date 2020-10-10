@@ -334,10 +334,6 @@ body {
   background-color: var(--bg-color);
 }
 
-.warning-text {
-  color: var(--warning-text);
-}
-
 kbd {
   font-family: monospace, sans-serif;
   display: flex;
@@ -2140,4 +2136,8 @@ footer {
 
 .modal-song-box-item-value-empty {
   background-color: rgba(var(--bg-color-rgb), 0.2);
+}
+
+.warning-text {
+  color: var(--warning-text);
 }

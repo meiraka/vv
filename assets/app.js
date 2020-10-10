@@ -2378,17 +2378,25 @@ vv.view.system = {
             if (inputs.value === "") {
                 return;
             }
+            const err = document.getElementById("httpstream-error");
+            err.textContent = "";
             switch (e.target.error.code) {
                 case e.target.error.MEDIA_ERR_NETWORK:
                     vv.view.popup.show("client-output", "networkError");
+                    err.textContent = err.dataset["networkError"];
                     break;
                 case e.target.error.MEDIA_ERR_DECODE:
                     vv.view.popup.show("client-output", "decodeError");
+                    err.textContent = err.dataset["decodeError"];
                     break;
                 case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
                     vv.view.popup.show("client-output", "unsupportedSource");
+                    err.textContent = err.dataset["unsupportedSource"];
                     break;
             }
+        });
+        httpAudio.addEventListener("canplaythrough", () => {
+            document.getElementById("httpstream-error").textContent = "";
         });
         httpAudio.volume = vv.storage.preferences.httpoutput.volume;
         if (inputs.value !== "") {
@@ -2405,6 +2413,7 @@ vv.view.system = {
         document.getElementById("httpstream-volume-string").textContent = (vv.storage.preferences.httpoutput.volume * 100).toFixed(1) + "%";
         inputs.addEventListener("change", () => {
             httpAudio.pause();
+            document.getElementById("httpstream-error").textContent = "";
             httpAudio.src = inputs.value;
             if (inputs.value !== "") {
                 httpAudio.load();

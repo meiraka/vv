@@ -164,7 +164,7 @@ html {
     <span class="popup-description"
           data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
           data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
-          data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported source" }}"
+          data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
       ></span>
   </section>
   <section id="popup-library" class="popup hide">
@@ -517,6 +517,11 @@ html {
               <div class="system-setting-desc-box">
                 <div class="system-setting-desc system-setting-desc-boxed" id="httpstream-select-label">{{ or .ClientOutputSource "Source" }}</div>
                 <div class="system-setting-desc-help">{{ or .ClientOutputSourceHelp "Play HTTP stream from selected device" }}</div>
+                <div class="system-setting-desc-help warning-text" id="httpstream-error"
+                    data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
+                    data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
+                    data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
+                    ></div>
               </div>
               <select class="tool-select big value" id="httpstream-select" data-disabled-label="{{ or .HTTPStreamDisabled "disabled" }}" aria-labelledby="httpstream-select">
                 <option value="">{{ or .HTTPStreamDisabled "disabled" }}</option>
