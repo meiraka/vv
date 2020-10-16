@@ -806,9 +806,10 @@ vv.request = {
         xhr.onload = () => {
             if (callback && xhr.response) {
                 callback(xhr.response);
-            } else if (xhr.status !== 200 && xhr.status !== 202) {
+            }
+            if (xhr.status !== 200 && xhr.status !== 202) {
                 if (xhr.response && xhr.response.error) {
-                    vv.view.popup.show("network", xhr.response.error);
+                    vv.view.popup.show("mpd", xhr.response.error);
                 } else {
                     vv.view.popup.show("network", xhr.responseText);
                 }
@@ -817,17 +818,15 @@ vv.request = {
         xhr.ontimeout = () => {
             if (callback) {
                 callback({ error: "timeout" });
-            } else {
-                vv.view.popup.show("network", "timeout");
             }
+            vv.view.popup.show("network", "timeout");
             vv.request.abortAll();
         };
         xhr.onerror = () => {
             if (callback) {
-                callback({ error: "Error" });
-                return;
+                callback({ error: "error" });
             }
-            vv.view.popup.show("network", "Error");
+            vv.view.popup.show("network", "error");
         };
         xhr.open("POST", path, true);
         xhr.setRequestHeader("Content-Type", "application/json");
@@ -857,7 +856,6 @@ vv.control = {
         const action = state === "play" ? "pause" : "play";
         vv.request.post("/api/music", { state: action }, (e) => {
             if (e.error) {
-                vv.view.popup.show("network", e.error);
                 vv.storage.control.state = state;
                 vv.control.raiseEvent("control");
             }

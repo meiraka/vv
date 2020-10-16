@@ -1613,6 +1613,13 @@ input[type=radio]:checked + .radio-check:before {
   white-space: nowrap;
 }
 
+.popup-description-multiline {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 .popup-buttons {
   display: flex;
   flex-flow: row-reverse nowrap;

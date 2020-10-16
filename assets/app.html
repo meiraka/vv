@@ -161,7 +161,13 @@ html {
         ></span>
     </div>
   </section>
-  <section id="popup-client-output-temporary" class="popup popup-wb hide">
+  <section id="popup-mpd" class="popup popup hide">
+    <div class="popup-area">
+      <h3 class="popup-title">{{ or .NotifyMPD "Music Player Daemon" }}</h3>
+      <span class="popup-description popup-description-multiline"></span>
+    </div>
+  </section>
+  <section id="popup-client-output-temporary" class="popup popup hide">
     <div class="popup-area">
       <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
       <span class="popup-description"
@@ -172,7 +178,7 @@ html {
       <div class="popup-buttons"><button id="popup-client-output-temporary-button" class="popup-button" type="button">{{ or .NotifyClientOutputRetry "Retry" }}</button></div>
     </div>
   </section>
-  <section id="popup-client-output" class="popup popup-wb hide">
+  <section id="popup-client-output" class="popup popup hide">
     <div class="popup-area">
       <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
       <span class="popup-description"
@@ -184,7 +190,7 @@ html {
   <section id="popup-library" class="popup hide">
     <div class="popup-area">
       <h3 class="popup-title">{{ or .NotifyLibrary "Library" }}</h3>
-      <span class="popup-description"
+      <span class="popup-description popup-description-multiline"
             data-updating="{{ or .NotifyLibraryUpdating "Updating library database..." }}"
             data-updated="{{ or .NotifyLibraryUpdated "Library database was updated" }}"
         ></span>
@@ -193,7 +199,7 @@ html {
   <section id="popup-coverart" class="popup hide">
     <div class="popup-area">
       <h3 class="popup-title">{{ or .NotifyCoverArt "CoverArt" }}</h3>
-      <span class="popup-description"
+      <span class="popup-description popup-description-multiline"
             data-updating="{{ or .NotifyCoverArtUpdating "Updating coverart cache..." }}"
             data-updated="{{ or .NotifyCoverArtUpdated "CoverArt cache was updated" }}"
         ></span>
