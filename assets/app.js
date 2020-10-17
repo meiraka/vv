@@ -1003,6 +1003,8 @@ vv.control = {
                     vv.control._fetch("/api/music/images", "images");
                 } else if (e.data === "/api/music/storage") {
                     vv.control._fetch("/api/music/storage", "storage");
+                } else if (e.data === "/api/version") {
+                    vv.control._fetch("/api/version", "version");
                 }
                 const now = (new Date()).getTime();
                 if (now - vv.control._notify_last_update > 10000) {
@@ -2718,6 +2720,13 @@ vv.view.popup = {
     }
 };
 vv.control.addEventListener("start", () => {
+    vv.control.addEventListener("version", () => {
+        if (vv.storage.version.mpd) {
+            vv.view.popup.hide("mpd-connection");
+        } else {
+            vv.view.popup.show("mpd-connection", "reconnecting", true);
+        }
+    });
     document.getElementById("popup-client-output-temporary-button").addEventListener("click", () => {
         vv.view.popup.hide("client-output-temporary");
         document.getElementById("httpstream-audio").load();

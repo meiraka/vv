@@ -167,6 +167,14 @@ html {
       <span class="popup-description popup-description-multiline"></span>
     </div>
   </section>
+  <section id="popup-mpd-connection" class="popup popup hide">
+    <div class="popup-area">
+      <h3 class="popup-title">{{ or .NotifyMPD "Music Player Daemon" }}</h3>
+      <span class="popup-description popup-description-multiline"
+            data-reconnecting="{{ or .NotifyMPDReconnecting "Reconnecting..." }}"
+          ></span>
+    </div>
+  </section>
   <section id="popup-client-output-temporary" class="popup popup hide">
     <div class="popup-area">
       <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>

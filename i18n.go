@@ -143,6 +143,7 @@ var translateData = map[language.Tag]map[string]string{
 		"NotifyNetworkTimeout":                "タイムアウト",
 		"NotifyNetworkClosed":                 "再接続中...",
 		"NotifyNetworkDoesNotRespond":         "再接続中...",
+		"NotifyMPDReconnecting":               "再接続中...",
 		"NotifyClientOutput":                  "クライアント出力",
 		"NotifyClientOutputNetworkError":      "ネットワークエラー",
 		"NotifyClientOutputDeocdeError":       "デコードエラー",

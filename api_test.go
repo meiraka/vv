@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -105,6 +106,10 @@ func TestAPIJSONPHandler(t *testing.T) {
 
 			tests: []*testRequest{
 				{
+					method: http.MethodGet, path: "/api/version",
+					want: map[int]string{http.StatusOK: fmt.Sprintf(`{"app":"%s","go":"%s","mpd":"0.19"}`, version, fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH))},
+				},
+				{
 					method: http.MethodGet, path: "/api/music/playlist",
 					want: map[int]string{http.StatusOK: ""},
 				},
@@ -150,9 +155,13 @@ func TestAPIJSONPHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 					},
-					preWebSocket: []string{"/api/music/library/songs", "/api/music/playlist", "/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/outputs", "/api/music/stats", "/api/music/storage"},
+					preWebSocket: []string{"/api/version", "/api/version", "/api/music/library/songs", "/api/music/playlist", "/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/outputs", "/api/music/stats", "/api/music/storage"},
 					method:       http.MethodGet, path: "/api/music",
 					want: map[int]string{http.StatusOK: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
+				},
+				{
+					method: http.MethodGet, path: "/api/version",
+					want: map[int]string{http.StatusOK: fmt.Sprintf(`{"app":"%s","go":"%s","mpd":"0.19"}`, version, fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH))},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/playlist",

@@ -36,6 +36,12 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 			default:
 			}
 			// TODO: logging
+			if err != nil {
+				select {
+				case event <- "reconnecting":
+				default:
+				}
+			}
 			err = w.pool.Exec(context.Background() /* do not use ctx to graceful shutdown */, func(conn *conn) error {
 				if err != nil {
 					select {

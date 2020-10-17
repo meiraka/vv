@@ -99,6 +99,8 @@ func (h *api) runCacheUpdater(ctx context.Context) error {
 		for e := range h.watcher.Event() {
 			ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 			switch e {
+			case "reconnecting":
+				h.updateVersionNoMPD()
 			case "reconnect":
 				h.updateVersion()
 				for _, v := range all {
@@ -232,7 +234,16 @@ type httpAPIVersion struct {
 
 func (h *api) updateVersion() error {
 	goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
-	return h.jsonCache.SetIfModified("/api/version", &httpAPIVersion{App: version, Go: goVersion, MPD: h.client.Version()})
+	mpdVersion := h.client.Version()
+	if len(mpdVersion) == 0 {
+		mpdVersion = "unknown"
+	}
+	return h.jsonCache.SetIfModified("/api/version", &httpAPIVersion{App: version, Go: goVersion, MPD: mpdVersion})
+}
+
+func (h *api) updateVersionNoMPD() error {
+	goVersion := fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	return h.jsonCache.SetIfModified("/api/version", &httpAPIVersion{App: version, Go: goVersion, MPD: ""})
 }
 
 type httpPlaylistInfo struct {
