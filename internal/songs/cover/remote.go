@@ -140,8 +140,7 @@ func (s *Remote) updateCache(ctx context.Context, songPath string) error {
 	b, err := s.client.AlbumArt(ctx, songPath)
 	if err != nil {
 		// set zero value for not found
-		var perr *mpd.CommandError
-		if errors.As(err, &perr) {
+		if errors.Is(err, mpd.ErrNoExist) {
 			s.db.Put(key, []byte{}, nil)
 			return nil
 		}
