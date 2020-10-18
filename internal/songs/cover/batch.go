@@ -3,8 +3,11 @@ package cover
 import (
 	"context"
 	"errors"
+	"log"
 	"path"
 	"sync"
+
+	"github.com/meiraka/vv/internal/songs"
 )
 
 // Cover represents cover api.
@@ -63,6 +66,8 @@ func (b *Batch) GetURLs(song map[string][]string) (urls []string, updated bool) 
 	return urls, allUpdated
 }
 
+var songsTag = songs.Tag
+
 // Update updates image url database.
 func (b *Batch) Update(songs []map[string][]string) error {
 	select {
@@ -96,7 +101,10 @@ func (b *Batch) Update(songs []map[string][]string) error {
 		}
 		for _, song := range targets {
 			for _, c := range b.covers {
-				c.Rescan(ctx, song)
+				if err := c.Rescan(ctx, song); err != nil {
+					log.Printf("cover: %v: %v", songsTag(song, "file"), err)
+					continue
+				}
 				urls, _ := c.GetURLs(song)
 				if len(urls) > 0 {
 					break
