@@ -103,7 +103,7 @@ func (b *Batch) Update(songs []map[string][]string) error {
 			for _, c := range b.covers {
 				if err := c.Rescan(ctx, song); err != nil {
 					log.Printf("cover: %v: %v", songsTag(song, "file"), err)
-					continue
+					// use previous rescanned result
 				}
 				urls, _ := c.GetURLs(song)
 				if len(urls) > 0 {
