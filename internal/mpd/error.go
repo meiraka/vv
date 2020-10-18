@@ -113,3 +113,18 @@ func (f *CommandError) Error() string {
 func (f *CommandError) Unwrap() error {
 	return f.ID
 }
+
+// Is returns true if pointer or all values are same.
+func (f *CommandError) Is(target error) bool {
+	if target == f {
+		return true
+	}
+	var t *CommandError
+	if !errors.As(target, &t) {
+		return false
+	}
+	return f.ID == t.ID &&
+		f.Index == t.Index &&
+		f.Command == t.Command &&
+		f.Message == t.Message
+}

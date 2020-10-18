@@ -2,7 +2,6 @@ package mpd
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 )
 
@@ -17,7 +16,7 @@ func TestNewCommandError(t *testing.T) {
 		},
 	} {
 		got := newCommandError(tt.in)
-		if !reflect.DeepEqual(got, tt.want) {
+		if !errors.Is(got, tt.want) {
 			t.Errorf("got %+v; want %+v", got, tt.want)
 		}
 	}
