@@ -603,6 +603,9 @@ vv.library = {
         vv.library.down(second);
     },
     absFallback(song) {
+        if (!song || !song.Pos) {
+            return;
+        }
         if (vv.library.rootname() !== "root" && song.file) {
             const r = vv.storage.tree[0];
             vv.storage.tree.length = 0;
@@ -632,6 +635,9 @@ vv.library = {
         vv.pubsub.raise(vv.library._listener, "changed");
     },
     absSorted(song) {
+        if (!song || !song.Pos) {
+            return;
+        }
         let root = "";
         const pos = parseInt(song.Pos[0], 10);
         const keys = vv.storage.sorted.sort.join();
@@ -1535,8 +1541,10 @@ vv.view.main = {
         });
         vv.ui.disableSwipe(document.getElementById("main-seek"));
         document.getElementById("main-seek").addEventListener("input", (e) => {
-            const target = parseInt(e.currentTarget.value, 10) * parseInt(vv.storage.current.Time[0], 10) / 1000;
-            vv.control.seek(target);
+            if (vv.storage.current.Time && vv.storage.current.Time[0]) {
+                const target = parseInt(e.currentTarget.value, 10) * parseInt(vv.storage.current.Time[0], 10) / 1000;
+                vv.control.seek(target);
+            }
         });
         vv.view.main.onPreferences();
         vv.ui.swipe(
