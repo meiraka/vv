@@ -758,7 +758,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/playlist", body: strings.NewReader(`{}`),
-					want: map[int]string{http.StatusBadRequest: `{"error":"filters and sort fields are required"}`},
+					want: map[int]string{http.StatusBadRequest: `{"error":"current, filters and sort fields are required"}`},
 				},
 			}},
 		`POST /api/music/playlist {"current":0,"sort":["file"],"filters":[]}`: {

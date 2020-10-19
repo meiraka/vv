@@ -247,7 +247,7 @@ func (h *api) updateVersionNoMPD() error {
 }
 
 type httpPlaylistInfo struct {
-	Current int        `json:"current"`
+	Current *int       `json:"current,omitempty"`
 	Sort    []string   `json:"sort,omitempty"`
 	Filters [][]string `json:"filters,omitempty"`
 	Must    int        `json:"must,omitempty"`
@@ -272,8 +272,8 @@ func (h *api) playlistHandler() http.HandlerFunc {
 			return
 		}
 
-		if req.Filters == nil || req.Sort == nil {
-			writeHTTPError(w, http.StatusBadRequest, errors.New("filters and sort fields are required"))
+		if req.Current == nil || req.Filters == nil || req.Sort == nil {
+			writeHTTPError(w, http.StatusBadRequest, errors.New("current, filters and sort fields are required"))
 			return
 		}
 
@@ -287,7 +287,7 @@ func (h *api) playlistHandler() http.HandlerFunc {
 		defer func() { sem <- struct{}{} }()
 
 		h.mu.Lock()
-		librarySort, filters, newpos := songs.WeakFilterSort(h.library, req.Sort, req.Filters, req.Must, 9999, req.Current)
+		librarySort, filters, newpos := songs.WeakFilterSort(h.library, req.Sort, req.Filters, req.Must, 9999, *req.Current)
 		update := !songs.SortEqual(h.playlist, librarySort)
 		cl := &mpd.CommandList{}
 		cl.Clear()
@@ -438,6 +438,7 @@ type httpMusicStatus struct {
 	Oneshot     *bool    `json:"oneshot,omitempty"`
 	Consume     *bool    `json:"consume,omitempty"`
 	State       *string  `json:"state,omitempty"`
+	Pos         *int     `json:"pos,omitempty"`
 	SongElapsed *float64 `json:"song_elapsed,omitempty"`
 	ReplayGain  *string  `json:"replay_gain"`
 	Crossfade   *int     `json:"crossfade"`
@@ -464,9 +465,10 @@ func (h *api) updateStatus(ctx context.Context) error {
 	if err == nil && v >= 0 {
 		volume = &v
 	}
-	pos, err := strconv.Atoi(s["song"])
-	if err != nil {
-		pos = 0
+	var pos *int
+	p, err := strconv.Atoi(s["song"])
+	if err == nil {
+		pos = &p
 	}
 	elapsed, err := strconv.ParseFloat(s["elapsed"], 64)
 	if err != nil {
