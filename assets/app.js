@@ -603,10 +603,7 @@ vv.library = {
         vv.library.down(second);
     },
     absFallback(song) {
-        if (!song || !song.Pos) {
-            return;
-        }
-        if (vv.library.rootname() !== "root" && song.file) {
+        if (vv.library.rootname() !== "root" && song && song.file) {
             const r = vv.storage.tree[0];
             vv.storage.tree.length = 0;
             vv.storage.tree.splice(0, vv.storage.tree.length);
