@@ -20,24 +20,28 @@ func TestWatcher(t *testing.T) {
 		t.Fatalf("failed to create test server: %v", err)
 	}
 	defer ts.Close()
-	c, err := testDialer.NewWatcher("tcp", ts.URL, "")
+	w, err := testDialer.NewWatcher("tcp", ts.URL, "")
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
-	ts.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: player\nOK\n"})
-	got, ok := readChan(ctx, t, c.Event())
+	ts.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: playlist\nchanged: player\nOK\n"})
+	got, ok := readChan(ctx, t, w.Event())
+	if want := "playlist"; !ok || got != want {
+		t.Fatalf("got client %s, %v; want %s, true", got, ok, want)
+	}
+	got, ok = readChan(ctx, t, w.Event())
 	if want := "player"; !ok || got != want {
 		t.Fatalf("got client %s, %v; want %s, true", got, ok, want)
 	}
 	ts.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 	errs := make(chan error, 1)
-	go func() { errs <- c.Close(ctx) }()
+	go func() { errs <- w.Close(ctx) }()
 
 	ts.Expect(ctx, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
 	if err := <-errs; err != nil {
 		t.Errorf("Close got error %v; want nil", err)
 	}
-	got, ok = readChan(ctx, t, c.Event())
+	got, ok = readChan(ctx, t, w.Event())
 	if ok {
 		t.Errorf("got \"%s\", %v; want \"\", false", got, ok)
 	}
