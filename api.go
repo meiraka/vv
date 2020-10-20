@@ -247,10 +247,10 @@ func (h *api) updateVersionNoMPD() error {
 }
 
 type httpPlaylistInfo struct {
-	Current *int       `json:"current,omitempty"`
-	Sort    []string   `json:"sort,omitempty"`
-	Filters [][]string `json:"filters,omitempty"`
-	Must    int        `json:"must,omitempty"`
+	Current *int         `json:"current,omitempty"`
+	Sort    []string     `json:"sort,omitempty"`
+	Filters [][2]*string `json:"filters,omitempty"`
+	Must    int          `json:"must,omitempty"`
 }
 
 func (h *api) updatePlaylist() error {

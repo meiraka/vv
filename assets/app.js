@@ -86,7 +86,7 @@ vv.song = {
         return ret.join();
     },
     getOne(song, key) {
-        const other = `[no ${key}]`;
+        const other = null;
         if (!song.keys) {
             return vv.song.getOrElseMulti(song, key, [other])[0];
         }
@@ -109,7 +109,7 @@ vv.song = {
                 for (const song of songs) {
                     song.sortkey += " ";
                     if (writememo) {
-                        song.keys.push([key, `[no ${key}]`]);
+                        song.keys.push([key, null]);
                     }
                 }
             } else if (values.length === 1) {
@@ -496,7 +496,7 @@ vv.library = {
             return true;
         }
         const cache = vv.library._list_child_cache[vv.storage.tree.length - 1];
-        const pwd = vv.storage.tree.join();
+        const pwd = JSON.stringify(vv.storage.tree);
         if (cache.pwd === pwd) {
             vv.library._list_cache = cache.data;
             return false;
@@ -592,7 +592,7 @@ vv.library = {
         const songs = vv.library.list().songs;
         if (songs.length === 1 &&
             TREE[r].tree.length !== vv.storage.tree.length) {
-            vv.library.down(vv.song.get(songs[0], vv.library.list().key));
+            vv.library.down(vv.song.getOne(songs[0], vv.library.list().key));
         } else {
             vv.pubsub.raise(vv.library._listener, "changed");
         }
@@ -1605,7 +1605,7 @@ vv.view.list = {
                 continue;
             }
             if (focusSong && focusSong.file && focusParent) {
-                if (focusParent === listitem.dataset.key) {
+                if (focusParent == listitem.dataset.key) { // focusParent is null or string, dataset.key is undefined or string
                     focus = listitem;
                     focus.classList.add("selected");
                 } else {
@@ -1697,7 +1697,12 @@ vv.view.list = {
     _element(song, key, style, largeImage, header) {
         const c = document.querySelector(`#list-${style}-template`).content;
         const e = c.querySelector("li");
-        e.dataset.key = vv.song.getOne(song, key);
+        const v = vv.song.getOne(song, key);
+        if (v !== null) {
+            e.dataset.key = v;
+        } else {
+            e.removeAttribute("data-key"); // safari does not support delete
+        }
         if (header) {
             e.classList.add("list-header");
             e.classList.remove("selectable");
@@ -1718,7 +1723,7 @@ vv.view.list = {
             }
             const target = n.dataset.textContent;
             if (target === "key") {
-                n.textContent = vv.song.getOne(song, key);
+                n.textContent = v ? v : `[no ${key}]`;
             } else if (target) {
                 n.textContent = vv.song.get(song, target);
             }
@@ -1764,7 +1769,7 @@ vv.view.list = {
             vv.view.main.show();
             return;
         }
-        const value = e.currentTarget.dataset.key;
+        const value = e.currentTarget.dataset.key ? e.currentTarget.dataset.key : null;
         const pos = e.currentTarget.dataset.pos;
         if (e.currentTarget.classList.contains("song")) {
             vv.control.play(parseInt(pos, 10));
@@ -1775,7 +1780,7 @@ vv.view.list = {
     _update() {
         const index = vv.storage.tree.length;
         const scroll = document.getElementById("list" + index);
-        const pwd = vv.storage.tree.join();
+        const pwd = JSON.stringify(vv.storage.tree);
         if (scroll.dataset.pwd === pwd) {
             vv.view.list._updatepos();
             vv.view.list._updateFocus();
@@ -1789,7 +1794,7 @@ vv.view.list = {
         const newul = document.createDocumentFragment();
         const lists = document.getElementsByClassName("list");
         for (let treeindex = 0; treeindex < vv.storage.tree.length; treeindex++) {
-            const currentpwd = vv.storage.tree.slice(0, treeindex + 1).join();
+            const currentpwd = JSON.stringify(vv.storage.tree.slice(0, treeindex + 1));
             const viewpwd = lists[treeindex + 1].dataset.pwd;
             if (currentpwd !== viewpwd) {
                 const oldul =
@@ -2547,15 +2552,8 @@ vv.control.addEventListener("storage", vv.view.system.onStorage);
             if (songs[0]) {
                 const p = vv.library.grandparent();
                 if (p) {
-                    e.textContent = vv.song.getOne(p.song, p.key);
-                    if (p.song.keys) {
-                        for (const kv of p.song.keys) {
-                            if (kv[0] === p.key) {
-                                e.textContent = kv[1];
-                                break;
-                            }
-                        }
-                    }
+                    const v = vv.song.getOne(p.song, p.key);
+                    e.textContent = v ? v : `[no ${p.key}]`;
                     b.setAttribute(
                         "title", b.dataset.titleFormat.replace("%s", e.textContent));
                     b.setAttribute(

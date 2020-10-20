@@ -17,57 +17,58 @@ func SortEqual(o, n []map[string][]string) bool {
 	return true
 }
 
-func sortKeys(s map[string][]string, keys []string) []map[string]string {
-	sp := []map[string]string{{"all": ""}}
+type sorter struct {
+	song    map[string][]string
+	keys    map[string]*string
+	sortkey string
+	target  bool
+}
+
+func sortKeys(s map[string][]string, keys []string) []*sorter {
+	sp := []*sorter{{song: s, keys: make(map[string]*string, len(keys))}}
 	for _, key := range keys {
 		sp = addAllKeys(sp, key, Tags(s, key))
 	}
 	return sp
 }
 
-func addAllKeys(sp []map[string]string, key string, add []string) []map[string]string {
+func addAllKeys(sp []*sorter, key string, add []string) []*sorter {
 	if add == nil || len(add) == 0 {
 		for i := range sp {
-			sp[i]["all"] = sp[i]["all"] + " "
-			sp[i][key] = " "
+			sp[i].sortkey = sp[i].sortkey + " "
+			sp[i].keys[key] = nil
 		}
 		return sp
 	}
 	if len(add) == 1 {
 		for i := range sp {
-			sp[i]["all"] = sp[i]["all"] + add[0]
-			sp[i][key] = add[0]
+			sp[i].sortkey = sp[i].sortkey + add[0]
+			sp[i].keys[key] = &add[0]
 		}
 		return sp
 	}
-	newsp := make([]map[string]string, len(sp)*len(add))
+	newsp := make([]*sorter, len(sp)*len(add))
 	index := 0
 	for i := range sp {
 		for j := range add {
-			spd := make(map[string]string, len(sp[i]))
-			for k := range sp[i] {
-				spd[k] = sp[i][k]
+			s := &sorter{song: sp[i].song, keys: make(map[string]*string, len(sp[i].keys))}
+			for k := range sp[i].keys {
+				s.keys[k] = sp[i].keys[k]
 			}
-			spd["all"] = spd["all"] + add[j]
-			spd[key] = add[j]
-			newsp[index] = spd
+			s.sortkey = s.sortkey + add[j]
+			s.keys[key] = &add[j]
+			newsp[index] = s
 			index++
 		}
 	}
 	return newsp
 }
 
-type sorter struct {
-	song   map[string][]string
-	key    map[string]string
-	target bool
-}
-
 // WeakFilterSort sorts songs by song tag list.
-func WeakFilterSort(s []map[string][]string, keys []string, filters [][]string, must, max, pos int) ([]map[string][]string, [][]string, int) {
+func WeakFilterSort(s []map[string][]string, keys []string, filters [][2]*string, must, max, pos int) ([]map[string][]string, [][2]*string, int) {
 	flatten := flat(s, keys)
 	sort.Slice(flatten, func(i, j int) bool {
-		return flatten[i].key["all"] < flatten[j].key["all"]
+		return flatten[i].sortkey < flatten[j].sortkey
 	})
 	if pos < len(flatten) && pos >= 0 {
 		flatten[pos].target = true
@@ -87,8 +88,8 @@ func WeakFilterSort(s []map[string][]string, keys []string, filters [][]string, 
 func flat(s []map[string][]string, keys []string) []*sorter {
 	flatten := make([]*sorter, 0, len(s))
 	for _, song := range s {
-		for _, key := range sortKeys(song, keys) {
-			flatten = append(flatten, &sorter{song, key, false})
+		for _, s := range sortKeys(song, keys) {
+			flatten = append(flatten, s)
 		}
 	}
 	return flatten
@@ -96,8 +97,8 @@ func flat(s []map[string][]string, keys []string) []*sorter {
 
 // weakFilterSongs removes songs if not matched by filters until len(songs) over max.
 // filters example: [][]string{[]string{"Artist", "foo"}}
-func weakFilterSongs(s []*sorter, filters [][]string, must, max int) ([]*sorter, [][]string) {
-	used := [][]string{}
+func weakFilterSongs(s []*sorter, filters [][2]*string, must, max int) ([]*sorter, [][2]*string) {
+	used := [][2]*string{}
 	if len(s) <= max && must == 0 {
 		return s, used
 	}
@@ -109,7 +110,10 @@ func weakFilterSongs(s []*sorter, filters [][]string, must, max int) ([]*sorter,
 		used = append(used, filter)
 		nc := make([]*sorter, 0, len(n))
 		for _, sorter := range n {
-			if value, found := sorter.key[filter[0]]; found && value == filter[1] {
+			key, want := filter[0], filter[1]
+			if key == nil {
+				nc = append(nc, sorter)
+			} else if value := sorter.keys[*key]; (value != nil && want != nil && *value == *want) || (value == nil && want == nil) {
 				nc = append(nc, sorter)
 			}
 		}
@@ -126,3 +130,5 @@ func weakFilterSongs(s []*sorter, filters [][]string, must, max int) ([]*sorter,
 	}
 	return n, used
 }
+
+func strPtr(s string) *string { return &s }
