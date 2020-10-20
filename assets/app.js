@@ -895,9 +895,9 @@ vv.control = {
     play(pos) {
         const filters = vv.library.filters(pos);
         let must = 0;
-        if (vv.storage.preferences.playlist.playback_tracks == "list") {
+        if (vv.storage.preferences.playlist.playback_tracks === "list") {
             must = filters.length - 1;
-        } else if (vv.storage.preferences.playlist.playback_tracks) {
+        } else if (vv.storage.preferences.playlist.playback_tracks === "custom") {
             const root = vv.library.rootname();
             if (root !== "root") {
                 must = vv.storage.preferences.playlist.playback_tracks_custom[root];
