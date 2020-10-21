@@ -1416,9 +1416,9 @@ vv.view.main = {
         const c = document.getElementById("control-volume");
         if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
             c.value = vv.storage.control.volume;
-            c.classList.remove("disabled");
+            c.disabled = false;
         } else {
-            c.classList.add("disabled");
+            c.disabled = true;
         }
         const o = document.getElementById("main-cover-overlay");
         if (vv.storage.control.state === "play") {
@@ -1436,6 +1436,9 @@ vv.view.main = {
                 requestAnimationFrame(() => { o.classList.remove("changed"); }, 10);
             }
         }
+    },
+    onPlaylist() {
+        document.getElementById("main-cover-overlay").disabled = !(vv.storage.sorted && vv.storage.sorted.hasOwnProperty("current"));
     },
     show() {
         document.body.classList.add("view-main");
@@ -1548,10 +1551,12 @@ vv.view.main = {
             document.getElementById("main"), vv.view.list.show, null,
             document.getElementById("lists"), () => { return window.innerHeight >= window.innerWidth; });
         vv.view.main.onCurrent();
+        vv.view.main.onPlaylist();
     }
 };
 vv.control.addEventListener("poll", vv.view.main.onPoll);
 vv.control.addEventListener("start", vv.view.main.onStart);
+vv.control.addEventListener("sorted", vv.view.main.onPlaylist);
 vv.control.addEventListener("current", vv.view.main.onCurrent);
 vv.control.addEventListener("control", vv.view.main.onControl);
 vv.control.addEventListener("preferences", vv.view.main.onPreferences);
@@ -2091,8 +2096,9 @@ vv.view.system = {
                 e.querySelector(".system-setting-desc").textContent = o.name;
                 if (o.plugin) {
                     e.querySelector(".plugin").textContent = o.plugin;
+                    e.querySelector(".plugin").classList.remove("hide");
                 } else {
-                    e.querySelector(".plugin").classList.add("disabled");
+                    e.querySelector(".plugin").classList.add("hide");
                 }
                 const sw = e.querySelector(".device-switch");
                 sw.setAttribute("aria-label", o.name);
@@ -2604,6 +2610,7 @@ vv.view.footer = {
         }
     },
     onStart() {
+        vv.view.footer.onPlaylist();
         vv.view.footer.onPreferences();
         document.getElementById("control-prev").addEventListener("click", e => {
             vv.control.prev();
@@ -2626,6 +2633,12 @@ vv.view.footer = {
             vv.control.toggle_random();
             e.stopPropagation();
         });
+    },
+    onPlaylist() {
+        const disabled = !(vv.storage.sorted && vv.storage.sorted.hasOwnProperty("current"));
+        document.getElementById("control-prev").disabled = disabled;
+        document.getElementById("control-toggleplay").disabled = disabled;
+        document.getElementById("control-next").disabled = disabled;
     },
     onControl() {
         const toggleplay = document.getElementById("control-toggleplay");
@@ -2674,6 +2687,7 @@ vv.view.footer = {
 };
 vv.control.addEventListener("start", vv.view.footer.onStart);
 vv.control.addEventListener("control", vv.view.footer.onControl);
+vv.control.addEventListener("sorted", vv.view.footer.onPlaylist);
 vv.control.addEventListener("preferences", vv.view.footer.onPreferences);
 
 vv.view.popup = {

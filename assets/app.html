@@ -121,13 +121,13 @@ html {
     <div id="main-cover" class="main-cover">
       <img alt="now playing cover" id="main-cover-img" class="main-cover-img">
       <img alt="now playing cover" id="main-cover-img2" class="main-cover-img">
-      <div id="main-cover-overlay" class="main-cover-overlay ">
+      <button id="main-cover-overlay" class="main-cover-overlay">
         <svg class="control-playback-toggleplay-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
           <path class="fill control-playback-play" d="M 70,60 140,100 70,140 z"/>
           <path class="fill control-playback-pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
           <path class="stroke" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
         </svg>
-      </div>
+      </button>
       <svg id="main-cover-circle" class="main-cover-circle" width="200" height="200" viewBox="0 0 200 200">
           <path id="main-cover-circle-active" class="stroke" d=""></path>
           <path class="main-cover-circle-inactive stroke" d="M 100,10 L 100,10 A 90,90 0 0,1 100,190 L 100,190 A 90,90 0 0,1 100,10"></path>
@@ -779,7 +779,7 @@ html {
       </svg>
     </button>
   </nav>
-  <input id="control-volume" class="disabled control-volume" type="range" min=0 max=100 step=1>
+  <input id="control-volume" class="control-volume" type="range" min=0 max=100 step=1 disabled>
   <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .titleRepeat "Repeat" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRepeat "Turn on repeat" }}" data-aria-label-single-off="{{ or .ariaLabelTurnOnRepeat1 "Turn on repeat1" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRepeat "Turn off repeat" }}">
     <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
       <path class=fill d="M 87.5,30 112.5,45 87.5,60 z M 112.5,145 87.5,160 112.5,175 z"/>

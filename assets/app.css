@@ -33,6 +33,10 @@ button:active {
   outline: 0;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
 li,
 ol {
   list-style-type: none;
@@ -457,8 +461,7 @@ svg .stroke {
   animation: hover_img 0.5s linear 0s;
 }
 
-.header-item:active .header-item-icon,
-.header-item.active .header-item-icon {
+.header-item:active .header-item-icon {
   height: 28px;
 }
 
@@ -554,7 +557,7 @@ svg .stroke {
   background-color: var(--list-selected);
 }
 
-button:hover {
+button:hover:not(:disabled) {
   cursor: pointer;
 }
 
@@ -1204,7 +1207,7 @@ button:hover {
   overflow: hidden;
   padding: 0;
 }
-.system-setting-desc-help.disabled {
+.system-setting-desc-help.hide {
   display: none;
 }
 
@@ -1384,6 +1387,7 @@ time.system-setting-value {
   cursor: pointer;
 }
 
+/* :disabled::after not working */
 .disabled.slideswitch:hover {
   cursor: auto;
 }
@@ -1460,7 +1464,7 @@ time.system-setting-value {
   min-width: 100px;
 }
 
-.button-simple:hover {
+.button-simple:hover:not(:disabled) {
   animation: hover_img 0.5s linear 0s;
 }
 
@@ -1471,7 +1475,6 @@ time.system-setting-value {
   background-color: var(--button-disabled-outline);
 }
 
-.button-simple.active,
 .button-simple:active {
   color: rgba(var(--button-inner-rgb), 0.5);
   padding: 4px 24px 0 24px;
@@ -1676,8 +1679,7 @@ footer {
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
 }
 
-.control-playback-toggleplay:active .control-playback-toggleplay-icon,
-.control-playback-toggleplay.active .control-playback-toggleplay-icon {
+.control-playback-toggleplay:active:not(:disabled) .control-playback-toggleplay-icon {
   height: 81px;
   width: 81px;
 }
@@ -1713,8 +1715,7 @@ footer {
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
 }
 
-.control-playback-sub:active .control-playback-sub-icon,
-.control-playback-sub.active .control-playback-sub-icon {
+.control-playback-sub:active:not(:disabled) .control-playback-sub-icon {
   height: 54px;
   width: 54px;
 }
@@ -1731,7 +1732,7 @@ footer {
 }
 
 .control-volume.hide,
-.control-volume.disabled {
+.control-volume:disabled {
   visibility: hidden;
 }
 
@@ -1794,8 +1795,7 @@ footer {
   transition: width 0.2s 0s ease, height 0.2s 0s ease;
 }
 
-.control-sub:active .control-sub-icon,
-.control-sub.active .control-sub-icon {
+.control-sub:active .control-sub-icon {
   width: 28px;
   height: 28px;
 }
@@ -1829,12 +1829,16 @@ footer {
   }
 }
 
-.control-button:hover svg {
+.control-button:hover:not(:disabled) svg {
   animation: hover_img 0.5s linear 0s;
 }
 
-.control-button.off:hover svg {
+.control-button.off:hover:not(:disabled) svg {
   animation: hover_img_off 0.5s linear 0s;
+}
+
+.control-button:disabled {
+  opacity: 0.2;
 }
 
 @keyframes hover_img {
@@ -1964,8 +1968,6 @@ footer {
 }
 
 .submodal-window-close:active .modal-window-close-icon,
-.submodal-window-close.active .modal-window-close-icon,
-.modal-window-close.active .modal-window-close-icon,
 .modal-window-close:active .modal-window-close-icon {
   width: 24px;
   height: 24px;
