@@ -31,9 +31,17 @@ server:
 playlist:
   tree:
     AlbumArtist:
+      # song order tags
       sort: ["AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"]
-      tree: [["AlbumArtist", "plain"], ["Album", "album"], ["Title", "song"]]
+      # defines playlist view:
+      # left param: tag for grouping(must be defined in sort)
+      # right param: view style(plain, album, song)
+      tree:
+      - ["AlbumArtist", "plain"]
+      - ["Album", "album"]
+      - ["Title", "song"]
     Album:
+      # tags can be joined by "-"
       sort: ["Date-Album", "DiscNumber", "TrackNumber", "Title", "file"]
       tree: [["Date-Album", "album"], ["Title", "song"]]
     Artist:

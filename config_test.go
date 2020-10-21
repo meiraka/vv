@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -195,4 +196,33 @@ func TestConfigYAML(t *testing.T) {
 	if err := c.Validate(); err != nil {
 		t.Errorf("config validate failed: %v", err)
 	}
+}
+
+// TestValidateErrorText tests validation error text for logs readability.
+func TestValidateErrorText(t *testing.T) {
+	for yamlText, errStr := range map[string]string{
+		`{"playlist":{"tree_order":["foo","foo"],"tree":{"foo":{"sort":["file"],"tree":[["file","song"]]}}}}`:                                                  "playlist.tree_order foo is duplicated",
+		`{"playlist":{"tree_order":["foo","bar"],"tree":{"foo":{"sort":["file"],"tree":[["file","song"]]}}}}`:                                                  "playlist.tree.bar is not defined in playlist.tree",
+		`{"playlist":{"tree_order":["foo","bar"],"tree":{"foo":{"sort":["file"],"tree":[["file","song"]]},"bar":{"sort":["file"],"tree":[["file","song"]]}}}}`: "playlist.tree.*.sort must be unique: playlist.tree.foo.sort and playlist.tree.bar.sort has same value",
+
+		`{"playlist":{"tree_order":["foo"],"tree":{"foo":{"sort":[],"tree":[["file","song"]]}}}}`:        "playlist.tree.foo: sort or tree must not be empty",
+		`{"playlist":{"tree_order":["foo"],"tree":{"foo":{"sort":["file"],"tree":[]}}}}`:                 "playlist.tree.foo: sort or tree must not be empty",
+		`{"playlist":{"tree_order":["foo"],"tree":{"foo":{"sort":["file"],"tree":[["title","song"]]}}}}`: "playlist.tree.foo: tree: index 0:0: tree tag must be defined in sort: title does not defined in sort: ",     // do not include []string printf representation
+		`{"playlist":{"tree_order":["foo"],"tree":{"foo":{"sort":["file"],"tree":[["file","foo"]]}}}}`:   "playlist.tree.foo: tree: index 0:1: unsupported tree view type: got foo; supported tree element views are ", // do not include []string printf representation
+	} {
+		t.Run(errStr, func(t *testing.T) {
+			c := Config{}
+			if err := yaml.Unmarshal([]byte(yamlText), &c); err != nil {
+				t.Fatalf("failed to parse config: %v", err)
+			}
+			err := c.Validate()
+			if err == nil {
+				t.Fatalf("yaml is valid")
+			}
+			if !strings.HasPrefix(err.Error(), errStr) {
+				t.Errorf("got err %v", err)
+			}
+		})
+	}
+
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -117,16 +118,38 @@ func (c *Config) Validate() error {
 		set[label] = struct{}{}
 		node, ok := c.Playlist.Tree[label]
 		if !ok {
-			return fmt.Errorf("playlist.tree_order %s is not defined in tree", label)
+			return fmt.Errorf("playlist.tree.%s is not defined in playlist.tree", label)
 		}
 		if err := node.Validate(); err != nil {
-			return fmt.Errorf("playlist.tree label %s: %w", label, err)
+			return fmt.Errorf("playlist.tree.%s: %w", label, err)
+		}
+	}
+	for i, label := range c.Playlist.TreeOrder {
+		// check playlist sort is uniq
+		if i != len(c.Playlist.TreeOrder)-1 {
+			for _, compare := range c.Playlist.TreeOrder[i+1:] {
+				if sameStrSlice(c.Playlist.Tree[label].Sort, c.Playlist.Tree[compare].Sort) {
+					return fmt.Errorf("playlist.tree.*.sort must be unique: playlist.tree.%s.sort and playlist.tree.%s.sort has same value", label, compare)
+				}
+			}
 		}
 	}
 	if t, o := len(c.Playlist.Tree), len(c.Playlist.TreeOrder); o != t {
 		return fmt.Errorf("playlist.tree length (%d) and playlist.tree_order length (%d) mismatch", t, o)
 	}
 	return nil
+}
+
+func sameStrSlice(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, s := range a {
+		if b[i] != s {
+			return false
+		}
+	}
+	return true
 }
 
 var (
@@ -172,18 +195,19 @@ type ConfigListNode struct {
 
 // Validate ConfigListNode data struct.
 func (l *ConfigListNode) Validate() error {
+	if len(l.Tree) == 0 || len(l.Sort) == 0 {
+		return errors.New("sort or tree must not be empty")
+	}
 	if len(l.Tree) > 4 {
 		return fmt.Errorf("maximum tree length is 4; got %d", len(l.Tree))
 	}
 	for i, leef := range l.Tree {
-		for _, view := range supportTreeViews {
-			if view == leef[1] {
-				goto OK
-			}
+		if !contains(l.Sort, leef[0]) {
+			return fmt.Errorf("tree: index %d:0: tree tag must be defined in sort: %s does not defined in sort: %v", i, leef[0], l.Sort)
 		}
-		return fmt.Errorf("index %d, supported tree element views are %v; got %s", i, supportTreeViews, leef[1])
-	OK:
+		if !contains(supportTreeViews, leef[1]) {
+			return fmt.Errorf("tree: index %d:1: unsupported tree view type: got %s; supported tree element views are %v", i, leef[1], supportTreeViews)
+		}
 	}
 	return nil
-
 }
