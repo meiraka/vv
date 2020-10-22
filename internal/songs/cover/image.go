@@ -55,7 +55,8 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if !modifiedSince(r, i.ModTime()) {
+	l := i.ModTime().UTC()
+	if !modifiedSince(r, l) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -75,7 +76,7 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Add("Content-Length", strconv.FormatInt(i.Size(), 10))
 		w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
-		w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
+		w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 		io.CopyN(w, f, i.Size())
 		return
 	}
@@ -101,7 +102,7 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Length", strconv.Itoa(len(b)))
 	w.Header().Add("Content-Type", mime.TypeByExtension(path.Ext(rpath)))
-	w.Header().Add("Last-Modified", i.ModTime().Format(http.TimeFormat))
+	w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 	w.Write(b)
 }
 

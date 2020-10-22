@@ -132,9 +132,9 @@ func (c *AssetsConfig) i18nAssetsHandler(rpath string, b []byte, hash []byte) ht
 				http.NotFound(w, r)
 				return
 			}
-			l := info.ModTime()
+			l := info.ModTime().UTC()
 			if l.Before(c.ExtraDate) {
-				l = c.ExtraDate
+				l = c.ExtraDate.UTC()
 			}
 			if !modifiedSince(r, l) {
 				w.WriteHeader(304)
