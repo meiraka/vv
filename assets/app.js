@@ -2256,7 +2256,6 @@ vv.view.system = {
         document.getElementById("storage-ok").addEventListener("click", () => {
             vv.request.post("/api/music/storage", { [document.getElementById("storage-path").value]: { "uri": document.getElementById("storage-uri").value } }, (e) => {
                 if (e.error) {
-                    console.log(e);
                     document.getElementById("storage-error").textContent = e.error;
                     return;
                 }
@@ -2423,7 +2422,6 @@ vv.view.system = {
                     vv.view.popup.hide("client-output");
                     err.textContent = "";
                 }).catch((e) => {
-                    console.log(e);
                     switch (e.name) {
                         case "NotAllowedError":
                             vv.view.popup.show("client-output-temporary", "notAllowed", true);
