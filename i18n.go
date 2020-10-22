@@ -149,6 +149,8 @@ var translateData = map[language.Tag]map[string]string{
 		"NotifyClientOutputDeocdeError":       "デコードエラー",
 		"NotifyClientOutputUnsupportedSource": "対応していないオーディオフォーマット",
 		"NotifyClientOutputNotAllowed":        "自動再生が許可されていません",
+		"NotifyClientOutputRetry":             "再試行",
+		"NotifyClientOutputOpenSettings":      "設定を開く",
 		"NotifyLibrary":                       "ライブラリ",
 		"NotifyLibraryUpdating":               "更新中...",
 		"NotifyLibraryUpdated":                "更新済み",
