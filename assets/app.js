@@ -1059,28 +1059,43 @@ vv.control = {
         }
     },
     load() {
-        const focus = () => {
-            if (vv.storage.preferences.appearance.playlist_follows_playback &&
-                vv.storage.current !== null) {
-                vv.library.abs(vv.storage.current);
+        const focus = (e) => {
+            if (!vv.storage.preferences.appearance.playlist_follows_playback) {
+                return;
             }
+            if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.sorted || vv.storage.library.length === 0) {
+                return;
+            }
+            const pos = parseInt(vv.storage.current.Pos[0]);
+            if (pos !== vv.storage.sorted.current) {
+                return;
+            }
+            vv.library.abs(vv.storage.current);
         };
-
         let unsorted = (!vv.storage.sorted || !vv.storage.sorted.hasOwnProperty("sort") || vv.storage.sorted.sort === null);
         const focusremove = (key, remove) => {
             const n = () => {
-                if (unsorted && vv.storage.sorted && vv.storage.current !== null && vv.storage.library.length !== 0) {
-                    if (vv.storage.sorted &&
-                        vv.storage.preferences.appearance.playlist_follows_playback) {
-                        vv.library.abs(vv.storage.current);
-                    }
-                    unsorted = false;
-                }
                 setTimeout(() => { remove(key, n); });
+                if (!vv.storage.preferences.appearance.playlist_follows_playback) {
+                    return;
+                }
+                if (!unsorted) {
+                    return;
+                }
+                if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.sorted || vv.storage.library.length === 0) {
+                    return;
+                }
+                const pos = parseInt(vv.storage.current.Pos[0]);
+                if (pos !== vv.storage.sorted.current) {
+                    return;
+                }
+                unsorted = false;
+                vv.library.abs(vv.storage.current);
             };
             return n;
         };
         vv.control.addEventListener("current", focus);
+        vv.control.addEventListener("sorted", focus);
         vv.control.addEventListener("start", focus);
         vv.control.addEventListener(
             "library", () => { vv.library.update(vv.storage.library); });
