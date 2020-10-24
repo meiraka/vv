@@ -880,7 +880,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 
 				{
-					preWebSocket: []string{"/api/music", "/api/music/library", "/api/music/library/songs", "/api/music", "/api/music/playlist/songs/current", "/api/music/stats"},
+					preWebSocket: []string{"/api/music", "/api/music/library", "/api/music/library/songs", "/api/music", "/api/music/stats"},
 					method:       http.MethodGet, path: "/api/music/library",
 					want: map[int]string{http.StatusOK: `{"updating":false}`},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -889,7 +889,6 @@ func TestAPIJSONPHandler(t *testing.T) {
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: database\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
-						main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 					},
 				},

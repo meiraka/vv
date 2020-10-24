@@ -603,7 +603,17 @@ vv.library = {
         vv.library.down(second);
     },
     absFallback(song) {
-        if (vv.library.rootname() !== "root" && song && song.file) {
+        if (vv.library.rootname() !== "root" && song && song.file && song.file.length !== 0) {
+            for (let i = 0, imax = vv.storage.library.length; i < imax; i++) {
+                const l = vv.storage.library[i];
+                if (!l.file || l.file.length === 0) {
+                    continue;
+                }
+                if (song.file[0] === l.file[0]) {
+                    song = l;
+                    break;
+                }
+            }
             const r = vv.storage.tree[0];
             vv.storage.tree.length = 0;
             vv.storage.tree.splice(0, vv.storage.tree.length);

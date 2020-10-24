@@ -110,7 +110,7 @@ func (h *api) runCacheUpdater(ctx context.Context) error {
 			case "database":
 				h.updateLibrarySongs(ctx)
 				h.updateStatus(ctx)
-				h.updateCurrentSong(ctx)
+				// h.updateCurrentSong(ctx) // "currentsong" metadata did not updated until song changes
 				// h.updatePlaylistSongs(ctx) // client does not use this api
 				h.updateStats(ctx)
 			case "playlist":
