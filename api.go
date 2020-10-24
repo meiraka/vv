@@ -89,6 +89,7 @@ func (h *api) runCacheUpdater(ctx context.Context) error {
 				ctx, cancel := context.WithTimeout(context.Background(), h.config.BackgroundTimeout)
 				h.updateCurrentSong(ctx)
 				h.updateLibrarySongs(ctx)
+				// h.updatePlaylistSongs(ctx) // client does not use this api
 				cancel()
 			}
 		}
@@ -109,6 +110,8 @@ func (h *api) runCacheUpdater(ctx context.Context) error {
 			case "database":
 				h.updateLibrarySongs(ctx)
 				h.updateStatus(ctx)
+				h.updateCurrentSong(ctx)
+				// h.updatePlaylistSongs(ctx) // client does not use this api
 				h.updateStats(ctx)
 			case "playlist":
 				h.updatePlaylistSongs(ctx)
