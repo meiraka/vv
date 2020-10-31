@@ -2227,6 +2227,9 @@ vv.view.system = {
         const audio = document.getElementById("httpstream-audio");
         if (vv.storage.control.state === "play") {
             if (audio.paused) {
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
+                // add cache-busting query
+                audio.src = vv.storage.preferences.httpoutput.stream + "&cb=" + Math.random();
                 audio.load();
             }
         } else {
@@ -2428,6 +2431,12 @@ vv.view.system = {
 
             }
         });
+        // firefox's load() function does not fire canplaythrough event without autoplay is enabled.
+        httpAudio.autoplay = true;
+        httpAudio.addEventListener("loadeddata", () => {
+            // prevent autoplay to use play() function in canplaythrough event.
+            httpAudio.pause();
+        });
         httpAudio.addEventListener("canplaythrough", () => {
             const err = document.getElementById("httpstream-error");
             const p = httpAudio.play();
@@ -2459,7 +2468,9 @@ vv.view.system = {
         });
         httpAudio.volume = vv.storage.preferences.httpoutput.volume;
         if (inputs.value !== "") {
-            httpAudio.src = inputs.value;
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
+            // add cache-busting query
+            httpAudio.src = inputs.value + "&cb" + Math.random();
             httpAudio.load();
         } else {
             document.getElementById("httpstream-volume-group").classList.add("hide");
@@ -2474,7 +2485,9 @@ vv.view.system = {
             httpAudio.pause();
             document.getElementById("httpstream-error").textContent = "";
             if (inputs.value !== "") {
-                httpAudio.src = inputs.value;
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
+                // add cache-busting query
+                httpAudio.src = inputs.value + "&cb" + Math.random();
                 httpAudio.load();
                 document.getElementById("httpstream-volume-group").classList.remove("hide");
             } else {
@@ -2759,7 +2772,12 @@ vv.control.addEventListener("start", () => {
     });
     document.getElementById("popup-client-output-temporary-button").addEventListener("click", () => {
         vv.view.popup.hide("client-output-temporary");
-        document.getElementById("httpstream-audio").load();
+
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
+        // add cache-busting query
+        const audio = document.getElementById("httpstream-audio");
+        audio.src = vv.storage.preferences.httpoutput.stream + "&cb=" + Math.random();
+        audio.load();
     });
     document.getElementById("popup-client-output-button").addEventListener("click", () => {
         vv.view.popup.hide("client-output");
