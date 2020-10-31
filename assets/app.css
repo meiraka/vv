@@ -387,10 +387,17 @@ svg .stroke {
 
 .scrollbar-styling .scrollable {
   overflow-y: auto;
+  overflow-y: overlay;
 }
 
 .scrollbar-styling .scrollable::-webkit-scrollbar {
-  width: 12px;
+  display: none;
+  overflow: visible;
+  width: 8px;
+}
+
+.scrollbar-styling .scrollable:hover::-webkit-scrollbar {
+  display: initial;
 }
 
 .scrollbar-styling .scrollable::-webkit-scrollbar-thumb {
