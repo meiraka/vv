@@ -183,7 +183,10 @@ html {
             data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
             data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
         ></span>
-      <div class="popup-buttons"><button id="popup-client-output-temporary-button" class="popup-button" type="button">{{ or .NotifyClientOutputRetry "Retry" }}</button></div>
+      <div class="popup-buttons">
+        <button id="popup-client-output-temporary-button-retry" class="popup-button" type="button">{{ or .NotifyClientOutputRetry "Retry" }}</button>
+        <button id="popup-client-output-temporary-button-settings" class="popup-button" type="button">{{ or .NotifyClientOutputOpenSettings "Open settings" }}</button>
+      </div>
     </div>
   </section>
   <section id="popup-client-output" class="popup popup hide">

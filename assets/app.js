@@ -2772,7 +2772,7 @@ vv.control.addEventListener("start", () => {
             vv.view.popup.show("mpd-connection", "reconnecting", true);
         }
     });
-    document.getElementById("popup-client-output-temporary-button").addEventListener("click", () => {
+    document.getElementById("popup-client-output-temporary-button-retry").addEventListener("click", () => {
         vv.view.popup.hide("client-output-temporary");
 
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
@@ -2783,13 +2783,16 @@ vv.control.addEventListener("start", () => {
             audio.load();
         }
     });
-    document.getElementById("popup-client-output-button").addEventListener("click", () => {
+    const openOutputSettings = () => {
         vv.view.popup.hide("client-output");
+        vv.view.popup.hide("client-output-temporary");
         vv.view.system.show();
         let e = document.createEvent("HTMLEvents");
         e.initEvent("click", false, true);
         document.getElementById("system-nav-outputs").dispatchEvent(e);
-    });
+    };
+    document.getElementById("popup-client-output-temporary-button-settings").addEventListener("click", openOutputSettings);
+    document.getElementById("popup-client-output-button").addEventListener("click", openOutputSettings);
     vv.control.addEventListener("library_info", (e) => {
         if (!e || !e.old || !e.current) {
             return;

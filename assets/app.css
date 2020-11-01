@@ -1642,6 +1642,7 @@ input[type=radio]:checked + .radio-check:before {
   color: var(--button-inner);
   font-size: 16px;
   padding: 3px 12px;
+  margin: 0 0 0 4px;
 }
 
 footer {
