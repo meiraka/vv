@@ -2224,16 +2224,18 @@ vv.view.system = {
         }
         document.getElementById("outputs-replay-gain").value = vv.storage.control.replay_gain;
         document.getElementById("outputs-crossfade").value = vv.storage.control.crossfade.toString(10);
-        const audio = document.getElementById("httpstream-audio");
-        if (vv.storage.control.state === "play") {
-            if (audio.paused) {
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
-                // add cache-busting query
-                audio.src = vv.storage.preferences.httpoutput.stream + "&cb=" + Math.random();
-                audio.load();
+        if (vv.storage.preferences.httpoutput.stream !== "") {
+            const audio = document.getElementById("httpstream-audio");
+            if (vv.storage.control.state === "play") {
+                if (audio.paused) {
+                    // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
+                    // add cache-busting query
+                    audio.src = vv.storage.preferences.httpoutput.stream + "&cb=" + Math.random();
+                    audio.load();
+                }
+            } else {
+                audio.pause();
             }
-        } else {
-            audio.pause();
         }
     },
     onStart() {
@@ -2775,9 +2777,11 @@ vv.control.addEventListener("start", () => {
 
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
         // add cache-busting query
-        const audio = document.getElementById("httpstream-audio");
-        audio.src = vv.storage.preferences.httpoutput.stream + "&cb=" + Math.random();
-        audio.load();
+        if (vv.storage.preferences.httpoutput.stream !== "") {
+            const audio = document.getElementById("httpstream-audio");
+            audio.src = vv.storage.preferences.httpoutput.stream + "&cb=" + Math.random();
+            audio.load();
+        }
     });
     document.getElementById("popup-client-output-button").addEventListener("click", () => {
         vv.view.popup.hide("client-output");
