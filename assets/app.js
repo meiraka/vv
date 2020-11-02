@@ -215,7 +215,7 @@ vv.storage = {
     current: null,
     control: {},
     librarySongs: [],
-    library_info: {},
+    library: {},
     images: {},
     outputs: [],
     storage: {},
@@ -918,8 +918,8 @@ vv.control = {
             }
         }
         vv.request.post("/api/music/library", { updating: true });
-        vv.storage.library_info.updating = true;
-        vv.control.raiseEvent("library_info");
+        vv.storage.library.updating = true;
+        vv.control.raiseEvent("library");
     },
     prev() { vv.request.post("/api/music", { state: "previous" }); },
     play_pause() {
@@ -1020,7 +1020,7 @@ vv.control = {
         vv.control._fetch("/api/music/outputs", "outputs");
         vv.control._fetch("/api/music/playlist/songs/current", "current");
         vv.control._fetch("/api/music", "control");
-        vv.control._fetch("/api/music/library", "library_info");
+        vv.control._fetch("/api/music/library", "library");
         vv.control._fetch("/api/music/library/songs", "librarySongs");
         vv.control._fetch("/api/music/stats", "stats");
         vv.control._fetch("/api/music/images", "images");
@@ -1033,7 +1033,7 @@ vv.control = {
                 vv.view.list.show();
                 vv.websocket.addEventListener("connect", () => { vv.control._fetchAll(); });
                 vv.websocket.addEventListener("/api/music/library/songs", vv.control._fetchFunc("/api/music/library/songs", "librarySongs"));
-                vv.websocket.addEventListener("/api/music/library", vv.control._fetchFunc("/api/music/library", "library_info"));
+                vv.websocket.addEventListener("/api/music/library", vv.control._fetchFunc("/api/music/library", "library"));
                 vv.websocket.addEventListener("/api/music", vv.control._fetchFunc("/api/music", "control"));
                 vv.websocket.addEventListener("/api/music/playlist/songs/current", vv.control._fetchFunc("/api/music/playlist/songs/current", "current"));
                 vv.websocket.addEventListener("/api/music/outputs", vv.control._fetchFunc("/api/music/outputs", "outputs"));
@@ -2197,11 +2197,11 @@ vv.view.system = {
         }
         ul.appendChild(newul);
     },
-    onLibraryInfo() {
+    onLibrary() {
         const e = document.getElementById("library-rescan");
-        if (vv.storage.library_info.updating && !e.disabled) {
+        if (vv.storage.library.updating && !e.disabled) {
             e.disabled = true;
-        } else if (!vv.storage.library_info.updating && e.disabled) {
+        } else if (!vv.storage.library.updating && e.disabled) {
             e.disabled = false;
         }
     },
@@ -2564,7 +2564,7 @@ vv.view.system = {
 };
 vv.control.addEventListener("start", vv.view.system.onStart);
 vv.control.addEventListener("version", vv.view.system.onVersion);
-vv.control.addEventListener("library_info", vv.view.system.onLibraryInfo);
+vv.control.addEventListener("library", vv.view.system.onLibrary);
 vv.control.addEventListener("images", vv.view.system.onImages);
 vv.control.addEventListener("stats", vv.view.system.onStats);
 vv.control.addEventListener("preferences", vv.view.system.onPreferences);
@@ -2794,7 +2794,7 @@ vv.control.addEventListener("start", () => {
     };
     document.getElementById("popup-client-output-temporary-button-settings").addEventListener("click", openOutputSettings);
     document.getElementById("popup-client-output-button").addEventListener("click", openOutputSettings);
-    vv.control.addEventListener("library_info", (e) => {
+    vv.control.addEventListener("library", (e) => {
         if (!e || !e.old || !e.current) {
             return;
         }
