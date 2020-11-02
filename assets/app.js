@@ -214,7 +214,7 @@ vv.storage = {
     tree: [],
     current: null,
     control: {},
-    library: [],
+    librarySongs: [],
     library_info: {},
     images: {},
     outputs: [],
@@ -349,10 +349,9 @@ vv.storage = {
             } catch (e) {
             }
         },
-        library() {
+        librarySongs() {
             try {
-                vv.storage._cacheSave(
-                    "library", vv.storage.library, vv.storage.last_modified.library);
+                vv.storage._cacheSave("library", vv.storage.librarySongs, vv.storage.last_modified.librarySongs);
             } catch (e) {
             }
         }
@@ -401,8 +400,8 @@ vv.storage = {
             }
             vv.storage._cacheLoad("library", (data, date) => {
                 if (data && date) {
-                    vv.storage.library = data;
-                    vv.storage.last_modified.library = date;
+                    vv.storage.librarySongs = data;
+                    vv.storage.last_modified.librarySongs = date;
                 }
                 vv.storage.loaded = true;
                 vv.pubsub.raise(vv.storage._listener, "onload");
@@ -464,7 +463,7 @@ vv.library = {
         const root = vv.library.rootname();
         if (vv.library._roots[root].length === 0) {
             vv.library._roots[root] = vv.songs.sort(
-                vv.storage.library, TREE[root].sort,
+                vv.storage.librarySongs, TREE[root].sort,
                 vv.library._mkmemo(root));
         }
         const filters = {};
@@ -654,7 +653,7 @@ vv.library = {
         let songs = vv.library._roots[root];
         if (!songs || songs.length === 0) {
             vv.library._roots[root] = vv.songs.sort(
-                vv.storage.library, TREE[root].sort,
+                vv.storage.librarySongs, TREE[root].sort,
                 vv.library._mkmemo(root));
             songs = vv.library._roots[root];
             if (songs.length === 0) {
@@ -724,10 +723,10 @@ vv.library = {
     },
     load() {
         if (vv.storage.loaded) {
-            vv.library.updateData(vv.storage.library);
+            vv.library.updateData(vv.storage.librarySongs);
         } else {
             vv.storage.addEventListener(
-                "onload", () => { vv.library.updateData(vv.storage.library); });
+                "onload", () => { vv.library.updateData(vv.storage.librarySongs); });
         }
     }
 };
@@ -1022,7 +1021,7 @@ vv.control = {
         vv.control._fetch("/api/music/playlist/songs/current", "current");
         vv.control._fetch("/api/music", "control");
         vv.control._fetch("/api/music/library", "library_info");
-        vv.control._fetch("/api/music/library/songs", "library");
+        vv.control._fetch("/api/music/library/songs", "librarySongs");
         vv.control._fetch("/api/music/stats", "stats");
         vv.control._fetch("/api/music/images", "images");
         vv.control._fetch("/api/music/storage", "storage");
@@ -1033,7 +1032,7 @@ vv.control = {
                 vv.control.raiseEvent("start");
                 vv.view.list.show();
                 vv.websocket.addEventListener("connect", () => { vv.control._fetchAll(); });
-                vv.websocket.addEventListener("/api/music/library/songs", vv.control._fetchFunc("/api/music/library/songs", "library"));
+                vv.websocket.addEventListener("/api/music/library/songs", vv.control._fetchFunc("/api/music/library/songs", "librarySongs"));
                 vv.websocket.addEventListener("/api/music/library", vv.control._fetchFunc("/api/music/library", "library_info"));
                 vv.websocket.addEventListener("/api/music", vv.control._fetchFunc("/api/music", "control"));
                 vv.websocket.addEventListener("/api/music/playlist/songs/current", vv.control._fetchFunc("/api/music/playlist/songs/current", "current"));
@@ -1066,7 +1065,7 @@ vv.control = {
             if (!vv.storage.preferences.appearance.playlist_follows_playback) {
                 return;
             }
-            if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.playlist || vv.storage.library.length === 0) {
+            if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.playlist || vv.storage.librarySongs.length === 0) {
                 return;
             }
             const pos = parseInt(vv.storage.current.Pos[0]);
@@ -1085,7 +1084,7 @@ vv.control = {
                 if (!unsorted) {
                     return;
                 }
-                if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.playlist || vv.storage.library.length === 0) {
+                if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.playlist || vv.storage.librarySongs.length === 0) {
                     return;
                 }
                 const pos = parseInt(vv.storage.current.Pos[0]);
@@ -1100,8 +1099,7 @@ vv.control = {
         vv.control.addEventListener("current", focus);
         vv.control.addEventListener("playlist", focus);
         vv.control.addEventListener("start", focus);
-        vv.control.addEventListener(
-            "library", () => { vv.library.update(vv.storage.library); });
+        vv.control.addEventListener("librarySongs", () => { vv.library.update(vv.storage.librarySongs); });
         if (unsorted) {
             vv.control.addEventListener(
                 "current", focusremove("current", vv.control.removeEventListener));
