@@ -342,10 +342,10 @@ vv.storage = {
             } catch (e) {
             }
         },
-        sorted() {
+        playlist() {
             try {
-                localStorage.sorted = JSON.stringify(vv.storage.sorted);
-                localStorage.sorted_last_modified = vv.storage.last_modified.sorted;
+                localStorage.playlist = JSON.stringify(vv.storage.playlist);
+                localStorage.playlist_last_modified = vv.storage.last_modified.playlist;
             } catch (e) {
             }
         },
@@ -394,10 +394,10 @@ vv.storage = {
                     vv.storage.last_modified.current = localStorage.current_last_modified;
                 }
             }
-            if (localStorage.sorted && localStorage.sorted_last_modified) {
-                const sorted = JSON.parse(localStorage.sorted);
-                vv.storage.sorted = sorted;
-                vv.storage.last_modified.sorted = localStorage.sorted_last_modified;
+            if (localStorage.playlist && localStorage.playlist_last_modified) {
+                const playlist = JSON.parse(localStorage.playlist);
+                vv.storage.playlist = playlist;
+                vv.storage.last_modified.playlist = localStorage.playlist_last_modified;
             }
             vv.storage._cacheLoad("library", (data, date) => {
                 if (data && date) {
@@ -638,7 +638,7 @@ vv.library = {
         }
         let root = "";
         const pos = parseInt(song.Pos[0], 10);
-        const keys = vv.storage.sorted.sort.join();
+        const keys = vv.storage.playlist.sort.join();
         for (const key in TREE) {
             if (TREE.hasOwnProperty(key)) {
                 if (TREE[key].sort.join() === keys) {
@@ -661,9 +661,9 @@ vv.library = {
                 return;
             }
         }
-        if (songs.length > vv.consts.playlistLength || vv.storage.sorted.must) {
-            const must = vv.storage.sorted.must ? vv.storage.sorted.must : 0;
-            songs = vv.songs.weakFilter(songs, vv.storage.sorted.filters || [], must, vv.consts.playlistLength);
+        if (songs.length > vv.consts.playlistLength || vv.storage.playlist.must) {
+            const must = vv.storage.playlist.must ? vv.storage.playlist.must : 0;
+            songs = vv.songs.weakFilter(songs, vv.storage.playlist.filters || [], must, vv.consts.playlistLength);
         }
         if (!songs[pos]) {
             return;
@@ -683,7 +683,7 @@ vv.library = {
         }
     },
     abs(song) {
-        if (vv.storage.sorted && vv.storage.sorted.hasOwnProperty("sort") && vv.storage.sorted.sort !== null) {
+        if (vv.storage.playlist && vv.storage.playlist.hasOwnProperty("sort") && vv.storage.playlist.sort !== null) {
             vv.library.absSorted(song);
         } else {
             vv.library.absFallback(song);
@@ -1016,7 +1016,7 @@ vv.control = {
             });
     },
     _fetchAll() {
-        vv.control._fetch("/api/music/playlist", "sorted");
+        vv.control._fetch("/api/music/playlist", "playlist");
         vv.control._fetch("/api/version", "version");
         vv.control._fetch("/api/music/outputs", "outputs");
         vv.control._fetch("/api/music/playlist/songs/current", "current");
@@ -1039,7 +1039,7 @@ vv.control = {
                 vv.websocket.addEventListener("/api/music/playlist/songs/current", vv.control._fetchFunc("/api/music/playlist/songs/current", "current"));
                 vv.websocket.addEventListener("/api/music/outputs", vv.control._fetchFunc("/api/music/outputs", "outputs"));
                 vv.websocket.addEventListener("/api/music/stats", vv.control._fetchFunc("/api/music/stats", "stats"));
-                vv.websocket.addEventListener("/api/music/playlist", vv.control._fetchFunc("/api/music/playlist", "sorted"));
+                vv.websocket.addEventListener("/api/music/playlist", vv.control._fetchFunc("/api/music/playlist", "playlist"));
                 vv.websocket.addEventListener("/api/music/images", vv.control._fetchFunc("/api/music/images", "images"));
                 vv.websocket.addEventListener("/api/music/storage", vv.control._fetchFunc("/api/music/storage", "storage"));
                 vv.websocket.addEventListener("/api/version", vv.control._fetchFunc("/api/version", "version"));
@@ -1066,16 +1066,16 @@ vv.control = {
             if (!vv.storage.preferences.appearance.playlist_follows_playback) {
                 return;
             }
-            if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.sorted || vv.storage.library.length === 0) {
+            if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.playlist || vv.storage.library.length === 0) {
                 return;
             }
             const pos = parseInt(vv.storage.current.Pos[0]);
-            if (pos !== vv.storage.sorted.current) {
+            if (pos !== vv.storage.playlist.current) {
                 return;
             }
             vv.library.abs(vv.storage.current);
         };
-        let unsorted = (!vv.storage.sorted || !vv.storage.sorted.hasOwnProperty("sort") || vv.storage.sorted.sort === null);
+        let unsorted = (!vv.storage.playlist || !vv.storage.playlist.hasOwnProperty("sort") || vv.storage.playlist.sort === null);
         const focusremove = (key, remove) => {
             const n = () => {
                 setTimeout(() => { remove(key, n); });
@@ -1085,11 +1085,11 @@ vv.control = {
                 if (!unsorted) {
                     return;
                 }
-                if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.sorted || vv.storage.library.length === 0) {
+                if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.playlist || vv.storage.library.length === 0) {
                     return;
                 }
                 const pos = parseInt(vv.storage.current.Pos[0]);
-                if (pos !== vv.storage.sorted.current) {
+                if (pos !== vv.storage.playlist.current) {
                     return;
                 }
                 unsorted = false;
@@ -1098,7 +1098,7 @@ vv.control = {
             return n;
         };
         vv.control.addEventListener("current", focus);
-        vv.control.addEventListener("sorted", focus);
+        vv.control.addEventListener("playlist", focus);
         vv.control.addEventListener("start", focus);
         vv.control.addEventListener(
             "library", () => { vv.library.update(vv.storage.library); });
@@ -1106,7 +1106,7 @@ vv.control = {
             vv.control.addEventListener(
                 "current", focusremove("current", vv.control.removeEventListener));
             vv.control.addEventListener(
-                "sorted", focusremove("sorted", vv.control.removeEventListener));
+                "playlist", focusremove("playlist", vv.control.removeEventListener));
             vv.library.addEventListener(
                 "update", focusremove("update", vv.library.removeEventListener));
         }
@@ -1456,7 +1456,7 @@ vv.view.main = {
         }
     },
     onPlaylist() {
-        document.getElementById("main-cover-overlay").disabled = !(vv.storage.sorted && vv.storage.sorted.hasOwnProperty("current"));
+        document.getElementById("main-cover-overlay").disabled = !(vv.storage.playlist && vv.storage.playlist.hasOwnProperty("current"));
     },
     show() {
         document.body.classList.add("view-main");
@@ -1574,7 +1574,7 @@ vv.view.main = {
 };
 vv.control.addEventListener("poll", vv.view.main.onPoll);
 vv.control.addEventListener("start", vv.view.main.onStart);
-vv.control.addEventListener("sorted", vv.view.main.onPlaylist);
+vv.control.addEventListener("playlist", vv.view.main.onPlaylist);
 vv.control.addEventListener("current", vv.view.main.onCurrent);
 vv.control.addEventListener("control", vv.view.main.onControl);
 vv.control.addEventListener("preferences", vv.view.main.onPreferences);
@@ -1643,11 +1643,11 @@ vv.view.list = {
                 listitem.classList.remove("selected");
             }
             let treeFocused = true;
-            if (vv.storage.sorted && vv.storage.sorted.hasOwnProperty("sort") && vv.storage.sorted.sort !== null) {
+            if (vv.storage.playlist && vv.storage.playlist.hasOwnProperty("sort") && vv.storage.playlist.sort !== null) {
                 if (rootname === "root") {
                     treeFocused = false;
                 } else if (
-                    vv.storage.sorted.sort.join() !==
+                    vv.storage.playlist.sort.join() !==
                     TREE[rootname].sort.join()) {
                     treeFocused = false;
                 }
@@ -2666,7 +2666,7 @@ vv.view.footer = {
         });
     },
     onPlaylist() {
-        const disabled = !(vv.storage.sorted && vv.storage.sorted.hasOwnProperty("current"));
+        const disabled = !(vv.storage.playlist && vv.storage.playlist.hasOwnProperty("current"));
         document.getElementById("control-prev").disabled = disabled;
         document.getElementById("control-toggleplay").disabled = disabled;
         document.getElementById("control-next").disabled = disabled;
@@ -2718,7 +2718,7 @@ vv.view.footer = {
 };
 vv.control.addEventListener("start", vv.view.footer.onStart);
 vv.control.addEventListener("control", vv.view.footer.onControl);
-vv.control.addEventListener("sorted", vv.view.footer.onPlaylist);
+vv.control.addEventListener("playlist", vv.view.footer.onPlaylist);
 vv.control.addEventListener("preferences", vv.view.footer.onPreferences);
 
 vv.view.popup = {
