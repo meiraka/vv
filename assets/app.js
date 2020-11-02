@@ -8,6 +8,7 @@ const vv = {
     library: {},
     view: { main: {}, list: {}, system: {}, popup: {}, modal: {}, footer: {}, submodal: {} },
     control: {},
+    websocket: {},
     ui: {},
     request: {}
 };
@@ -836,6 +837,74 @@ vv.request = {
         xhr.send(JSON.stringify(obj));
     }
 };
+
+vv.websocket = {
+    _listener: {},
+    addEventListener(t, f) { vv.pubsub.add(vv.websocket._listener, t, f); },
+    removeEventListener(t, f) { vv.pubsub.rm(vv.websocket._listener, t, f); },
+    start() {
+        let lastUpdate = (new Date()).getTime();
+        let lastConnection = (new Date()).getTime();
+        let connected = false;
+        let tryNum = 0;
+        let ws = null;
+        const raiseEvent = (t, e) => { vv.pubsub.raise(vv.websocket._listener, t, e); };
+        const listennotify = (cause) => {
+            if (cause && tryNum > 1) {  // reduce device wakeup reconnecting message
+                vv.view.popup.show("network", cause);
+            }
+            tryNum++;
+            vv.request.abortAll({ stop: true });
+            lastConnection = (new Date()).getTime();
+            connected = false;
+            const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
+            const uri = `${wsp}//${location.host}/api/music`;
+            if (ws !== null) {
+                ws.onclose = () => { };
+                ws.close();
+            }
+            ws = new WebSocket(uri);
+            ws.onopen = () => {
+                if (tryNum > 1) {
+                    vv.view.popup.hide("network");
+                }
+                connected = true;
+                lastUpdate = (new Date()).getTime();
+                tryNum = 0;
+                raiseEvent("connect");
+            };
+            ws.onmessage = e => {
+                if (e && e.data) {
+                    const now = (new Date()).getTime();
+                    raiseEvent(e.data)
+                    if (now - lastUpdate > 10000) {
+                        // recover lost notification
+                        setTimeout(() => { raiseEvent("lost"); });
+                    }
+                    lastUpdate = now;
+                }
+            };
+            ws.onclose = () => {
+                setTimeout(() => { raiseEvent("lost", "timeoutRetry"); }, 1000);
+            };
+        }
+        const polling = () => {
+            const now = (new Date()).getTime();
+            if (connected && now - 10000 > lastUpdate) {
+                setTimeout(() => { raiseEvent("lost", "doesNotRespond"); });
+            } else if (!connected && now - 2000 > lastConnection) {
+                setTimeout(() => { raiseEvent("lost", "timeoutRetry"); });
+            }
+            // TODO: repace vv.control to vv.websocket
+            vv.control.raiseEvent("poll");
+            setTimeout(polling, 1000);
+        };
+
+        vv.websocket.addEventListener("lost", listennotify);
+        listennotify();
+        polling();
+    },
+}
 vv.control = {
     _getOrElse(m, k, v) { return k in m ? m[k] : v; },
     _listener: {},
@@ -915,6 +984,7 @@ vv.control = {
         vv.request.post(`/api/music/outputs`, { [id]: { enabled: on } });
     },
     seek(pos) { vv.request.post("/api/music", { song_elapsed: pos }); },
+    _fetchFunc(target, store) { return () => { vv.control._fetch(target, store); } },
     _fetch(target, store) {
         vv.request.get(
             target,
@@ -957,90 +1027,23 @@ vv.control = {
         vv.control._fetch("/api/music/images", "images");
         vv.control._fetch("/api/music/storage", "storage");
     },
-    _notify_last_update: (new Date()).getTime(),
-    _notify_last_connection: (new Date()).getTime(),
-    _connected: false,
-    _notify_try_num: 0,
-    _ws: null,
-    _listennotify(cause) {
-        if (cause && vv.control._notify_try_num > 1) {  // reduce device wakeup reconnecting message
-            vv.view.popup.show("network", cause);
-        }
-        vv.control._notify_try_num++;
-        vv.request.abortAll({ stop: true });
-        vv.control._notify_last_connection = (new Date()).getTime();
-        vv.control._connected = false;
-        const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
-        const uri = `${wsp}//${location.host}/api/music`;
-        if (vv.control._ws !== null) {
-            vv.control._ws.onclose = () => { };
-            vv.control._ws.close();
-        }
-        vv.control._ws = new WebSocket(uri);
-        vv.control._ws.onopen = () => {
-            if (vv.control._notify_try_num > 1) {
-                vv.view.popup.hide("network");
-            }
-            vv.control._connected = true;
-            vv.control._notify_last_update = (new Date()).getTime();
-            vv.control._notify_try_num = 0;
-            vv.control._fetchAll();
-        };
-        vv.control._ws.onmessage = e => {
-            if (e && e.data) {
-                if (e.data === "/api/music/library/songs") {
-                    vv.control._fetch("/api/music/library/songs", "library");
-                } else if (e.data === "/api/music/library") {
-                    vv.control._fetch("/api/music/library", "library_info");
-                } else if (e.data === "/api/music") {
-                    vv.control._fetch("/api/music", "control");
-                } else if (e.data === "/api/music/playlist/songs/current") {
-                    vv.control._fetch("/api/music/playlist/songs/current", "current");
-                } else if (e.data === "/api/music/outputs") {
-                    vv.control._fetch("/api/music/outputs", "outputs");
-                } else if (e.data === "/api/music/stats") {
-                    vv.control._fetch("/api/music/stats", "stats");
-                } else if (e.data === "/api/music/playlist") {
-                    vv.control._fetch("/api/music/playlist", "sorted");
-                } else if (e.data === "/api/music/images") {
-                    vv.control._fetch("/api/music/images", "images");
-                } else if (e.data === "/api/music/storage") {
-                    vv.control._fetch("/api/music/storage", "storage");
-                } else if (e.data === "/api/version") {
-                    vv.control._fetch("/api/version", "version");
-                }
-                const now = (new Date()).getTime();
-                if (now - vv.control._notify_last_update > 10000) {
-                    // recover lost notification
-                    setTimeout(vv.control._listennotify);
-                }
-                vv.control._notify_last_update = now;
-            }
-        };
-        vv.control._ws.onclose = () => {
-            setTimeout(() => { vv.control._listennotify("timeoutRetry"); }, 1000);
-        };
-    },
     _init() {
-        const polling = () => {
-            const now = (new Date()).getTime();
-            if (vv.control._connected &&
-                now - 10000 > vv.control._notify_last_update) {
-                setTimeout(() => { vv.control._listennotify("doesNotRespond"); });
-            } else if (
-                !vv.control._connected &&
-                now - 2000 > vv.control._notify_last_connection) {
-                setTimeout(() => { vv.control._listennotify("timeoutRetry"); });
-            }
-            vv.control.raiseEvent("poll");
-            setTimeout(polling, 1000);
-        };
         const start = () => {
             try {
                 vv.control.raiseEvent("start");
                 vv.view.list.show();
-                vv.control._listennotify();
-                polling();
+                vv.websocket.addEventListener("connect", () => { vv.control._fetchAll(); });
+                vv.websocket.addEventListener("/api/music/library/songs", vv.control._fetchFunc("/api/music/library/songs", "library"));
+                vv.websocket.addEventListener("/api/music/library", vv.control._fetchFunc("/api/music/library", "library_info"));
+                vv.websocket.addEventListener("/api/music", vv.control._fetchFunc("/api/music", "control"));
+                vv.websocket.addEventListener("/api/music/playlist/songs/current", vv.control._fetchFunc("/api/music/playlist/songs/current", "current"));
+                vv.websocket.addEventListener("/api/music/outputs", vv.control._fetchFunc("/api/music/outputs", "outputs"));
+                vv.websocket.addEventListener("/api/music/stats", vv.control._fetchFunc("/api/music/stats", "stats"));
+                vv.websocket.addEventListener("/api/music/playlist", vv.control._fetchFunc("/api/music/playlist", "sorted"));
+                vv.websocket.addEventListener("/api/music/images", vv.control._fetchFunc("/api/music/images", "images"));
+                vv.websocket.addEventListener("/api/music/storage", vv.control._fetchFunc("/api/music/storage", "storage"));
+                vv.websocket.addEventListener("/api/version", vv.control._fetchFunc("/api/version", "version"));
+                vv.websocket.start();
             } catch (e) {
                 alert(e);
             }
