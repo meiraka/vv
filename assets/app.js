@@ -1,70 +1,272 @@
 "use strict";
-const vv = {
-    consts: { playlistLength: 9999 },
-    pubsub: {},
-    song: {},
-    songs: {},
-    request: {},
-    websocket: {},
-    storage: {},
-    library: {},
-    view: { main: {}, list: {}, system: {}, popup: {}, modal: {}, footer: {}, submodal: {} },
-    control: {},
-    ui: {},
-};
-vv.pubsub = {
-    add(listener, ev, func) {
-        if (!(ev in listener)) {
-            listener[ev] = [];
+
+const playlistLength = 9999;
+
+class App {
+    constructor() {
+        this.preferences = new Preferences();
+        this.ui = new UI();
+        this.mpdWatcher = new MPDWatcher();
+        this.mpd = new MPDClient(this.mpdWatcher);
+        this.audio = new MPDAudio(this.mpd, this.preferences);
+        this.library = new Library(this.mpd);
+        this.followCurrentSong();
+        this.background = new UIBackground(this.ui, this.mpd, this.preferences);
+        this.listView = new UIListView(this.ui, this.mpd, this.library, this.preferences);
+        this.mainView = new UIMainView(this.ui, this.mpd, this.library, this.preferences);
+        this.systemWindow = new UISystemWindow(this.ui, this.mpd, this.preferences);
+        UIModal.init(this.ui);
+        UISubModal.init(this.ui);
+        UIHeader.init(this.ui, this.mpd, this.library, this.listView, this.mainView, this.systemWindow);
+        UIFooter.init(this.ui, this.mpd, this.preferences);
+        UINotification.init(this.ui, this.mpd, this.audio, this.systemWindow);
+        UITimeUpdater.init(this.ui, this.mpd);
+        KeyboardShortCuts.init(this.ui, this.mpd, this.library, this.listView, this.mainView);
+        this.mainView.addEventListener("list", () => { this.listView.show(); });
+        this.listView.addEventListener("main", () => { this.mainView.show(); });
+    }
+    _init() {
+        const start = () => {
+            this.ui.raiseEvent("load");
+            this.listView.show();
+            this.mpdWatcher.start();
+            this.ui.polling();
+        };
+        if (this.mpd.loaded) {
+            start();
+        } else {
+            this.mpd.addEventListener("load", start);
         }
-        listener[ev].push(func);
-    },
-    rm(listener, ev, func) {
-        for (let i = 0, imax = listener[ev].length; i < imax; i++) {
-            if (listener[ev][i] === func) {
-                listener[ev].splice(i, 1);
+    }
+    start() {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", () => { this._init(); });
+        } else {
+            this._init();
+        }
+    }
+    followCurrentSong() {
+        const focus = () => {
+            if (!this.preferences.appearance.playlist_follows_playback) {
                 return;
             }
-        }
-    },
-    raise(listener, type, e) {
-        if (!(type in listener)) {
-            return;
-        }
-        for (const f of listener[type]) {
-            f(e);
+            if (!this.mpd.current || !this.mpd.current.Pos || this.mpd.current.Pos.length === 0 || !this.mpd.playlist || this.mpd.librarySongs.length === 0) {
+                return;
+            }
+            const pos = parseInt(this.mpd.current.Pos[0]);
+            if (pos !== this.mpd.playlist.current) {
+                return;
+            }
+            this.library.abs(this.mpd.current);
+        };
+        let unsorted = (!this.mpd.playlist || !this.mpd.playlist.hasOwnProperty("sort") || this.mpd.playlist.sort === null);
+        const focusremove = (key, remove) => {
+            const n = () => {
+                setTimeout(() => { remove(key, n); });
+                if (!this.preferences.appearance.playlist_follows_playback) {
+                    return;
+                }
+                if (!unsorted) {
+                    return;
+                }
+                if (!this.mpd.current || !this.mpd.current.Pos || this.mpd.current.Pos.length === 0 || !this.mpd.playlist || this.mpd.librarySongs.length === 0) {
+                    return;
+                }
+                const pos = parseInt(this.mpd.current.Pos[0]);
+                if (pos !== this.mpd.playlist.current) {
+                    return;
+                }
+                unsorted = false;
+                this.library.abs(this.mpd.current);
+            };
+            return n;
+        };
+        this.mpd.addEventListener("current", focus);
+        this.mpd.addEventListener("playlist", focus);
+        this.ui.addEventListener("load", focus);
+        if (unsorted) {
+            this.mpd.addEventListener("current", focusremove("current", (e, f) => { this.mpd.removeEventListener(e, f); }));
+            this.mpd.addEventListener("playlist", focusremove("playlist", (e, f) => { this.mpd.removeEventListener(e, f); }));
+            this.library.addEventListener("update", focusremove("update", (e, f) => { this.library.removeEventListener(e, f); }));
         }
     }
 };
-vv.song = {
-    tag(song, keys, other) {
+
+class PubSub {
+    constructor() { this.listeners = {}; }
+    addEventListener(e, f) {
+        if (!(e in this.listeners)) {
+            this.listeners[e] = [];
+        }
+        this.listeners[e].push(f);
+    }
+    removeEventListener(e, f) {
+        for (let i = 0, imax = this.listeners[e].length; i < imax; i++) {
+            if (this.listeners[e][i] === f) {
+                this.listeners[e].splice(i, 1);
+                return;
+            }
+        }
+    }
+    raiseEvent(e, o) {
+        if (!(e in this.listeners)) {
+            return;
+        }
+        if (!o) {
+            o = { currentTarget: this, name: e };
+        }
+        for (const f of this.listeners[e]) {
+            f(o);
+        }
+    }
+};
+
+class MPDAudio {
+    constructor(mpd, preferences) {
+        this.mpd = mpd;
+        this.preferences = preferences;
+        this.src = this.preferences.httpoutput.stream;
+        this.audio = new Audio();
+        // firefox's load() function does not fire canplaythrough event without autoplay is enabled.
+        this.audio.autoplay = true;
+        this.audio.addEventListener("loadeddata", () => {
+            // prevent autoplay to use play() function in canplaythrough event.
+            this.audio.pause();
+        });
+        this.audio.addEventListener("canplaythrough", () => {
+            const err = document.getElementById("httpoutput-error");
+            const p = this.audio.play();
+            if (!p) {
+                return;
+            }
+            if (this.preferences.httpoutput.stream === "") {
+                return;
+            }
+            if (document.readyState === "loading") {
+                return;
+            }
+            p.then(() => {
+                UINotification.hide("client-output-temporary");
+                UINotification.hide("client-output");
+                err.textContent = "";
+            }).catch((e) => {
+                if (this.preferences.httpoutput.stream === "") {
+                    return;
+                }
+                switch (e.name) {
+                    case "NotAllowedError":
+                        UINotification.show("client-output-temporary", "notAllowed", true);
+                        UINotification.hide("client-output");
+                        err.textContent = err.dataset["notAllowed"];
+                        break;
+                    case "NotSupportedError":
+                        UINotification.hide("client-output-temporary");
+                        UINotification.show("client-output", "unsupportedSource", true);
+                        err.textContent = err.dataset["unsupportedSource"];
+                        break;
+                    default:
+                        UINotification.hide("client-output-temporary");
+                        UINotification.show("client-output", e.message);
+                        err.textContent = e.message;
+                        break;
+                }
+            });
+        });
+        this.audio.addEventListener("error", (e) => {
+            if (this.mpd.control.state !== "play" || document.readyState === "loading") {
+                return;
+            }
+            if (this.preferences.httpoutput.stream === "") {
+                return;
+            }
+            const err = document.getElementById("httpoutput-error");
+            err.textContent = "";
+            switch (e.target.error.code) {
+                case e.target.error.MEDIA_ERR_NETWORK:
+                    UINotification.show("client-output-temporary", "networkError", true);
+                    UINotification.hide("client-output");
+                    err.textContent = err.dataset["networkError"];
+                    break;
+                case e.target.error.MEDIA_ERR_DECODE:
+                    UINotification.show("client-output-temporary", "decodeError", true);
+                    UINotification.hide("client-output");
+                    err.textContent = err.dataset["decodeError"];
+                    break;
+                case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    UINotification.hide("client-output-temporary");
+                    UINotification.show("client-output", "unsupportedSource", true);
+                    err.textContent = err.dataset["unsupportedSource"];
+                    break;
+
+            }
+        });
+        this.mpd.addEventListener("control", () => {
+            if (this.preferences.httpoutput.stream === "") {
+                return;
+            }
+            if (this.mpd.control.state === "play") {
+                if (this.audio.paused) {
+                    this.load();
+                }
+            } else {
+                this.audio.pause();
+            }
+        });
+        this.preferences.addEventListener("httpoutput", () => {
+            this.audio.volume = this.preferences.httpoutput.volume;
+            if (this.src !== this.preferences.httpoutput.stream) {
+                this.load();
+            }
+        });
+        this.audio.volume = this.preferences.httpoutput.volume;
+        if (this.preferences.httpoutput.stream === "") {
+            return;
+        }
+        this.load();
+    }
+    load() {
+        this.audio.pause();
+        this.src = this.preferences.httpoutput.stream;
+        if (this.preferences.httpoutput.stream === "") {
+            this.audio.removeAttribute("src");
+        } else {
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
+            // add cache-busting query
+            this.audio.src = this.preferences.httpoutput.stream + "&cb=" + Math.random();
+        }
+        this.audio.load();
+    }
+};
+
+class Song {
+    static tag(song, keys, other) {
         for (const key of keys) {
             if (key in song) {
                 return song[key];
             }
         }
         return other;
-    },
-    getTagOrElseMulti(song, key, other) {
+    }
+    static getTagOrElseMulti(song, key, other) {
         if (key in song) {
             return song[key];
         } else if (key === "AlbumSort") {
-            return vv.song.tag(song, ["Album"], other);
+            return Song.tag(song, ["Album"], other);
         } else if (key === "ArtistSort") {
-            return vv.song.tag(song, ["Artist"], other);
+            return Song.tag(song, ["Artist"], other);
         } else if (key === "AlbumArtist") {
-            return vv.song.tag(song, ["Artist"], other);
+            return Song.tag(song, ["Artist"], other);
         } else if (key === "AlbumArtistSort") {
-            return vv.song.tag(song, ["AlbumArtist", "Artist"], other);
+            return Song.tag(song, ["AlbumArtist", "Artist"], other);
         } else if (key === "AlbumSort") {
-            return vv.song.tag(song, ["Album"], other);
+            return Song.tag(song, ["Album"], other);
         }
         return other;
-    },
-    getOrElseMulti(song, keys, other) {
+    }
+    static getOrElseMulti(song, keys, other) {
         let ret = [];
         for (const key of keys.split("-")) {
-            const t = vv.song.getTagOrElseMulti(song, key, other);
+            const t = Song.getTagOrElseMulti(song, key, other);
             if (!ret.length) {
                 ret = t;
             } else if (t.length !== 0) {
@@ -78,34 +280,34 @@ vv.song = {
             }
         }
         return ret;
-    },
-    getOrElse(song, key, other) {
-        const ret = vv.song.getOrElseMulti(song, key, null);
+    }
+    static getOrElse(song, key, other) {
+        const ret = Song.getOrElseMulti(song, key, null);
         if (!ret) {
             return other;
         }
         return ret.join();
-    },
-    getOne(song, key) {
+    }
+    static getOne(song, key) {
         const other = null;
         if (!song.keys) {
-            return vv.song.getOrElseMulti(song, key, [other])[0];
+            return Song.getOrElseMulti(song, key, [other])[0];
         }
         for (const kv of song.keys) {
             if (kv[0] === key) {
                 return kv[1];
             }
         }
-        return vv.song.getOrElseMulti(song, key, [other])[0];
-    },
-    get(song, key) { return vv.song.getOrElse(song, key, `[no ${key}]`); },
-    sortkeys(song, keys, memo) {
+        return Song.getOrElseMulti(song, key, [other])[0];
+    }
+    static get(song, key) { return Song.getOrElse(song, key, `[no ${key}]`); }
+    static sortkeys(song, keys, memo) {
         let songs = [Object.assign({}, song)];
         songs[0].sortkey = "";
         songs[0].keys = [];
         for (const key of keys) {
             const writememo = memo.indexOf(key) !== -1;
-            const values = vv.song.getOrElseMulti(song, key, []);
+            const values = Song.getOrElseMulti(song, key, []);
             if (values.length === 0) {
                 for (const song of songs) {
                     song.sortkey += " ";
@@ -139,11 +341,12 @@ vv.song = {
         return songs;
     }
 };
-vv.songs = {
-    sort(songs, keys, memo) {
+
+class Songs {
+    static sort(songs, keys, memo) {
         const newsongs = [];
         for (const song of songs) {
-            Array.prototype.push.apply(newsongs, vv.song.sortkeys(song, keys, memo));
+            Array.prototype.push.apply(newsongs, Song.sortkeys(song, keys, memo));
         }
         const sorted = newsongs.sort((a, b) => {
             if (a.sortkey < b.sortkey) {
@@ -155,31 +358,31 @@ vv.songs = {
             sorted[j].pos = [j];
         }
         return sorted;
-    },
-    uniq(songs, key) {
+    }
+    static uniq(songs, key) {
         return songs.filter((song, i, self) => {
             if (i === 0) {
                 return true;
             } else if (
-                vv.song.getOne(song, key) === vv.song.getOne(self[i - 1], key)) {
+                Song.getOne(song, key) === Song.getOne(self[i - 1], key)) {
                 return false;
             }
             return true;
         });
-    },
-    filter(songs, filters) {
+    }
+    static filter(songs, filters) {
         return songs.filter(song => {
             for (const key in filters) {
                 if (filters.hasOwnProperty(key)) {
-                    if (vv.song.getOne(song, key) !== filters[key]) {
+                    if (Song.getOne(song, key) !== filters[key]) {
                         return false;
                     }
                 }
             }
             return true;
         });
-    },
-    weakFilter(songs, filters, must, max) {
+    }
+    static weakFilter(songs, filters, must, max) {
         if (songs.length <= max && must === 0) {
             return songs;
         }
@@ -190,7 +393,7 @@ vv.songs = {
             }
             const newsongs = [];
             for (const song of songs) {
-                if (vv.song.getOne(song, filter[0]) === filter[1]) {
+                if (Song.getOne(song, filter[0]) === filter[1]) {
                     newsongs.push(song);
                 }
             }
@@ -207,27 +410,28 @@ vv.songs = {
         return songs;
     }
 };
-vv.request = {
-    _requests: {},
-    abortAll(options) {
-        options = options || {};
-        for (const key in vv.request._requests) {
-            if (vv.request._requests.hasOwnProperty(key)) {
-                if (options.stop) {
-                    vv.request._requests[key].onabort = () => { };
+
+const _requests = {};
+class HTTP {
+    static abortAll(options) {
+        const opts = options || {};
+        for (const key in _requests) {
+            if (_requests.hasOwnProperty(key)) {
+                if (opts.stop) {
+                    _requests[key].onabort = () => { };
                 }
-                vv.request._requests[key].abort();
+                _requests[key].abort();
             }
         }
-    },
-    get(path, ifmodified, etag, callback, timeout) {
+    }
+    static get(path, ifmodified, etag, callback, timeout) {
         const key = "GET " + path;
-        if (vv.request._requests[key]) {
-            vv.request._requests[key].onabort = () => { };  // disable retry
-            vv.request._requests[key].abort();
+        if (_requests[key]) {
+            _requests[key].onabort = () => { };  // disable retry
+            _requests[key].abort();
         }
         const xhr = new XMLHttpRequest();
-        vv.request._requests[key] = xhr;
+        _requests[key] = xhr;
         if (!timeout) {
             timeout = 1000;
         }
@@ -245,24 +449,24 @@ vv.request = {
             }
             // error handling
             if (xhr.status !== 0) {
-                vv.view.popup.show("network", xhr.statusText);
+                UINotification.show("network", xhr.statusText);
             }
         };
         xhr.onabort = () => {
             if (timeout < 50000) {
                 setTimeout(
-                    () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
+                    () => { HTTP.get(path, ifmodified, etag, callback, timeout * 2); });
             }
         };
-        xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
+        xhr.onerror = () => { UINotification.show("network", "Error"); };
         xhr.ontimeout = () => {
             if (timeout < 50000) {
-                vv.view.popup.show("network", "timeoutRetry");
-                vv.request.abortAll();
+                UINotification.show("network", "timeoutRetry");
+                HTTP.abortAll();
                 setTimeout(
-                    () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
+                    () => { HTTP.get(path, ifmodified, etag, callback, timeout * 2); });
             } else {
-                vv.view.popup.show("network", "timeout");
+                UINotification.show("network", "timeout");
             }
         };
         xhr.open("GET", path, true);
@@ -272,14 +476,14 @@ vv.request = {
             xhr.setRequestHeader("If-Modified-Since", ifmodified);
         }
         xhr.send();
-    },
-    post(path, obj, callback) {
+    }
+    static post(path, obj, callback) {
         const key = "POST " + path;
-        if (vv.request._requests[key]) {
-            vv.request._requests[key].abort();
+        if (_requests[key]) {
+            _requests[key].abort();
         }
         const xhr = new XMLHttpRequest();
-        vv.request._requests[key] = xhr;
+        _requests[key] = xhr;
         xhr.responseType = "json";
         xhr.timeout = 1000;
         xhr.onload = () => {
@@ -288,9 +492,9 @@ vv.request = {
             }
             if (xhr.status !== 200 && xhr.status !== 202) {
                 if (xhr.response && xhr.response.error) {
-                    vv.view.popup.show("mpd", xhr.response.error);
+                    UINotification.show("mpd", xhr.response.error);
                 } else {
-                    vv.view.popup.show("network", xhr.responseText);
+                    UINotification.show("network", xhr.responseText);
                 }
             }
         };
@@ -298,37 +502,35 @@ vv.request = {
             if (callback) {
                 callback({ error: "timeout" });
             }
-            vv.view.popup.show("network", "timeout");
-            vv.request.abortAll();
+            UINotification.show("network", "timeout");
+            HTTP.abortAll();
         };
         xhr.onerror = () => {
             if (callback) {
                 callback({ error: "error" });
             }
-            vv.view.popup.show("network", "error");
+            UINotification.show("network", "error");
         };
         xhr.open("POST", path, true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(obj));
     }
 };
-vv.websocket = {
-    _listener: {},
-    addEventListener(t, f) { vv.pubsub.add(vv.websocket._listener, t, f); },
-    removeEventListener(t, f) { vv.pubsub.rm(vv.websocket._listener, t, f); },
+
+class MPDWatcher extends PubSub {
+    constructor() { super(); }
     start() {
         let lastUpdate = (new Date()).getTime();
         let lastConnection = (new Date()).getTime();
         let connected = false;
         let tryNum = 0;
         let ws = null;
-        const raiseEvent = (t, e) => { vv.pubsub.raise(vv.websocket._listener, t, e); };
         const listennotify = (cause) => {
             if (cause && tryNum > 1) {  // reduce device wakeup reconnecting message
-                vv.view.popup.show("network", cause);
+                UINotification.show("network", cause);
             }
             tryNum++;
-            vv.request.abortAll({ stop: true });
+            HTTP.abortAll({ stop: true });
             lastConnection = (new Date()).getTime();
             connected = false;
             const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
@@ -340,80 +542,64 @@ vv.websocket = {
             ws = new WebSocket(uri);
             ws.onopen = () => {
                 if (tryNum > 1) {
-                    vv.view.popup.hide("network");
+                    UINotification.hide("network");
                 }
                 connected = true;
                 lastUpdate = (new Date()).getTime();
                 tryNum = 0;
-                raiseEvent("connect");
+                this.raiseEvent("connect");
             };
             ws.onmessage = e => {
                 if (e && e.data) {
                     const now = (new Date()).getTime();
-                    raiseEvent(e.data)
+                    this.raiseEvent(e.data)
                     if (now - lastUpdate > 10000) {
                         // recover lost notification
-                        setTimeout(() => { raiseEvent("lost"); });
+                        setTimeout(() => { this.raiseEvent("lost"); });
                     }
                     lastUpdate = now;
                 }
             };
             ws.onclose = () => {
-                setTimeout(() => { raiseEvent("lost", "timeoutRetry"); }, 1000);
+                setTimeout(() => { this.raiseEvent("lost", "timeoutRetry"); }, 1000);
             };
         }
         const polling = () => {
             const now = (new Date()).getTime();
             if (connected && now - 10000 > lastUpdate) {
-                setTimeout(() => { raiseEvent("lost", "doesNotRespond"); });
+                setTimeout(() => { this.raiseEvent("lost", "doesNotRespond"); });
             } else if (!connected && now - 2000 > lastConnection) {
-                setTimeout(() => { raiseEvent("lost", "timeoutRetry"); });
+                setTimeout(() => { this.raiseEvent("lost", "timeoutRetry"); });
             }
-            // TODO: repace vv.control to vv.websocket
-            vv.control.raiseEvent("poll");
             setTimeout(polling, 1000);
         };
 
-        vv.websocket.addEventListener("lost", listennotify);
+        this.addEventListener("lost", listennotify);
         listennotify();
         polling();
-    },
-}
-vv.storage = {
-    _listener: {},
-    loaded: false,
-    root: "root",
-    tree: [],
-    current: null,
-    control: {},
-    librarySongs: [],
-    library: {},
-    images: {},
-    outputs: [],
-    storage: {},
-    stats: {},
-    last_modified: {},
-    etag: {},
-    last_modified_ms: {},
-    version: {},
-    preferences: {
-        feature: {
+    }
+};
+
+class Preferences extends PubSub {
+    constructor() {
+        super();
+        this.feature = {
             show_scrollbars_when_scrolling: false,
-        },
-        playlist: {
+        };
+        this.playlist = {
             playback_tracks: "all",
             playback_tracks_custom: {},
-        },
-        httpoutput: {
+        };
+        this.httpoutput = {
             volume: "0.2",
             volume_max: "1",
             streams: {},
             stream: "",
-        },
-        outputs: {
+        };
+        this.outputs = {
             volume_max: "100",
-        },
-        appearance: {
+        };
+        this.appearance = {
             theme: "prefer-coverart",
             color_threshold: 128,
             background_image: true,
@@ -424,28 +610,186 @@ vv.storage = {
             playlist_follows_playback: true,
             playlist_gridview_album: true,
         }
-    },
+        this.load();
+    }
+    load() {
+        const permitted = ["playlist", "httpoutput", "outputs", "appearance"];
+        let storedPreferences = null;
+        try {
+            storedPreferences = localStorage.getItem("preferences");
+        } catch (_) { }
+        if (storedPreferences !== null) {
+            const c = JSON.parse(storedPreferences);
+            for (const i in c) {
+                if (c.hasOwnProperty(i) && permitted.includes(i)) {
+                    for (const j in c[i]) {
+                        if (c[i].hasOwnProperty(j)) {
+                            if (this[i].hasOwnProperty(j)) {
+                                this[i][j] = c[i][j];
+                            }
+                        }
+                    }
+                }
+            }
+            // convert old settings
+            if (c.appearance && c.appearance.volume_max) {
+                this.preferences.outputs.volume_max = c.appearance.volume_max;
+            }
+        }
+        if (navigator.userAgent.indexOf("Mobile") > 1) {
+            this.feature.show_scrollbars_when_scrolling = true;
+        } else if (navigator.userAgent.indexOf("Macintosh") > 1) {
+            this.feature.show_scrollbars_when_scrolling = true;
+        } else {
+            document.body.classList.add("scrollbar-styling");
+        }
+        for (const key in this.playlist.playback_tracks_custom) {
+            if (!(key in TREE)) {
+                delete this.playlist.playback_tracks_custom[key];
+            }
+        }
+        for (const key in TREE) {
+            if (!(key in this.playlist.playback_tracks_custom)) {
+                this.playlist.playback_tracks_custom[key] = 0;
+            } else {
+                if (this.playlist.playback_tracks_custom[key] >= TREE[key].tree.length) {
+                    this.playlist.playback_tracks_custom[key] = 0;
+                }
+            }
+        }
+    }
+    save() {
+        const json = JSON.stringify({
+            playlist: this.playlist,
+            httpoutput: this.httpoutput,
+            outputs: this.outputs,
+            appearance: this.appearance,
+        });
+        try {
+            localStorage.setItem("preferences", json);
+        } catch (_) { }
+    }
+};
+
+class MPDClient extends PubSub {
+    constructor(mpdWatcher) {
+        super();
+        const that = this;
+        this.loaded = false;
+        this.current = null;
+        this.control = {};
+        this.librarySongs = [];
+        this.library = {};
+        this.images = {};
+        this.outputs = [];
+        this.storage = {};
+        this.stats = {};
+        this.last_modified = {};
+        this.etag = {};
+        this.last_modified_ms = {};
+        this.version = {};
+        this.save = {
+            current() {
+                const json = JSON.stringify(that.current);
+                try {
+                    localStorage.setItem("current", json);
+                    localStorage.setItem("current_last_modified", that.last_modified.current);
+                } catch (_) { }
+            },
+            playlist() {
+                const json = JSON.stringify(that.playlist);
+                try {
+                    localStorage.setItem("playlist", json);
+                    localStorage.setItem("playlist_last_modified", that.last_modified.playlist);
+                } catch (_) { }
+            },
+            librarySongs() {
+                that._cacheSave("library", that.librarySongs, that.last_modified.librarySongs);
+            }
+        };
+        this._load();
+        mpdWatcher.addEventListener("connect", () => { this._fetchAll(); });
+        mpdWatcher.addEventListener("/api/music/library/songs", () => { this._fetch("/api/music/library/songs", "librarySongs"); });
+        mpdWatcher.addEventListener("/api/music/library", () => { this._fetch("/api/music/library", "library"); });
+        mpdWatcher.addEventListener("/api/music", () => { this._fetch("/api/music", "control"); });
+        mpdWatcher.addEventListener("/api/music/playlist/songs/current", () => { this._fetch("/api/music/playlist/songs/current", "current"); });
+        mpdWatcher.addEventListener("/api/music/outputs", () => { this._fetch("/api/music/outputs", "outputs"); });
+        mpdWatcher.addEventListener("/api/music/stats", () => { this._fetch("/api/music/stats", "stats"); });
+        mpdWatcher.addEventListener("/api/music/playlist", () => { this._fetch("/api/music/playlist", "playlist"); });
+        mpdWatcher.addEventListener("/api/music/images", () => { this._fetch("/api/music/images", "images"); });
+        mpdWatcher.addEventListener("/api/music/storage", () => { this._fetch("/api/music/storage", "storage"); });
+        mpdWatcher.addEventListener("/api/version", () => { this._fetch("/api/version", "version"); });
+    }
+    rescanLibrary() {
+        for (const path in this.storage) {
+            if (path !== "" && this.storage.hasOwnProperty(path)) {
+                HTTP.post("/api/music/storage", { [path]: { updating: true } });
+            }
+        }
+        HTTP.post("/api/music/library", { updating: true });
+        this.library.updating = true;
+        this.raiseEvent("library");
+    }
+    /*static*/ prev() { HTTP.post("/api/music", { state: "previous" }); }
+    togglePlay() {
+        const state = "state" in this.control ? this.control["state"] : "stopped";
+        const action = state === "play" ? "pause" : "play";
+        HTTP.post("/api/music", { state: action }, (e) => {
+            if (e.error) {
+                this.control.state = state;
+                this.raiseEvent("control");
+            }
+        });
+        this.control.state = action;
+        const now = (new Date()).getTime();
+        if (action === "pause") {
+            const elapsed = parseInt(this.control.song_elapsed * 1000, 10) + now - this.last_modified_ms.control;
+            this.control.song_elapsed = elapsed / 1000;
+        }
+        this.last_modified_ms.control = now;
+        this.raiseEvent("control");
+    }
+    /*static*/ next() { HTTP.post("/api/music", { state: "next" }); }
+    sortPlaylist(sort, filters, must, current) {
+        HTTP.post("/api/music/playlist", { sort: sort, filters: filters, must: must, current: current });
+    }
+    toggleRepeat() {
+        if (this.control.single) {
+            HTTP.post("/api/music", { repeat: false, single: false });
+            this.control.single = false;
+            this.control.repeat = false;
+        } else if (this.control.repeat) {
+            HTTP.post("/api/music", { single: true });
+            this.control.single = true;
+        } else {
+            HTTP.post("/api/music", { repeat: true });
+            this.control.repeat = true;
+        }
+        this.raiseEvent("control");
+    }
+    toggleRandom() {
+        HTTP.post("/api/music", { random: !this.control.random });
+        this.control.random = !this.control.random;
+        this.raiseEvent("control");
+    }
+    /*static*/ volume(num) { HTTP.post("/api/music", { volume: num }); }
+    /*static*/ output(id, on) { HTTP.post(`/api/music/outputs`, { [id]: { enabled: on } }); }
+    /*static*/ seek(pos) { HTTP.post("/api/music", { song_elapsed: pos }); }
+
     _idbUpdateTables(e) {
         const db = e.target.result;
         const st = db.createObjectStore("cache", { keyPath: "id" });
-        const close = () => { db.close(); };
-        st.onsuccess = close;
-        st.onerror = close;
-    },
+        st.onsuccess = () => { db.close(); };
+        st.onerror = () => { db.close(); };
+    }
     _cacheLoad(key, callback) {
         if (!window.indexedDB) {
-            const ls = localStorage[key + "_last_modified"];
-            const data = localStorage[key];
-            if (ls && data) {
-                callback(JSON.parse(data), ls);
-                return;
-            }
             callback();
             return;
         }
         const open = window.indexedDB.open("storage", 1);
         open.onerror = () => { callback(); };
-        open.onupgradeneeded = vv.storage._idbUpdateTables;
+        open.onupgradeneeded = (e) => { this._idbUpdateTables(e); };
         open.onsuccess = e => {
             const db = e.target.result;
             const req = db.transaction("cache", "readonly").objectStore("cache").get(key);
@@ -463,20 +807,14 @@ vv.storage = {
                 db.close();
             };
         };
-    },
+    }
     _cacheSave(key, value, date) {
         if (!window.indexedDB) {
-            const ls = localStorage[key + "_last_modified"];
-            if (ls && ls === date) {
-                return;
-            }
-            localStorage[key] = JSON.stringify(value);
-            localStorage[key + "_last_modified"] = date;
             return;
         }
         const open = window.indexedDB.open("storage", 1);
         open.onerror = () => { };
-        open.onupgradeneeded = vv.storage._idbUpdateTables;
+        open.onupgradeneeded = (e) => { this._idbUpdateTables(e); };
         open.onsuccess = e => {
             const db = e.target.result;
             const os = db.transaction("cache", "readwrite").objectStore("cache");
@@ -492,60 +830,24 @@ vv.storage = {
                 req.onsuccess = () => { db.close(); };
             };
         };
-    },
-    addEventListener(e, f) { vv.pubsub.add(vv.storage._listener, e, f); },
-    raiseEvent(t, e) { vv.pubsub.raise(vv.storage._listener, t, e); },
-    save: {
-        current() {
-            try {
-                localStorage.current = JSON.stringify(vv.storage.current);
-                localStorage.current_last_modified = vv.storage.last_modified.current;
-            } catch (e) {
-            }
-        },
-        root() {
-            try {
-                localStorage.root = vv.storage.root;
-            } catch (e) {
-            }
-        },
-        preferences() {
-            try {
-                localStorage.preferences = JSON.stringify(vv.storage.preferences);
-            } catch (e) {
-            }
-        },
-        playlist() {
-            try {
-                localStorage.playlist = JSON.stringify(vv.storage.playlist);
-                localStorage.playlist_last_modified = vv.storage.last_modified.playlist;
-            } catch (e) {
-            }
-        },
-        librarySongs() {
-            try {
-                vv.storage._cacheSave("library", vv.storage.librarySongs, vv.storage.last_modified.librarySongs);
-            } catch (e) {
-            }
-        }
-    },
+    }
     _fetchAll() {
-        vv.storage._fetch("/api/music/playlist", "playlist");
-        vv.storage._fetch("/api/version", "version");
-        vv.storage._fetch("/api/music/outputs", "outputs");
-        vv.storage._fetch("/api/music/playlist/songs/current", "current");
-        vv.storage._fetch("/api/music", "control");
-        vv.storage._fetch("/api/music/library", "library");
-        vv.storage._fetch("/api/music/library/songs", "librarySongs");
-        vv.storage._fetch("/api/music/stats", "stats");
-        vv.storage._fetch("/api/music/images", "images");
-        vv.storage._fetch("/api/music/storage", "storage");
-    },
+        this._fetch("/api/music/playlist", "playlist");
+        this._fetch("/api/version", "version");
+        this._fetch("/api/music/outputs", "outputs");
+        this._fetch("/api/music/playlist/songs/current", "current");
+        this._fetch("/api/music", "control");
+        this._fetch("/api/music/library", "library");
+        this._fetch("/api/music/library/songs", "librarySongs");
+        this._fetch("/api/music/stats", "stats");
+        this._fetch("/api/music/images", "images");
+        this._fetch("/api/music/storage", "storage");
+    }
     _fetch(target, store) {
-        vv.request.get(
+        HTTP.get(
             target,
-            vv.control._getOrElse(vv.storage.last_modified, store, ""),
-            vv.control._getOrElse(vv.storage.etag, store, ""),
+            store in this.last_modified ? this.last_modified[store] : "",
+            store in this.etag ? this.etag[store] : "",
             (ret, modified, etag, date) => {
                 if (!ret.error) {
                     if (Object.prototype.toString.call(ret.data) ===
@@ -556,314 +858,289 @@ vv.storage = {
                     let diff = 0;
                     try {
                         diff = Date.now() - Date.parse(date);
-                    } catch (e) {
-                        // use default value;
+                    } catch (_) { // use default value;
                     }
-                    const old = vv.storage[store];
-                    vv.storage[store] = ret;
-                    vv.storage.last_modified_ms[store] = Date.parse(modified) + diff;
-                    vv.storage.last_modified[store] = modified;
-                    vv.storage.etag[store] = etag;
-                    if (vv.storage.save[store]) {
-                        vv.storage.save[store]();
+                    const old = this[store];
+                    this[store] = ret;
+                    this.last_modified_ms[store] = Date.parse(modified) + diff;
+                    this.last_modified[store] = modified;
+                    this.etag[store] = etag;
+                    if (this.save[store]) {
+                        this.save[store]();
                     }
-                    vv.pubsub.raise(vv.storage._listener, store, { old: old, current: ret });
+                    this.raiseEvent(store, { old: old, current: ret });
                 }
             });
-    },
-    load() {
+    }
+    _load() {
+        let storedCurrent = null;
+        let storedCurrent_last_modified = null;
+        let storedPlaylist = null;
+        let storedPlaylist_last_modified = null;
+
         try {
-            if (localStorage.version !== "v3") {
+            if (localStorage.getItem("version") !== "v3") {
                 localStorage.clear();
             }
-            localStorage.version = "v3";
-            if (localStorage.root && localStorage.root.length !== 0) {
-                vv.storage.root = localStorage.root;
-                if (vv.storage.root !== "root") {
-                    vv.storage.tree.push(["root", vv.storage.root]);
-                }
-            }
-            if (localStorage.preferences) {
-                const c = JSON.parse(localStorage.preferences);
-                for (const i in c) {
-                    if (c.hasOwnProperty(i)) {
-                        for (const j in c[i]) {
-                            if (c[i].hasOwnProperty(j)) {
-                                if (vv.storage.preferences[i] && vv.storage.preferences[i].hasOwnProperty(j)) {
-                                    vv.storage.preferences[i][j] = c[i][j];
-                                }
-                            }
-                        }
-                    }
-                }
-                // convert old settings
-                if (c.appearance && c.appearance.volume_max) {
-                    vv.storage.preferences.outputs.volume_max = c.appearance.volume_max;
-                }
-            }
-            if (localStorage.current && localStorage.current_last_modified) {
-                const current = JSON.parse(localStorage.current);
-                if (Object.prototype.toString.call(current.file) === "[object Array]") {
-                    vv.storage.current = current;
-                    vv.storage.last_modified.current = localStorage.current_last_modified;
-                }
-            }
-            if (localStorage.playlist && localStorage.playlist_last_modified) {
-                const playlist = JSON.parse(localStorage.playlist);
-                vv.storage.playlist = playlist;
-                vv.storage.last_modified.playlist = localStorage.playlist_last_modified;
-            }
-            vv.storage._cacheLoad("library", (data, date) => {
-                if (data && date) {
-                    vv.storage.librarySongs = data;
-                    vv.storage.last_modified.librarySongs = date;
-                }
-                vv.storage.loaded = true;
-                vv.pubsub.raise(vv.storage._listener, "onload");
-            });
-        } catch (e) {
-            vv.storage.loaded = true;
-            vv.pubsub.raise(vv.storage._listener, "onload");
-            // private browsing
-        }
-        if (navigator.userAgent.indexOf("Mobile") > 1) {
-            vv.storage.preferences.feature.show_scrollbars_when_scrolling = true;
-        } else if (navigator.userAgent.indexOf("Macintosh") > 1) {
-            vv.storage.preferences.feature.show_scrollbars_when_scrolling = true;
-        } else {
-            document.body.classList.add("scrollbar-styling");
-        }
-        for (const key in vv.storage.preferences.playlist.playback_tracks_custom) {
-            if (!(key in TREE)) {
-                delete vv.storage.preferences.playlist.playback_tracks_custom[key];
+            localStorage.setItem("version", "v3");
+            storedCurrent = localStorage.getItem("current");
+            storedCurrent_last_modified = localStorage.getItem("current_last_modified");
+            storedPlaylist = localStorage.getItem("playlist");
+            storedPlaylist_last_modified = localStorage.getItem("playlist_last_modified");
+        } catch (_) { }
+        if (storedCurrent !== null && storedCurrent_last_modified !== null) {
+            const current = JSON.parse(storedCurrent);
+            if (Object.prototype.toString.call(current.file) === "[object Array]") {
+                this.current = current;
+                this.last_modified.current = storedCurrent_last_modified;
             }
         }
-        for (const key in TREE) {
-            if (!(key in vv.storage.preferences.playlist.playback_tracks_custom)) {
-                vv.storage.preferences.playlist.playback_tracks_custom[key] = 0;
-            } else {
-                if (vv.storage.preferences.playlist.playback_tracks_custom[key] >= TREE[key].tree.length) {
-                    vv.storage.preferences.playlist.playback_tracks_custom[key] = 0;
-                }
-            }
+        if (storedPlaylist !== null && storedPlaylist_last_modified !== null) {
+            this.playlist = JSON.parse(storedPlaylist);
+            this.last_modified.playlist = storedPlaylist_last_modified;
         }
-        vv.websocket.addEventListener("connect", () => { vv.storage._fetchAll(); });
-        vv.websocket.addEventListener("/api/music/library/songs", () => { vv.storage._fetch("/api/music/library/songs", "librarySongs"); });
-        vv.websocket.addEventListener("/api/music/library", () => { vv.storage._fetch("/api/music/library", "library"); });
-        vv.websocket.addEventListener("/api/music", () => { vv.storage._fetch("/api/music", "control"); });
-        vv.websocket.addEventListener("/api/music/playlist/songs/current", () => { vv.storage._fetch("/api/music/playlist/songs/current", "current"); });
-        vv.websocket.addEventListener("/api/music/outputs", () => { vv.storage._fetch("/api/music/outputs", "outputs"); });
-        vv.websocket.addEventListener("/api/music/stats", () => { vv.storage._fetch("/api/music/stats", "stats"); });
-        vv.websocket.addEventListener("/api/music/playlist", () => { vv.storage._fetch("/api/music/playlist", "playlist"); });
-        vv.websocket.addEventListener("/api/music/images", () => { vv.storage._fetch("/api/music/images", "images"); });
-        vv.websocket.addEventListener("/api/music/storage", () => { vv.storage._fetch("/api/music/storage", "storage"); });
-        vv.websocket.addEventListener("/api/version", () => { vv.storage._fetch("/api/version", "version"); });
+        this._cacheLoad("library", (data, date) => {
+            if (data && date) {
+                this.librarySongs = data;
+                this.last_modified.librarySongs = date;
+            }
+            this.loaded = true;
+            this.raiseEvent("load");
+        });
     }
 };
-vv.storage.load();
 
-vv.library = {
-    focus: {},
-    child: null,
-    _roots: {
-        AlbumArtist: [],
-        Album: [],
-        Artist: [],
-        Genre: [],
-        Date: [],
-        Composer: [],
-        Performer: []
-    },
-    _listener: {},
-    addEventListener(e, f) { vv.pubsub.add(vv.library._listener, e, f); },
-    removeEventListener(e, f) { vv.pubsub.rm(vv.library._listener, e, f); },
-    _mkmemo(key) {
+class Library extends PubSub {
+    constructor(mpd) {
+        super();
+        this.root = "root";
+        this.tree = [];
+        this.mpd = mpd;
+        this.focus = {};
+        this.child = null;
+        this._roots = {
+            AlbumArtist: [],
+            Album: [],
+            Artist: [],
+            Genre: [],
+            Date: [],
+            Composer: [],
+            Performer: []
+        };
+        this._list_child_cache = [{}, {}, {}, {}, {}, {}];
+        this._list_cache = {};
+        this.load();
+
+        if (this.mpd.loaded) {
+            this.updateData(this.mpd.librarySongs);
+        } else {
+            this.mpd.addEventListener("load", () => { this.updateData(this.mpd.librarySongs); });
+        }
+        this.mpd.addEventListener("librarySongs", () => { this.update(this.mpd.librarySongs); });
+    }
+    load() {
+        let root = null;
+        try {
+            root = localStorage.getItem("root");
+        } catch (_) { }
+        if (root && root.length !== 0) {
+            this.root = root;
+            if (this.root !== "root") {
+                this.tree.push(["root", this.root]);
+            }
+        }
+    }
+    save() {
+        try {
+            localStorage.setItem("root", this.root);
+        } catch (e) {
+        }
+    }
+    static _mkmemo(key) {
         const ret = [];
         for (const leef of TREE[key].tree) {
             ret.push(leef[0]);
         }
         return ret;
-    },
-    _list_child_cache: [{}, {}, {}, {}, {}, {}],
+    }
     list_child() {
-        const root = vv.library.rootname();
-        if (vv.library._roots[root].length === 0) {
-            vv.library._roots[root] = vv.songs.sort(
-                vv.storage.librarySongs, TREE[root].sort,
-                vv.library._mkmemo(root));
+        const root = this.rootname();
+        if (this._roots[root].length === 0) {
+            this._roots[root] = Songs.sort(
+                this.mpd.librarySongs, TREE[root].sort,
+                Library._mkmemo(root));
         }
         const filters = {};
-        for (let i = 0, imax = vv.storage.tree.length; i < imax; i++) {
+        for (let i = 0, imax = this.tree.length; i < imax; i++) {
             if (i === 0) {
                 continue;
             }
-            filters[vv.storage.tree[i][0]] = vv.storage.tree[i][1];
+            filters[this.tree[i][0]] = this.tree[i][1];
         }
         const ret = {};
-        ret.key = TREE[root].tree[vv.storage.tree.length - 1][0];
-        ret.songs = vv.library._roots[root];
-        ret.songs = vv.songs.filter(ret.songs, filters);
-        ret.songs = vv.songs.uniq(ret.songs, ret.key);
-        ret.style = TREE[root].tree[vv.storage.tree.length - 1][1];
-        ret.isdir = vv.storage.tree.length !== TREE[root].tree.length;
+        ret.key = TREE[root].tree[this.tree.length - 1][0];
+        ret.songs = this._roots[root];
+        ret.songs = Songs.filter(ret.songs, filters);
+        ret.songs = Songs.uniq(ret.songs, ret.key);
+        ret.style = TREE[root].tree[this.tree.length - 1][1];
+        ret.isdir = this.tree.length !== TREE[root].tree.length;
         return ret;
-    },
-    list_root() {
+    }
+    /*static*/ list_root() {
         const ret = [];
         for (let i = 0, imax = TREE_ORDER.length; i < imax; i++) {
             ret.push({ root: [TREE_ORDER[i]] });
         }
         return { key: "root", songs: ret, style: "plain", isdir: true };
-    },
-    _list_cache: {},
+    }
     update_list() {
-        if (vv.library.rootname() === "root") {
-            vv.library._list_cache = vv.library.list_root();
+        if (this.rootname() === "root") {
+            this._list_cache = this.list_root();
             return true;
         }
-        const cache = vv.library._list_child_cache[vv.storage.tree.length - 1];
-        const pwd = JSON.stringify(vv.storage.tree);
+        const cache = this._list_child_cache[this.tree.length - 1];
+        const pwd = JSON.stringify(this.tree);
         if (cache.pwd === pwd) {
-            vv.library._list_cache = cache.data;
+            this._list_cache = cache.data;
             return false;
         }
-        vv.library._list_cache = vv.library.list_child();
-        if (vv.library._list_cache.songs.length === 0) {
-            vv.library.up();
+        this._list_cache = this.list_child();
+        if (this._list_cache.songs.length === 0) {
+            this.up();
         } else {
-            vv.library._list_child_cache[vv.storage.tree.length - 1].pwd = pwd;
-            vv.library._list_child_cache[vv.storage.tree.length - 1].data =
-                vv.library._list_cache;
+            this._list_child_cache[this.tree.length - 1].pwd = pwd;
+            this._list_child_cache[this.tree.length - 1].data = this._list_cache;
         }
         return true;
-    },
+    }
     list() {
-        if (!vv.library._list_cache.songs ||
-            !vv.library._list_cache.songs.length === 0) {
-            vv.library.update_list();
+        if (!this._list_cache.songs ||
+            !this._list_cache.songs.length === 0) {
+            this.update_list();
         }
-        return vv.library._list_cache;
-    },
+        return this._list_cache;
+    }
     updateData(data) {
-        for (let i = 0, imax = vv.library._list_child_cache.length; i < imax; i++) {
-            vv.library._list_child_cache[i] = {};
+        for (let i = 0, imax = this._list_child_cache.length; i < imax; i++) {
+            this._list_child_cache[i] = {};
         }
         for (const key in TREE) {
             if (TREE.hasOwnProperty(key)) {
-                if (key === vv.storage.root) {
-                    vv.library._roots[key] = vv.songs.sort(
-                        data, TREE[key].sort, vv.library._mkmemo(key));
+                if (key === this.root) {
+                    this._roots[key] = Songs.sort(
+                        data, TREE[key].sort, Library._mkmemo(key));
                 } else {
-                    vv.library._roots[key] = [];
+                    this._roots[key] = [];
                 }
             }
         }
-    },
+    }
     update(data) {
-        vv.library.updateData(data);
-        vv.library.update_list();
-        vv.pubsub.raise(vv.library._listener, "update");
-    },
+        this.updateData(data);
+        this.update_list();
+        this.raiseEvent("update");
+    }
     rootname() {
         let r = "root";
-        if (vv.storage.tree.length !== 0) {
-            r = vv.storage.tree[0][1];
+        if (this.tree.length !== 0) {
+            r = this.tree[0][1];
         }
-        if (r !== vv.storage.root) {
-            vv.storage.root = r;
-            vv.storage.save.root();
+        if (r !== this.root) {
+            this.root = r;
+            this.save();
         }
         return r;
-    },
-    filters(pos) { return vv.library._roots[vv.library.rootname()][pos].keys; },
+    }
+    filters(pos) { return this._roots[this.rootname()][pos].keys; }
     sortkeys() {
-        const r = vv.library.rootname();
+        const r = this.rootname();
         if (r === "root") {
             return [];
         }
         return TREE[r].sort;
-    },
+    }
     up() {
-        const songs = vv.library.list().songs;
+        const songs = this.list().songs;
         if (songs[0]) {
-            vv.library.focus = songs[0];
-            if (vv.library.rootname() === "root") {
-                vv.library.child = null;
+            this.focus = songs[0];
+            if (this.rootname() === "root") {
+                this.child = null;
             } else {
-                vv.library.child = vv.storage.tree[vv.storage.tree.length - 1][1];
+                this.child = this.tree[this.tree.length - 1][1];
             }
         }
-        if (vv.library.rootname() !== "root") {
-            vv.storage.tree.pop();
+        if (this.rootname() !== "root") {
+            this.tree.pop();
         }
-        vv.library.update_list();
-        if (vv.library.list().songs.length === 1 && vv.storage.tree.length !== 0) {
-            vv.library.up();
+        this.update_list();
+        if (this.list().songs.length === 1 && this.tree.length !== 0) {
+            this.up();
         } else {
-            vv.pubsub.raise(vv.library._listener, "changed");
+            this.raiseEvent("changed");
         }
-    },
+    }
     down(value) {
-        let r = vv.library.rootname();
+        let r = this.rootname();
         if (r === "root") {
-            vv.storage.tree.push([r, value]);
+            this.tree.push([r, value]);
             r = value;
         } else {
-            const key = TREE[r].tree[vv.storage.tree.length - 1][0];
-            vv.storage.tree.push([key, value]);
+            const key = TREE[r].tree[this.tree.length - 1][0];
+            this.tree.push([key, value]);
         }
-        vv.library.focus = {};
-        vv.library.child = null;
-        vv.library.update_list();
-        const songs = vv.library.list().songs;
+        this.focus = {};
+        this.child = null;
+        this.update_list();
+        const songs = this.list().songs;
         if (songs.length === 1 &&
-            TREE[r].tree.length !== vv.storage.tree.length) {
-            vv.library.down(vv.song.getOne(songs[0], vv.library.list().key));
+            TREE[r].tree.length !== this.tree.length) {
+            this.down(Song.getOne(songs[0], this.list().key));
         } else {
-            vv.pubsub.raise(vv.library._listener, "changed");
+            this.raiseEvent("changed");
         }
-    },
+    }
     absaddr(first, second) {
-        vv.storage.tree.splice(0, vv.storage.tree.length);
-        vv.storage.tree.push(["root", first]);
-        vv.library.down(second);
-    },
+        this.tree.splice(0, this.tree.length);
+        this.tree.push(["root", first]);
+        this.down(second);
+        this.raiseEvent("list");
+    }
     absFallback(song) {
-        if (vv.library.rootname() !== "root" && song && song.file) {
-            const r = vv.storage.tree[0];
-            vv.storage.tree.length = 0;
-            vv.storage.tree.splice(0, vv.storage.tree.length);
-            vv.storage.tree.push(r);
-            const root = vv.storage.tree[0][1];
+        if (this.rootname() !== "root" && song && song.file) {
+            const r = this.tree[0];
+            this.tree.length = 0;
+            this.tree.splice(0, this.tree.length);
+            this.tree.push(r);
+            const root = this.tree[0][1];
             const selected = TREE[root].tree;
             for (let i = 0, imax = selected.length; i < imax; i++) {
                 if (i === selected.length - 1) {
                     break;
                 }
                 const key = selected[i][0];
-                vv.storage.tree.push([key, vv.song.getOne(song, key)]);
+                this.tree.push([key, Song.getOne(song, key)]);
             }
-            vv.library.update_list();
-            for (const candidate of vv.library.list().songs) {
+            this.update_list();
+            for (const candidate of this.list().songs) {
                 if (candidate.file && candidate.file[0] === song.file[0]) {
-                    vv.library.focus = candidate;
-                    vv.library.child = null;
+                    this.focus = candidate;
+                    this.child = null;
                     break;
                 }
             }
         } else {
-            vv.storage.tree.splice(0, vv.storage.tree.length);
-            vv.library.update_list();
+            this.tree.splice(0, this.tree.length);
+            this.update_list();
         }
-        vv.pubsub.raise(vv.library._listener, "changed");
-    },
+        this.raiseEvent("changed");
+    }
     absSorted(song) {
         if (!song || !song.Pos) {
             return;
         }
         let root = "";
         const pos = parseInt(song.Pos[0], 10);
-        const keys = vv.storage.playlist.sort.join();
+        const keys = this.mpd.playlist.sort.join();
         for (const key in TREE) {
             if (TREE.hasOwnProperty(key)) {
                 if (TREE[key].sort.join() === keys) {
@@ -873,71 +1150,71 @@ vv.library = {
             }
         }
         if (!root) {
-            vv.view.popup.show("fixme", `modal: unknown sort keys: ${keys}`);
+            UINotification.show("fixme", `modal: unknown sort keys: ${keys}`);
             return;
         }
-        let songs = vv.library._roots[root];
+        let songs = this._roots[root];
         if (!songs || songs.length === 0) {
-            vv.library._roots[root] = vv.songs.sort(
-                vv.storage.librarySongs, TREE[root].sort,
-                vv.library._mkmemo(root));
-            songs = vv.library._roots[root];
+            this._roots[root] = Songs.sort(
+                this.mpd.librarySongs, TREE[root].sort,
+                Library._mkmemo(root));
+            songs = this._roots[root];
             if (songs.length === 0) {
                 return;
             }
         }
-        if (songs.length > vv.consts.playlistLength || vv.storage.playlist.must) {
-            const must = vv.storage.playlist.must ? vv.storage.playlist.must : 0;
-            songs = vv.songs.weakFilter(songs, vv.storage.playlist.filters || [], must, vv.consts.playlistLength);
+        if (songs.length > playlistLength || this.mpd.playlist.must) {
+            const must = this.mpd.playlist.must ? this.mpd.playlist.must : 0;
+            songs = Songs.weakFilter(songs, this.mpd.playlist.filters || [], must, playlistLength);
         }
         if (!songs[pos]) {
             return;
         }
         if (songs[pos].file[0] === song.file[0]) {
-            vv.library.focus = songs[pos];
-            vv.library.child = null;
-            vv.storage.tree.length = 0;
-            vv.storage.tree.push(["root", root]);
-            for (let i = 0; i < vv.library.focus.keys.length - 1; i++) {
-                vv.storage.tree.push(vv.library.focus.keys[i]);
+            this.focus = songs[pos];
+            this.child = null;
+            this.tree.length = 0;
+            this.tree.push(["root", root]);
+            for (let i = 0; i < this.focus.keys.length - 1; i++) {
+                this.tree.push(this.focus.keys[i]);
             }
-            vv.library.update_list();
-            vv.pubsub.raise(vv.library._listener, "changed");
+            this.update_list();
+            this.raiseEvent("changed");
         } else {
-            vv.library.absFallback(song);
+            this.absFallback(song);
         }
-    },
+    }
     abs(song) {
-        if (vv.storage.playlist && vv.storage.playlist.hasOwnProperty("sort") && vv.storage.playlist.sort !== null) {
-            vv.library.absSorted(song);
+        if (this.mpd.playlist && this.mpd.playlist.hasOwnProperty("sort") && this.mpd.playlist.sort !== null) {
+            this.absSorted(song);
         } else {
-            vv.library.absFallback(song);
+            this.absFallback(song);
         }
-    },
+    }
     parent() {
-        const root = vv.library.rootname();
+        const root = this.rootname();
         if (root === "root") {
             return;
         }
-        const v = vv.library.list().songs;
-        if (vv.storage.tree.length > 1) {
-            const key = TREE[root].tree[vv.storage.tree.length - 2][0];
-            const style = TREE[root].tree[vv.storage.tree.length - 2][1];
+        const v = this.list().songs;
+        if (this.tree.length > 1) {
+            const key = TREE[root].tree[this.tree.length - 2][0];
+            const style = TREE[root].tree[this.tree.length - 2][1];
             return { key: key, song: v[0], style: style, isdir: true };
         }
         return { key: "top", song: { top: [root] }, style: "plain", isdir: true };
-    },
+    }
     grandparent() {
-        const root = vv.library.rootname();
+        const root = this.rootname();
         if (root === "root") {
             return;
         }
-        const v = vv.library.list().songs;
-        if (vv.storage.tree.length > 2) {
-            const key = TREE[root].tree[vv.storage.tree.length - 3][0];
-            const style = TREE[root].tree[vv.storage.tree.length - 3][1];
+        const v = this.list().songs;
+        if (this.tree.length > 2) {
+            const key = TREE[root].tree[this.tree.length - 3][0];
+            const style = TREE[root].tree[this.tree.length - 3][1];
             return { key: key, song: v[0], style: style, isdir: true };
-        } else if (vv.storage.tree.length === 2) {
+        } else if (this.tree.length === 2) {
             return { key: "top", song: { top: [root] }, style: "plain", isdir: true };
         }
         return {
@@ -946,174 +1223,18 @@ vv.library = {
             style: "plain",
             isdir: true
         };
-    },
-    load() {
-        if (vv.storage.loaded) {
-            vv.library.updateData(vv.storage.librarySongs);
-        } else {
-            vv.storage.addEventListener(
-                "onload", () => { vv.library.updateData(vv.storage.librarySongs); });
-        }
     }
 };
-vv.library.load();
 
-vv.control = {
-    _getOrElse(m, k, v) { return k in m ? m[k] : v; },
-    _listener: {},
-    addEventListener(t, f) { vv.pubsub.add(vv.control._listener, t, f); },
-    removeEventListener(t, f) { vv.pubsub.rm(vv.control._listener, t, f); },
-    raiseEvent(t, e) { vv.pubsub.raise(vv.control._listener, t, e); },
-
-    rescan_library() {
-        for (const path in vv.storage.storage) {
-            if (path !== "" && vv.storage.storage.hasOwnProperty(path)) {
-                vv.request.post("/api/music/storage", { [path]: { updating: true } });
-            }
-        }
-        vv.request.post("/api/music/library", { updating: true });
-        vv.storage.library.updating = true;
-        vv.storage.raiseEvent("library");
-    },
-    prev() { vv.request.post("/api/music", { state: "previous" }); },
-    play_pause() {
-        const state = vv.control._getOrElse(vv.storage.control, "state", "stopped");
-        const action = state === "play" ? "pause" : "play";
-        vv.request.post("/api/music", { state: action }, (e) => {
-            if (e.error) {
-                vv.storage.control.state = state;
-                vv.storage.raiseEvent("control");
-            }
-        });
-        vv.storage.control.state = action;
-        const now = (new Date()).getTime();
-        if (action === "pause") {
-            const elapsed = parseInt(vv.storage.control.song_elapsed * 1000, 10) + now - vv.storage.last_modified_ms.control;
-            vv.storage.control.song_elapsed = elapsed / 1000;
-        }
-        vv.storage.last_modified_ms.control = now;
-        vv.storage.raiseEvent("control");
-    },
-    next() { vv.request.post("/api/music", { state: "next" }); },
-    toggle_repeat() {
-        if (vv.storage.control.single) {
-            vv.request.post("/api/music", { repeat: false, single: false });
-            vv.storage.control.single = false;
-            vv.storage.control.repeat = false;
-        } else if (vv.storage.control.repeat) {
-            vv.request.post("/api/music", { single: true });
-            vv.storage.control.single = true;
-        } else {
-            vv.request.post("/api/music", { repeat: true });
-            vv.storage.control.repeat = true;
-        }
-        vv.storage.raiseEvent("control");
-    },
-    toggle_random() {
-        vv.request.post("/api/music", { random: !vv.storage.control.random });
-        vv.storage.control.random = !vv.storage.control.random;
-        vv.storage.raiseEvent("control");
-    },
-    play(pos) {
-        const filters = vv.library.filters(pos);
-        let must = 0;
-        if (vv.storage.preferences.playlist.playback_tracks === "list") {
-            must = filters.length - 1;
-        } else if (vv.storage.preferences.playlist.playback_tracks === "custom") {
-            const root = vv.library.rootname();
-            if (root !== "root") {
-                must = vv.storage.preferences.playlist.playback_tracks_custom[root];
-            }
-        }
-        vv.request.post("/api/music/playlist", {
-            sort: vv.library.sortkeys(),
-            filters: filters,
-            must: must,
-            current: pos
-        });
-    },
-    volume(num) { vv.request.post("/api/music", { volume: num }); },
-    output(id, on) {
-        vv.request.post(`/api/music/outputs`, { [id]: { enabled: on } });
-    },
-    seek(pos) { vv.request.post("/api/music", { song_elapsed: pos }); },
-    _init() {
-        const start = () => {
-            try {
-                vv.control.raiseEvent("start");
-                vv.view.list.show();
-                vv.websocket.start();
-            } catch (e) {
-                alert(e);
-            }
-        };
-        if (vv.storage.loaded) {
-            start();
-        } else {
-            vv.storage.addEventListener("onload", start);
-        }
-    },
-    start() {
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", vv.control._init);
-        } else {
-            vv.control._init();
-        }
-    },
-    load() {
-        const focus = () => {
-            if (!vv.storage.preferences.appearance.playlist_follows_playback) {
-                return;
-            }
-            if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.playlist || vv.storage.librarySongs.length === 0) {
-                return;
-            }
-            const pos = parseInt(vv.storage.current.Pos[0]);
-            if (pos !== vv.storage.playlist.current) {
-                return;
-            }
-            vv.library.abs(vv.storage.current);
-        };
-        let unsorted = (!vv.storage.playlist || !vv.storage.playlist.hasOwnProperty("sort") || vv.storage.playlist.sort === null);
-        const focusremove = (key, remove) => {
-            const n = () => {
-                setTimeout(() => { remove(key, n); });
-                if (!vv.storage.preferences.appearance.playlist_follows_playback) {
-                    return;
-                }
-                if (!unsorted) {
-                    return;
-                }
-                if (!vv.storage.current || !vv.storage.current.Pos || vv.storage.current.Pos.length === 0 || !vv.storage.playlist || vv.storage.librarySongs.length === 0) {
-                    return;
-                }
-                const pos = parseInt(vv.storage.current.Pos[0]);
-                if (pos !== vv.storage.playlist.current) {
-                    return;
-                }
-                unsorted = false;
-                vv.library.abs(vv.storage.current);
-            };
-            return n;
-        };
-        vv.storage.addEventListener("current", focus);
-        vv.storage.addEventListener("playlist", focus);
-        vv.control.addEventListener("start", focus);
-        vv.storage.addEventListener("librarySongs", () => { vv.library.update(vv.storage.librarySongs); });
-        if (unsorted) {
-            vv.storage.addEventListener(
-                "current", focusremove("current", vv.storage.removeEventListener));
-            vv.storage.addEventListener(
-                "playlist", focusremove("playlist", vv.storage.removeEventListener));
-            vv.library.addEventListener(
-                "update", focusremove("update", vv.library.removeEventListener));
-        }
+class UI extends PubSub {
+    constructor() {
+        super();
     }
-};
-vv.control.load();
-
-vv.ui = {
-    swipe(element, f, resetFunc, leftElement, conditionFunc) {
+    polling() {
+        this.raiseEvent("poll");
+        setTimeout(() => { this.polling(); }, 1000);
+    };
+    static swipe(element, f, resetFunc, leftElement, conditionFunc) {
         element.swipe_target = f;
         let starttime = 0;
         let now = 0;
@@ -1215,8 +1336,8 @@ vv.ui = {
             element.addEventListener("mousemove", move, { passive: true });
             element.addEventListener("mouseup", end, { passive: true });
         }
-    },
-    disableSwipe(element) {
+    }
+    static disableSwipe(element) {
         const f = (e) => { e.stopPropagation(); };
         if ("ontouchend" in element) {
             element.addEventListener("touchstart", f, { passive: true });
@@ -1227,8 +1348,8 @@ vv.ui = {
             element.addEventListener("mousemove", f, { passive: true });
             element.addEventListener("mouseup", f, { passive: true });
         }
-    },
-    click(element, f) {
+    }
+    static click(element, f) {
         element.click_target = f;
         const enter = e => { e.currentTarget.classList.add("hover"); };
         const leave = e => { e.currentTarget.classList.remove("hover"); };
@@ -1274,61 +1395,77 @@ vv.ui = {
             element.addEventListener("mouseleave", leave, { passive: true });
         }
     }
-}
+};
 
 // background
-{
-    let rgbg = { r: 128, g: 128, b: 128, gray: 128 };
-    const mkcolor = (rgb, magic) => {
+class UIBackground {
+    constructor(ui, mpd, preferences) {
+        this.mpd = mpd;
+        this.preferences = preferences;
+        this.rgbg = { r: 128, g: 128, b: 128, gray: 128 };
+        this.mpd.addEventListener("current", () => { this.update(); });
+        this.preferences.addEventListener("appearance", (e) => { this.update(e); });
+        this.preferences.addEventListener("appearance", (e) => { this.update_theme(e); });
+        ui.addEventListener("load", () => { this.update(); });
+        ui.addEventListener("load", () => {
+            var darkmode = window.matchMedia("(prefers-color-scheme: dark)");
+            if (darkmode.addEventListener) {
+                darkmode.addEventListener("change", () => { this.update_theme(); });
+            } else if (darkmode.addListener) {
+                darkmode.addListener(() => { this.update_theme(); });
+            }
+        });
+    }
+    static mkcolor(rgb, magic) {
         return "#" +
             (((1 << 24) + (magic(rgb.r) << 16) + (magic(rgb.g) << 8) + magic(rgb.b))
                 .toString(16)
                 .slice(1));
     };
-    const darker = c => {
+    static darker(c) {
         // Vivaldi does not recognize #000000
         if ((c - 20) < 0) {
             return 1;
         }
         return c - 20;
     };
-    const lighter = c => {
+    static lighter(c) {
         if ((c + 100) > 255) {
             return 255;
         }
         return c + 100;
     };
-    const update_theme = () => {
+    update_theme() {
         const color = document.querySelector("meta[name=theme-color]");
-        if (vv.storage.preferences.appearance.theme === "prefer-system") {
+        if (this.preferences.appearance.theme === "prefer-system") {
             document.body.classList.add("system-theme-color");
             document.body.classList.remove("dark");
             document.body.classList.remove("light");
             if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-                color.setAttribute("content", mkcolor(rgbg, darker));
+                color.setAttribute("content", UIBackground.mkcolor(this.rgbg, UIBackground.darker));
             } else {
-                color.setAttribute("content", mkcolor(rgbg, lighter));
+                color.setAttribute("content", UIBackground.mkcolor(this.rgbg, UIBackground.lighter));
             }
         } else {
             document.body.classList.remove("system-theme-color");
             var dark = true;
-            if (vv.storage.preferences.appearance.theme === "light") {
+            if (this.preferences.appearance.theme === "light") {
                 dark = false;
-            } else if (vv.storage.preferences.appearance.theme !== "dark" && rgbg.gray >= vv.storage.preferences.appearance.color_threshold) {
+            } else if (this.preferences.appearance.theme !== "dark" && this.rgbg.gray >= this.preferences.appearance.color_threshold) {
                 dark = false;
             }
             if (dark) {
                 document.body.classList.add("dark");
                 document.body.classList.remove("light");
-                color.setAttribute("content", mkcolor(rgbg, darker));
+                color.setAttribute("content", UIBackground.mkcolor(this.rgbg, UIBackground.darker));
             } else {
                 document.body.classList.add("light");
                 document.body.classList.remove("dark");
-                color.setAttribute("content", mkcolor(rgbg, lighter));
+                color.setAttribute("content", UIBackground.mkcolor(this.rgbg, UIBackground.lighter));
             }
         }
     };
-    const calc_color = path => {
+    calc_color(path) {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement("canvas");
@@ -1347,22 +1484,22 @@ vv.ui = {
                 new_rgbg.g = parseInt(new_rgbg.g * 3 / d.length, 10);
                 new_rgbg.b = parseInt(new_rgbg.b * 3 / d.length, 10);
                 new_rgbg.gray /= d.length;
-                rgbg = new_rgbg;
-                update_theme();
+                this.rgbg = new_rgbg;
+                this.update_theme();
             } catch (e) {
                 // failed to getImageData
             }
         };
         img.src = path;
     };
-    const update = () => {
+    update() {
         let cover = "/assets/nocover.svg";
-        if (vv.storage.current !== null && vv.storage.current.cover && vv.storage.current.cover[0]) {
-            cover = vv.storage.current.cover[0];
+        if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+            cover = this.mpd.current.cover[0];
         }
         let e = document.getElementById("background-image");
         const e2 = document.getElementById("background-image2");
-        if (vv.storage.preferences.appearance.crossfading_image) {
+        if (this.preferences.appearance.crossfading_image) {
             if (e.style.opacity === "0") {
                 if (e2.dataset.src === cover) {
                     e = e2;
@@ -1382,62 +1519,55 @@ vv.ui = {
             e2.style.opacity = "0";
         }
         e.dataset.src = cover;
-        if (vv.storage.preferences.appearance.background_image) {
+        if (this.preferences.appearance.background_image) {
             e.classList.remove("hide");
             document.getElementById("background-image").classList.remove("hide");
             let coverForCalc = "/assets/nocover.svg";
-            if (vv.storage.current !== null && vv.storage.current.cover && vv.storage.current.cover[0]) {
-                cover = vv.storage.current.cover[0];
+            if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+                cover = this.mpd.current.cover[0];
                 const imgsize = parseInt(70 * window.devicePixelRatio, 10);
                 const s = (cover.lastIndexOf("?") == -1) ? "?" : "&";
                 coverForCalc = `${cover}${s}width=${imgsize}&height=${imgsize}`;
             }
             const newimage = `url("${cover}")`;
             if (e.style.backgroundImage !== newimage) {
-                calc_color(coverForCalc);
+                this.calc_color(coverForCalc);
                 e.style.backgroundImage = newimage;
             }
             e.style.filter =
-                `blur(${vv.storage.preferences.appearance.background_image_blur})`;
+                `blur(${this.preferences.appearance.background_image_blur})`;
         } else {
             e.classList.add("hide");
             document.getElementById("background-image").classList.add("hide");
         }
         document.body.classList.remove("unload");
     };
-    vv.storage.addEventListener("current", update);
-    vv.storage.addEventListener("preferences", update);
-    vv.storage.addEventListener("preferences", update_theme);
-    vv.control.addEventListener("start", update);
-    vv.control.addEventListener("start", () => {
-        var darkmode = window.matchMedia("(prefers-color-scheme: dark)");
-        if (darkmode.addEventListener) {
-            darkmode.addEventListener("change", update_theme);
-        } else if (darkmode.addListener) {
-            darkmode.addListener(update_theme);
-        }
-    });
-}
+};
 
-vv.view.main = {
+class UIMainView extends PubSub {
+    constructor(ui, mpd, library, preferences) {
+        super();
+        ui.addEventListener("poll", () => { this.onPoll(); });
+        ui.addEventListener("load", () => { this.onStart(); });
+        this.mpd = mpd;
+        this.mpd.addEventListener("playlist", () => { this.onPlaylist(); });
+        this.mpd.addEventListener("current", () => { this.onCurrent(); });
+        this.mpd.addEventListener("control", () => { this.onControl(); });
+        this.library = library;
+        this.preferences = preferences;
+        this.preferences.addEventListener("appearance", () => { this.onPreferences(); });
+    }
     onPreferences() {
         const e = document.getElementById("main-cover");
-        if (vv.storage.preferences.appearance.circled_image) {
+        if (this.preferences.appearance.circled_image) {
             e.classList.add("circled");
         } else {
             e.classList.remove("circled");
         }
-    },
+    }
     onControl() {
-        const c = document.getElementById("control-volume");
-        if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
-            c.value = vv.storage.control.volume;
-            c.disabled = false;
-        } else {
-            c.disabled = true;
-        }
         const o = document.getElementById("main-cover-overlay");
-        if (vv.storage.control.state === "play") {
+        if (this.mpd.control.state === "play") {
             o.classList.add("pause");
             if (o.classList.contains("play")) {
                 o.classList.remove("play");
@@ -1452,38 +1582,38 @@ vv.view.main = {
                 requestAnimationFrame(() => { o.classList.remove("changed"); }, 10);
             }
         }
-    },
+    }
     onPlaylist() {
-        document.getElementById("main-cover-overlay").disabled = !(vv.storage.playlist && vv.storage.playlist.hasOwnProperty("current"));
-    },
+        document.getElementById("main-cover-overlay").disabled = !(this.mpd.playlist && this.mpd.playlist.hasOwnProperty("current"));
+    }
     show() {
         document.body.classList.add("view-main");
         document.body.classList.remove("view-list");
-    },
+    }
     hidden() {
         const c = document.body.classList;
         if (window.matchMedia("(orientation: portrait)").matches) {
             return !c.contains("view-main");
         }
         return !(c.contains("view-list") || c.contains("view-main"));
-    },
+    }
     update() {
-        if (vv.storage.current === null) {
+        if (this.mpd.current === null) {
             return;
         }
         document.getElementById("main-box-title").textContent =
-            vv.storage.current.Title;
+            this.mpd.current.Title;
         document.getElementById("main-box-artist").textContent =
-            vv.storage.current.Artist;
+            this.mpd.current.Artist;
         document.getElementById("main-seek-label-total").textContent =
-            vv.storage.current.Length;
+            this.mpd.current.Length;
         let cover = "/assets/nocover.svg";
-        if (vv.storage.current.cover && vv.storage.current.cover[0]) {
-            cover = vv.storage.current.cover[0];
+        if (this.mpd.current.cover && this.mpd.current.cover[0]) {
+            cover = this.mpd.current.cover[0];
         }
         let e = document.getElementById("main-cover-img");
         const e2 = document.getElementById("main-cover-img2");
-        if (vv.storage.preferences.appearance.crossfading_image) {
+        if (this.preferences.appearance.crossfading_image) {
             if (e.style.opacity === "0") {
                 if (e2.dataset.src === cover) {
                     e = e2;
@@ -1504,21 +1634,21 @@ vv.view.main = {
         }
         e.src = cover;
         e.dataset.src = cover;
-    },
-    onCurrent() { vv.view.main.update(); },
+    }
+    onCurrent() { this.update(); }
     onPoll() {
-        if (vv.storage.current === null || !vv.storage.current.Time) {
+        if (this.mpd.current === null || !this.mpd.current.Time) {
             return;
         }
-        if (vv.view.main.hidden()) {
+        if (this.hidden()) {
             return;
         }
         const c = document.getElementById("main-cover-circle-active");
-        let elapsed = parseInt(vv.storage.control.song_elapsed * 1000, 10);
-        if (vv.storage.control.state === "play") {
-            elapsed += (new Date()).getTime() - vv.storage.last_modified_ms.control;
+        let elapsed = parseInt(this.mpd.control.song_elapsed * 1000, 10);
+        if (this.mpd.control.state === "play") {
+            elapsed += (new Date()).getTime() - this.mpd.last_modified_ms.control;
         }
-        const total = parseInt(vv.storage.current.Time[0], 10);
+        const total = parseInt(this.mpd.current.Time[0], 10);
         if (!isNaN(elapsed / total)) {
             document.getElementById("main-seek").value = elapsed / total;
         }
@@ -1540,68 +1670,71 @@ vv.view.main = {
         } else {
             c.setAttribute("d", `M 100,10 L 100,10 A 90,90 0 0,1 ${x},${y}`);
         }
-    },
+    }
     onStart() {
         document.getElementById("control-volume").addEventListener("change", e => {
-            vv.control.volume(parseInt(e.currentTarget.value, 10));
+            this.mpd.volume(parseInt(e.currentTarget.value, 10));
         });
-        vv.ui.click(document.getElementById("main-cover-overlay"), () => {
+        UI.click(document.getElementById("main-cover-overlay"), () => {
             if (window.matchMedia("(max-height: 450px) and (orientation: landscape)").matches) {
-                vv.control.play_pause();
+                this.mpd.togglePlay();
             }
         });
-        vv.ui.click(document.getElementById("main-box-title"), () => {
-            if (vv.storage.current !== null) {
-                vv.view.modal.song(vv.storage.current);
+        UI.click(document.getElementById("main-box-title"), () => {
+            if (this.mpd.current !== null) {
+                UIModal.song(this.mpd.current, this.library);
             }
         });
-        vv.ui.disableSwipe(document.getElementById("main-seek"));
+        UI.disableSwipe(document.getElementById("main-seek"));
         document.getElementById("main-seek").addEventListener("input", (e) => {
-            if (vv.storage.current.Time && vv.storage.current.Time[0]) {
-                const target = parseInt(e.currentTarget.value, 10) * parseInt(vv.storage.current.Time[0], 10) / 1000;
-                vv.control.seek(target);
+            if (this.mpd.current.Time && this.mpd.current.Time[0]) {
+                const target = parseInt(e.currentTarget.value, 10) * parseInt(this.mpd.current.Time[0], 10) / 1000;
+                this.mpd.seek(target);
             }
         });
-        vv.view.main.onPreferences();
-        vv.ui.swipe(
-            document.getElementById("main"), vv.view.list.show, null,
+        this.onPreferences();
+        UI.swipe(
+            document.getElementById("main"), () => { this.raiseEvent("list"); }, null,
             document.getElementById("lists"), () => { return window.innerHeight >= window.innerWidth; });
-        vv.view.main.onCurrent();
-        vv.view.main.onPlaylist();
+        this.onCurrent();
+        this.onPlaylist();
     }
 };
-vv.control.addEventListener("poll", vv.view.main.onPoll);
-vv.control.addEventListener("start", vv.view.main.onStart);
-vv.storage.addEventListener("playlist", vv.view.main.onPlaylist);
-vv.storage.addEventListener("current", vv.view.main.onCurrent);
-vv.storage.addEventListener("control", vv.view.main.onControl);
-vv.storage.addEventListener("preferences", vv.view.main.onPreferences);
 
-vv.view.list = {
+class UIListView extends PubSub {
+    constructor(ui, mpd, library, preferences) {
+        super();
+        this.mpd = mpd;
+        this.mpd.addEventListener("current", () => { this.onCurrent(); });
+        this.preferences = preferences;
+        this.preferences.addEventListener("appearance", () => { this.onPreferences(); });
+        this.library = library;
+        ui.addEventListener("load", () => { this.onStart(); });
+    }
     show() {
         document.body.classList.add("view-list");
         document.body.classList.remove("view-main");
-    },
+    }
     hidden() {
         const c = document.body.classList;
         if (window.matchMedia("(orientation: portrait)").matches) {
             return !c.contains("view-list");
         }
         return !(c.contains("view-list") || c.contains("view-main"));
-    },
+    }
     _preferences_update() {
-        const index = vv.storage.tree.length;
+        const index = this.library.tree.length;
         const ul = document.getElementById("list-items" + index);
-        if (vv.storage.preferences.appearance.playlist_gridview_album) {
+        if (this.preferences.appearance.playlist_gridview_album) {
             ul.classList.add("grid");
             ul.classList.remove("nogrid");
         } else {
             ul.classList.add("nogrid");
             ul.classList.remove("grid");
         }
-    },
+    }
     _updatepos() {
-        const index = vv.storage.tree.length;
+        const index = this.library.tree.length;
         const lists = document.getElementsByClassName("list");
         for (let listindex = 0; listindex < lists.length; listindex++) {
             if (listindex < index) {
@@ -1612,15 +1745,15 @@ vv.view.list = {
                 lists[listindex].style.transform = "translate3d(100%,0,0)";
             }
         }
-    },
+    }
     _updateFocus() {
-        const index = vv.storage.tree.length;
+        const index = this.library.tree.length;
         const ul = document.getElementById("list-items" + index);
         let focus = null;
         let viewNowPlaying = false;
-        const rootname = vv.library.rootname();
-        const focusSong = vv.library.focus;
-        const focusParent = vv.library.child;
+        const rootname = this.library.rootname();
+        const focusSong = this.library.focus;
+        const focusParent = this.library.child;
         for (const listitem of Array.from(ul.children)) {
             if (listitem.classList.contains("list-header")) {
                 continue;
@@ -1641,20 +1774,20 @@ vv.view.list = {
                 listitem.classList.remove("selected");
             }
             let treeFocused = true;
-            if (vv.storage.playlist && vv.storage.playlist.hasOwnProperty("sort") && vv.storage.playlist.sort !== null) {
+            if (this.mpd.playlist && this.mpd.playlist.hasOwnProperty("sort") && this.mpd.playlist.sort !== null) {
                 if (rootname === "root") {
                     treeFocused = false;
                 } else if (
-                    vv.storage.playlist.sort.join() !==
+                    this.mpd.playlist.sort.join() !==
                     TREE[rootname].sort.join()) {
                     treeFocused = false;
                 }
             }
             const elapsed = Array.from(listitem.getElementsByClassName("song-elapsed"));
             const sep = Array.from(listitem.getElementsByClassName("song-lengthseparator"));
-            if (treeFocused && elapsed.length !== 0 && vv.storage.current !== null &&
-                vv.storage.current.file &&
-                vv.storage.current.file[0] === listitem.dataset.file) {
+            if (treeFocused && elapsed.length !== 0 && this.mpd.current !== null &&
+                this.mpd.current.file &&
+                this.mpd.current.file[0] === listitem.dataset.file) {
                 viewNowPlaying = true;
                 if (focusSong && !focusSong.file) {
                     listitem.classList.add("selected");
@@ -1703,10 +1836,10 @@ vv.view.list = {
         } else {
             document.getElementById("header-main").classList.remove("playing");
         }
-    },
+    }
     _clearAllLists() {
         const lists = document.getElementsByClassName("list");
-        for (let treeindex = 0; treeindex < vv.storage.tree.length; treeindex++) {
+        for (let treeindex = 0; treeindex < this.library.tree.length; treeindex++) {
             const oldul =
                 lists[treeindex + 1].getElementsByClassName("list-items")[0];
             while (oldul.lastChild) {
@@ -1714,11 +1847,11 @@ vv.view.list = {
             }
             lists[treeindex + 1].dataset.pwd = "";
         }
-    },
+    }
     _element(song, key, style, header) {
         const c = document.querySelector(`#list-${style}-template`).content;
         const e = c.querySelector("li");
-        const v = vv.song.getOne(song, key);
+        const v = Song.getOne(song, key);
         if (v !== null) {
             e.dataset.key = v;
         } else {
@@ -1746,15 +1879,15 @@ vv.view.list = {
             if (target === "key") {
                 n.textContent = v ? v : `[no ${key}]`;
             } else if (target) {
-                n.textContent = vv.song.get(song, target);
+                n.textContent = Song.get(song, target);
             }
         }
         if (style === "song") {
             if (song.file) {
                 const tooltip = [
                     "Length", "Artist", "Album", "Track", "Genre", "Performer"
-                ].map(key => `${key}: ${vv.song.get(song, key)}`);
-                tooltip.unshift(vv.song.get(song, "Title"));
+                ].map(key => `${key}: ${Song.get(song, key)}`);
+                tooltip.unshift(Song.get(song, "Title"));
                 e.setAttribute("title", tooltip.join("\n"));
             } else {
                 e.removeAttribute("title");
@@ -1776,46 +1909,56 @@ vv.view.list = {
                 smallCover.src = "/assets/nocover.svg";
                 mediumCover.src = "/assets/nocover.svg";
             }
-            smallCover.alt = `Cover art: ${vv.song.get(song, "Album")} ` + `by ${vv.song.get(song, "AlbumArtist")}`;
+            smallCover.alt = `Cover art: ${Song.get(song, "Album")} ` + `by ${Song.get(song, "AlbumArtist")}`;
             mediumCover.alt = smallCover.alt;
         }
         return document.importNode(c, true);
-    },
+    }
     _listHandler(e) {
         if (e.currentTarget.classList.contains("playing")) {
-            if (vv.storage.current === null) {
+            if (this.mpd.current === null) {
                 return;
             }
-            vv.library.abs(vv.storage.current);
-            vv.view.main.show();
+            this.library.abs(this.mpd.current);
+            this.raiseEvent("main");
             return;
         }
         const value = e.currentTarget.dataset.key ? e.currentTarget.dataset.key : null;
-        const pos = e.currentTarget.dataset.pos;
+        const pos = parseInt(e.currentTarget.dataset.pos, 10);
         if (e.currentTarget.classList.contains("song")) {
-            vv.control.play(parseInt(pos, 10));
+            const filters = this.library.filters(pos);
+            let must = 0;
+            if (this.preferences.playlist.playback_tracks === "list") {
+                must = filters.length - 1;
+            } else if (this.preferences.playlist.playback_tracks === "custom") {
+                const root = this.library.rootname();
+                if (root !== "root") {
+                    must = this.preferences.playlist.playback_tracks_custom[root];
+                }
+            }
+            this.mpd.sortPlaylist(this.library.sortkeys(), filters, must, pos);
         } else {
-            vv.library.down(value);
+            this.library.down(value);
         }
-    },
+    }
     _update() {
-        const index = vv.storage.tree.length;
+        const index = this.library.tree.length;
         const scroll = document.getElementById("list" + index);
-        const pwd = JSON.stringify(vv.storage.tree);
+        const pwd = JSON.stringify(this.library.tree);
         if (scroll.dataset.pwd === pwd) {
-            vv.view.list._updatepos();
-            vv.view.list._updateFocus();
+            this._updatepos();
+            this._updateFocus();
             return;
         }
         scroll.dataset.pwd = pwd;
-        const ls = vv.library.list();
+        const ls = this.library.list();
         const key = ls.key;
         const songs = ls.songs;
         const style = ls.style;
         const newul = document.createDocumentFragment();
         const lists = document.getElementsByClassName("list");
-        for (let treeindex = 0; treeindex < vv.storage.tree.length; treeindex++) {
-            const currentpwd = JSON.stringify(vv.storage.tree.slice(0, treeindex + 1));
+        for (let treeindex = 0; treeindex < this.library.tree.length; treeindex++) {
+            const currentpwd = JSON.stringify(this.library.tree.slice(0, treeindex + 1));
             const viewpwd = lists[treeindex + 1].dataset.pwd;
             if (currentpwd !== viewpwd) {
                 const oldul =
@@ -1826,7 +1969,7 @@ vv.view.list = {
                 lists[treeindex + 1].dataset.pwd = "";
             }
         }
-        vv.view.list._updatepos();
+        this._updatepos();
         const ul = document.getElementById("list-items" + index);
         while (ul.lastChild) {
             ul.removeChild(ul.lastChild);
@@ -1835,28 +1978,27 @@ vv.view.list = {
         ul.classList.remove("albumlist");
         ul.classList.remove("plainlist");
         ul.classList.add(style + "list");
-        vv.view.list._preferences_update();
-        const p = vv.library.parent();
+        this._preferences_update();
+        const p = this.library.parent();
         for (let i = 0, imax = songs.length; i < imax; i++) {
             if (i === 0 && p) {
-                const li = vv.view.list._element(p.song, p.key, p.style, true);
+                const li = this._element(p.song, p.key, p.style, true);
                 newul.appendChild(li);
             }
-            const li = vv.view.list._element(
+            const li = this._element(
                 songs[i], key, style, false);
-            vv.ui.click(
-                li.querySelector("li"), vv.view.list._listHandler, false);
+            UI.click(li.querySelector("li"), (e) => { this._listHandler(e); }, false);
             newul.appendChild(li);
         }
         ul.appendChild(newul);
-        vv.view.list._updateFocus();
-    },
+        this._updateFocus();
+    }
     _updateForce() {
-        vv.view.list._clearAllLists();
-        vv.view.list._update();
-    },
+        this._clearAllLists();
+        this._update();
+    }
     _select_near_item() {
-        const index = vv.storage.tree.length;
+        const index = this.library.tree.length;
         const scroll = document.getElementById("list" + index);
         let updated = false;
         for (const selectable of document.querySelectorAll(`#list-items${index} .selectable`)) {
@@ -1869,14 +2011,14 @@ vv.view.list = {
                 selectable.classList.remove("selected");
             }
         }
-    },
+    }
     _select_focused_or(target) {
-        const style = vv.library.list().style;
-        const index = vv.storage.tree.length;
+        const style = this.library.list().style;
+        const index = this.library.tree.length;
         const scroll = document.getElementById("list" + index);
         const l = document.getElementById("list-items" + index);
         let itemcount = parseInt(scroll.clientWidth / 160, 10);
-        if (!vv.storage.preferences.appearance.playlist_gridview_album) {
+        if (!this.preferences.appearance.playlist_gridview_album) {
             itemcount = 1;
         }
         const t = scroll.scrollTop;
@@ -1896,12 +2038,12 @@ vv.view.list = {
         if (s.length > 0) {
             p = s[0].offsetTop;
             if (p < t || t + h < p + s[0].offsetHeight) {
-                vv.view.list._select_near_item();
+                this._select_near_item();
                 return;
             }
         }
         if (s.length === 0 && f.length === 0) {
-            vv.view.list._select_near_item();
+            this._select_near_item();
             return;
         }
         if (s.length > 0) {
@@ -1967,13 +2109,13 @@ vv.view.list = {
                 }
             }
         }
-    },
-    up() { vv.view.list._select_focused_or("up"); },
-    left() { vv.view.list._select_focused_or("left"); },
-    right() { vv.view.list._select_focused_or("right"); },
-    down() { vv.view.list._select_focused_or("down"); },
+    }
+    up() { this._select_focused_or("up"); }
+    left() { this._select_focused_or("left"); }
+    right() { this._select_focused_or("right"); }
+    down() { this._select_focused_or("down"); }
     activate() {
-        const index = vv.storage.tree.length;
+        const index = this.library.tree.length;
         const es = document.getElementById("list-items" + index)
             .getElementsByClassName("selected");
         if (es.length !== 0) {
@@ -1983,35 +2125,48 @@ vv.view.list = {
             return true;
         }
         return false;
-    },
-    onCurrent() { vv.view.list._update(); },
-    onPreferences() { vv.view.list._preferences_update(); },
+    }
+    onCurrent() { this._update(); }
+    onPreferences() { this._preferences_update(); }
     onStart() {
-        vv.library.addEventListener("update", vv.view.list._updateForce);
-        vv.library.addEventListener("changed", vv.view.list._update);
-        vv.ui.swipe(
-            document.getElementById("list1"), vv.library.up,
-            vv.view.list._updatepos, document.getElementById("list0"));
-        vv.ui.swipe(
-            document.getElementById("list2"), vv.library.up,
-            vv.view.list._updatepos, document.getElementById("list1"));
-        vv.ui.swipe(
-            document.getElementById("list3"), vv.library.up,
-            vv.view.list._updatepos, document.getElementById("list2"));
-        vv.ui.swipe(
-            document.getElementById("list4"), vv.library.up,
-            vv.view.list._updatepos, document.getElementById("list3"));
-        vv.ui.swipe(
-            document.getElementById("list5"), vv.library.up,
-            vv.view.list._updatepos, document.getElementById("list4"));
-        vv.view.list.onCurrent();
+        this.library.addEventListener("update", () => { this._updateForce(); });
+        this.library.addEventListener("changed", () => { this._update(); });
+        this.library.addEventListener("list", () => { this.show(); });
+        UI.swipe(
+            document.getElementById("list1"), () => { this.library.up(); },
+            () => { this._updatepos(); }, document.getElementById("list0"));
+        UI.swipe(
+            document.getElementById("list2"), () => { this.library.up(); },
+            () => { this._updatepos(); }, document.getElementById("list1"));
+        UI.swipe(
+            document.getElementById("list3"), () => { this.library.up(); },
+            () => { this._updatepos(); }, document.getElementById("list2"));
+        UI.swipe(
+            document.getElementById("list4"), () => { this.library.up(); },
+            () => { this._updatepos(); }, document.getElementById("list3"));
+        UI.swipe(
+            document.getElementById("list5"), () => { this.library.up(); },
+            () => { this._updatepos(); }, document.getElementById("list4"));
+        this.onCurrent();
     }
 };
-vv.storage.addEventListener("current", vv.view.list.onCurrent);
-vv.storage.addEventListener("preferences", vv.view.list.onPreferences);
-vv.control.addEventListener("start", vv.view.list.onStart);
 
-vv.view.system = {
+class UISystemWindow {
+    constructor(ui, mpd, preferences) {
+        ui.addEventListener("load", (e) => { this.onStart(e); });
+        this.mpd = mpd;
+        this.mpd.addEventListener("version", (e) => { this.onVersion(e); });
+        this.mpd.addEventListener("library", (e) => { this.onLibrary(e); });
+        this.mpd.addEventListener("images", (e) => { this.onImages(e); });
+        this.mpd.addEventListener("stats", (e) => { this.onStats(e); });
+        this.mpd.addEventListener("outputs", (e) => { this.onOutputs(e); });
+        this.mpd.addEventListener("storage", (e) => { this.onStorage(e); });
+        this.preferences = preferences;
+        this.preferences.addEventListener("appearance", () => { this.onPreferencesAppearance(); });
+        this.preferences.addEventListener("playlist", () => { this.onPreferencesPlaylist(); });
+        this.preferences.addEventListener("outputs", () => { this.onPreferencesOutputs(); });
+        this.preferences.addEventListener("httpoutput", () => { this.onPreferencesHTTPOutout(); });
+    }
     _initconfig(id) {
         const obj = document.getElementById(id);
         const suffix = id.indexOf("_");  // remove _XX suffix for config key
@@ -2023,48 +2178,69 @@ vv.view.system = {
         const subkey = id.slice(s + 1).replace(/-/g, "_");
         let getter = null;
         if (obj.type === "checkbox") {
-            obj.checked = vv.storage.preferences[mainkey][subkey];
+            obj.checked = this.preferences[mainkey][subkey];
             getter = () => { return obj.checked; };
         } else if (obj.tagName.toLowerCase() === "select") {
-            obj.value = String(vv.storage.preferences[mainkey][subkey]);
+            obj.value = String(this.preferences[mainkey][subkey]);
             getter = () => { return obj.value; };
         } else if (obj.type === "range") {
-            obj.value = String(vv.storage.preferences[mainkey][subkey]);
-            getter = () => { return parseInt(obj.value, 10); };
+            obj.value = String(this.preferences[mainkey][subkey]);
+            getter = () => { return parseFloat(obj.value); };
             obj.addEventListener("input", () => {
-                vv.storage.preferences[mainkey][subkey] = obj.value;
-                vv.storage.raiseEvent("preferences");
+                this.preferences[mainkey][subkey] = getter();
+                this.preferences.raiseEvent(mainkey);
             });
-            vv.ui.disableSwipe(obj);
+            UI.disableSwipe(obj);
         } else if (obj.type === "radio") {
-            if (obj.value === vv.storage.preferences[mainkey][subkey]) {
+            if (obj.value === this.preferences[mainkey][subkey]) {
                 obj.checked = "checked";
             }
             getter = () => { return obj.value; };
         }
         obj.addEventListener("change", () => {
-            vv.storage.preferences[mainkey][subkey] = getter();
-            vv.storage.save.preferences();
-            vv.storage.raiseEvent("preferences");
+            this.preferences[mainkey][subkey] = getter();
+            this.preferences.save();
+            this.preferences.raiseEvent(mainkey);
         });
-    },
+    }
     onPreferences() {
-        if (vv.storage.preferences.appearance.theme === "prefer-coverart") {
+        this.onPreferencesAppearance();
+        this.onPreferencesPlaylist();
+        this.onPreferencesOutputs();
+    }
+    onPreferencesAppearance() {
+        if (this.preferences.appearance.theme === "prefer-coverart") {
             document.getElementById("config-appearance-color-threshold").classList.remove("hide");
         } else {
             document.getElementById("config-appearance-color-threshold").classList.add("hide");
         }
+    }
+    onPreferencesPlaylist() {
         for (const e of document.querySelectorAll(`.playlist-playback-tracks-custom`)) {
-            if (vv.storage.preferences.playlist.playback_tracks === "custom") {
+            if (this.preferences.playlist.playback_tracks === "custom") {
                 e.classList.remove("hide");
             } else {
                 e.classList.add("hide");
             }
         }
-        document.getElementById("outputs-volume").max = vv.storage.preferences.outputs.volume_max;
-    },
+    }
+    onPreferencesOutputs() {
+        document.getElementById("outputs-volume").max = this.preferences.outputs.volume_max;
+    }
+    onPreferencesHTTPOutout() {
+        if (this.preferences.httpoutput.stream === "") {
+            document.getElementById("httpoutput-volume-group").classList.add("hide");
+        } else {
+            document.getElementById("httpoutput-volume-group").classList.remove("hide");
+        }
+        const httpVolume = document.getElementById("httpoutput-volume");
+        // httpVolume.value = this.preferences.httpoutput.volume;
+        httpVolume.max = this.preferences.httpoutput.volume_max;
+        document.getElementById("httpoutput-volume-max").value = this.preferences.httpoutput.volume_max;
+        document.getElementById("httpoutput-volume-string").textContent = (this.preferences.httpoutput.volume * 100).toFixed(1) + "%";
+    }
     onStorage() {
-        if (Object.keys(vv.storage.storage).length === 0) {
+        if (Object.keys(this.mpd.storage).length === 0) {
             document.getElementById("storage-header").classList.add("hide");
             document.getElementById("storage").classList.add("hide");
             return;
@@ -2076,9 +2252,9 @@ vv.view.system = {
             ul.removeChild(ul.lastChild);
         }
         const newul = document.createDocumentFragment();
-        for (const path in vv.storage.storage) {
-            if (path !== "" && vv.storage.storage.hasOwnProperty(path)) {
-                const s = vv.storage.storage[path];
+        for (const path in this.mpd.storage) {
+            if (path !== "" && this.mpd.storage.hasOwnProperty(path)) {
+                const s = this.mpd.storage[path];
                 const c = document.querySelector("#storage-template").content;
                 const e = c.querySelector("li");
                 e.querySelector(".system-setting-desc").textContent = path;
@@ -2086,27 +2262,27 @@ vv.view.system = {
                 e.querySelector(".unmount").dataset.path = path;
                 const d = document.importNode(c, true);
                 d.querySelector(".unmount").addEventListener("click", (e) => {
-                    vv.request.post("/api/music/storage", { [e.currentTarget.dataset.path]: { "uri": null } });
+                    HTTP.post("/api/music/storage", { [e.currentTarget.dataset.path]: { "uri": null } });
                 });
                 newul.appendChild(d);
             }
         }
         ul.appendChild(newul);
-    },
+    }
     onOutputs() {
         const ul = document.getElementById("devices");
         while (ul.lastChild) {
             ul.removeChild(ul.lastChild);
         }
         const newul = document.createDocumentFragment();
-        const inputs = document.getElementById("httpstream-select");
+        const inputs = document.getElementById("httpoutput-stream");
         const newInputs = document.createDocumentFragment();
         let streamIndex = 1;
         let streamChanged = false;
         let streams = {};
-        for (const id in vv.storage.outputs) {
-            if (vv.storage.outputs.hasOwnProperty(id)) {
-                const o = vv.storage.outputs[id];
+        for (const id in this.mpd.outputs) {
+            if (this.mpd.outputs.hasOwnProperty(id)) {
+                const o = this.mpd.outputs[id];
                 const c = document.querySelector("#device-template").content;
                 const e = c.querySelector("li");
                 e.querySelector(".system-setting-desc").textContent = o.name;
@@ -2138,17 +2314,17 @@ vv.view.system = {
                 }
                 const d = document.importNode(c, true);
                 d.querySelector(".device-switch").addEventListener("change", e => {
-                    vv.control.output(
+                    this.mpd.output(
                         parseInt(e.currentTarget.dataset.deviceid, 10),
                         e.currentTarget.checked);
                 });
                 d.querySelector(".device-dop-switch").addEventListener("change", e => {
-                    vv.request.post("/api/music/outputs", {
+                    HTTP.post("/api/music/outputs", {
                         [parseInt(e.currentTarget.dataset.deviceid, 10)]: { "attributes": { "dop": e.currentTarget.checked } }
                     });
                 });
                 d.querySelector(".device-allowed-formats").addEventListener("click", (e) => {
-                    vv.view.submodal.showAllowedFormats(parseInt(e.currentTarget.dataset.deviceid, 10));
+                    UISubModal.showAllowedFormats(parseInt(e.currentTarget.dataset.deviceid, 10), this.mpd);
                 });
                 newul.appendChild(d);
                 if (o.stream && o.enabled) {
@@ -2180,15 +2356,17 @@ vv.view.system = {
             inputs.appendChild(off);
             inputs.appendChild(newInputs);
             if (streamIndex === 1) {
-                document.getElementById("httpstream").classList.add("hide");
+                document.getElementById("httpoutput").classList.add("hide");
             } else {
-                document.getElementById("httpstream").classList.remove("hide");
+                document.getElementById("httpoutput").classList.remove("hide");
             }
-            inputs.value = vv.storage.preferences.httpoutput.stream;
+            inputs.value = this.preferences.httpoutput.stream;
             inputs.value = inputs.value;
-            vv.storage.preferences.httpoutput.stream = inputs.value;
-            vv.storage.preferences.httpoutput.streams = streams;
-            vv.storage.save.preferences();
+            this.preferences.httpoutput.streams = streams;
+            if (this.preferences.httpoutput.stream !== inputs.value) {
+                this.preferences.httpoutput.stream = inputs.value;
+                this.preferences.save();
+            }
             if (inputs.value === "") {
                 let e = document.createEvent("HTMLEvents");
                 e.initEvent("change", false, true);
@@ -2196,107 +2374,85 @@ vv.view.system = {
             }
         }
         ul.appendChild(newul);
-    },
+    }
     onLibrary() {
         const e = document.getElementById("library-rescan");
-        if (vv.storage.library.updating && !e.disabled) {
+        if (this.mpd.library.updating && !e.disabled) {
             e.disabled = true;
-        } else if (!vv.storage.library.updating && e.disabled) {
+        } else if (!this.mpd.library.updating && e.disabled) {
             e.disabled = false;
         }
-    },
+    }
     onImages() {
         const e = document.getElementById("library-rescan-images");
-        if (vv.storage.images.updating && !e.disabled) {
+        if (this.mpd.images.updating && !e.disabled) {
             e.disabled = true;
-        } else if (!vv.storage.images.updating && e.disabled) {
+        } else if (!this.mpd.images.updating && e.disabled) {
             e.disabled = false;
         }
-    },
+    }
     onControl() {
-        if (vv.storage.control.hasOwnProperty("volume") && vv.storage.control.volume !== null) {
-            document.getElementById("outputs-volume").value = vv.storage.control.volume;
-            document.getElementById("outputs-volume-string").textContent = vv.storage.control.volume + "%";
+        if (this.mpd.control.hasOwnProperty("volume") && this.mpd.control.volume !== null) {
+            document.getElementById("outputs-volume").value = this.mpd.control.volume;
+            document.getElementById("outputs-volume-string").textContent = this.mpd.control.volume + "%";
             document.getElementById("outputs-volume-box").classList.remove("hide");
             document.getElementById("appearance-volume-box").classList.remove("hide");
         } else {
             document.getElementById("outputs-volume-box").classList.add("hide");
             document.getElementById("appearance-volume-box").classList.add("hide");
         }
-        document.getElementById("outputs-replay-gain").value = vv.storage.control.replay_gain;
-        document.getElementById("outputs-crossfade").value = vv.storage.control.crossfade.toString(10);
-        if (vv.storage.preferences.httpoutput.stream !== "") {
-            const audio = document.getElementById("httpstream-audio");
-            if (vv.storage.control.state === "play") {
-                if (audio.paused) {
-                    // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
-                    // add cache-busting query
-                    audio.src = vv.storage.preferences.httpoutput.stream + "&cb=" + Math.random();
-                    audio.load();
-                }
-            } else {
-                audio.pause();
-            }
-        }
-    },
+        document.getElementById("outputs-replay-gain").value = this.mpd.control.replay_gain;
+        document.getElementById("outputs-crossfade").value = this.mpd.control.crossfade.toString(10);
+    }
     onStart() {
         // preferences
-        vv.view.system.onPreferences();
+        this.onPreferences();
 
-        vv.storage.addEventListener("control", vv.view.system.onControl);
+        this.mpd.addEventListener("control", (e) => { this.onControl(e); });
 
         if (window.matchMedia("(prefers-color-scheme: dark)").matches === window.matchMedia("(prefers-color-scheme: light)").matches) {
             document.getElementById("appearance-theme_prefer-system").disabled = true;
-            if (vv.storage.preferences.appearance.theme === "prefer-system") {
-                vv.storage.preferences.appearance.theme = "prefer-coverart";
+            if (this.preferences.appearance.theme === "prefer-system") {
+                this.preferences.appearance.theme = "prefer-coverart";
             }
         }
 
-        vv.view.system._initconfig("appearance-theme_light");
-        vv.view.system._initconfig("appearance-theme_dark");
-        vv.view.system._initconfig("appearance-theme_prefer-system");
-        vv.view.system._initconfig("appearance-theme_prefer-coverart");
-        vv.view.system._initconfig("appearance-color-threshold");
-        vv.view.system._initconfig("appearance-background-image");
-        vv.view.system._initconfig("appearance-background-image-blur");
-        vv.view.system._initconfig("appearance-circled-image");
-        vv.view.system._initconfig("appearance-crossfading-image");
-        vv.view.system._initconfig("appearance-playlist-gridview-album");
-        vv.view.system._initconfig("appearance-playlist-follows-playback");
-        vv.view.system._initconfig("appearance-volume");
-        vv.view.system._initconfig("playlist-playback-tracks_all");
-        vv.view.system._initconfig("playlist-playback-tracks_list");
-        vv.view.system._initconfig("playlist-playback-tracks_custom");
-        vv.view.system._initconfig("outputs-volume-max");
+        this._initconfig("appearance-theme_light");
+        this._initconfig("appearance-theme_dark");
+        this._initconfig("appearance-theme_prefer-system");
+        this._initconfig("appearance-theme_prefer-coverart");
+        this._initconfig("appearance-color-threshold");
+        this._initconfig("appearance-background-image");
+        this._initconfig("appearance-background-image-blur");
+        this._initconfig("appearance-circled-image");
+        this._initconfig("appearance-crossfading-image");
+        this._initconfig("appearance-playlist-gridview-album");
+        this._initconfig("appearance-playlist-follows-playback");
+        this._initconfig("appearance-volume");
+        this._initconfig("playlist-playback-tracks_all");
+        this._initconfig("playlist-playback-tracks_list");
+        this._initconfig("playlist-playback-tracks_custom");
+        this._initconfig("outputs-volume-max");
         document.getElementById("system-reload").addEventListener("click", () => {
             location.reload();
         });
         document.getElementById("storage-mount").addEventListener("click", () => {
-            vv.view.submodal.showStorageMount();
-        });
-        document.getElementById("storage-ok").addEventListener("click", () => {
-            vv.request.post("/api/music/storage", { [document.getElementById("storage-path").value]: { "uri": document.getElementById("storage-uri").value } }, (e) => {
-                if (e.error) {
-                    document.getElementById("storage-error").textContent = e.error;
-                    return;
-                }
-                vv.view.submodal.hide();
-            })
+            UISubModal.showStorageMount();
         });
         document.getElementById("library-rescan").addEventListener("click", () => {
-            vv.control.rescan_library();
+            this.mpd.rescanLibrary();
         });
         document.getElementById("library-rescan-images").addEventListener("click", () => {
-            vv.request.post("/api/music/images", { updating: true });
-            vv.storage.images.updating = true;
-            vv.storage.raiseEvent("images");
+            HTTP.post("/api/music/images", { updating: true });
+            this.mpd.images.updating = true;
+            this.mpd.raiseEvent("images");
         });
 
         document.getElementById("outputs-replay-gain").addEventListener("change", (e) => {
-            vv.request.post("/api/music", { replay_gain: e.currentTarget.value });
+            HTTP.post("/api/music", { replay_gain: e.currentTarget.value });
         });
         document.getElementById("outputs-crossfade").addEventListener("input", (e) => {
-            vv.request.post("/api/music", { crossfade: parseInt(e.currentTarget.value) });
+            HTTP.post("/api/music", { crossfade: parseInt(e.currentTarget.value) });
         });
 
         // info
@@ -2332,7 +2488,7 @@ vv.view.system = {
         };
         for (const nav of navs) {
             nav.addEventListener("click", showChild);
-            vv.ui.swipe(
+            UI.swipe(
                 document.getElementById(nav.dataset.target), showParent, null,
                 document.getElementById("system-nav"),
                 () => { return window.innerWidth <= 760; });
@@ -2343,12 +2499,12 @@ vv.view.system = {
         const newul = document.createDocumentFragment();
         for (let i = 0, imax = TREE_ORDER.length; i < imax; i++) {
             const label = TREE_ORDER[i];
-            if (vv.storage.preferences.playlist.playback_tracks_custom.hasOwnProperty(label)) {
+            if (this.preferences.playlist.playback_tracks_custom.hasOwnProperty(label)) {
                 const c = document.querySelector("#playlist-playback-tracks-custom-template").content;
                 const e = c.querySelector("li");
                 const l = e.querySelector(".system-setting-desc");
                 l.textContent = l.dataset.prefix + label + l.dataset.suffix;
-                if (vv.storage.preferences.playlist.playback_tracks !== "custom") {
+                if (this.preferences.playlist.playback_tracks !== "custom") {
                     e.classList.add("hide");
                 }
                 const ts = e.querySelector(".tool-select");
@@ -2369,12 +2525,12 @@ vv.view.system = {
                 }
                 const d = document.importNode(c, true);
                 const tso = d.querySelector(".tool-select");
-                tso.value = (vv.storage.preferences.playlist.playback_tracks_custom[label]).toString(10);
+                tso.value = (this.preferences.playlist.playback_tracks_custom[label]).toString(10);
                 tso.addEventListener("change", e => {
                     const v = parseInt(e.currentTarget.value);
                     if (!isNaN(v)) {
-                        vv.storage.preferences.playlist.playback_tracks_custom[e.currentTarget.dataset.label] = v;
-                        vv.storage.save.preferences();
+                        this.preferences.playlist.playback_tracks_custom[e.currentTarget.dataset.label] = v;
+                        this.preferences.save();
                     }
                 });
                 newul.appendChild(d);
@@ -2384,159 +2540,59 @@ vv.view.system = {
 
         const mpdVolume = document.getElementById("outputs-volume");
         mpdVolume.addEventListener("change", e => {
-            vv.control.volume(parseInt(e.currentTarget.value, 10));
+            this.mpd.volume(parseInt(e.currentTarget.value, 10));
         });
         mpdVolume.addEventListener("input", e => {
             document.getElementById("outputs-volume-string").textContent = e.currentTarget.value + "%";
         });
-        const inputs = document.getElementById("httpstream-select");
+        const inputs = document.getElementById("httpoutput-stream");
         const newInputs = document.createDocumentFragment();
         let streamCnt = 0;
-        for (const name in vv.storage.preferences.httpoutput.streams) {
-            if (vv.storage.preferences.httpoutput.streams.hasOwnProperty(name)) {
+        for (const name in this.preferences.httpoutput.streams) {
+            if (this.preferences.httpoutput.streams.hasOwnProperty(name)) {
                 const on = document.createElement("option");
-                on.value = vv.storage.preferences.httpoutput.streams[name];
+                on.value = this.preferences.httpoutput.streams[name];
                 on.textContent = name;
                 newInputs.appendChild(on);
                 streamCnt++;
             }
         }
         if (streamCnt === 0) {
-            document.getElementById("httpstream").classList.add("hide");
+            document.getElementById("httpoutput").classList.add("hide");
         }
         inputs.appendChild(newInputs);
-        inputs.value = vv.storage.preferences.httpoutput.stream;
+        inputs.value = this.preferences.httpoutput.stream;
         inputs.value = inputs.value;
-        vv.storage.preferences.httpoutput.stream = inputs.value;
-        const httpAudio = document.getElementById("httpstream-audio");
-        httpAudio.addEventListener("error", (e) => {
-            if (vv.storage.control.state !== "play") {
-                return;
-            }
-            const err = document.getElementById("httpstream-error");
-            err.textContent = "";
-            switch (e.target.error.code) {
-                case e.target.error.MEDIA_ERR_NETWORK:
-                    vv.view.popup.show("client-output-temporary", "networkError", true);
-                    vv.view.popup.hide("client-output");
-                    err.textContent = err.dataset["networkError"];
-                    break;
-                case e.target.error.MEDIA_ERR_DECODE:
-                    vv.view.popup.show("client-output-temporary", "decodeError", true);
-                    vv.view.popup.hide("client-output");
-                    err.textContent = err.dataset["decodeError"];
-                    break;
-                case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                    vv.view.popup.hide("client-output-temporary");
-                    vv.view.popup.show("client-output", "unsupportedSource", true);
-                    err.textContent = err.dataset["unsupportedSource"];
-                    break;
-
-            }
-        });
-        // firefox's load() function does not fire canplaythrough event without autoplay is enabled.
-        httpAudio.autoplay = true;
-        httpAudio.addEventListener("loadeddata", () => {
-            // prevent autoplay to use play() function in canplaythrough event.
-            httpAudio.pause();
-        });
-        httpAudio.addEventListener("canplaythrough", () => {
-            const err = document.getElementById("httpstream-error");
-            const p = httpAudio.play();
-            if (p) {
-                p.then(() => {
-                    vv.view.popup.hide("client-output-temporary");
-                    vv.view.popup.hide("client-output");
-                    err.textContent = "";
-                }).catch((e) => {
-                    switch (e.name) {
-                        case "NotAllowedError":
-                            vv.view.popup.show("client-output-temporary", "notAllowed", true);
-                            vv.view.popup.hide("client-output");
-                            err.textContent = err.dataset["notAllowed"];
-                            break;
-                        case "NotSupportedError":
-                            vv.view.popup.hide("client-output-temporary");
-                            vv.view.popup.show("client-output", "unsupportedSource", true);
-                            err.textContent = err.dataset["unsupportedSource"];
-                            break;
-                        default:
-                            vv.view.popup.hide("client-output-temporary");
-                            vv.view.popup.show("client-output", e.message);
-                            err.textContent = e.message;
-                            break;
-                    }
-                });
-            }
-        });
-        httpAudio.volume = vv.storage.preferences.httpoutput.volume;
-        if (inputs.value !== "") {
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
-            // add cache-busting query
-            httpAudio.src = inputs.value + "&cb" + Math.random();
-            httpAudio.load();
-        } else {
-            document.getElementById("httpstream-volume-group").classList.add("hide");
+        if (this.preferences.httpoutput.stream !== inputs.value) {
+            this.preferences.httpoutput.stream = inputs.value;
+            this.preferences.raiseEvent("httpoutput");
+            this.preferences.save();
         }
-        const httpVolume = document.getElementById("httpstream-volume");
-        httpVolume.value = vv.storage.preferences.httpoutput.volume;
-        httpVolume.max = vv.storage.preferences.httpoutput.volume_max;
-        const httpMaxVolume = document.getElementById("httpstream-max-volume");
-        httpMaxVolume.value = vv.storage.preferences.httpoutput.volume_max;
-        document.getElementById("httpstream-volume-string").textContent = (vv.storage.preferences.httpoutput.volume * 100).toFixed(1) + "%";
-        inputs.addEventListener("change", () => {
-            httpAudio.pause();
-            document.getElementById("httpstream-error").textContent = "";
-            if (inputs.value !== "") {
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
-                // add cache-busting query
-                httpAudio.src = inputs.value + "&cb" + Math.random();
-                httpAudio.load();
-                document.getElementById("httpstream-volume-group").classList.remove("hide");
-            } else {
-                httpAudio.removeAttribute("src");
-                document.getElementById("httpstream-volume-group").classList.add("hide");
-            }
-            vv.storage.preferences.httpoutput.stream = inputs.value;
-            vv.storage.save.preferences();
-        });
-        vv.ui.disableSwipe(httpVolume);
-        httpVolume.addEventListener("change", () => {
-            httpAudio.volume = httpVolume.value;
-            vv.storage.preferences.httpoutput.volume = httpVolume.value;
-            vv.storage.save.preferences();
-        });
-        httpVolume.addEventListener("input", e => {
-            document.getElementById("httpstream-volume-string").textContent = (e.currentTarget.value * 100).toFixed(1) + "%";
-        });
-        httpMaxVolume.addEventListener("change", () => {
-            httpVolume.max = httpMaxVolume.value;
-            vv.storage.preferences.httpoutput.volume_max = httpMaxVolume.value;
-            vv.storage.save.preferences();
-        });
-    },
+        this.onPreferencesHTTPOutout();
+        this._initconfig("httpoutput-stream");
+        this._initconfig("httpoutput-volume-max");
+        this._initconfig("httpoutput-volume");
+        UI.disableSwipe(document.getElementById("httpoutput-volume"));
+    }
     _zfill2(i) {
         if (i < 100) {
             return ("00" + i).slice(-2);
         }
         return i;
-    },
+    }
     _strtimedelta(i) {
-        const zfill2 = vv.view.system._zfill2;
+        const zfill2 = this._zfill2;
         const uh = parseInt(i / (60 * 60), 10);
         const um = parseInt((i - uh * 60 * 60) / 60, 10);
         const us = parseInt(i - uh * 60 * 60 - um * 60, 10);
         return `${zfill2(uh)}:${zfill2(um)}:${zfill2(us)}`;
-    },
+    }
     onStats() {
-        document.getElementById("stat-albums").textContent =
-            vv.storage.stats.albums.toString(10);
-        document.getElementById("stat-artists").textContent =
-            vv.storage.stats.artists.toString(10);
-        document.getElementById("stat-db-playtime").textContent =
-            vv.view.system._strtimedelta(vv.storage.stats.library_playtime, 10);
-        document.getElementById("stat-tracks").textContent = vv.storage.stats.songs;
-        const db_update = new Date(vv.storage.stats.library_update * 1000);
+        document.getElementById("stat-albums").textContent = this.mpd.stats.albums.toString(10);
+        document.getElementById("stat-artists").textContent = this.mpd.stats.artists.toString(10);
+        document.getElementById("stat-db-playtime").textContent = this._strtimedelta(this.mpd.stats.library_playtime, 10);
+        document.getElementById("stat-tracks").textContent = this.mpd.stats.songs;
+        const db_update = new Date(this.mpd.stats.library_update * 1000);
         const options = {
             hour: "numeric",
             minute: "numeric",
@@ -2548,130 +2604,137 @@ vv.view.system = {
         };
         document.getElementById("stat-db-update").textContent =
             db_update.toLocaleString(document.documentElement.lang, options);
-    },
+    }
     onVersion() {
-        if (vv.storage.version.app) {
-            document.getElementById("version").textContent = vv.storage.version.app;
-            document.getElementById("mpd-version").textContent = vv.storage.version.mpd;
-            document.getElementById("go-version").textContent = vv.storage.version.go;
+        if (this.mpd.version.app) {
+            document.getElementById("version").textContent = this.mpd.version.app;
+            document.getElementById("mpd-version").textContent = this.mpd.version.mpd;
+            document.getElementById("go-version").textContent = this.mpd.version.go;
         }
-    },
+    }
     show() {
         document.getElementById("modal-background").classList.remove("hide");
         document.getElementById("modal-outer").classList.remove("hide");
         document.getElementById("modal-system").classList.remove("hide");
     }
 };
-vv.control.addEventListener("start", vv.view.system.onStart);
-vv.storage.addEventListener("version", vv.view.system.onVersion);
-vv.storage.addEventListener("library", vv.view.system.onLibrary);
-vv.storage.addEventListener("images", vv.view.system.onImages);
-vv.storage.addEventListener("stats", vv.view.system.onStats);
-vv.storage.addEventListener("preferences", vv.view.system.onPreferences);
-vv.storage.addEventListener("outputs", vv.view.system.onOutputs);
-vv.storage.addEventListener("storage", vv.view.system.onStorage);
 
 // header
-{
-    const update = () => {
-        const e = document.getElementById("header-back-label");
-        const b = document.getElementById("header-back");
-        const m = document.getElementById("header-main");
-        if (vv.library.rootname() === "root") {
-            b.classList.add("root");
-            m.classList.add("root");
-        } else {
-            b.classList.remove("root");
-            m.classList.remove("root");
-            const songs = vv.library.list().songs;
-            if (songs[0]) {
-                const p = vv.library.grandparent();
-                if (p) {
-                    const v = vv.song.getOne(p.song, p.key);
-                    e.textContent = v ? v : `[no ${p.key}]`;
-                    b.setAttribute(
-                        "title", b.dataset.titleFormat.replace("%s", e.textContent));
-                    b.setAttribute(
-                        "aria-label",
-                        b.dataset.ariaLabelFormat.replace("%s", e.textContent));
-                }
-            }
-        }
-    };
-    vv.control.addEventListener("start", () => {
-        document.getElementById("header-back").addEventListener("click", e => {
-            if (vv.view.list.hidden()) {
-                if (vv.storage.current !== null) {
-                    vv.library.abs(vv.storage.current);
-                }
+class UIHeader {
+    static init(ui, mpd, library, listView, mainView, systemWindow) {
+        const update = () => {
+            const e = document.getElementById("header-back-label");
+            const b = document.getElementById("header-back");
+            const m = document.getElementById("header-main");
+            if (library.rootname() === "root") {
+                b.classList.add("root");
+                m.classList.add("root");
             } else {
-                vv.library.up();
+                b.classList.remove("root");
+                m.classList.remove("root");
+                const songs = library.list().songs;
+                if (songs[0]) {
+                    const p = library.grandparent();
+                    if (p) {
+                        const v = Song.getOne(p.song, p.key);
+                        e.textContent = v ? v : `[no ${p.key}]`;
+                        b.setAttribute(
+                            "title", b.dataset.titleFormat.replace("%s", e.textContent));
+                        b.setAttribute(
+                            "aria-label",
+                            b.dataset.ariaLabelFormat.replace("%s", e.textContent));
+                    }
+                }
             }
-            vv.view.list.show();
-            e.stopPropagation();
+        };
+        ui.addEventListener("load", () => {
+            document.getElementById("header-back").addEventListener("click", e => {
+                if (listView.hidden()) {
+                    if (mpd.current !== null) {
+                        library.abs(mpd.current);
+                    }
+                } else {
+                    library.up();
+                }
+                listView.show();
+                e.stopPropagation();
+            });
+            document.getElementById("header-main").addEventListener("click", e => {
+                e.stopPropagation();
+                if (mpd.current !== null) {
+                    library.abs(mpd.current);
+                }
+                mainView.show();
+                e.stopPropagation();
+            });
+            document.getElementById("header-system").addEventListener("click", e => {
+                systemWindow.show();
+                e.stopPropagation();
+            });
+            update();
+            library.addEventListener("changed", update);
+            library.addEventListener("update", update);
         });
-        document.getElementById("header-main").addEventListener("click", e => {
-            e.stopPropagation();
-            if (vv.storage.current !== null) {
-                vv.library.abs(vv.storage.current);
-            }
-            vv.view.main.show();
-            e.stopPropagation();
-        });
-        document.getElementById("header-system").addEventListener("click", e => {
-            vv.view.system.show();
-            e.stopPropagation();
-        });
-        update();
-        vv.library.addEventListener("changed", update);
-        vv.library.addEventListener("update", update);
-    });
-}
+    }
+};
 
-vv.view.footer = {
-    onPreferences() {
+class UIFooter {
+    static init(ui, mpd, preferences) {
+        ui.addEventListener("load", () => { UIFooter.onStart(mpd, preferences); });
+        mpd.addEventListener("control", () => { UIFooter.onControl(mpd); });
+        mpd.addEventListener("playlist", () => { UIFooter.onPlaylist(mpd); });
+        preferences.addEventListener("appearance", () => { UIFooter.onPreferences(preferences); });
+    }
+    static onPreferences(preferences) {
         const c = document.getElementById("control-volume");
-        c.max = parseInt(vv.storage.preferences.outputs.volume_max, 10);
-        if (vv.storage.preferences.appearance.volume) {
+        c.max = parseInt(preferences.outputs.volume_max, 10);
+        if (preferences.appearance.volume) {
             c.classList.remove("hide");
         } else {
             c.classList.add("hide");
         }
-    },
-    onStart() {
-        vv.view.footer.onPlaylist();
-        vv.view.footer.onPreferences();
+    }
+    static onStart(mpd, preferences) {
+        UIFooter.onPlaylist(mpd);
+        UIFooter.onPreferences(preferences);
         document.getElementById("control-prev").addEventListener("click", e => {
-            vv.control.prev();
+            mpd.prev();
             e.stopPropagation();
         });
         document.getElementById("control-toggleplay")
             .addEventListener("click", e => {
-                vv.control.play_pause();
+                mpd.togglePlay();
                 e.stopPropagation();
             });
         document.getElementById("control-next").addEventListener("click", e => {
-            vv.control.next();
+            mpd.next();
             e.stopPropagation();
         });
+        const c = document.getElementById("control-volume");
+        if (mpd.control.hasOwnProperty("volume") && mpd.control.volume !== null) {
+            c.value = mpd.control.volume;
+            c.disabled = false;
+        } else {
+            c.disabled = true;
+        }
         document.getElementById("control-repeat").addEventListener("click", e => {
-            vv.control.toggle_repeat();
+            mpd.toggleRepeat();
             e.stopPropagation();
         });
         document.getElementById("control-random").addEventListener("click", e => {
-            vv.control.toggle_random();
+            mpd.toggleRandom();
             e.stopPropagation();
         });
-    },
-    onPlaylist() {
-        const disabled = !(vv.storage.playlist && vv.storage.playlist.hasOwnProperty("current"));
+    }
+    static onPlaylist(mpd) {
+        const disabled = !(mpd.playlist && mpd.playlist.hasOwnProperty("current"));
         document.getElementById("control-prev").disabled = disabled;
         document.getElementById("control-toggleplay").disabled = disabled;
         document.getElementById("control-next").disabled = disabled;
-    },
-    onControl() {
+    }
+    static onControl(mpd) {
         const toggleplay = document.getElementById("control-toggleplay");
-        if (vv.storage.control.state === "play") {
+        if (mpd.control.state === "play") {
             toggleplay.setAttribute("aria-label", toggleplay.dataset.ariaLabelPause);
             toggleplay.classList.add("pause");
             toggleplay.classList.remove("play");
@@ -2681,7 +2744,7 @@ vv.view.footer = {
             toggleplay.classList.remove("pause");
         }
         const repeat = document.getElementById("control-repeat");
-        if (vv.storage.control.single) {
+        if (mpd.control.single) {
             repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOn);
             repeat.classList.add("single-on");
             repeat.classList.remove("single-off");
@@ -2689,21 +2752,21 @@ vv.view.footer = {
             repeat.classList.add("single-off");
             repeat.classList.remove("single-on");
         }
-        if (vv.storage.control.repeat) {
-            if (!vv.storage.control.single) {
+        if (mpd.control.repeat) {
+            if (!mpd.control.single) {
                 repeat.setAttribute("aria-label", repeat.dataset.ariaLabelSingleOff);
             }
             repeat.classList.add("on");
             repeat.classList.remove("off");
         } else {
-            if (!vv.storage.control.single) {
+            if (!mpd.control.single) {
                 repeat.setAttribute("aria-label", repeat.dataset.ariaLabelOff);
             }
             repeat.classList.add("off");
             repeat.classList.remove("on");
         }
         const random = document.getElementById("control-random");
-        if (vv.storage.control.random) {
+        if (mpd.control.random) {
             random.setAttribute("aria-label", random.dataset.ariaLabelOn);
             random.classList.add("on");
             random.classList.remove("off");
@@ -2714,16 +2777,63 @@ vv.view.footer = {
         }
     }
 };
-vv.control.addEventListener("start", vv.view.footer.onStart);
-vv.storage.addEventListener("control", vv.view.footer.onControl);
-vv.storage.addEventListener("playlist", vv.view.footer.onPlaylist);
-vv.storage.addEventListener("preferences", vv.view.footer.onPreferences);
 
-vv.view.popup = {
-    show(target, description, never) {
+class UINotification {
+    static init(ui, mpd, audio, systemWindow) {
+        ui.addEventListener("load", () => {
+            mpd.addEventListener("version", () => {
+                if (mpd.version.mpd) {
+                    UINotification.hide("mpd-connection");
+                } else {
+                    UINotification.show("mpd-connection", "reconnecting", true);
+                }
+            });
+            document.getElementById("popup-client-output-temporary-button-retry").addEventListener("click", () => {
+                UINotification.hide("client-output-temporary");
+                audio.load();
+            });
+            const openOutputSettings = () => {
+                UINotification.hide("client-output");
+                UINotification.hide("client-output-temporary");
+                systemWindow.show();
+                let e = document.createEvent("HTMLEvents");
+                e.initEvent("click", false, true);
+                document.getElementById("system-nav-outputs").dispatchEvent(e);
+            };
+            document.getElementById("popup-client-output-temporary-button-settings").addEventListener("click", openOutputSettings);
+            document.getElementById("popup-client-output-button").addEventListener("click", openOutputSettings);
+            mpd.addEventListener("library", (e) => {
+                if (!e || !e.old || !e.current) {
+                    return;
+                }
+                if (e.old.updating === e.current.updating) {
+                    return;
+                }
+                if (e.current.updating) {
+                    UINotification.show("library", "updating");
+                } else if (e.old.hasOwnProperty("updating") && !e.current.updating) {
+                    UINotification.show("library", "updated");
+                }
+            });
+            mpd.addEventListener("images", (e) => {
+                if (!e || !e.old || !e.current) {
+                    return;
+                }
+                if (e.old.updating === e.current.updating) {
+                    return;
+                }
+                if (e.current.updating) {
+                    UINotification.show("coverart", "updating");
+                } else if (e.old.hasOwnProperty("updating") && !e.current.updating) {
+                    UINotification.show("coverart", "updated");
+                }
+            });
+        });
+    }
+    static show(target, description, never) {
         const obj = document.getElementById("popup-" + target);
         if (!obj) {
-            vv.view.popup.show("fixme", `popup-${target} is not found in html`);
+            UINotification.show("fixme", `popup-${target} is not found in html`);
             return;
         }
         if (description) {
@@ -2744,8 +2854,8 @@ vv.view.popup = {
                 obj.classList.add("hide");
             }
         }, 5000);
-    },
-    hide(target) {
+    }
+    static hide(target) {
         const obj = document.getElementById("popup-" + target);
         if (obj) {
             const now = (new Date()).getTime();
@@ -2765,109 +2875,56 @@ vv.view.popup = {
         }
     }
 };
-vv.control.addEventListener("start", () => {
-    vv.storage.addEventListener("version", () => {
-        if (vv.storage.version.mpd) {
-            vv.view.popup.hide("mpd-connection");
-        } else {
-            vv.view.popup.show("mpd-connection", "reconnecting", true);
-        }
-    });
-    document.getElementById("popup-client-output-temporary-button-retry").addEventListener("click", () => {
-        vv.view.popup.hide("client-output-temporary");
 
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
-        // add cache-busting query
-        if (vv.storage.preferences.httpoutput.stream !== "") {
-            const audio = document.getElementById("httpstream-audio");
-            audio.src = vv.storage.preferences.httpoutput.stream + "&cb=" + Math.random();
-            audio.load();
-        }
-    });
-    const openOutputSettings = () => {
-        vv.view.popup.hide("client-output");
-        vv.view.popup.hide("client-output-temporary");
-        vv.view.system.show();
-        let e = document.createEvent("HTMLEvents");
-        e.initEvent("click", false, true);
-        document.getElementById("system-nav-outputs").dispatchEvent(e);
-    };
-    document.getElementById("popup-client-output-temporary-button-settings").addEventListener("click", openOutputSettings);
-    document.getElementById("popup-client-output-button").addEventListener("click", openOutputSettings);
-    vv.storage.addEventListener("library", (e) => {
-        if (!e || !e.old || !e.current) {
-            return;
-        }
-        if (e.old.updating === e.current.updating) {
-            return;
-        }
-        if (e.current.updating) {
-            vv.view.popup.show("library", "updating");
-        } else if (e.old.hasOwnProperty("updating") && !e.current.updating) {
-            vv.view.popup.show("library", "updated");
-        }
-    });
-    vv.storage.addEventListener("images", (e) => {
-        if (!e || !e.old || !e.current) {
-            return;
-        }
-        if (e.old.updating === e.current.updating) {
-            return;
-        }
-        if (e.current.updating) {
-            vv.view.popup.show("coverart", "updating");
-        } else if (e.old.hasOwnProperty("updating") && !e.current.updating) {
-            vv.view.popup.show("coverart", "updated");
-        }
-    });
-});
-
-// elapsed circle/time updater
-{
-    const update = () => {
-        const data = vv.storage.control;
-        if ("state" in data) {
-            const elapsed = parseInt(data.song_elapsed * 1000, 10);
-            let current = elapsed;
-            if (data.state === "play") {
-                current += (new Date()).getTime() - vv.storage.last_modified_ms.control;
-            }
-            current = parseInt(current / 1000, 10);
-            const min = parseInt(current / 60, 10);
-            const sec = current % 60;
-            const label = min + ":" + ("0" + sec).slice(-2);
-            [].forEach.call(document.getElementsByClassName("elapsed"), x => {
-                if (x.textContent !== label) {
-                    x.textContent = label;
+class UITimeUpdater {
+    static init(ui, mpd) {
+        const update = () => {
+            const data = mpd.control;
+            if ("state" in data) {
+                const elapsed = parseInt(data.song_elapsed * 1000, 10);
+                let current = elapsed;
+                if (data.state === "play") {
+                    current += (new Date()).getTime() - mpd.last_modified_ms.control;
                 }
-            });
-        }
-    };
-    vv.storage.addEventListener("control", update);
-    vv.control.addEventListener("poll", update);
-}
+                current = parseInt(current / 1000, 10);
+                const min = parseInt(current / 60, 10);
+                const sec = current % 60;
+                const label = min + ":" + ("0" + sec).slice(-2);
+                [].forEach.call(document.getElementsByClassName("elapsed"), x => {
+                    if (x.textContent !== label) {
+                        x.textContent = label;
+                    }
+                });
+            }
+        };
+        mpd.addEventListener("control", update);
+        ui.addEventListener("poll", update);
+    }
+};
 
-vv.view.modal = {
-    hide() {
+class UIModal {
+    static init(ui) {
+        ui.addEventListener("load", () => {
+            document.getElementById("modal-background")
+                .addEventListener("click", () => { this.hide(); });
+            document.getElementById("modal-outer")
+                .addEventListener("click", () => { this.hide(); });
+            for (const w of Array.from(document.getElementsByClassName("modal-window"))) {
+                w.addEventListener("click", e => { e.stopPropagation(); });
+            }
+            for (const w of Array.from(document.getElementsByClassName("modal-window-close"))) {
+                w.addEventListener("click", () => { this.hide(); });
+            }
+        });
+    }
+    static hide() {
         document.getElementById("modal-background").classList.add("hide");
         document.getElementById("modal-outer").classList.add("hide");
         for (const w of Array.from(document.getElementsByClassName("modal-window"))) {
             w.classList.add("hide");
         }
-    },
-    onStart() {
-        document.getElementById("modal-background")
-            .addEventListener("click", vv.view.modal.hide);
-        document.getElementById("modal-outer")
-            .addEventListener("click", vv.view.modal.hide);
-        for (const w of Array.from(document.getElementsByClassName("modal-window"))) {
-            w.addEventListener("click", e => { e.stopPropagation(); });
-        }
-        for (const w of Array.from(document.getElementsByClassName("modal-window-close"))) {
-            w.addEventListener("click", vv.view.modal.hide);
-        }
-    },
-    help() {
+    }
+    static help() {
         const b = document.getElementById("modal-background");
         if (!b.classList.contains("hide")) {
             return;
@@ -2875,8 +2932,8 @@ vv.view.modal = {
         b.classList.remove("hide");
         document.getElementById("modal-outer").classList.remove("hide");
         document.getElementById("modal-help").classList.remove("hide");
-    },
-    song(song) {
+    }
+    static song(song, library) {
         const mustkeys = [
             "Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer",
             "Disc", "Track", "Composer", "Length"
@@ -2887,7 +2944,7 @@ vv.view.modal = {
                 doc.removeChild(doc.lastChild);
             }
             const newdoc = document.createDocumentFragment();
-            const values = vv.song.getOrElseMulti(song, key, []);
+            const values = Song.getOrElseMulti(song, key, []);
             if (values.length === 0) {
                 const emptyvalue = document.createElement("span");
                 emptyvalue.classList.add("modal-song-box-item-value");
@@ -2899,7 +2956,7 @@ vv.view.modal = {
                 if (root && root.tree) {
                     const target = root.tree[0][0];
                     if (target.split("-").indexOf(key) !== -1) {
-                        targetValues = vv.song.getOrElseMulti(song, target, values);
+                        targetValues = Song.getOrElseMulti(song, target, values);
                     }
                 }
                 for (const value of values) {
@@ -2914,8 +2971,7 @@ vv.view.modal = {
                                 obj.classList.add("modal-song-box-item-value-clickable");
                                 obj.addEventListener("click", e => {
                                     const d = e.currentTarget.dataset;
-                                    vv.library.absaddr(d.root, d.value);
-                                    vv.view.list.show();
+                                    library.absaddr(d.root, d.value);
                                 });
                                 break;
                             }
@@ -2941,21 +2997,116 @@ vv.view.modal = {
         document.getElementById("modal-song").classList.remove("hide");
     }
 };
-vv.control.addEventListener("start", vv.view.modal.onStart);
-vv.view.submodal = {
-    showStorageMount() {
+
+class UISubModal {
+    static init(ui) {
+        ui.addEventListener("load", () => {
+            for (const w of Array.from(document.getElementsByClassName("submodal-window-close"))) {
+                w.addEventListener("click", () => { UISubModal.hide(); });
+            }
+            document.getElementById("submodal-outer").addEventListener("click", () => { UISubModal.hide(); });
+            for (const w of Array.from(document.getElementsByClassName("submodal-window"))) {
+                w.addEventListener("click", (e) => { e.stopPropagation(); });
+            }
+            // storage
+            document.getElementById("storage-ok").addEventListener("click", () => {
+                HTTP.post("/api/music/storage", { [document.getElementById("storage-path").value]: { "uri": document.getElementById("storage-uri").value } }, (e) => {
+                    if (e.error) {
+                        document.getElementById("storage-error").textContent = e.error;
+                        return;
+                    }
+                    this.submodal.hide();
+                })
+            });
+            // allowed formats
+            const allowedFormats = document.getElementById("submodal-allowed-formats");
+            document.getElementById("allowed-formats-auto").addEventListener("change", () => {
+                for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
+                    n.disabled = true;
+                    n.classList.add("disabled");
+                    n.checked = false;
+                }
+                HTTP.post("/api/music/outputs", {
+                    [parseInt(document.getElementById("submodal-allowed-formats").dataset.deviceid, 10)]: { "attributes": { "allowed_formats": [] } }
+                });
+            });
+            document.getElementById("allowed-formats-custom").addEventListener("change", () => {
+                for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
+                    n.disabled = false;
+                    n.classList.remove("disabled");
+                }
+            });
+            for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
+                const fmt = n.name.split(":");
+                if (fmt.length === 2) {
+                    n.dataset.sample = fmt[0];
+                    n.dataset.bits = "1";
+                    n.dataset.dop = fmt[1].substring(1);
+                } else if (fmt.length === 3) {
+                    n.dataset.sample = fmt[0];
+                    n.dataset.bits = fmt[1];
+                }
+                n.addEventListener("change", (e) => {
+                    const t = e.currentTarget;
+                    const dsd = allowedFormats.querySelector(".allowed-formats-dsd");
+                    const pcm = allowedFormats.querySelector(".allowed-formats-pcm");
+                    if (t.checked) {
+                        if (t.dataset.bits === "1") {
+                            for (const sw of dsd.querySelectorAll(".slideswitch")) {
+                                if (t.dataset.sample === sw.dataset.sample && t.dataset.dop !== sw.dataset.dop) {
+                                    sw.checked = false; // toggle dop
+                                    break;
+                                }
+                            }
+                        } else {
+                            const sample = parseInt(n.dataset.sample, 10);
+                            const bits = parseInt(t.dataset.bits, 10);
+                            for (const sw of pcm.querySelectorAll(".slideswitch")) {
+                                const swsample = parseInt(sw.dataset.sample, 10);
+                                const swbits = parseInt(sw.dataset.bits, 10);
+                                if (t.dataset.sample === sw.dataset.sample && t.dataset.bits == sw.dataset.bits) {
+                                    break;
+                                }
+                                if (swsample <= sample && swbits <= bits) {
+                                    sw.checked = true;
+                                }
+                            }
+                        }
+                    }
+                    const allowedPCM = [];
+                    const allowedDSD = [];
+                    for (const sw of pcm.querySelectorAll(".slideswitch")) {
+                        if (sw.checked) {
+                            allowedPCM.push(sw.name);
+                        }
+                    }
+                    for (const sw of dsd.querySelectorAll(".slideswitch")) {
+                        if (sw.checked) {
+                            allowedDSD.push(sw.name);
+                        }
+                    }
+                    allowedPCM.sort().reverse();
+                    allowedDSD.sort().reverse();
+                    HTTP.post("/api/music/outputs", {
+                        [parseInt(document.getElementById("submodal-allowed-formats").dataset.deviceid, 10)]: { "attributes": { "allowed_formats": allowedPCM.concat(allowedDSD) } }
+                    });
+                });
+            }
+        });
+    }
+    static showStorageMount() {
         document.getElementById("storage-path").value = "";
         document.getElementById("storage-uri").value = "";
         document.getElementById("storage-error").textContent = "";
         document.getElementById("submodal-background").classList.remove("hide");
         document.getElementById("submodal-outer").classList.remove("hide");
         document.getElementById("submodal-storage-mount").classList.remove("hide");
-    },
-    showAllowedFormats(t) {
-        if (!vv.storage.outputs[t] || !vv.storage.outputs[t].attributes || !vv.storage.outputs[t].attributes.allowed_formats) {
+    }
+    static showAllowedFormats(t, mpd) {
+        if (!mpd.outputs[t] || !mpd.outputs[t].attributes || !mpd.outputs[t].attributes.allowed_formats) {
             return;
         }
-        const lists = vv.storage.outputs[t].attributes.allowed_formats;
+        const lists = mpd.outputs[t].attributes.allowed_formats;
         const w = document.getElementById("submodal-allowed-formats");
         w.dataset.deviceid = t;
         let e = document.createEvent("HTMLEvents");
@@ -2980,182 +3131,101 @@ vv.view.submodal = {
         document.getElementById("submodal-background").classList.remove("hide");
         document.getElementById("submodal-outer").classList.remove("hide");
         w.classList.remove("hide");
-    },
-    hide() {
+    }
+    static hide() {
         document.getElementById("submodal-background").classList.add("hide");
         document.getElementById("submodal-outer").classList.add("hide");
         for (const w of Array.from(document.getElementsByClassName("submodal-window"))) {
             w.classList.add("hide");
         }
-    },
-    onStart() {
-        for (const w of Array.from(document.getElementsByClassName("submodal-window-close"))) {
-            w.addEventListener("click", vv.view.submodal.hide);
-        }
-        document.getElementById("submodal-outer").addEventListener("click", vv.view.submodal.hide);
-        for (const w of Array.from(document.getElementsByClassName("submodal-window"))) {
-            w.addEventListener("click", (e) => { e.stopPropagation(); });
-        }
-        const allowedFormats = document.getElementById("submodal-allowed-formats");
-        document.getElementById("allowed-formats-auto").addEventListener("change", () => {
-            for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
-                n.disabled = true;
-                n.classList.add("disabled");
-                n.checked = false;
-            }
-            vv.request.post("/api/music/outputs", {
-                [parseInt(document.getElementById("submodal-allowed-formats").dataset.deviceid, 10)]: { "attributes": { "allowed_formats": [] } }
-            });
-        });
-        document.getElementById("allowed-formats-custom").addEventListener("change", () => {
-            for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
-                n.disabled = false;
-                n.classList.remove("disabled");
-            }
-        });
-        for (const n of allowedFormats.querySelectorAll(".slideswitch")) {
-            const fmt = n.name.split(":");
-            if (fmt.length === 2) {
-                n.dataset.sample = fmt[0];
-                n.dataset.bits = "1";
-                n.dataset.dop = fmt[1].substring(1);
-            } else if (fmt.length === 3) {
-                n.dataset.sample = fmt[0];
-                n.dataset.bits = fmt[1];
-            }
-            n.addEventListener("change", (e) => {
-                const t = e.currentTarget;
-                const dsd = allowedFormats.querySelector(".allowed-formats-dsd");
-                const pcm = allowedFormats.querySelector(".allowed-formats-pcm");
-                if (t.checked) {
-                    if (t.dataset.bits === "1") {
-                        for (const sw of dsd.querySelectorAll(".slideswitch")) {
-                            if (t.dataset.sample === sw.dataset.sample && t.dataset.dop !== sw.dataset.dop) {
-                                sw.checked = false; // toggle dop
-                                break;
-                            }
-                        }
-                    } else {
-                        const sample = parseInt(n.dataset.sample, 10);
-                        const bits = parseInt(t.dataset.bits, 10);
-                        for (const sw of pcm.querySelectorAll(".slideswitch")) {
-                            const swsample = parseInt(sw.dataset.sample, 10);
-                            const swbits = parseInt(sw.dataset.bits, 10);
-                            if (t.dataset.sample === sw.dataset.sample && t.dataset.bits == sw.dataset.bits) {
-                                break;
-                            }
-                            if (swsample <= sample && swbits <= bits) {
-                                sw.checked = true;
-                            }
-                        }
-                    }
-                }
-                const allowedPCM = [];
-                const allowedDSD = [];
-                for (const sw of pcm.querySelectorAll(".slideswitch")) {
-                    if (sw.checked) {
-                        allowedPCM.push(sw.name);
-                    }
-                }
-                for (const sw of dsd.querySelectorAll(".slideswitch")) {
-                    if (sw.checked) {
-                        allowedDSD.push(sw.name);
-                    }
-                }
-                allowedPCM.sort().reverse();
-                allowedDSD.sort().reverse();
-                vv.request.post("/api/music/outputs", {
-                    [parseInt(document.getElementById("submodal-allowed-formats").dataset.deviceid, 10)]: { "attributes": { "allowed_formats": allowedPCM.concat(allowedDSD) } }
-                });
-            });
-        }
     }
-}
-vv.control.addEventListener("start", vv.view.submodal.onStart);
+};
 
-// keyboard events
-{
-    const shift = 1 << 3;
-    // const alt = 1 << 2;
-    const ctrl = 1 << 1;
-    const meta = 1;
-    const none = 0;
-    const any = t => {
-        return () => {
-            t();
-            return true;
-        };
-    };
-    const inList = t => {
-        return () => {
-            if (!vv.view.list.hidden()) {
+class KeyboardShortCuts {
+    static init(ui, mpd, library, listView, mainView) {
+        const shift = 1 << 3;
+        // const alt = 1 << 2;
+        const ctrl = 1 << 1;
+        const meta = 1;
+        const none = 0;
+        const any = t => {
+            return () => {
                 t();
                 return true;
-            }
-            return false;
+            };
         };
-    };
-    const back = () => {
-        if (vv.view.list.hidden()) {
-            if (vv.storage.current !== null) {
-                vv.library.abs(vv.storage.current);
+        const inList = (t) => {
+            return () => {
+                if (!listView.hidden()) {
+                    t();
+                    return true;
+                }
+                return false;
+            };
+        };
+        const back = () => {
+            if (listView.hidden()) {
+                if (mpd.current !== null) {
+                    library.abs(mpd.current);
+                }
+            } else {
+                library.up();
             }
-        } else {
-            vv.library.up();
-        }
-        vv.view.list.show();
-    };
-    const keymap = {
-        [none]: {
-            Enter() { return !vv.view.list.hidden() && vv.view.list.activate(); },
-            Backspace: any(back),
-            ArrowLeft: inList(vv.view.list.left),
-            ArrowUp: inList(vv.view.list.up),
-            ArrowRight: inList(vv.view.list.right),
-            ArrowDown: inList(vv.view.list.down),
-            [" "]: any(vv.control.play_pause),
-            ["?"]: any(vv.view.modal.help)
-        },
-        [shift]: { ["?"]: any(vv.view.modal.help) },
-        [meta]: {
-            ArrowLeft: any(back),
-            ArrowRight: any(() => {
-                if (vv.library.rootname() !== "root") {
-                    if (vv.storage.current !== null) {
-                        vv.library.abs(vv.storage.current);
+            listView.show();
+        };
+        const keymap = {
+            [none]: {
+                Enter: () => { return !listView.hidden() && listView.activate(); },
+                Backspace: any(() => { back(); }),
+                ArrowLeft: inList(() => { listView.left(); }),
+                ArrowUp: inList(() => { listView.up(); }),
+                ArrowRight: inList(() => { listView.right(); }),
+                ArrowDown: inList(() => { listView.down(); }),
+                [" "]: any(() => { mpd.togglePlay(); }),
+                ["?"]: any(() => { UIModal.help(); })
+            },
+            [shift]: { ["?"]: any(() => { UIModal.help(); }) },
+            [meta]: {
+                ArrowLeft: any(() => { back(); }),
+                ArrowRight: any(() => {
+                    if (library.rootname() !== "root") {
+                        if (mpd.current !== null) {
+                            library.abs(mpd.current);
+                        }
+                    }
+                    mainView.show();
+                })
+            },
+            [shift | ctrl]:
+                { ArrowLeft: any(() => { mpd.prev(); }), ArrowRight: any(() => { mpd.next(); }) }
+        };
+        ui.addEventListener("load", () => {
+            document.addEventListener("keydown", e => {
+                if (!document.getElementById("submodal-outer")
+                    .classList.contains("hide")) {
+                    if (e.key === "Escape" || e.key === "Esc") {
+                        UISubModal.hide();
+                    }
+                    return;
+                }
+                if (!document.getElementById("modal-background")
+                    .classList.contains("hide")) {
+                    if (e.key === "Escape" || e.key === "Esc") {
+                        UIModal.hide();
+                    }
+                    return;
+                }
+                const mod = e.shiftKey << 3 | e.altKey << 2 | e.ctrlKey << 1 | e.metaKey;
+                if (mod in keymap && e.key in keymap[mod]) {
+                    if (keymap[mod][e.key]()) {
+                        e.stopPropagation();
+                        e.preventDefault();
                     }
                 }
-                vv.view.main.show();
-            })
-        },
-        [shift | ctrl]:
-            { ArrowLeft: any(vv.control.prev), ArrowRight: any(vv.control.next) }
-    };
-    vv.control.addEventListener("start", () => {
-        document.addEventListener("keydown", e => {
-            if (!document.getElementById("submodal-outer")
-                .classList.contains("hide")) {
-                if (e.key === "Escape" || e.key === "Esc") {
-                    vv.view.submodal.hide();
-                }
-                return;
-            }
-            if (!document.getElementById("modal-background")
-                .classList.contains("hide")) {
-                if (e.key === "Escape" || e.key === "Esc") {
-                    vv.view.modal.hide();
-                }
-                return;
-            }
-            const mod = e.shiftKey << 3 | e.altKey << 2 | e.ctrlKey << 1 | e.metaKey;
-            if (mod in keymap && e.key in keymap[mod]) {
-                if (keymap[mod][e.key]()) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                }
-            }
+            });
         });
-    });
-}
+    }
+};
 
-vv.control.start();
+const app = new App();
+app.start();

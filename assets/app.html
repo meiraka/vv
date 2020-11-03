@@ -544,33 +544,32 @@ html {
           </template>
         </div>
 
-        <div class="system-article-sub" id="httpstream">
+        <div class="system-article-sub" id="httpoutput">
           <h2 class="system-article-sub-header">{{ or .ClientOutput "Client output" }}</h2>
-          <audio id="httpstream-audio">mpd audio stream</audio>
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc-box">
-                <div class="system-setting-desc system-setting-desc-boxed" id="httpstream-select-label">{{ or .ClientOutputSource "Source" }}</div>
+                <div class="system-setting-desc system-setting-desc-boxed" id="httpoutput-stream-label">{{ or .ClientOutputSource "Source" }}</div>
                 <div class="system-setting-desc-help">{{ or .ClientOutputSourceHelp "Play HTTP stream from selected device" }}</div>
-                <div class="system-setting-desc-help warning-text" id="httpstream-error"
+                <div class="system-setting-desc-help warning-text" id="httpoutput-error"
                     data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
                     data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
                     data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
                     data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
                     ></div>
               </div>
-              <select class="tool-select big value" id="httpstream-select" data-disabled-label="{{ or .HTTPStreamDisabled "disabled" }}" aria-labelledby="httpstream-select">
+              <select class="tool-select big value" id="httpoutput-stream" data-disabled-label="{{ or .HTTPStreamDisabled "disabled" }}" aria-labelledby="httpoutput-stream">
                 <option value="">{{ or .HTTPStreamDisabled "disabled" }}</option>
               </select>
-            <li class="system-setting list-item" id="httpstream-volume-group">
+            <li class="system-setting list-item" id="httpoutput-volume-group">
               <ul class="system-setting-group">
                 <li class="system-setting">
-                  <div class="system-setting-desc" id="httpstream-volume-label">{{ or .Volume "Volume" }}</div>
-                  <input id="httpstream-volume" type="range" min=0 max=1 step=0.001 class="config-range" aria-labelledby="httpstream-volume-label">
-                  <label class="config-range-string" for="httpstream-volume" id="httpstream-volume-string">100</label>
+                  <div class="system-setting-desc" id="httpoutput-volume-label">{{ or .Volume "Volume" }}</div>
+                  <input id="httpoutput-volume" type="range" min=0 max=1 step=0.001 class="config-range" aria-labelledby="httpoutput-volume-label">
+                  <label class="config-range-string" for="httpoutput-volume" id="httpoutput-volume-string">100</label>
                 <li class="system-setting">
-                  <div class="system-setting-desc-sub" id="httpstream-max-volume-label">{{ or .MaxVolume "Max volume" }}</div>
-                  <select class="tool-select value" id="httpstream-max-volume" aria-labelledby="httpstream-max-volume">
+                  <div class="system-setting-desc-sub" id="httpoutput-volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
+                  <select class="tool-select value" id="httpoutput-volume-max" aria-labelledby="httpoutput-volume-max">
                     <option value="1">100%</option>
                     <option value="0.5">50%</option>
                     <option value="0.25">25%</option>
