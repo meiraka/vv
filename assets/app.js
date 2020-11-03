@@ -4,13 +4,13 @@ const vv = {
     pubsub: {},
     song: {},
     songs: {},
+    request: {},
+    websocket: {},
     storage: {},
     library: {},
     view: { main: {}, list: {}, system: {}, popup: {}, modal: {}, footer: {}, submodal: {} },
     control: {},
-    websocket: {},
     ui: {},
-    request: {}
 };
 vv.pubsub = {
     add(listener, ev, func) {
@@ -207,6 +207,178 @@ vv.songs = {
         return songs;
     }
 };
+vv.request = {
+    _requests: {},
+    abortAll(options) {
+        options = options || {};
+        for (const key in vv.request._requests) {
+            if (vv.request._requests.hasOwnProperty(key)) {
+                if (options.stop) {
+                    vv.request._requests[key].onabort = () => { };
+                }
+                vv.request._requests[key].abort();
+            }
+        }
+    },
+    get(path, ifmodified, etag, callback, timeout) {
+        const key = "GET " + path;
+        if (vv.request._requests[key]) {
+            vv.request._requests[key].onabort = () => { };  // disable retry
+            vv.request._requests[key].abort();
+        }
+        const xhr = new XMLHttpRequest();
+        vv.request._requests[key] = xhr;
+        if (!timeout) {
+            timeout = 1000;
+        }
+        xhr.responseType = "json";
+        xhr.timeout = timeout;
+        xhr.onload = () => {
+            if (xhr.status === 200 || xhr.status === 304) {
+                if (xhr.status === 200 && callback) {
+                    callback(
+                        xhr.response, xhr.getResponseHeader("Last-Modified"),
+                        xhr.getResponseHeader("Etag"),
+                        xhr.getResponseHeader("Date"));
+                }
+                return;
+            }
+            // error handling
+            if (xhr.status !== 0) {
+                vv.view.popup.show("network", xhr.statusText);
+            }
+        };
+        xhr.onabort = () => {
+            if (timeout < 50000) {
+                setTimeout(
+                    () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
+            }
+        };
+        xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
+        xhr.ontimeout = () => {
+            if (timeout < 50000) {
+                vv.view.popup.show("network", "timeoutRetry");
+                vv.request.abortAll();
+                setTimeout(
+                    () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
+            } else {
+                vv.view.popup.show("network", "timeout");
+            }
+        };
+        xhr.open("GET", path, true);
+        if (etag !== "") {
+            xhr.setRequestHeader("If-None-Match", etag);
+        } else {
+            xhr.setRequestHeader("If-Modified-Since", ifmodified);
+        }
+        xhr.send();
+    },
+    post(path, obj, callback) {
+        const key = "POST " + path;
+        if (vv.request._requests[key]) {
+            vv.request._requests[key].abort();
+        }
+        const xhr = new XMLHttpRequest();
+        vv.request._requests[key] = xhr;
+        xhr.responseType = "json";
+        xhr.timeout = 1000;
+        xhr.onload = () => {
+            if (callback && xhr.response) {
+                callback(xhr.response);
+            }
+            if (xhr.status !== 200 && xhr.status !== 202) {
+                if (xhr.response && xhr.response.error) {
+                    vv.view.popup.show("mpd", xhr.response.error);
+                } else {
+                    vv.view.popup.show("network", xhr.responseText);
+                }
+            }
+        };
+        xhr.ontimeout = () => {
+            if (callback) {
+                callback({ error: "timeout" });
+            }
+            vv.view.popup.show("network", "timeout");
+            vv.request.abortAll();
+        };
+        xhr.onerror = () => {
+            if (callback) {
+                callback({ error: "error" });
+            }
+            vv.view.popup.show("network", "error");
+        };
+        xhr.open("POST", path, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify(obj));
+    }
+};
+vv.websocket = {
+    _listener: {},
+    addEventListener(t, f) { vv.pubsub.add(vv.websocket._listener, t, f); },
+    removeEventListener(t, f) { vv.pubsub.rm(vv.websocket._listener, t, f); },
+    start() {
+        let lastUpdate = (new Date()).getTime();
+        let lastConnection = (new Date()).getTime();
+        let connected = false;
+        let tryNum = 0;
+        let ws = null;
+        const raiseEvent = (t, e) => { vv.pubsub.raise(vv.websocket._listener, t, e); };
+        const listennotify = (cause) => {
+            if (cause && tryNum > 1) {  // reduce device wakeup reconnecting message
+                vv.view.popup.show("network", cause);
+            }
+            tryNum++;
+            vv.request.abortAll({ stop: true });
+            lastConnection = (new Date()).getTime();
+            connected = false;
+            const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
+            const uri = `${wsp}//${location.host}/api/music`;
+            if (ws !== null) {
+                ws.onclose = () => { };
+                ws.close();
+            }
+            ws = new WebSocket(uri);
+            ws.onopen = () => {
+                if (tryNum > 1) {
+                    vv.view.popup.hide("network");
+                }
+                connected = true;
+                lastUpdate = (new Date()).getTime();
+                tryNum = 0;
+                raiseEvent("connect");
+            };
+            ws.onmessage = e => {
+                if (e && e.data) {
+                    const now = (new Date()).getTime();
+                    raiseEvent(e.data)
+                    if (now - lastUpdate > 10000) {
+                        // recover lost notification
+                        setTimeout(() => { raiseEvent("lost"); });
+                    }
+                    lastUpdate = now;
+                }
+            };
+            ws.onclose = () => {
+                setTimeout(() => { raiseEvent("lost", "timeoutRetry"); }, 1000);
+            };
+        }
+        const polling = () => {
+            const now = (new Date()).getTime();
+            if (connected && now - 10000 > lastUpdate) {
+                setTimeout(() => { raiseEvent("lost", "doesNotRespond"); });
+            } else if (!connected && now - 2000 > lastConnection) {
+                setTimeout(() => { raiseEvent("lost", "timeoutRetry"); });
+            }
+            // TODO: repace vv.control to vv.websocket
+            vv.control.raiseEvent("poll");
+            setTimeout(polling, 1000);
+        };
+
+        vv.websocket.addEventListener("lost", listennotify);
+        listennotify();
+        polling();
+    },
+}
 vv.storage = {
     _listener: {},
     loaded: false,
@@ -322,6 +494,7 @@ vv.storage = {
         };
     },
     addEventListener(e, f) { vv.pubsub.add(vv.storage._listener, e, f); },
+    raiseEvent(t, e) { vv.pubsub.raise(vv.storage._listener, t, e); },
     save: {
         current() {
             try {
@@ -355,6 +528,48 @@ vv.storage = {
             } catch (e) {
             }
         }
+    },
+    _fetchAll() {
+        vv.storage._fetch("/api/music/playlist", "playlist");
+        vv.storage._fetch("/api/version", "version");
+        vv.storage._fetch("/api/music/outputs", "outputs");
+        vv.storage._fetch("/api/music/playlist/songs/current", "current");
+        vv.storage._fetch("/api/music", "control");
+        vv.storage._fetch("/api/music/library", "library");
+        vv.storage._fetch("/api/music/library/songs", "librarySongs");
+        vv.storage._fetch("/api/music/stats", "stats");
+        vv.storage._fetch("/api/music/images", "images");
+        vv.storage._fetch("/api/music/storage", "storage");
+    },
+    _fetch(target, store) {
+        vv.request.get(
+            target,
+            vv.control._getOrElse(vv.storage.last_modified, store, ""),
+            vv.control._getOrElse(vv.storage.etag, store, ""),
+            (ret, modified, etag, date) => {
+                if (!ret.error) {
+                    if (Object.prototype.toString.call(ret.data) ===
+                        "[object Object]" &&
+                        Object.keys(ret.data).length === 0) {
+                        return;
+                    }
+                    let diff = 0;
+                    try {
+                        diff = Date.now() - Date.parse(date);
+                    } catch (e) {
+                        // use default value;
+                    }
+                    const old = vv.storage[store];
+                    vv.storage[store] = ret;
+                    vv.storage.last_modified_ms[store] = Date.parse(modified) + diff;
+                    vv.storage.last_modified[store] = modified;
+                    vv.storage.etag[store] = etag;
+                    if (vv.storage.save[store]) {
+                        vv.storage.save[store]();
+                    }
+                    vv.pubsub.raise(vv.storage._listener, store, { old: old, current: ret });
+                }
+            });
     },
     load() {
         try {
@@ -432,6 +647,17 @@ vv.storage = {
                 }
             }
         }
+        vv.websocket.addEventListener("connect", () => { vv.storage._fetchAll(); });
+        vv.websocket.addEventListener("/api/music/library/songs", () => { vv.storage._fetch("/api/music/library/songs", "librarySongs"); });
+        vv.websocket.addEventListener("/api/music/library", () => { vv.storage._fetch("/api/music/library", "library"); });
+        vv.websocket.addEventListener("/api/music", () => { vv.storage._fetch("/api/music", "control"); });
+        vv.websocket.addEventListener("/api/music/playlist/songs/current", () => { vv.storage._fetch("/api/music/playlist/songs/current", "current"); });
+        vv.websocket.addEventListener("/api/music/outputs", () => { vv.storage._fetch("/api/music/outputs", "outputs"); });
+        vv.websocket.addEventListener("/api/music/stats", () => { vv.storage._fetch("/api/music/stats", "stats"); });
+        vv.websocket.addEventListener("/api/music/playlist", () => { vv.storage._fetch("/api/music/playlist", "playlist"); });
+        vv.websocket.addEventListener("/api/music/images", () => { vv.storage._fetch("/api/music/images", "images"); });
+        vv.websocket.addEventListener("/api/music/storage", () => { vv.storage._fetch("/api/music/storage", "storage"); });
+        vv.websocket.addEventListener("/api/version", () => { vv.storage._fetch("/api/version", "version"); });
     }
 };
 vv.storage.load();
@@ -731,179 +957,7 @@ vv.library = {
     }
 };
 vv.library.load();
-vv.request = {
-    _requests: {},
-    abortAll(options) {
-        options = options || {};
-        for (const key in vv.request._requests) {
-            if (vv.request._requests.hasOwnProperty(key)) {
-                if (options.stop) {
-                    vv.request._requests[key].onabort = () => { };
-                }
-                vv.request._requests[key].abort();
-            }
-        }
-    },
-    get(path, ifmodified, etag, callback, timeout) {
-        const key = "GET " + path;
-        if (vv.request._requests[key]) {
-            vv.request._requests[key].onabort = () => { };  // disable retry
-            vv.request._requests[key].abort();
-        }
-        const xhr = new XMLHttpRequest();
-        vv.request._requests[key] = xhr;
-        if (!timeout) {
-            timeout = 1000;
-        }
-        xhr.responseType = "json";
-        xhr.timeout = timeout;
-        xhr.onload = () => {
-            if (xhr.status === 200 || xhr.status === 304) {
-                if (xhr.status === 200 && callback) {
-                    callback(
-                        xhr.response, xhr.getResponseHeader("Last-Modified"),
-                        xhr.getResponseHeader("Etag"),
-                        xhr.getResponseHeader("Date"));
-                }
-                return;
-            }
-            // error handling
-            if (xhr.status !== 0) {
-                vv.view.popup.show("network", xhr.statusText);
-            }
-        };
-        xhr.onabort = () => {
-            if (timeout < 50000) {
-                setTimeout(
-                    () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
-            }
-        };
-        xhr.onerror = () => { vv.view.popup.show("network", "Error"); };
-        xhr.ontimeout = () => {
-            if (timeout < 50000) {
-                vv.view.popup.show("network", "timeoutRetry");
-                vv.request.abortAll();
-                setTimeout(
-                    () => { vv.request.get(path, ifmodified, etag, callback, timeout * 2); });
-            } else {
-                vv.view.popup.show("network", "timeout");
-            }
-        };
-        xhr.open("GET", path, true);
-        if (etag !== "") {
-            xhr.setRequestHeader("If-None-Match", etag);
-        } else {
-            xhr.setRequestHeader("If-Modified-Since", ifmodified);
-        }
-        xhr.send();
-    },
-    post(path, obj, callback) {
-        const key = "POST " + path;
-        if (vv.request._requests[key]) {
-            vv.request._requests[key].abort();
-        }
-        const xhr = new XMLHttpRequest();
-        vv.request._requests[key] = xhr;
-        xhr.responseType = "json";
-        xhr.timeout = 1000;
-        xhr.onload = () => {
-            if (callback && xhr.response) {
-                callback(xhr.response);
-            }
-            if (xhr.status !== 200 && xhr.status !== 202) {
-                if (xhr.response && xhr.response.error) {
-                    vv.view.popup.show("mpd", xhr.response.error);
-                } else {
-                    vv.view.popup.show("network", xhr.responseText);
-                }
-            }
-        };
-        xhr.ontimeout = () => {
-            if (callback) {
-                callback({ error: "timeout" });
-            }
-            vv.view.popup.show("network", "timeout");
-            vv.request.abortAll();
-        };
-        xhr.onerror = () => {
-            if (callback) {
-                callback({ error: "error" });
-            }
-            vv.view.popup.show("network", "error");
-        };
-        xhr.open("POST", path, true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(JSON.stringify(obj));
-    }
-};
 
-vv.websocket = {
-    _listener: {},
-    addEventListener(t, f) { vv.pubsub.add(vv.websocket._listener, t, f); },
-    removeEventListener(t, f) { vv.pubsub.rm(vv.websocket._listener, t, f); },
-    start() {
-        let lastUpdate = (new Date()).getTime();
-        let lastConnection = (new Date()).getTime();
-        let connected = false;
-        let tryNum = 0;
-        let ws = null;
-        const raiseEvent = (t, e) => { vv.pubsub.raise(vv.websocket._listener, t, e); };
-        const listennotify = (cause) => {
-            if (cause && tryNum > 1) {  // reduce device wakeup reconnecting message
-                vv.view.popup.show("network", cause);
-            }
-            tryNum++;
-            vv.request.abortAll({ stop: true });
-            lastConnection = (new Date()).getTime();
-            connected = false;
-            const wsp = document.location.protocol === "https:" ? "wss:" : "ws:";
-            const uri = `${wsp}//${location.host}/api/music`;
-            if (ws !== null) {
-                ws.onclose = () => { };
-                ws.close();
-            }
-            ws = new WebSocket(uri);
-            ws.onopen = () => {
-                if (tryNum > 1) {
-                    vv.view.popup.hide("network");
-                }
-                connected = true;
-                lastUpdate = (new Date()).getTime();
-                tryNum = 0;
-                raiseEvent("connect");
-            };
-            ws.onmessage = e => {
-                if (e && e.data) {
-                    const now = (new Date()).getTime();
-                    raiseEvent(e.data)
-                    if (now - lastUpdate > 10000) {
-                        // recover lost notification
-                        setTimeout(() => { raiseEvent("lost"); });
-                    }
-                    lastUpdate = now;
-                }
-            };
-            ws.onclose = () => {
-                setTimeout(() => { raiseEvent("lost", "timeoutRetry"); }, 1000);
-            };
-        }
-        const polling = () => {
-            const now = (new Date()).getTime();
-            if (connected && now - 10000 > lastUpdate) {
-                setTimeout(() => { raiseEvent("lost", "doesNotRespond"); });
-            } else if (!connected && now - 2000 > lastConnection) {
-                setTimeout(() => { raiseEvent("lost", "timeoutRetry"); });
-            }
-            // TODO: repace vv.control to vv.websocket
-            vv.control.raiseEvent("poll");
-            setTimeout(polling, 1000);
-        };
-
-        vv.websocket.addEventListener("lost", listennotify);
-        listennotify();
-        polling();
-    },
-}
 vv.control = {
     _getOrElse(m, k, v) { return k in m ? m[k] : v; },
     _listener: {},
@@ -919,7 +973,7 @@ vv.control = {
         }
         vv.request.post("/api/music/library", { updating: true });
         vv.storage.library.updating = true;
-        vv.control.raiseEvent("library");
+        vv.storage.raiseEvent("library");
     },
     prev() { vv.request.post("/api/music", { state: "previous" }); },
     play_pause() {
@@ -928,7 +982,7 @@ vv.control = {
         vv.request.post("/api/music", { state: action }, (e) => {
             if (e.error) {
                 vv.storage.control.state = state;
-                vv.control.raiseEvent("control");
+                vv.storage.raiseEvent("control");
             }
         });
         vv.storage.control.state = action;
@@ -938,7 +992,7 @@ vv.control = {
             vv.storage.control.song_elapsed = elapsed / 1000;
         }
         vv.storage.last_modified_ms.control = now;
-        vv.control.raiseEvent("control");
+        vv.storage.raiseEvent("control");
     },
     next() { vv.request.post("/api/music", { state: "next" }); },
     toggle_repeat() {
@@ -953,12 +1007,12 @@ vv.control = {
             vv.request.post("/api/music", { repeat: true });
             vv.storage.control.repeat = true;
         }
-        vv.control.raiseEvent("control");
+        vv.storage.raiseEvent("control");
     },
     toggle_random() {
         vv.request.post("/api/music", { random: !vv.storage.control.random });
         vv.storage.control.random = !vv.storage.control.random;
-        vv.control.raiseEvent("control");
+        vv.storage.raiseEvent("control");
     },
     play(pos) {
         const filters = vv.library.filters(pos);
@@ -983,65 +1037,11 @@ vv.control = {
         vv.request.post(`/api/music/outputs`, { [id]: { enabled: on } });
     },
     seek(pos) { vv.request.post("/api/music", { song_elapsed: pos }); },
-    _fetchFunc(target, store) { return () => { vv.control._fetch(target, store); } },
-    _fetch(target, store) {
-        vv.request.get(
-            target,
-            vv.control._getOrElse(vv.storage.last_modified, store, ""),
-            vv.control._getOrElse(vv.storage.etag, store, ""),
-            (ret, modified, etag, date) => {
-                if (!ret.error) {
-                    if (Object.prototype.toString.call(ret.data) ===
-                        "[object Object]" &&
-                        Object.keys(ret.data).length === 0) {
-                        return;
-                    }
-                    let diff = 0;
-                    try {
-                        diff = Date.now() - Date.parse(date);
-                    } catch (e) {
-                        // use default value;
-                    }
-                    const old = vv.storage[store];
-                    vv.storage[store] = ret;
-                    vv.storage.last_modified_ms[store] = Date.parse(modified) + diff;
-                    vv.storage.last_modified[store] = modified;
-                    vv.storage.etag[store] = etag;
-                    if (vv.storage.save[store]) {
-                        vv.storage.save[store]();
-                    }
-                    vv.control.raiseEvent(store, { old: old, current: ret });
-                }
-            });
-    },
-    _fetchAll() {
-        vv.control._fetch("/api/music/playlist", "playlist");
-        vv.control._fetch("/api/version", "version");
-        vv.control._fetch("/api/music/outputs", "outputs");
-        vv.control._fetch("/api/music/playlist/songs/current", "current");
-        vv.control._fetch("/api/music", "control");
-        vv.control._fetch("/api/music/library", "library");
-        vv.control._fetch("/api/music/library/songs", "librarySongs");
-        vv.control._fetch("/api/music/stats", "stats");
-        vv.control._fetch("/api/music/images", "images");
-        vv.control._fetch("/api/music/storage", "storage");
-    },
     _init() {
         const start = () => {
             try {
                 vv.control.raiseEvent("start");
                 vv.view.list.show();
-                vv.websocket.addEventListener("connect", () => { vv.control._fetchAll(); });
-                vv.websocket.addEventListener("/api/music/library/songs", vv.control._fetchFunc("/api/music/library/songs", "librarySongs"));
-                vv.websocket.addEventListener("/api/music/library", vv.control._fetchFunc("/api/music/library", "library"));
-                vv.websocket.addEventListener("/api/music", vv.control._fetchFunc("/api/music", "control"));
-                vv.websocket.addEventListener("/api/music/playlist/songs/current", vv.control._fetchFunc("/api/music/playlist/songs/current", "current"));
-                vv.websocket.addEventListener("/api/music/outputs", vv.control._fetchFunc("/api/music/outputs", "outputs"));
-                vv.websocket.addEventListener("/api/music/stats", vv.control._fetchFunc("/api/music/stats", "stats"));
-                vv.websocket.addEventListener("/api/music/playlist", vv.control._fetchFunc("/api/music/playlist", "playlist"));
-                vv.websocket.addEventListener("/api/music/images", vv.control._fetchFunc("/api/music/images", "images"));
-                vv.websocket.addEventListener("/api/music/storage", vv.control._fetchFunc("/api/music/storage", "storage"));
-                vv.websocket.addEventListener("/api/version", vv.control._fetchFunc("/api/version", "version"));
                 vv.websocket.start();
             } catch (e) {
                 alert(e);
@@ -1096,15 +1096,15 @@ vv.control = {
             };
             return n;
         };
-        vv.control.addEventListener("current", focus);
-        vv.control.addEventListener("playlist", focus);
+        vv.storage.addEventListener("current", focus);
+        vv.storage.addEventListener("playlist", focus);
         vv.control.addEventListener("start", focus);
-        vv.control.addEventListener("librarySongs", () => { vv.library.update(vv.storage.librarySongs); });
+        vv.storage.addEventListener("librarySongs", () => { vv.library.update(vv.storage.librarySongs); });
         if (unsorted) {
-            vv.control.addEventListener(
-                "current", focusremove("current", vv.control.removeEventListener));
-            vv.control.addEventListener(
-                "playlist", focusremove("playlist", vv.control.removeEventListener));
+            vv.storage.addEventListener(
+                "current", focusremove("current", vv.storage.removeEventListener));
+            vv.storage.addEventListener(
+                "playlist", focusremove("playlist", vv.storage.removeEventListener));
             vv.library.addEventListener(
                 "update", focusremove("update", vv.library.removeEventListener));
         }
@@ -1405,9 +1405,9 @@ vv.ui = {
         }
         document.body.classList.remove("unload");
     };
-    vv.control.addEventListener("current", update);
-    vv.control.addEventListener("preferences", update);
-    vv.control.addEventListener("preferences", update_theme);
+    vv.storage.addEventListener("current", update);
+    vv.storage.addEventListener("preferences", update);
+    vv.storage.addEventListener("preferences", update_theme);
     vv.control.addEventListener("start", update);
     vv.control.addEventListener("start", () => {
         var darkmode = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1572,10 +1572,10 @@ vv.view.main = {
 };
 vv.control.addEventListener("poll", vv.view.main.onPoll);
 vv.control.addEventListener("start", vv.view.main.onStart);
-vv.control.addEventListener("playlist", vv.view.main.onPlaylist);
-vv.control.addEventListener("current", vv.view.main.onCurrent);
-vv.control.addEventListener("control", vv.view.main.onControl);
-vv.control.addEventListener("preferences", vv.view.main.onPreferences);
+vv.storage.addEventListener("playlist", vv.view.main.onPlaylist);
+vv.storage.addEventListener("current", vv.view.main.onCurrent);
+vv.storage.addEventListener("control", vv.view.main.onControl);
+vv.storage.addEventListener("preferences", vv.view.main.onPreferences);
 
 vv.view.list = {
     show() {
@@ -2007,8 +2007,8 @@ vv.view.list = {
         vv.view.list.onCurrent();
     }
 };
-vv.control.addEventListener("current", vv.view.list.onCurrent);
-vv.control.addEventListener("preferences", vv.view.list.onPreferences);
+vv.storage.addEventListener("current", vv.view.list.onCurrent);
+vv.storage.addEventListener("preferences", vv.view.list.onPreferences);
 vv.control.addEventListener("start", vv.view.list.onStart);
 
 vv.view.system = {
@@ -2033,7 +2033,7 @@ vv.view.system = {
             getter = () => { return parseInt(obj.value, 10); };
             obj.addEventListener("input", () => {
                 vv.storage.preferences[mainkey][subkey] = obj.value;
-                vv.control.raiseEvent("preferences");
+                vv.storage.raiseEvent("preferences");
             });
             vv.ui.disableSwipe(obj);
         } else if (obj.type === "radio") {
@@ -2045,7 +2045,7 @@ vv.view.system = {
         obj.addEventListener("change", () => {
             vv.storage.preferences[mainkey][subkey] = getter();
             vv.storage.save.preferences();
-            vv.control.raiseEvent("preferences");
+            vv.storage.raiseEvent("preferences");
         });
     },
     onPreferences() {
@@ -2243,7 +2243,7 @@ vv.view.system = {
         // preferences
         vv.view.system.onPreferences();
 
-        vv.control.addEventListener("control", vv.view.system.onControl);
+        vv.storage.addEventListener("control", vv.view.system.onControl);
 
         if (window.matchMedia("(prefers-color-scheme: dark)").matches === window.matchMedia("(prefers-color-scheme: light)").matches) {
             document.getElementById("appearance-theme_prefer-system").disabled = true;
@@ -2289,7 +2289,7 @@ vv.view.system = {
         document.getElementById("library-rescan-images").addEventListener("click", () => {
             vv.request.post("/api/music/images", { updating: true });
             vv.storage.images.updating = true;
-            vv.control.raiseEvent("images");
+            vv.storage.raiseEvent("images");
         });
 
         document.getElementById("outputs-replay-gain").addEventListener("change", (e) => {
@@ -2563,13 +2563,13 @@ vv.view.system = {
     }
 };
 vv.control.addEventListener("start", vv.view.system.onStart);
-vv.control.addEventListener("version", vv.view.system.onVersion);
-vv.control.addEventListener("library", vv.view.system.onLibrary);
-vv.control.addEventListener("images", vv.view.system.onImages);
-vv.control.addEventListener("stats", vv.view.system.onStats);
-vv.control.addEventListener("preferences", vv.view.system.onPreferences);
-vv.control.addEventListener("outputs", vv.view.system.onOutputs);
-vv.control.addEventListener("storage", vv.view.system.onStorage);
+vv.storage.addEventListener("version", vv.view.system.onVersion);
+vv.storage.addEventListener("library", vv.view.system.onLibrary);
+vv.storage.addEventListener("images", vv.view.system.onImages);
+vv.storage.addEventListener("stats", vv.view.system.onStats);
+vv.storage.addEventListener("preferences", vv.view.system.onPreferences);
+vv.storage.addEventListener("outputs", vv.view.system.onOutputs);
+vv.storage.addEventListener("storage", vv.view.system.onStorage);
 
 // header
 {
@@ -2715,9 +2715,9 @@ vv.view.footer = {
     }
 };
 vv.control.addEventListener("start", vv.view.footer.onStart);
-vv.control.addEventListener("control", vv.view.footer.onControl);
-vv.control.addEventListener("playlist", vv.view.footer.onPlaylist);
-vv.control.addEventListener("preferences", vv.view.footer.onPreferences);
+vv.storage.addEventListener("control", vv.view.footer.onControl);
+vv.storage.addEventListener("playlist", vv.view.footer.onPlaylist);
+vv.storage.addEventListener("preferences", vv.view.footer.onPreferences);
 
 vv.view.popup = {
     show(target, description, never) {
@@ -2766,7 +2766,7 @@ vv.view.popup = {
     }
 };
 vv.control.addEventListener("start", () => {
-    vv.control.addEventListener("version", () => {
+    vv.storage.addEventListener("version", () => {
         if (vv.storage.version.mpd) {
             vv.view.popup.hide("mpd-connection");
         } else {
@@ -2794,7 +2794,7 @@ vv.control.addEventListener("start", () => {
     };
     document.getElementById("popup-client-output-temporary-button-settings").addEventListener("click", openOutputSettings);
     document.getElementById("popup-client-output-button").addEventListener("click", openOutputSettings);
-    vv.control.addEventListener("library", (e) => {
+    vv.storage.addEventListener("library", (e) => {
         if (!e || !e.old || !e.current) {
             return;
         }
@@ -2807,7 +2807,7 @@ vv.control.addEventListener("start", () => {
             vv.view.popup.show("library", "updated");
         }
     });
-    vv.control.addEventListener("images", (e) => {
+    vv.storage.addEventListener("images", (e) => {
         if (!e || !e.old || !e.current) {
             return;
         }
@@ -2843,7 +2843,7 @@ vv.control.addEventListener("start", () => {
             });
         }
     };
-    vv.control.addEventListener("control", update);
+    vv.storage.addEventListener("control", update);
     vv.control.addEventListener("poll", update);
 }
 
