@@ -1061,7 +1061,7 @@ vv.control = {
         }
     },
     load() {
-        const focus = (e) => {
+        const focus = () => {
             if (!vv.storage.preferences.appearance.playlist_follows_playback) {
                 return;
             }
@@ -1715,7 +1715,7 @@ vv.view.list = {
             lists[treeindex + 1].dataset.pwd = "";
         }
     },
-    _element(song, key, style, largeImage, header) {
+    _element(song, key, style, header) {
         const c = document.querySelector(`#list-${style}-template`).content;
         const e = c.querySelector("li");
         const v = vv.song.getOne(song, key);
@@ -1839,11 +1839,11 @@ vv.view.list = {
         const p = vv.library.parent();
         for (let i = 0, imax = songs.length; i < imax; i++) {
             if (i === 0 && p) {
-                const li = vv.view.list._element(p.song, p.key, p.style, false, true);
+                const li = vv.view.list._element(p.song, p.key, p.style, true);
                 newul.appendChild(li);
             }
             const li = vv.view.list._element(
-                songs[i], key, style, ul.classList.contains("grid"), false);
+                songs[i], key, style, false);
             vv.ui.click(
                 li.querySelector("li"), vv.view.list._listHandler, false);
             newul.appendChild(li);
