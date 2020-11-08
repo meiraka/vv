@@ -59,7 +59,7 @@ class App {
             }
             this.library.abs(this.mpd.current);
         };
-        let unsorted = (!this.mpd.playlist || !this.mpd.playlist.hasOwnProperty("sort") || this.mpd.playlist.sort === null);
+        let unsorted = (!this.mpd.playlist || !this.mpd.playlist.hasOwnProperty("sort") || this.mpd.playlist.sort === null || this.mpd.librarySongs.length === 0);
         const focusremove = (key, remove) => {
             const n = () => {
                 setTimeout(() => { remove(key, n); });
