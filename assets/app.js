@@ -363,8 +363,7 @@ class Songs {
         return songs.filter((song, i, self) => {
             if (i === 0) {
                 return true;
-            } else if (
-                Song.getOne(song, key) === Song.getOne(self[i - 1], key)) {
+            } else if (Song.getOne(song, key) === Song.getOne(self[i - 1], key)) {
                 return false;
             }
             return true;
@@ -454,8 +453,7 @@ class HTTP {
         };
         xhr.onabort = () => {
             if (timeout < 50000) {
-                setTimeout(
-                    () => { HTTP.get(path, ifmodified, etag, callback, timeout * 2); });
+                setTimeout(() => { HTTP.get(path, ifmodified, etag, callback, timeout * 2); });
             }
         };
         xhr.onerror = () => { UINotification.show("network", "Error"); };
@@ -463,8 +461,7 @@ class HTTP {
             if (timeout < 50000) {
                 UINotification.show("network", "timeoutRetry");
                 HTTP.abortAll();
-                setTimeout(
-                    () => { HTTP.get(path, ifmodified, etag, callback, timeout * 2); });
+                setTimeout(() => { HTTP.get(path, ifmodified, etag, callback, timeout * 2); });
             } else {
                 UINotification.show("network", "timeout");
             }
@@ -552,7 +549,7 @@ class MPDWatcher extends PubSub {
             ws.onmessage = e => {
                 if (e && e.data) {
                     const now = (new Date()).getTime();
-                    this.raiseEvent(e.data)
+                    this.raiseEvent(e.data);
                     if (now - lastUpdate > 10000) {
                         // recover lost notification
                         setTimeout(() => { this.raiseEvent("lost"); });
@@ -850,9 +847,7 @@ class MPDClient extends PubSub {
             store in this.etag ? this.etag[store] : "",
             (ret, modified, etag, date) => {
                 if (!ret.error) {
-                    if (Object.prototype.toString.call(ret.data) ===
-                        "[object Object]" &&
-                        Object.keys(ret.data).length === 0) {
+                    if (Object.prototype.toString.call(ret.data) === "[object Object]" && Object.keys(ret.data).length === 0) {
                         return;
                     }
                     let diff = 0;
@@ -925,7 +920,7 @@ class Library extends PubSub {
             Genre: [],
             Date: [],
             Composer: [],
-            Performer: []
+            Performer: [],
         };
         this._list_child_cache = [{}, {}, {}, {}, {}, {}];
         this._list_cache = {};
@@ -966,9 +961,7 @@ class Library extends PubSub {
     list_child() {
         const root = this.rootname();
         if (this._roots[root].length === 0) {
-            this._roots[root] = Songs.sort(
-                this.mpd.librarySongs, TREE[root].sort,
-                Library._mkmemo(root));
+            this._roots[root] = Songs.sort(this.mpd.librarySongs, TREE[root].sort, Library._mkmemo(root));
         }
         const filters = {};
         for (let i = 0, imax = this.tree.length; i < imax; i++) {
@@ -988,8 +981,10 @@ class Library extends PubSub {
     }
     /*static*/ list_root() {
         const ret = [];
-        for (let i = 0, imax = TREE_ORDER.length; i < imax; i++) {
-            ret.push({ root: [TREE_ORDER[i]] });
+        if (this.mpd.librarySongs.length !== 0) {
+            for (let i = 0, imax = TREE_ORDER.length; i < imax; i++) {
+                ret.push({ root: [TREE_ORDER[i]] });
+            }
         }
         return { key: "root", songs: ret, style: "plain", isdir: true };
     }
@@ -1014,8 +1009,7 @@ class Library extends PubSub {
         return true;
     }
     list() {
-        if (!this._list_cache.songs ||
-            !this._list_cache.songs.length === 0) {
+        if (!this._list_cache.songs || !this._list_cache.songs.length === 0) {
             this.update_list();
         }
         return this._list_cache;
@@ -1027,8 +1021,7 @@ class Library extends PubSub {
         for (const key in TREE) {
             if (TREE.hasOwnProperty(key)) {
                 if (key === this.root) {
-                    this._roots[key] = Songs.sort(
-                        data, TREE[key].sort, Library._mkmemo(key));
+                    this._roots[key] = Songs.sort(data, TREE[key].sort, Library._mkmemo(key));
                 } else {
                     this._roots[key] = [];
                 }
@@ -1092,8 +1085,7 @@ class Library extends PubSub {
         this.child = null;
         this.update_list();
         const songs = this.list().songs;
-        if (songs.length === 1 &&
-            TREE[r].tree.length !== this.tree.length) {
+        if (songs.length === 1 && TREE[r].tree.length !== this.tree.length) {
             this.down(Song.getOne(songs[0], this.list().key));
         } else {
             this.raiseEvent("changed");
@@ -1155,9 +1147,7 @@ class Library extends PubSub {
         }
         let songs = this._roots[root];
         if (!songs || songs.length === 0) {
-            this._roots[root] = Songs.sort(
-                this.mpd.librarySongs, TREE[root].sort,
-                Library._mkmemo(root));
+            this._roots[root] = Songs.sort(this.mpd.librarySongs, TREE[root].sort, Library._mkmemo(root));
             songs = this._roots[root];
             if (songs.length === 0) {
                 return;
@@ -1221,7 +1211,7 @@ class Library extends PubSub {
             key: "root",
             song: { root: ["Library"] },
             style: "plain",
-            isdir: true
+            isdir: true,
         };
     }
 };
@@ -1244,8 +1234,7 @@ class UI extends PubSub {
         let diff_y = 0;
         let swipe = false;
         const start = e => {
-            if ((e.buttons && e.buttons !== 1) ||
-                (conditionFunc && !conditionFunc())) {
+            if ((e.buttons && e.buttons !== 1) || (conditionFunc && !conditionFunc())) {
                 return;
             }
             const t = e.touches ? e.touches[0] : e;
@@ -1290,8 +1279,7 @@ class UI extends PubSub {
             }
         };
         const move = e => {
-            if (e.buttons === 0 || (e.buttons && e.buttons !== 1) || !swipe ||
-                (conditionFunc && !conditionFunc())) {
+            if (e.buttons === 0 || (e.buttons && e.buttons !== 1) || !swipe || (conditionFunc && !conditionFunc())) {
                 cancel(e);
                 return;
             }
@@ -1306,21 +1294,17 @@ class UI extends PubSub {
                 e.currentTarget.style.transform = `translate3d(${diff_x * -1}px,0,0)`;
                 if (leftElement) {
                     leftElement.classList.add("swipe");
-                    leftElement.style.transform =
-                        `translate3d(${diff_x * -1 - e.currentTarget.offsetWidth}px,0,0)`;
+                    leftElement.style.transform = `translate3d(${diff_x * -1 - e.currentTarget.offsetWidth}px,0,0)`;
                 }
             }
         };
         const end = e => {
-            if ((e.buttons && e.buttons !== 1) || !swipe ||
-                (conditionFunc && !conditionFunc())) {
+            if ((e.buttons && e.buttons !== 1) || !swipe || (conditionFunc && !conditionFunc())) {
                 cancel(e);
                 return;
             }
             const p = e.currentTarget.clientWidth / diff_x;
-            if ((p > -4 && p < 0) ||
-                (now - starttime < 200 && Math.abs(diff_y) < Math.abs(diff_x) &&
-                    diff_x < 0)) {
+            if ((p > -4 && p < 0) || (now - starttime < 200 && Math.abs(diff_y) < Math.abs(diff_x) && diff_x < 0)) {
                 finalize(e);
                 f(e);
             } else {
@@ -1368,8 +1352,7 @@ class UI extends PubSub {
                 return;
             }
             const t = e.touches ? e.touches[0] : e;
-            if (Math.abs(e.currentTarget.x - t.screenX) >= 5 ||
-                Math.abs(e.currentTarget.y - t.screenY) >= 5) {
+            if (Math.abs(e.currentTarget.x - t.screenX) >= 5 || Math.abs(e.currentTarget.y - t.screenY) >= 5) {
                 e.currentTarget.touch = false;
                 e.currentTarget.classList.remove("active");
             }
@@ -1417,10 +1400,7 @@ class UIBackground {
         });
     }
     static mkcolor(rgb, magic) {
-        return "#" +
-            (((1 << 24) + (magic(rgb.r) << 16) + (magic(rgb.g) << 8) + magic(rgb.b))
-                .toString(16)
-                .slice(1));
+        return "#" + (((1 << 24) + (magic(rgb.r) << 16) + (magic(rgb.g) << 8) + magic(rgb.b)).toString(16).slice(1));
     };
     static darker(c) {
         // Vivaldi does not recognize #000000
@@ -1534,8 +1514,7 @@ class UIBackground {
                 this.calc_color(coverForCalc);
                 e.style.backgroundImage = newimage;
             }
-            e.style.filter =
-                `blur(${this.preferences.appearance.background_image_blur})`;
+            e.style.filter = `blur(${this.preferences.appearance.background_image_blur})`;
         } else {
             e.classList.add("hide");
             document.getElementById("background-image").classList.add("hide");
@@ -1601,12 +1580,9 @@ class UIMainView extends PubSub {
         if (this.mpd.current === null) {
             return;
         }
-        document.getElementById("main-box-title").textContent =
-            this.mpd.current.Title;
-        document.getElementById("main-box-artist").textContent =
-            this.mpd.current.Artist;
-        document.getElementById("main-seek-label-total").textContent =
-            this.mpd.current.Length;
+        document.getElementById("main-box-title").textContent = this.mpd.current.Title;
+        document.getElementById("main-box-artist").textContent = this.mpd.current.Artist;
+        document.getElementById("main-seek-label-total").textContent = this.mpd.current.Length;
         let cover = "/assets/nocover.svg";
         if (this.mpd.current.cover && this.mpd.current.cover[0]) {
             cover = this.mpd.current.cover[0];
@@ -1663,10 +1639,7 @@ class UIMainView extends PubSub {
         const x = 100 + 90 * Math.cos(d);
         const y = 100 + 90 * Math.sin(d);
         if (x <= 100) {
-            c.setAttribute(
-                "d",
-                "M 100,10 L 100,10 A 90,90 0 0,1 100,190 L 100,190 A 90,90 0 0,1 " +
-                `${x},${y}`);
+            c.setAttribute("d", "M 100,10 L 100,10 A 90,90 0 0,1 100,190 L 100,190 A 90,90 0 0,1 " + `${x},${y}`);
         } else {
             c.setAttribute("d", `M 100,10 L 100,10 A 90,90 0 0,1 ${x},${y}`);
         }
@@ -1765,9 +1738,7 @@ class UIListView extends PubSub {
                 } else {
                     listitem.classList.remove("selected");
                 }
-            } else if (
-                rootname !== "root" && focusSong && focusSong.file &&
-                listitem.dataset.file === focusSong.file[0]) {
+            } else if (rootname !== "root" && focusSong && focusSong.file && listitem.dataset.file === focusSong.file[0]) {
                 focus = listitem;
                 focus.classList.add("selected");
             } else {
@@ -1777,17 +1748,13 @@ class UIListView extends PubSub {
             if (this.mpd.playlist && this.mpd.playlist.hasOwnProperty("sort") && this.mpd.playlist.sort !== null) {
                 if (rootname === "root") {
                     treeFocused = false;
-                } else if (
-                    this.mpd.playlist.sort.join() !==
-                    TREE[rootname].sort.join()) {
+                } else if (this.mpd.playlist.sort.join() !== TREE[rootname].sort.join()) {
                     treeFocused = false;
                 }
             }
             const elapsed = Array.from(listitem.getElementsByClassName("song-elapsed"));
             const sep = Array.from(listitem.getElementsByClassName("song-lengthseparator"));
-            if (treeFocused && elapsed.length !== 0 && this.mpd.current !== null &&
-                this.mpd.current.file &&
-                this.mpd.current.file[0] === listitem.dataset.file) {
+            if (treeFocused && elapsed.length !== 0 && this.mpd.current !== null && this.mpd.current.file && this.mpd.current.file[0] === listitem.dataset.file) {
                 viewNowPlaying = true;
                 if (focusSong && !focusSong.file) {
                     listitem.classList.add("selected");
@@ -1840,8 +1807,7 @@ class UIListView extends PubSub {
     _clearAllLists() {
         const lists = document.getElementsByClassName("list");
         for (let treeindex = 0; treeindex < this.library.tree.length; treeindex++) {
-            const oldul =
-                lists[treeindex + 1].getElementsByClassName("list-items")[0];
+            const oldul = lists[treeindex + 1].getElementsByClassName("list-items")[0];
             while (oldul.lastChild) {
                 oldul.removeChild(oldul.lastChild);
             }
@@ -1884,9 +1850,7 @@ class UIListView extends PubSub {
         }
         if (style === "song") {
             if (song.file) {
-                const tooltip = [
-                    "Length", "Artist", "Album", "Track", "Genre", "Performer"
-                ].map(key => `${key}: ${Song.get(song, key)}`);
+                const tooltip = ["Length", "Artist", "Album", "Track", "Genre", "Performer"].map(key => `${key}: ${Song.get(song, key)}`);
                 tooltip.unshift(Song.get(song, "Title"));
                 e.setAttribute("title", tooltip.join("\n"));
             } else {
@@ -1961,8 +1925,7 @@ class UIListView extends PubSub {
             const currentpwd = JSON.stringify(this.library.tree.slice(0, treeindex + 1));
             const viewpwd = lists[treeindex + 1].dataset.pwd;
             if (currentpwd !== viewpwd) {
-                const oldul =
-                    lists[treeindex + 1].getElementsByClassName("list-items")[0];
+                const oldul = lists[treeindex + 1].getElementsByClassName("list-items")[0];
                 while (oldul.lastChild) {
                     oldul.removeChild(oldul.lastChild);
                 }
@@ -1985,8 +1948,7 @@ class UIListView extends PubSub {
                 const li = this._element(p.song, p.key, p.style, true);
                 newul.appendChild(li);
             }
-            const li = this._element(
-                songs[i], key, style, false);
+            const li = this._element(songs[i], key, style, false);
             UI.click(li.querySelector("li"), (e) => { this._listHandler(e); }, false);
             newul.appendChild(li);
         }
@@ -2003,8 +1965,7 @@ class UIListView extends PubSub {
         let updated = false;
         for (const selectable of document.querySelectorAll(`#list-items${index} .selectable`)) {
             const p = selectable.offsetTop;
-            if (scroll.scrollTop < p && p < scroll.scrollTop + scroll.clientHeight &&
-                !updated) {
+            if (scroll.scrollTop < p && p < scroll.scrollTop + scroll.clientHeight && !updated) {
                 selectable.classList.add("selected");
                 updated = true;
             } else {
@@ -2057,8 +2018,7 @@ class UIListView extends PubSub {
             for (let i = 0; i < selectables.length; i++) {
                 c = selectables[i];
                 if (c === s[0]) {
-                    if ((i > 0 && target === "up" && style !== "album") ||
-                        (i > 0 && target === "left")) {
+                    if ((i > 0 && target === "up" && style !== "album") || (i > 0 && target === "left")) {
                         n = selectables[i - 1];
                         c.classList.remove("selected");
                         n.classList.add("selected");
@@ -2078,9 +2038,7 @@ class UIListView extends PubSub {
                         }
                         return;
                     }
-                    if ((i !== (selectables.length - 1) && target === "down" &&
-                        style !== "album") ||
-                        (i !== (selectables.length - 1) && target === "right")) {
+                    if ((i !== (selectables.length - 1) && target === "down" && style !== "album") || (i !== (selectables.length - 1) && target === "right")) {
                         n = selectables[i + 1];
                         c.classList.remove("selected");
                         n.classList.add("selected");
@@ -2090,9 +2048,7 @@ class UIListView extends PubSub {
                         }
                         return;
                     }
-                    if ((i < (selectables.length - 1) && target === "down" &&
-                        style === "album") ||
-                        (i !== (selectables.length - 1) && target === "right")) {
+                    if ((i < (selectables.length - 1) && target === "down" && style === "album") || (i !== (selectables.length - 1) && target === "right")) {
                         if (i + itemcount >= selectables.length) {
                             n = selectables[selectables.length - 1];
                         } else {
@@ -2116,8 +2072,7 @@ class UIListView extends PubSub {
     down() { this._select_focused_or("down"); }
     activate() {
         const index = this.library.tree.length;
-        const es = document.getElementById("list-items" + index)
-            .getElementsByClassName("selected");
+        const es = document.getElementById("list-items" + index).getElementsByClassName("selected");
         if (es.length !== 0) {
             const e = {};
             e.currentTarget = es[0];
@@ -2132,21 +2087,19 @@ class UIListView extends PubSub {
         this.library.addEventListener("update", () => { this._updateForce(); });
         this.library.addEventListener("changed", () => { this._update(); });
         this.library.addEventListener("list", () => { this.show(); });
-        UI.swipe(
-            document.getElementById("list1"), () => { this.library.up(); },
-            () => { this._updatepos(); }, document.getElementById("list0"));
-        UI.swipe(
-            document.getElementById("list2"), () => { this.library.up(); },
-            () => { this._updatepos(); }, document.getElementById("list1"));
-        UI.swipe(
-            document.getElementById("list3"), () => { this.library.up(); },
-            () => { this._updatepos(); }, document.getElementById("list2"));
-        UI.swipe(
-            document.getElementById("list4"), () => { this.library.up(); },
-            () => { this._updatepos(); }, document.getElementById("list3"));
-        UI.swipe(
-            document.getElementById("list5"), () => { this.library.up(); },
-            () => { this._updatepos(); }, document.getElementById("list4"));
+        const list = [
+            document.getElementById("list0"),
+            document.getElementById("list1"),
+            document.getElementById("list2"),
+            document.getElementById("list3"),
+            document.getElementById("list4"),
+            document.getElementById("list5"),
+        ];
+        UI.swipe(list[1], () => { this.library.up(); }, () => { this._updatepos(); }, list[0]);
+        UI.swipe(list[2], () => { this.library.up(); }, () => { this._updatepos(); }, list[1]);
+        UI.swipe(list[3], () => { this.library.up(); }, () => { this._updatepos(); }, list[2]);
+        UI.swipe(list[4], () => { this.library.up(); }, () => { this._updatepos(); }, list[3]);
+        UI.swipe(list[5], () => { this.library.up(); }, () => { this._updatepos(); }, list[4]);
         this.onCurrent();
     }
 };
@@ -2314,9 +2267,7 @@ class UISystemWindow {
                 }
                 const d = document.importNode(c, true);
                 d.querySelector(".device-switch").addEventListener("change", e => {
-                    this.mpd.output(
-                        parseInt(e.currentTarget.dataset.deviceid, 10),
-                        e.currentTarget.checked);
+                    this.mpd.output(parseInt(e.currentTarget.dataset.deviceid, 10), e.currentTarget.checked);
                 });
                 d.querySelector(".device-dop-switch").addEventListener("change", e => {
                     HTTP.post("/api/music/outputs", {
@@ -2330,8 +2281,8 @@ class UISystemWindow {
                 if (o.stream && o.enabled) {
                     const on = document.createElement("option");
                     on.value = o.stream;
-                    on.textContent = o.name
-                    newInputs.appendChild(on)
+                    on.textContent = o.name;
+                    newInputs.appendChild(on);
                     streams[o.name] = o.stream;
                     const t = inputs.children[streamIndex];
                     if (!t || t.textContent !== o.name || t.value !== o.stream) {
@@ -2600,10 +2551,9 @@ class UISystemWindow {
             year: "numeric",
             month: "short",
             day: "numeric",
-            weekday: "short"
+            weekday: "short",
         };
-        document.getElementById("stat-db-update").textContent =
-            db_update.toLocaleString(document.documentElement.lang, options);
+        document.getElementById("stat-db-update").textContent = db_update.toLocaleString(document.documentElement.lang, options);
     }
     onVersion() {
         if (this.mpd.version.app) {
@@ -2638,11 +2588,8 @@ class UIHeader {
                     if (p) {
                         const v = Song.getOne(p.song, p.key);
                         e.textContent = v ? v : `[no ${p.key}]`;
-                        b.setAttribute(
-                            "title", b.dataset.titleFormat.replace("%s", e.textContent));
-                        b.setAttribute(
-                            "aria-label",
-                            b.dataset.ariaLabelFormat.replace("%s", e.textContent));
+                        b.setAttribute("title", b.dataset.titleFormat.replace("%s", e.textContent));
+                        b.setAttribute("aria-label", b.dataset.ariaLabelFormat.replace("%s", e.textContent));
                     }
                 }
             }
@@ -2701,11 +2648,10 @@ class UIFooter {
             mpd.prev();
             e.stopPropagation();
         });
-        document.getElementById("control-toggleplay")
-            .addEventListener("click", e => {
-                mpd.togglePlay();
-                e.stopPropagation();
-            });
+        document.getElementById("control-toggleplay").addEventListener("click", e => {
+            mpd.togglePlay();
+            e.stopPropagation();
+        });
         document.getElementById("control-next").addEventListener("click", e => {
             mpd.next();
             e.stopPropagation();
@@ -2905,10 +2851,8 @@ class UITimeUpdater {
 class UIModal {
     static init(ui) {
         ui.addEventListener("load", () => {
-            document.getElementById("modal-background")
-                .addEventListener("click", () => { this.hide(); });
-            document.getElementById("modal-outer")
-                .addEventListener("click", () => { this.hide(); });
+            document.getElementById("modal-background").addEventListener("click", () => { this.hide(); });
+            document.getElementById("modal-outer").addEventListener("click", () => { this.hide(); });
             for (const w of Array.from(document.getElementsByClassName("modal-window"))) {
                 w.addEventListener("click", e => { e.stopPropagation(); });
             }
@@ -2934,10 +2878,7 @@ class UIModal {
         document.getElementById("modal-help").classList.remove("hide");
     }
     static song(song, library) {
-        const mustkeys = [
-            "Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer",
-            "Disc", "Track", "Composer", "Length"
-        ];
+        const mustkeys = ["Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer", "Disc", "Track", "Composer", "Length"];
         for (const key of mustkeys) {
             const doc = document.getElementById("modal-song-box-" + key);
             while (doc.lastChild) {
@@ -3016,7 +2957,7 @@ class UISubModal {
                         return;
                     }
                     this.submodal.hide();
-                })
+                });
             });
             // allowed formats
             const allowedFormats = document.getElementById("submodal-allowed-formats");
@@ -3182,7 +3123,7 @@ class KeyboardShortCuts {
                 ArrowRight: inList(() => { listView.right(); }),
                 ArrowDown: inList(() => { listView.down(); }),
                 [" "]: any(() => { mpd.togglePlay(); }),
-                ["?"]: any(() => { UIModal.help(); })
+                ["?"]: any(() => { UIModal.help(); }),
             },
             [shift]: { ["?"]: any(() => { UIModal.help(); }) },
             [meta]: {
@@ -3194,22 +3135,20 @@ class KeyboardShortCuts {
                         }
                     }
                     mainView.show();
-                })
+                }),
             },
             [shift | ctrl]:
                 { ArrowLeft: any(() => { mpd.prev(); }), ArrowRight: any(() => { mpd.next(); }) }
         };
         ui.addEventListener("load", () => {
             document.addEventListener("keydown", e => {
-                if (!document.getElementById("submodal-outer")
-                    .classList.contains("hide")) {
+                if (!document.getElementById("submodal-outer").classList.contains("hide")) {
                     if (e.key === "Escape" || e.key === "Esc") {
                         UISubModal.hide();
                     }
                     return;
                 }
-                if (!document.getElementById("modal-background")
-                    .classList.contains("hide")) {
+                if (!document.getElementById("modal-background").classList.contains("hide")) {
                     if (e.key === "Escape" || e.key === "Esc") {
                         UIModal.hide();
                     }
