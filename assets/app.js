@@ -1812,12 +1812,12 @@ class UIListView extends PubSub {
     }
     _clearAllLists() {
         const lists = document.getElementsByClassName("list");
-        for (let treeindex = 0; treeindex < this.library.tree.length; treeindex++) {
-            const oldul = lists[treeindex + 1].getElementsByClassName("list-items")[0];
+        for (let treeindex = 0; treeindex < lists.length; treeindex++) {
+            const oldul = lists[treeindex].getElementsByClassName("list-items")[0];
             while (oldul.lastChild) {
                 oldul.removeChild(oldul.lastChild);
             }
-            lists[treeindex + 1].dataset.pwd = "";
+            lists[treeindex].dataset.pwd = "";
         }
     }
     _element(song, key, style, header) {
