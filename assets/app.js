@@ -84,6 +84,7 @@ class App {
             this.mpd.addEventListener("current", focusUnsorted, { once: true });
             this.mpd.addEventListener("playlist", focusUnsorted, { once: true });
             this.library.addEventListener("update", focusUnsorted, { once: true });
+            this.library.addEventListener("changed", () => { unsorted = false; }, { once: true });
         }
     }
 };
