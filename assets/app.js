@@ -60,43 +60,48 @@ class App {
             this.library.abs(this.mpd.current);
         };
         let unsorted = (!this.mpd.playlist || !this.mpd.playlist.hasOwnProperty("sort") || this.mpd.playlist.sort === null || this.mpd.librarySongs.length === 0);
-        const focusremove = (key, remove) => {
-            const n = () => {
-                setTimeout(() => { remove(key, n); });
-                if (!this.preferences.appearance.playlist_follows_playback) {
-                    return;
-                }
-                if (!unsorted) {
-                    return;
-                }
-                if (!this.mpd.current || !this.mpd.current.Pos || this.mpd.current.Pos.length === 0 || !this.mpd.playlist || this.mpd.librarySongs.length === 0) {
-                    return;
-                }
-                const pos = parseInt(this.mpd.current.Pos[0]);
-                if (pos !== this.mpd.playlist.current) {
-                    return;
-                }
-                unsorted = false;
-                this.library.abs(this.mpd.current);
-            };
-            return n;
+        const focusUnsorted = () => {
+            if (!this.preferences.appearance.playlist_follows_playback) {
+                return;
+            }
+            if (!unsorted) {
+                return;
+            }
+            if (!this.mpd.current || !this.mpd.current.Pos || this.mpd.current.Pos.length === 0 || !this.mpd.playlist || this.mpd.librarySongs.length === 0) {
+                return;
+            }
+            const pos = parseInt(this.mpd.current.Pos[0]);
+            if (pos !== this.mpd.playlist.current) {
+                return;
+            }
+            unsorted = false;
+            this.library.abs(this.mpd.current);
         };
         this.mpd.addEventListener("current", focus);
         this.mpd.addEventListener("playlist", focus);
         this.ui.addEventListener("load", focus);
         if (unsorted) {
-            this.mpd.addEventListener("current", focusremove("current", (e, f) => { this.mpd.removeEventListener(e, f); }));
-            this.mpd.addEventListener("playlist", focusremove("playlist", (e, f) => { this.mpd.removeEventListener(e, f); }));
-            this.library.addEventListener("update", focusremove("update", (e, f) => { this.library.removeEventListener(e, f); }));
+            this.mpd.addEventListener("current", focusUnsorted, { once: true });
+            this.mpd.addEventListener("playlist", focusUnsorted, { once: true });
+            this.library.addEventListener("update", focusUnsorted, { once: true });
         }
     }
 };
 
 class PubSub {
     constructor() { this.listeners = {}; }
-    addEventListener(e, f) {
+    addEventListener(e, f, opt) {
         if (!(e in this.listeners)) {
             this.listeners[e] = [];
+        }
+        if (opt && opt.once === true) {
+            const fn = (o) => {
+                f(o);
+                // setTimeout is needed to avoid breaking the list of event functions in the loop
+                setTimeout(() => { this.removeEventListener(e, fn); });
+            };
+            this.listeners[e].push(fn);
+            return;
         }
         this.listeners[e].push(f);
     }
