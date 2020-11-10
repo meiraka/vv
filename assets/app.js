@@ -61,9 +61,6 @@ class App {
         };
         let unsorted = (!this.mpd.playlist || !this.mpd.playlist.hasOwnProperty("sort") || this.mpd.playlist.sort === null || this.mpd.librarySongs.length === 0);
         const focusUnsorted = () => {
-            if (!this.preferences.appearance.playlist_follows_playback) {
-                return;
-            }
             if (!unsorted) {
                 return;
             }
@@ -79,7 +76,6 @@ class App {
         };
         this.mpd.addEventListener("current", focus);
         this.mpd.addEventListener("playlist", focus);
-        this.ui.addEventListener("load", focus);
         if (unsorted) {
             this.mpd.addEventListener("current", focusUnsorted, { once: true });
             this.mpd.addEventListener("playlist", focusUnsorted, { once: true });
@@ -930,12 +926,13 @@ class Library extends PubSub {
         };
         this._list_child_cache = [{}, {}, {}, {}, {}, {}];
         this._list_cache = {};
-        this.load();
 
         if (this.mpd.loaded) {
             this.updateData(this.mpd.librarySongs);
+            this.load();
         } else {
             this.mpd.addEventListener("load", () => { this.updateData(this.mpd.librarySongs); });
+            this.mpd.addEventListener("load", () => { this.load(); });
         }
         this.mpd.addEventListener("librarySongs", () => { this.update(this.mpd.librarySongs); });
     }
@@ -944,12 +941,18 @@ class Library extends PubSub {
         try {
             root = localStorage.getItem("root");
         } catch (_) { }
-        if (root && root.length !== 0) {
-            this.root = root;
-            if (this.root !== "root") {
-                this.tree.push(["root", this.root]);
-            }
+        if (root === null || root.length == 0 || root === "root") {
+            return;
         }
+        if (!this.mpd.current || !this.mpd.current.Pos || this.mpd.current.Pos.length === 0 || !this.mpd.playlist || this.mpd.librarySongs.length === 0) {
+            return;
+        }
+        if (parseInt(this.mpd.current.Pos[0]) !== this.mpd.playlist.current) {
+            return;
+        }
+        this.root = root;
+        this.tree.push(["root", this.root]);
+        this.abs(this.mpd.current);
     }
     save() {
         try {
