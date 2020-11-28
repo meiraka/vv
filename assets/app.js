@@ -9,8 +9,7 @@ class App {
         this.mpdWatcher = new MPDWatcher();
         this.mpd = new MPDClient(this.mpdWatcher);
         this.audio = new MPDAudio(this.mpd, this.preferences);
-        this.library = new Library(this.mpd);
-        this.followCurrentSong();
+        this.library = new Library(this.mpd, this.preferences);
         this.background = new UIBackground(this.ui, this.mpd, this.preferences);
         this.listView = new UIListView(this.ui, this.mpd, this.library, this.preferences);
         this.mainView = new UIMainView(this.ui, this.mpd, this.library, this.preferences);
@@ -43,44 +42,6 @@ class App {
             document.addEventListener("DOMContentLoaded", () => { this._init(); });
         } else {
             this._init();
-        }
-    }
-    followCurrentSong() {
-        const focus = () => {
-            if (!this.preferences.appearance.playlist_follows_playback) {
-                return;
-            }
-            if (!this.mpd.current || !this.mpd.current.Pos || this.mpd.current.Pos.length === 0 || !this.mpd.playlist || this.mpd.librarySongs.length === 0) {
-                return;
-            }
-            const pos = parseInt(this.mpd.current.Pos[0]);
-            if (pos !== this.mpd.playlist.current) {
-                return;
-            }
-            this.library.abs(this.mpd.current);
-        };
-        let unsorted = (!this.mpd.playlist || !this.mpd.playlist.hasOwnProperty("sort") || this.mpd.playlist.sort === null || this.mpd.librarySongs.length === 0);
-        const focusUnsorted = () => {
-            if (!unsorted) {
-                return;
-            }
-            if (!this.mpd.current || !this.mpd.current.Pos || this.mpd.current.Pos.length === 0 || !this.mpd.playlist || this.mpd.librarySongs.length === 0) {
-                return;
-            }
-            const pos = parseInt(this.mpd.current.Pos[0]);
-            if (pos !== this.mpd.playlist.current) {
-                return;
-            }
-            unsorted = false;
-            this.library.abs(this.mpd.current);
-        };
-        this.mpd.addEventListener("current", focus);
-        this.mpd.addEventListener("playlist", focus);
-        if (unsorted) {
-            this.mpd.addEventListener("current", focusUnsorted, { once: true });
-            this.mpd.addEventListener("playlist", focusUnsorted, { once: true });
-            this.library.addEventListener("update", focusUnsorted, { once: true });
-            this.library.addEventListener("changed", () => { unsorted = false; }, { once: true });
         }
     }
 };
@@ -908,13 +869,16 @@ class MPDClient extends PubSub {
 };
 
 class Library extends PubSub {
-    constructor(mpd) {
+    constructor(mpd, preferences) {
         super();
-        this.root = "root";
-        this.tree = [];
         this.mpd = mpd;
+        this.preferences = preferences;
+        this.tree = [];
         this.focus = {};
         this.child = null;
+        this._root = "root";
+        this._lastRoot = "root"; // hint for absFallback
+        this._lastabs = null;
         this._roots = {
             AlbumArtist: [],
             Album: [],
@@ -935,28 +899,34 @@ class Library extends PubSub {
             this.mpd.addEventListener("load", () => { this.load(); });
         }
         this.mpd.addEventListener("librarySongs", () => { this.update(this.mpd.librarySongs); });
+        this.mpd.addEventListener("current", () => { this._autoFocus(); });
+        this.mpd.addEventListener("playlist", () => { this._autoFocus(); });
     }
-    load() {
-        let root = null;
-        try {
-            root = localStorage.getItem("root");
-        } catch (_) { }
-        if (root === null || root.length == 0 || root === "root") {
+    _autoFocus() {
+        if (!this.preferences.appearance.playlist_follows_playback) {
             return;
         }
         if (!this.mpd.current || !this.mpd.current.Pos || this.mpd.current.Pos.length === 0 || !this.mpd.playlist || this.mpd.librarySongs.length === 0) {
             return;
         }
-        if (parseInt(this.mpd.current.Pos[0]) !== this.mpd.playlist.current) {
+        const pos = parseInt(this.mpd.current.Pos[0]);
+        if (pos !== this.mpd.playlist.current) {
             return;
         }
-        this.root = root;
-        this.tree.push(["root", this.root]);
         this.abs(this.mpd.current);
+    }
+    load() {
+        try {
+            this._lastRoot = localStorage.getItem("root");
+            if (!TREE_ORDER.includes(this._lastRoot)) {
+                this._lastRoot = "root";
+            }
+        } catch (_) { }
+        this._autoFocus();
     }
     save() {
         try {
-            localStorage.setItem("root", this.root);
+            localStorage.setItem("root", this._root);
         } catch (e) {
         }
     }
@@ -1029,7 +999,7 @@ class Library extends PubSub {
         }
         for (const key in TREE) {
             if (TREE.hasOwnProperty(key)) {
-                if (key === this.root) {
+                if (key === this._root) {
                     this._roots[key] = Songs.sort(data, TREE[key].sort, Library._mkmemo(key));
                 } else {
                     this._roots[key] = [];
@@ -1040,15 +1010,19 @@ class Library extends PubSub {
     update(data) {
         this.updateData(data);
         this.update_list();
+        if (!this._lastabs || Song.get(this._lastabs, "file") !== Song.get(this.mpd.current, "file")) {
+            this._autoFocus();
+        }
         this.raiseEvent("update");
     }
     rootname() {
         let r = "root";
         if (this.tree.length !== 0) {
             r = this.tree[0][1];
+            this._lastRoot = r;
         }
-        if (r !== this.root) {
-            this.root = r;
+        if (r !== this._root) {
+            this._root = r;
             this.save();
         }
         return r;
@@ -1107,12 +1081,11 @@ class Library extends PubSub {
         this.raiseEvent("list");
     }
     absFallback(song) {
-        if (this.rootname() !== "root" && song && song.file) {
-            const r = this.tree[0];
+        const root = this._lastRoot;
+        if (root !== "root" && song && song.file) {
             this.tree.length = 0;
             this.tree.splice(0, this.tree.length);
-            this.tree.push(r);
-            const root = this.tree[0][1];
+            this.tree.push(["root", root]);
             const selected = TREE[root].tree;
             for (let i = 0, imax = selected.length; i < imax; i++) {
                 if (i === selected.length - 1) {
@@ -1124,6 +1097,7 @@ class Library extends PubSub {
             this.update_list();
             for (const candidate of this.list().songs) {
                 if (candidate.file && candidate.file[0] === song.file[0]) {
+                    this._lastabs = candidate;
                     this.focus = candidate;
                     this.child = null;
                     break;
@@ -1170,6 +1144,7 @@ class Library extends PubSub {
             return;
         }
         if (songs[pos].file[0] === song.file[0]) {
+            this._lastabs = songs[pos];
             this.focus = songs[pos];
             this.child = null;
             this.tree.length = 0;
