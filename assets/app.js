@@ -2835,13 +2835,13 @@ class UITimeUpdater {
 class UIModal {
     static init(ui) {
         ui.addEventListener("load", () => {
-            document.getElementById("modal-background").addEventListener("click", () => { this.hide(); });
-            document.getElementById("modal-outer").addEventListener("click", () => { this.hide(); });
+            document.getElementById("modal-background").addEventListener("click", () => { UIModal.hide(); });
+            document.getElementById("modal-outer").addEventListener("click", () => { UIModal.hide(); });
             for (const w of Array.from(document.getElementsByClassName("modal-window"))) {
                 w.addEventListener("click", e => { e.stopPropagation(); });
             }
             for (const w of Array.from(document.getElementsByClassName("modal-window-close"))) {
-                w.addEventListener("click", () => { this.hide(); });
+                w.addEventListener("click", () => { UIModal.hide(); });
             }
         });
     }
@@ -2940,7 +2940,7 @@ class UISubModal {
                         document.getElementById("storage-error").textContent = e.error;
                         return;
                     }
-                    this.submodal.hide();
+                    UISubModal.hide();
                 });
             });
             // allowed formats
