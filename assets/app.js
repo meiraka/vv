@@ -1580,17 +1580,23 @@ class UIMainView extends PubSub {
                 } else {
                     e.style.opacity = "1";
                     e2.style.opacity = "0";
+                    e.style.zIndex = "0";
+                    e2.style.zIndex = "-1";
                 }
             } else {
                 if (e.dataset.src !== cover) {
                     e.style.opacity = "0";
                     e2.style.opacity = "1";
+                    e.style.zIndex = "-1";
+                    e2.style.zIndex = "0";
                     e = e2;
                 }
             }
         } else {
             e.style.opacity = "1";
             e2.style.opacity = "0";
+            e.style.zIndex = "0";
+            e2.style.zIndex = "-1";
         }
         e.src = cover;
         e.dataset.src = cover;
