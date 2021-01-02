@@ -2,7 +2,7 @@
 *.o
 *.a
 *.so
-vv
+/vv
 internal/cmd/fix-assets/fix-assets
 build/
 

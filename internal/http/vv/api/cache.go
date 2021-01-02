@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"bytes"
@@ -9,6 +9,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/meiraka/vv/internal/gzip"
+	"github.com/meiraka/vv/internal/http/request"
 )
 
 type jsonCache struct {
@@ -62,7 +65,7 @@ func (c *jsonCache) SetIfNone(path string, i interface{}) error {
 
 	c.data[pos] = n
 	c.date[pos] = time.Now().UTC()
-	gz, err := makeGZip(n)
+	gz, err := gzip.Encode(n)
 	if err == nil {
 		c.gzdata[pos] = gz
 	} else {
@@ -101,7 +104,7 @@ func (c *jsonCache) set(path string, i interface{}, force bool) error {
 	if force || !bytes.Equal(o, n) {
 		c.data[pos] = n
 		c.date[pos] = time.Now().UTC()
-		gz, err := makeGZip(n)
+		gz, err := gzip.Encode(n)
 		if err == nil {
 			c.gzdata[pos] = gz
 		} else {
@@ -135,11 +138,11 @@ func (c *jsonCache) Handler(path string) http.HandlerFunc {
 		b, gz, date := c.data[pos], c.gzdata[pos], c.date[pos]
 		c.mu.RUnlock()
 		etag := fmt.Sprintf(`"%d.%d"`, date.Unix(), date.Nanosecond())
-		if noneMatch(r, etag) {
+		if request.NoneMatch(r, etag) {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
-		if !modifiedSince(r, date) {
+		if !request.ModifiedSince(r, date) {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}

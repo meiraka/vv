@@ -1,11 +1,12 @@
-package main
+package gzip
 
 import (
 	"bytes"
 	"compress/gzip"
 )
 
-func makeGZip(data []byte) ([]byte, error) {
+// Encode encodes bytes to gzipped data.
+func Encode(data []byte) ([]byte, error) {
 	var gz bytes.Buffer
 	zw := gzip.NewWriter(&gz)
 	_, err := zw.Write(data)

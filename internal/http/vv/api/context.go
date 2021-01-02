@@ -1,23 +1,10 @@
-package main
+package api
 
 import (
 	"context"
 	"net/http"
 	"time"
 )
-
-/*modifiedSince compares If-Modified-Since header given time.Time.*/
-func modifiedSince(r *http.Request, l time.Time) bool {
-	t, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since"))
-	if err != nil {
-		return true
-	}
-	return !l.Before(t.Add(time.Second))
-}
-
-func noneMatch(r *http.Request, etag string) bool {
-	return r.Header.Get("If-None-Match") == etag
-}
 
 type httpContextKey string
 

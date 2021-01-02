@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/meiraka/vv/internal/http/vv"
+	"github.com/meiraka/vv/internal/http/vv/api"
+	"github.com/meiraka/vv/internal/http/vv/assets"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/songs/cover"
 )
@@ -46,29 +48,21 @@ func v2() {
 		HealthCheckInterval:  time.Second,
 		ReconnectionInterval: 5 * time.Second,
 	}
-	tree, err := json.Marshal(config.Playlist.Tree)
-	if err != nil {
-		log.Fatalf("failed to create playlist tree: %v", err)
-	}
-	treeOrder, err := json.Marshal(config.Playlist.TreeOrder)
-	if err != nil {
-		log.Fatalf("failed to create playlist tree order: %v", err)
-	}
-	cl, err := dialer.Dial(config.MPD.Network, config.MPD.Addr, "")
+	client, err := dialer.Dial(config.MPD.Network, config.MPD.Addr, "")
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
-	w, err := dialer.NewWatcher(config.MPD.Network, config.MPD.Addr, "")
+	watcher, err := dialer.NewWatcher(config.MPD.Network, config.MPD.Addr, "")
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
-	commands, err := cl.Commands(ctx)
+	commands, err := client.Commands(ctx)
 	if err != nil {
 		log.Fatalf("failed to check mpd supported functions: %v", err)
 	}
 	// get music dir from local mpd connection
 	if config.MPD.Network == "unix" && config.MPD.MusicDirectory == "" {
-		if c, err := cl.Config(ctx); err == nil {
+		if c, err := client.Config(ctx); err == nil {
 			if dir, ok := c["music_directory"]; ok && filepath.IsAbs(dir) {
 				config.MPD.MusicDirectory = dir
 				log.Printf("apply mpd.music_directory from mpd connection: %s", dir)
@@ -118,7 +112,7 @@ func v2() {
 		if !contains(commands, "albumart") {
 			log.Println("config.server.cover.remote is disabled: mpd does not support albumart command")
 		} else {
-			c, err := cover.NewRemote("/api/music/images/remote/", cl, filepath.Join(config.Server.CacheDirectory, "imgcache"))
+			c, err := cover.NewRemote("/api/music/images/remote/", client, filepath.Join(config.Server.CacheDirectory, "imgcache"))
 			if err != nil {
 				log.Fatalf("failed to initialize coverart: %v", err)
 			}
@@ -128,33 +122,36 @@ func v2() {
 		}
 	}
 	batch := cover.NewBatch(covers)
-	assets := AssetsConfig{
-		LocalAssets: config.debug,
-		Extra: map[string]string{
-			"AssetsAppCSSHash": string(AssetsAppCSSHash),
-			"AssetsAppJSHash":  string(AssetsAppJSHash),
-			"TREE":             string(tree),
-			"TREE_ORDER":       string(treeOrder),
-		},
-		ExtraDate: date,
-	}.NewAssetsHandler()
-	api, stopAPI, err := APIConfig{
+	root, err := vv.NewHTMLHander(&vv.HTMLConfig{
+		Tree:      toTree(config.Playlist.Tree),
+		TreeOrder: config.Playlist.TreeOrder,
+		Local:     config.debug,
+		LocalDate: date})
+	if err != nil {
+		log.Fatalf("failed to initialize root handler: %v", err)
+	}
+	assets, err := assets.NewHandler(&assets.Config{
+		Local: config.debug,
+	})
+	if err != nil {
+		log.Fatalf("failed to initialize assets handler: %v", err)
+	}
+	api, err := api.NewHandler(ctx, client, watcher, batch, &api.Config{
+		AppVersion: version,
 		AudioProxy: proxy,
-	}.NewAPIHandler(ctx, cl, w, batch)
+	})
 	if err != nil {
 		log.Fatalf("failed to initialize api handler: %v", err)
 	}
-	m.Handle("/", assets)
+	m.Handle("/", root)
+	m.Handle("/assets/", assets)
 	m.Handle("/api/", api)
 
-	if err != nil {
-		log.Fatalf("failed to initialize app: %v", err)
-	}
 	s := http.Server{
 		Handler: m,
 		Addr:    config.Server.Addr,
 	}
-	s.RegisterOnShutdown(stopAPI)
+	s.RegisterOnShutdown(api.Stop)
 	errs := make(chan error, 1)
 	go func() {
 		errs <- s.ListenAndServe()
@@ -174,10 +171,10 @@ func v2() {
 	if err := s.Shutdown(ctx); err != nil {
 		log.Printf("failed to stop http server: %v", err)
 	}
-	if err := cl.Close(ctx); err != nil {
+	if err := client.Close(ctx); err != nil {
 		log.Printf("failed to close mpd connection(main): %v", err)
 	}
-	if err := w.Close(ctx); err != nil {
+	if err := watcher.Close(ctx); err != nil {
 		log.Printf("failed to close mpd connection(event): %v", err)
 	}
 	if err := batch.Shutdown(ctx); err != nil {

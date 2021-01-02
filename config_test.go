@@ -82,37 +82,6 @@ func TestParseConfigDefault(t *testing.T) {
 	want.Server.Addr = ":8080"
 	want.Server.CacheDirectory = "/tmp/vv"
 	want.Server.Cover.Local = true
-	want.Playlist.Tree = map[string]*ConfigListNode{
-		"AlbumArtist": {
-			Sort: []string{"AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"AlbumArtist", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Album": {
-			Sort: []string{"AlbumArtist-Date-Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"AlbumArtist-Date-Album", "album"}, {"Title", "song"}},
-		},
-		"Artist": {
-			Sort: []string{"Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Artist", "plain"}, {"Title", "song"}},
-		},
-		"Genre": {
-			Sort: []string{"Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Genre", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Date": {
-			Sort: []string{"Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Date", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Composer": {
-			Sort: []string{"Composer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Composer", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Performer": {
-			Sort: []string{"Performer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Performer", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-	}
-	want.Playlist.TreeOrder = []string{"AlbumArtist", "Album", "Artist", "Genre", "Date", "Composer", "Performer"}
 	if !reflect.DeepEqual(config, want) {
 		t.Errorf("got %+v; want %+v", config, want)
 	}
@@ -147,37 +116,6 @@ func TestParseConfigOptions(t *testing.T) {
 	want.Server.CacheDirectory = "/tmp/vv"
 	want.Server.Cover.Local = true
 	want.Server.Cover.Remote = true
-	want.Playlist.Tree = map[string]*ConfigListNode{
-		"AlbumArtist": {
-			Sort: []string{"AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"AlbumArtist", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Album": {
-			Sort: []string{"AlbumArtist-Date-Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"AlbumArtist-Date-Album", "album"}, {"Title", "song"}},
-		},
-		"Artist": {
-			Sort: []string{"Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Artist", "plain"}, {"Title", "song"}},
-		},
-		"Genre": {
-			Sort: []string{"Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Genre", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Date": {
-			Sort: []string{"Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Date", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Composer": {
-			Sort: []string{"Composer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Composer", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Performer": {
-			Sort: []string{"Performer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Performer", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-	}
-	want.Playlist.TreeOrder = []string{"AlbumArtist", "Album", "Artist", "Genre", "Date", "Composer", "Performer"}
 	if !reflect.DeepEqual(config, want) {
 		t.Errorf("got \n%+v; want \n%+v", config, want)
 	}

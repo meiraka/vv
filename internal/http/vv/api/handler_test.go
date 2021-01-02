@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"context"
@@ -44,14 +44,14 @@ type testRequest struct {
 	postWebSocket []string
 }
 
-func TestAPIJSONPHandler(t *testing.T) {
+func TestHandler(t *testing.T) {
 	for label, tt := range map[string]struct {
-		config   APIConfig
+		config   Config
 		initFunc func(ctx context.Context, main *mpdtest.Server)
 		tests    []*testRequest
 	}{
 		"init": {
-			config: APIConfig{BackgroundTimeout: time.Second, AudioProxy: map[string]string{"My HTTP Stream": "http://foo/bar"}},
+			config: Config{BackgroundTimeout: time.Second, AudioProxy: map[string]string{"My HTTP Stream": "http://foo/bar"}},
 			initFunc: func(ctx context.Context, main *mpdtest.Server) {
 				main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
@@ -102,12 +102,12 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		"reconnect": {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{AppVersion: "0.0.0", BackgroundTimeout: time.Second, skipInit: true},
 
 			tests: []*testRequest{
 				{
 					method: http.MethodGet, path: "/api/version",
-					want: map[int]string{http.StatusOK: fmt.Sprintf(`{"app":"%s","go":"%s","mpd":"0.19"}`, version, fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH))},
+					want: map[int]string{http.StatusOK: fmt.Sprintf(`{"app":"%s","go":"%s","mpd":"0.19"}`, "0.0.0", fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH))},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/playlist",
@@ -161,7 +161,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 				{
 					method: http.MethodGet, path: "/api/version",
-					want: map[int]string{http.StatusOK: fmt.Sprintf(`{"app":"%s","go":"%s","mpd":"0.19"}`, version, fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH))},
+					want: map[int]string{http.StatusOK: fmt.Sprintf(`{"app":"%s","go":"%s","mpd":"0.19"}`, "0.0.0", fmt.Sprintf("%s %s %s", runtime.Version(), runtime.GOOS, runtime.GOARCH))},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/playlist",
@@ -198,7 +198,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		`POST /api/music {"repeat":true}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"repeat":true}`),
@@ -220,7 +220,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"random":true}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"random":true}`),
@@ -242,7 +242,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"oneshot":true}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"oneshot":true}`),
@@ -265,14 +265,14 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {invalid json}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{invalid json}`),
 					want: map[int]string{http.StatusBadRequest: `{"error":"invalid character 'i' looking for beginning of object key string"}`},
 				}}},
 		`POST /api/music {"single":true}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"single":true}`),
@@ -294,7 +294,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"consume":true}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"consume":true}`),
@@ -316,7 +316,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"state":"unknown"}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"state":"unknown"}`),
@@ -324,7 +324,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"state":"play"}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"state":"play"}`),
@@ -347,7 +347,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"state":"next"}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"state":"next"}`),
@@ -370,7 +370,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"state":"previous"}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"state":"previous"}`),
@@ -393,7 +393,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"state":"pause"}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"state":"pause"}`),
@@ -416,7 +416,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"volume":"100"}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"volume":100}`),
@@ -437,7 +437,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"song_elapsed":"100.1"}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"song_elapsed":100.1}`),
@@ -460,7 +460,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"replay_gain":"track"}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"replay_gain":"track"}`),
@@ -482,7 +482,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music {"crossfade":1}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"crossfade":1}`),
@@ -504,7 +504,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		"GET /api/music/images": {
-			config: APIConfig{skipInit: true},
+			config: Config{skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodGet, path: "/api/music/images",
@@ -513,7 +513,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		"GET /api/music/storage unknown command": {
-			config: APIConfig{skipInit: true},
+			config: Config{skipInit: true},
 			tests: []*testRequest{
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -527,7 +527,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		"GET /api/music/storage": {
-			config: APIConfig{skipInit: true},
+			config: Config{skipInit: true},
 			tests: []*testRequest{
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -541,7 +541,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		`POST /api/music/storage {"foo":{"uri":"nfs://192.168.1.4/export/mp3"}}`: {
-			config: APIConfig{skipInit: true},
+			config: Config{skipInit: true},
 			tests: []*testRequest{
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -560,7 +560,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		`POST /api/music/storage {"foo":{"uri":null}}`: {
-			config: APIConfig{skipInit: true},
+			config: Config{skipInit: true},
 			tests: []*testRequest{
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -579,7 +579,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		`POST /api/music/storage {"foo":{"updating":true}}`: {
-			config: APIConfig{skipInit: true},
+			config: Config{skipInit: true},
 			tests: []*testRequest{
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -591,7 +591,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		"GET /api/music/outputs": {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -605,7 +605,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		"GET /api/music/outputs dop": {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -619,7 +619,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		"GET /api/music/outputs with stream url": {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true, AudioProxy: map[string]string{"My HTTP Stream": "http://localhost:8080/"}},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true, AudioProxy: map[string]string{"My HTTP Stream": "http://localhost:8080/"}},
 			tests: []*testRequest{
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -633,7 +633,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			},
 		},
 		"POST /api/music/outputs {invalid json}": {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true, AudioProxy: map[string]string{"My HTTP Stream": "http://localhost:8080/"}},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true, AudioProxy: map[string]string{"My HTTP Stream": "http://localhost:8080/"}},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{invalid json}`),
@@ -641,7 +641,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music/outputs {"0":{"enabled":true}}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true, AudioProxy: map[string]string{"My HTTP Stream": "http://localhost:8080/"}},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true, AudioProxy: map[string]string{"My HTTP Stream": "http://localhost:8080/"}},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"enabled":true}}`),
@@ -662,7 +662,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music/outputs {"0":{"enabled":false}}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true, AudioProxy: map[string]string{"My HTTP Stream": "http://localhost:8080/"}},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true, AudioProxy: map[string]string{"My HTTP Stream": "http://localhost:8080/"}},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"enabled":false}}`),
@@ -683,7 +683,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music/outputs {"0":{"attributes":{"dop":true}}}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"attributes":{"dop":true}}}`),
@@ -704,7 +704,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music/outputs {"0":{"attributes":{"allowed_formats":[]}}}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"attributes":{"allowed_formats":[]}}}`),
@@ -725,7 +725,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music/outputs {"0":{"attributes":{"allowed_formats":["96000:16:*","192000:24:*","dsd32:*=dop"]}}}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"attributes":{"allowed_formats":["96000:16:*","192000:24:*","dsd32:*=dop"]}}}`),
@@ -746,7 +746,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music/playlist {invalid json}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/playlist", body: strings.NewReader(`{invalid json}`),
@@ -754,7 +754,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music/playlist {}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/playlist", body: strings.NewReader(`{}`),
@@ -762,7 +762,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 				},
 			}},
 		`POST /api/music/playlist {"current":0,"sort":["file"],"filters":[]}`: {
-			config: APIConfig{BackgroundTimeout: time.Second},
+			config: Config{BackgroundTimeout: time.Second},
 			initFunc: func(ctx context.Context, main *mpdtest.Server) {
 				main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
@@ -829,7 +829,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			}},
 
 		`POST /api/music/library {invalid json}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/library", body: strings.NewReader(`{invalid json}`),
@@ -838,7 +838,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			}},
 
 		`POST /api/music/library {}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/library", body: strings.NewReader(`{}`),
@@ -847,7 +847,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			}},
 
 		`POST /api/music/library {"updating":true} error`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/library", body: strings.NewReader(`{"updating":true}`),
@@ -859,7 +859,7 @@ func TestAPIJSONPHandler(t *testing.T) {
 			}},
 
 		`POST /api/music/library {"updating":true}`: {
-			config: APIConfig{BackgroundTimeout: time.Second, skipInit: true},
+			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music/library", body: strings.NewReader(`{"updating":true}`),
@@ -930,8 +930,8 @@ func TestAPIJSONPHandler(t *testing.T) {
 				go tt.initFunc(ctx, main)
 			}
 			b := cover.NewBatch([]cover.Cover{})
-			h, stop, err := tt.config.NewAPIHandler(ctx, c, wl, b)
-			defer stop()
+			h, err := NewHandler(ctx, c, wl, b, &tt.config)
+			defer h.Stop()
 			if err != nil {
 				t.Fatalf("NewHTTPHandler got error %v; want nil", err)
 			}
@@ -1069,14 +1069,14 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 		}
 	}))
 	defer audioProxy.Close()
-	h, stop, err := APIConfig{
+	h, err := NewHandler(ctx, c, wl, cover.NewBatch([]cover.Cover{}), &Config{
 		skipInit:   true,
 		AudioProxy: map[string]string{"My / HTTP / Stream": audioProxy.URL},
-	}.NewAPIHandler(ctx, c, wl, cover.NewBatch([]cover.Cover{}))
+	})
 	if err != nil {
 		t.Fatalf("failed to initialize api handler: %v", err)
 	}
-	defer stop()
+	defer h.Stop()
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 
@@ -1143,7 +1143,7 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 			t.Fatalf("failed to request: %v", err)
 		}
 		defer resp.Body.Close()
-		stop() // stop stops http server audio stream
+		h.Stop() // Shutdown stops http server audio stream
 		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
 			t.Errorf("read http stream %s body got err: %v; want %v", device.Stream, err, nil)
 		}

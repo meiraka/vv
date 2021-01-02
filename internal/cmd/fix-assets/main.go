@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 )
 
@@ -49,11 +50,11 @@ func main() {
 		log.Fatal(err)
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Name() < files[j].Name() })
-	f, err := os.Create("assets.go")
+	f, err := os.Create(filepath.Join("internal", "http", "vv", "assets", "binary.go"))
 	if err != nil {
 		log.Fatalf("failed to open file: %v", err)
 	}
-	fmt.Fprintln(f, "package main")
+	fmt.Fprintln(f, "package assets")
 	fmt.Fprintln(f)
 	fmt.Fprintln(f, "var (")
 	for _, file := range files {
@@ -65,10 +66,11 @@ func main() {
 		hasher := md5.New()
 		hasher.Write(b)
 		h := hex.EncodeToString(hasher.Sum(nil))
-		fmt.Fprintf(f, "\t// %s is %s\n", makeName(p), p)
-		fmt.Fprintf(f, "\t%s = []byte(%q)\n", makeName(p), b)
-		fmt.Fprintf(f, "\t// %sHash is md5 for %s\n", makeName(p), p)
-		fmt.Fprintf(f, "\t%sHash = []byte(%q)\n", makeName(p), h)
+		name := makeName(file.Name())
+		fmt.Fprintf(f, "\t// %s is %s\n", name, p)
+		fmt.Fprintf(f, "\t%s = []byte(%q)\n", name, b)
+		fmt.Fprintf(f, "\t// %sHash is md5 for %s\n", name, p)
+		fmt.Fprintf(f, "\t%sHash = []byte(%q)\n", name, h)
 	}
 	fmt.Fprintln(f, ")")
 }

@@ -1,9 +1,6 @@
-package main
+package vv
 
 import (
-	"bytes"
-	"html/template"
-
 	"golang.org/x/text/language"
 )
 
@@ -158,25 +155,4 @@ var translateData = map[language.Tag]map[string]string{
 		"NotifyCoverArtUpdating":              "更新中...",
 		"NotifyCoverArtUpdated":               "更新済み",
 	},
-}
-
-func translate(html []byte, lang language.Tag, extra map[string]string) ([]byte, error) {
-	t, err := template.New("webpage").Parse(string(html))
-	if err != nil {
-		return nil, err
-	}
-	buf := new(bytes.Buffer)
-	m, ok := translateData[lang]
-	if ok {
-		for k, v := range extra {
-			m[k] = v
-		}
-	} else {
-		m = extra
-	}
-	err = t.Execute(buf, m)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }

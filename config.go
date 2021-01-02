@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/meiraka/vv/internal/http/vv"
 	"github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
 )
@@ -102,10 +103,6 @@ func (c *Config) setDefault() {
 	if c.Server.Addr == "" {
 		c.Server.Addr = ":8080"
 	}
-	if c.Playlist.Tree == nil && c.Playlist.TreeOrder == nil {
-		c.Playlist.Tree = defaultTree
-		c.Playlist.TreeOrder = defaultTreeOrder
-	}
 }
 
 // Validate validates config data.
@@ -153,44 +150,13 @@ func sameStrSlice(a, b []string) bool {
 }
 
 var (
-	defaultTree = map[string]*ConfigListNode{
-		"AlbumArtist": {
-			Sort: []string{"AlbumArtist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"AlbumArtist", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Album": {
-			Sort: []string{"AlbumArtist-Date-Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"AlbumArtist-Date-Album", "album"}, {"Title", "song"}},
-		},
-		"Artist": {
-			Sort: []string{"Artist", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Artist", "plain"}, {"Title", "song"}},
-		},
-		"Genre": {
-			Sort: []string{"Genre", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Genre", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Date": {
-			Sort: []string{"Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Date", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Composer": {
-			Sort: []string{"Composer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Composer", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-		"Performer": {
-			Sort: []string{"Performer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
-			Tree: [][2]string{{"Performer", "plain"}, {"Album", "album"}, {"Title", "song"}},
-		},
-	}
-	defaultTreeOrder = []string{"AlbumArtist", "Album", "Artist", "Genre", "Date", "Composer", "Performer"}
 	supportTreeViews = []string{"plain", "album", "song"}
 )
 
 // ConfigListNode represents smart playlist node.
 type ConfigListNode struct {
-	Sort []string    `json:"sort"`
-	Tree [][2]string `json:"tree"`
+	Sort []string    `yaml:"sort"`
+	Tree [][2]string `yaml:"tree"`
 }
 
 // Validate ConfigListNode data struct.
@@ -210,4 +176,19 @@ func (l *ConfigListNode) Validate() error {
 		}
 	}
 	return nil
+}
+
+// toTree shallow copies config tree to vv.Tree.
+func toTree(t map[string]*ConfigListNode) vv.Tree {
+	if t == nil {
+		return nil
+	}
+	ret := make(vv.Tree, len(t))
+	for k, v := range t {
+		ret[k] = &vv.TreeNode{
+			Sort: v.Sort,
+			Tree: v.Tree,
+		}
+	}
+	return ret
 }
