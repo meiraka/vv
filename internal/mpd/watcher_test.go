@@ -20,7 +20,8 @@ func TestWatcher(t *testing.T) {
 		t.Fatalf("failed to create test server: %v", err)
 	}
 	defer ts.Close()
-	w, err := testDialer.NewWatcher("tcp", ts.URL, "")
+	w, err := NewWatcher("tcp", ts.URL,
+		&WatcherOptions{Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}

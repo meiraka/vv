@@ -26,11 +26,6 @@ const (
 )
 
 var (
-	testDialer = mpd.Dialer{
-		Timeout:              time.Second,
-		HealthCheckInterval:  time.Hour,
-		ReconnectionInterval: time.Second,
-	}
 	testHTTPClient = &http.Client{Timeout: testTimeout}
 )
 
@@ -907,7 +902,8 @@ func TestHandler(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create mpd test server: %v", err)
 			}
-			c, err := testDialer.Dial("tcp", main.URL, "")
+			c, err := mpd.Dial("tcp", main.URL,
+				&mpd.ClientOptions{Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 			if err != nil {
 				t.Fatalf("Dial got error %v; want nil", err)
 			}
@@ -916,7 +912,8 @@ func TestHandler(t *testing.T) {
 					t.Errorf("mpd.Client.Close got err %v; want nil", err)
 				}
 			}()
-			wl, err := testDialer.NewWatcher("tcp", sub.URL, "")
+			wl, err := mpd.NewWatcher("tcp", sub.URL,
+				&mpd.WatcherOptions{Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 			if err != nil {
 				t.Fatalf("Dial got error %v; want nil", err)
 			}
@@ -1035,7 +1032,8 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mpd test server: %v", err)
 	}
-	c, err := testDialer.Dial("tcp", main.URL, "")
+	c, err := mpd.Dial("tcp", main.URL,
+		&mpd.ClientOptions{Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
@@ -1044,7 +1042,8 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 			t.Errorf("mpd.Client.Close got err %v; want nil", err)
 		}
 	}()
-	wl, err := testDialer.NewWatcher("tcp", sub.URL, "")
+	wl, err := mpd.NewWatcher("tcp", sub.URL,
+		&mpd.WatcherOptions{Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}

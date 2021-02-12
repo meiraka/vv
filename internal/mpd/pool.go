@@ -9,9 +9,9 @@ import (
 type pool struct {
 	proto                string
 	addr                 string
-	password             string
 	Timeout              time.Duration
 	ReconnectionInterval time.Duration
+	connHook             func(*conn) error
 	connC                chan *conn
 	connCtx              context.Context
 	connCancel           context.CancelFunc
@@ -19,14 +19,14 @@ type pool struct {
 	version              string
 }
 
-func newPool(proto string, addr string, password string, timeout time.Duration, reconnectionInterval time.Duration) (*pool, error) {
+func newPool(proto string, addr string, timeout time.Duration, reconnectionInterval time.Duration, connHook func(*conn) error) (*pool, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	p := &pool{
 		proto:                proto,
 		addr:                 addr,
-		password:             password,
 		Timeout:              timeout,
 		ReconnectionInterval: reconnectionInterval,
+		connHook:             connHook,
 		connC:                make(chan *conn, 1),
 		connCtx:              ctx,
 		connCancel:           cancel,
@@ -127,11 +127,9 @@ func (c *pool) connectOnce() error {
 	if err != nil {
 		return err
 	}
-	if len(c.password) > 0 {
-		if err := conn.OK("password", c.password); err != nil {
-			conn.Close()
-			return err
-		}
+	if err := c.connHook(conn); err != nil {
+		conn.Close()
+		return err
 	}
 	c.connC <- conn
 	c.mu.Lock()

@@ -3,16 +3,20 @@ package mpd
 import (
 	"context"
 	"strings"
+	"time"
 )
 
 // NewWatcher connects to mpd server
-func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (*Watcher, error) {
-	cmd := make([]interface{}, len(subsystems)+1)
-	cmd[0] = "idle"
-	for i := range subsystems {
-		cmd[i+1] = subsystems[i]
+func NewWatcher(proto, addr string, opts *WatcherOptions) (*Watcher, error) {
+	if opts == nil {
+		opts = &WatcherOptions{}
 	}
-	pool, err := newPool(proto, addr, password, d.Timeout, d.ReconnectionInterval)
+	cmd := make([]interface{}, len(opts.SubSystems)+1)
+	cmd[0] = "idle"
+	for i := range opts.SubSystems {
+		cmd[i+1] = opts.SubSystems[i]
+	}
+	pool, err := newPool(proto, addr, opts.Timeout, opts.ReconnectionInterval, opts.connectHook)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +98,7 @@ func (d Dialer) NewWatcher(proto, addr, password string, subsystems ...string) (
 	return w, nil
 }
 
-// Watcher is the mpd idle command wather
+// Watcher is the mpd idle command watcher.
 type Watcher struct {
 	pool   *pool
 	closed <-chan struct{}
@@ -117,4 +121,22 @@ func (w *Watcher) Close(ctx context.Context) error {
 		return ctx.Err()
 	}
 	return err
+}
+
+// WatcherOptions contains options for mpd idle command connection.
+type WatcherOptions struct {
+	Password             string
+	Timeout              time.Duration
+	ReconnectionInterval time.Duration
+	// SubSystems are list of recieve events. Watcher recieves all events if SubSystems are empty.
+	SubSystems []string
+}
+
+func (c *WatcherOptions) connectHook(conn *conn) error {
+	if len(c.Password) > 0 {
+		if err := conn.OK("password", c.Password); err != nil {
+			return err
+		}
+	}
+	return nil
 }

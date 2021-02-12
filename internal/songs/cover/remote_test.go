@@ -23,7 +23,7 @@ func TestRemote(t *testing.T) {
 		t.Fatalf("failed to create mpd test server: %v", err)
 	}
 	defer svr.Close()
-	c, err := (&mpd.Dialer{}).Dial("tcp", svr.URL, "")
+	c, err := mpd.Dial("tcp", svr.URL, nil)
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestRemoteRescan(t *testing.T) {
 		t.Fatalf("failed to create mpd test server: %v", err)
 	}
 	defer svr.Close()
-	c, err := (&mpd.Dialer{}).Dial("tcp", svr.URL, "")
+	c, err := mpd.Dial("tcp", svr.URL, nil)
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}

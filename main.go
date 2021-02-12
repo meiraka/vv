@@ -43,16 +43,18 @@ func v2() {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
-	dialer := mpd.Dialer{
+	client, err := mpd.Dial(config.MPD.Network, config.MPD.Addr, &mpd.ClientOptions{
 		Timeout:              10 * time.Second,
 		HealthCheckInterval:  time.Second,
 		ReconnectionInterval: 5 * time.Second,
-	}
-	client, err := dialer.Dial(config.MPD.Network, config.MPD.Addr, "")
+	})
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}
-	watcher, err := dialer.NewWatcher(config.MPD.Network, config.MPD.Addr, "")
+	watcher, err := mpd.NewWatcher(config.MPD.Network, config.MPD.Addr, &mpd.WatcherOptions{
+		Timeout:              10 * time.Second,
+		ReconnectionInterval: 5 * time.Second,
+	})
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
 	}

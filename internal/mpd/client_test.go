@@ -12,13 +12,6 @@ import (
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
 )
 
-var (
-	testDialer = Dialer{
-		Timeout:              testTimeout,
-		ReconnectionInterval: time.Microsecond,
-	}
-)
-
 func TestClient(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
@@ -30,7 +23,8 @@ func TestClient(t *testing.T) {
 		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
 	}()
 	defer ts.Close()
-	c, err := testDialer.Dial("tcp", ts.URL, "2434")
+	c, err := Dial("tcp", ts.URL,
+		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
@@ -226,7 +220,8 @@ func TestDialPasswordError(t *testing.T) {
 		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "ACK [3@1] {password} error\n"})
 	}()
 	defer ts.Close()
-	c, err := testDialer.Dial("tcp", ts.URL, "2434")
+	c, err := Dial("tcp", ts.URL,
+		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	want := &CommandError{ID: 3, Index: 1, Command: "password", Message: "error"}
 	if !reflect.DeepEqual(err, want) {
 		t.Errorf("Dial got error %v; want %v", err, want)
@@ -260,7 +255,8 @@ func TestClientCloseNetworkError(t *testing.T) {
 		ln.Close()
 		cli <- struct{}{}
 	}()
-	c, err := testDialer.Dial("tcp", ln.Addr().String(), "")
+	c, err := Dial("tcp", ln.Addr().String(),
+		&ClientOptions{Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
 		t.Fatalf("failed to connect mock server: %v", err)
 	}

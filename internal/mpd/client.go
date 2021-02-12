@@ -16,30 +16,6 @@ var (
 // Song represents song tag.
 type Song map[string][]string
 
-// Dialer contains options for connecting to mpd
-type Dialer struct {
-	// Timeout is the maximum amount of time a dial will wait for a connect to complete.
-	Timeout              time.Duration
-	HealthCheckInterval  time.Duration
-	ReconnectionInterval time.Duration
-}
-
-// Dial connects to mpd server.
-func (d Dialer) Dial(proto, addr, password string) (*Client, error) {
-	pool, err := newPool(proto, addr, password, d.Timeout, d.ReconnectionInterval)
-	if err != nil {
-		return nil, err
-	}
-	hCtx, hStop := context.WithCancel(context.Background())
-	c := &Client{
-		pool:            pool,
-		dialer:          &d,
-		stopHealthCheck: hStop,
-	}
-	go c.healthCheck(hCtx)
-	return c, nil
-}
-
 // Client is a mpd client.
 type Client struct {
 	proto           string
@@ -47,7 +23,26 @@ type Client struct {
 	password        string
 	pool            *pool
 	stopHealthCheck func()
-	dialer          *Dialer
+	opts            *ClientOptions
+}
+
+// Dial connects to mpd server.
+func Dial(proto, addr string, opts *ClientOptions) (*Client, error) {
+	if opts == nil {
+		opts = &ClientOptions{}
+	}
+	pool, err := newPool(proto, addr, opts.Timeout, opts.ReconnectionInterval, opts.connectHook)
+	if err != nil {
+		return nil, err
+	}
+	hCtx, hStop := context.WithCancel(context.Background())
+	c := &Client{
+		pool:            pool,
+		stopHealthCheck: hStop,
+		opts:            opts,
+	}
+	go c.healthCheck(hCtx)
+	return c, nil
 }
 
 // Close closes mpd connection.
@@ -363,10 +358,10 @@ func (c *Client) OutputSet(ctx context.Context, id, name, value string) error {
 }
 
 func (c *Client) healthCheck(ctx context.Context) {
-	if c.dialer.HealthCheckInterval == 0 {
+	if c.opts.HealthCheckInterval == 0 {
 		return
 	}
-	ticker := time.NewTicker(c.dialer.HealthCheckInterval)
+	ticker := time.NewTicker(c.opts.HealthCheckInterval)
 	go func() {
 		defer ticker.Stop()
 		for {
@@ -374,7 +369,7 @@ func (c *Client) healthCheck(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				ctx, cancel := context.WithTimeout(ctx, c.dialer.HealthCheckInterval)
+				ctx, cancel := context.WithTimeout(ctx, c.opts.HealthCheckInterval)
 				c.Ping(ctx)
 				cancel()
 			}
@@ -532,6 +527,24 @@ func (c *Client) listFunc(ctx context.Context, f func(string) error, cmd ...inte
 			}
 		}
 	})
+}
+
+// ClientOptions contains options for mpd client connection.
+type ClientOptions struct {
+	Password string
+	// Timeout is the maximum amount of time a dial will wait for a connect to complete.
+	Timeout              time.Duration
+	HealthCheckInterval  time.Duration
+	ReconnectionInterval time.Duration
+}
+
+func (c *ClientOptions) connectHook(conn *conn) error {
+	if len(c.Password) > 0 {
+		if err := conn.OK("password", c.Password); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // quote escaping strings values for mpd.

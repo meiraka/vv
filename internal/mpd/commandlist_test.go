@@ -2,7 +2,7 @@ package mpd
 
 import (
 	"context"
-	"reflect"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -25,7 +25,8 @@ func TestCommandList(t *testing.T) {
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_end\n", Write: "list_OK\nlist_OK\nOK\n"})
 	}()
 	defer ts.Close()
-	c, err := testDialer.Dial("tcp", ts.URL, "2434")
+	c, err := Dial("tcp", ts.URL,
+		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
@@ -53,7 +54,8 @@ func TestCommandListCommandError(t *testing.T) {
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_end\n", Write: "list_OK\nACK [2@1] {} Bad song index\n"})
 	}()
 	defer ts.Close()
-	c, err := testDialer.Dial("tcp", ts.URL, "2434")
+	c, err := Dial("tcp", ts.URL,
+		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
@@ -61,7 +63,7 @@ func TestCommandListCommandError(t *testing.T) {
 	cl.Clear()
 	cl.Play(0)
 	cl.Add("/foo/bar")
-	if err, want := c.ExecCommandList(ctx, cl), newCommandError("ACK [2@1] {} Bad song index"); !reflect.DeepEqual(err, want) {
+	if err, want := c.ExecCommandList(ctx, cl), newCommandError("ACK [2@1] {} Bad song index"); !errors.Is(err, want) {
 		t.Errorf("CommandList got error %v; want %v", err, want)
 	}
 	if err := c.Close(ctx); err != nil {
@@ -87,7 +89,8 @@ func TestCommandListNetworkError(t *testing.T) {
 		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
 	}()
 	defer ts.Close()
-	c, err := testDialer.Dial("tcp", ts.URL, "2434")
+	c, err := Dial("tcp", ts.URL,
+		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
 		t.Fatalf("Dial got error %v; want nil", err)
 	}
