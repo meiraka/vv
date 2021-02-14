@@ -19,6 +19,7 @@ type Config struct {
 		Addr           string `yaml:"addr"`
 		MusicDirectory string `yaml:"music_directory"`
 		Conf           string `yaml:"conf"`
+		BinaryLimit    int    `yaml:"binarylimit"`
 	} `yaml:"mpd"`
 	Server struct {
 		Addr           string `yaml:"addr"`
@@ -66,6 +67,7 @@ func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 	ma := flagset.String("mpd.addr", "", "mpd server address to connect")
 	mm := flagset.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
 	mc := flagset.String("mpd.conf", "", "set mpd.conf path to get music_directory and http audio output")
+	mb := flagset.Int("mpd.binarylimit", 0, "set the maximum binary response size of mpd")
 	sa := flagset.String("server.addr", "", "this app serving address")
 	si := flagset.Bool("server.cover.remote", false, "enable coverart via mpd api")
 	d := flagset.BoolP("debug", "d", false, "use local assets if exists")
@@ -81,6 +83,9 @@ func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 	}
 	if len(*mc) != 0 {
 		c.MPD.Conf = *mc
+	}
+	if *mb != 0 {
+		c.MPD.BinaryLimit = *mb
 	}
 	if len(*sa) != 0 {
 		c.Server.Addr = *sa

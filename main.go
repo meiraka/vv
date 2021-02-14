@@ -44,6 +44,7 @@ func v2() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 	client, err := mpd.Dial(config.MPD.Network, config.MPD.Addr, &mpd.ClientOptions{
+		BinaryLimit:          config.MPD.BinaryLimit,
 		Timeout:              10 * time.Second,
 		HealthCheckInterval:  time.Second,
 		ReconnectionInterval: 5 * time.Second,

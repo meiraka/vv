@@ -6,11 +6,89 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
 )
+
+func TestDial(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	defer cancel()
+	ts, err := mpdtest.NewServer("OK MPD 0.19")
+	if err != nil {
+		t.Fatalf("failed to create test server: %v", err)
+	}
+	defer ts.Close()
+	for label, tt := range map[string]struct {
+		url  string
+		opts *ClientOptions
+		want []*mpdtest.WR
+		err  bool
+	}{
+		"urlerr":     {url: "", err: true},
+		"nopassword": {url: ts.URL},
+		"password": {
+			url:  ts.URL,
+			opts: &ClientOptions{Password: "2434"},
+			want: []*mpdtest.WR{{Read: "password 2434\n", Write: "OK\n"}},
+		},
+		"password(error)": {
+			url:  ts.URL,
+			opts: &ClientOptions{Password: "2434"},
+			want: []*mpdtest.WR{{Read: "password 2434\n", Write: "ACK [3@1] {password} error\n"}},
+			err:  true,
+		},
+		"binarylimit": {
+			url:  ts.URL,
+			opts: &ClientOptions{BinaryLimit: 64},
+			want: []*mpdtest.WR{{Read: "binarylimit 64\n", Write: "OK\n"}},
+		},
+		"binarylimit(invalid value)": {
+			url:  ts.URL,
+			opts: &ClientOptions{BinaryLimit: 2},
+			want: []*mpdtest.WR{{Read: "binarylimit 2\n", Write: `ACK [2@0] {binarylimit} Value too small` + "\n"}},
+			err:  true,
+		},
+		"binarylimit(unsupported)": {
+			url:  ts.URL,
+			opts: &ClientOptions{BinaryLimit: 64},
+			want: []*mpdtest.WR{{Read: "binarylimit 64\n", Write: `ACK [5@0] {} unknown command "binarylimit"` + "\n"}},
+			err:  false,
+		},
+		"fulloptions": { // without health check
+			url:  ts.URL,
+			opts: &ClientOptions{Password: "2434", BinaryLimit: 64},
+			want: []*mpdtest.WR{
+				{Read: "password 2434\n", Write: "OK\n"},
+				{Read: "binarylimit 64\n", Write: "OK\n"},
+			},
+		},
+	} {
+		t.Run(label, func(t *testing.T) {
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				for _, w := range tt.want {
+					ts.Expect(ctx, w)
+				}
+				wg.Done()
+			}()
+			c, err := Dial("tcp", tt.url, tt.opts)
+			if !tt.err && err != nil {
+				t.Errorf("got err: %v; want <nil>", err)
+			}
+			if tt.err && err == nil {
+				t.Errorf("got no err; want non nil err")
+			}
+			wg.Wait()
+			if err == nil {
+				c.Close(ctx)
+			}
+		})
+	}
+}
 
 func TestClient(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
@@ -209,28 +287,6 @@ func TestClient(t *testing.T) {
 		default:
 			t.Run(k, v)
 		}
-	}
-}
-
-func TestDialPasswordError(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	ts, _ := mpdtest.NewServer("OK MPD 0.19")
-	go func() {
-		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "ACK [3@1] {password} error\n"})
-	}()
-	defer ts.Close()
-	c, err := Dial("tcp", ts.URL,
-		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
-	want := &CommandError{ID: 3, Index: 1, Command: "password", Message: "error"}
-	if !reflect.DeepEqual(err, want) {
-		t.Errorf("Dial got error %v; want %v", err, want)
-	}
-	if err != nil {
-		return
-	}
-	if err := c.Close(ctx); err != nil {
-		t.Errorf("Close got error %v; want nil", err)
 	}
 }
 

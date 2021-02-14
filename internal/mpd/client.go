@@ -536,11 +536,19 @@ type ClientOptions struct {
 	Timeout              time.Duration
 	HealthCheckInterval  time.Duration
 	ReconnectionInterval time.Duration
+	// BinaryLimit sets maximum binary response size.
+	BinaryLimit int
 }
 
 func (c *ClientOptions) connectHook(conn *conn) error {
 	if len(c.Password) > 0 {
 		if err := conn.OK("password", c.Password); err != nil {
+			return err
+		}
+	}
+	if c.BinaryLimit > 0 {
+		err := conn.OK("binarylimit", c.BinaryLimit)
+		if err != nil && !errors.Is(err, ErrUnknown) { // MPD-0.22.3 or earlier returns ErrUnknown
 			return err
 		}
 	}

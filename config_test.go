@@ -27,6 +27,7 @@ func TestParseConfigExample(t *testing.T) {
 	want.MPD.Addr = "localhost:6600"
 	want.MPD.MusicDirectory = "/path/to/music/dir"
 	want.MPD.Conf = "/etc/mpd.conf"
+	want.MPD.BinaryLimit = 8192
 	want.Server.Addr = ":8080"
 	want.Server.CacheDirectory = "/tmp/vv"
 	want.Server.Cover.Local = true
@@ -96,6 +97,7 @@ func TestParseConfigOptions(t *testing.T) {
 		"--mpd.network", "unix",
 		"--mpd.addr", "/var/run/mpd/socket",
 		"--mpd.music_directory", "/mnt/Music",
+		"--mpd.binarylimit", "64",
 		"--server.addr", ":80",
 		"--server.cover.remote",
 	}
@@ -112,6 +114,7 @@ func TestParseConfigOptions(t *testing.T) {
 	want.MPD.Addr = "/var/run/mpd/socket"
 	want.MPD.Conf = "/local/etc/mpd.conf"
 	want.MPD.MusicDirectory = "/mnt/Music"
+	want.MPD.BinaryLimit = 64
 	want.Server.Addr = ":80"
 	want.Server.CacheDirectory = "/tmp/vv"
 	want.Server.Cover.Local = true

@@ -11,6 +11,10 @@ mpd:
     # mpd.conf path to get music_directory and http audio output.
     # default: /etc/mpd.conf
     conf: "/etc/mpd.conf"
+    # set the maximum binary response size of mpd.
+    # default: 8192
+    # https://github.com/MusicPlayerDaemon/MPD/blob/995aafe9cc511430bff7a7a690df70998f4bb025/src/client/Client.hxx#L91
+    binarylimit: 8192
 
 server:
     # this app serving address
