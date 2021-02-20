@@ -27,7 +27,7 @@ func TestParseConfigExample(t *testing.T) {
 	want.MPD.Addr = "localhost:6600"
 	want.MPD.MusicDirectory = "/path/to/music/dir"
 	want.MPD.Conf = "/etc/mpd.conf"
-	want.MPD.BinaryLimit = 8192
+	want.MPD.BinaryLimit = 128 * 1024
 	want.Server.Addr = ":8080"
 	want.Server.CacheDirectory = "/tmp/vv"
 	want.Server.Cover.Local = true
@@ -97,7 +97,7 @@ func TestParseConfigOptions(t *testing.T) {
 		"--mpd.network", "unix",
 		"--mpd.addr", "/var/run/mpd/socket",
 		"--mpd.music_directory", "/mnt/Music",
-		"--mpd.binarylimit", "64",
+		"--mpd.binarylimit", "32k",
 		"--server.addr", ":80",
 		"--server.cover.remote",
 	}
@@ -114,7 +114,7 @@ func TestParseConfigOptions(t *testing.T) {
 	want.MPD.Addr = "/var/run/mpd/socket"
 	want.MPD.Conf = "/local/etc/mpd.conf"
 	want.MPD.MusicDirectory = "/mnt/Music"
-	want.MPD.BinaryLimit = 64
+	want.MPD.BinaryLimit = 32768
 	want.Server.Addr = ":80"
 	want.Server.CacheDirectory = "/tmp/vv"
 	want.Server.Cover.Local = true
@@ -164,6 +164,31 @@ func TestValidateErrorText(t *testing.T) {
 				t.Errorf("got err %v", err)
 			}
 		})
+	}
+
+}
+
+func TestBinarySize(t *testing.T) {
+	for str, want := range map[string]uint64{
+		"128k":    128 * 1024,
+		"128 k":   128 * 1024,
+		"128 K":   128 * 1024,
+		"128 KB":  128 * 1024,
+		"128 KiB": 128 * 1024,
+		"1m":      1024 * 1024,
+		"1M":      1024 * 1024,
+		"1MB":     1024 * 1024,
+		"1MiB":    1024 * 1024,
+	} {
+		var b BinarySize
+		if err := b.UnmarshalText([]byte(str)); err != nil {
+			t.Errorf("got err %v; want <nil>", err)
+		}
+		got := uint64(b)
+		if got != want {
+			t.Errorf("got %d; want %d", got, want)
+		}
+
 	}
 
 }

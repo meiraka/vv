@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/meiraka/vv/internal/http/vv"
@@ -15,11 +18,11 @@ import (
 // Config is vv application config struct.
 type Config struct {
 	MPD struct {
-		Network        string `yaml:"network"`
-		Addr           string `yaml:"addr"`
-		MusicDirectory string `yaml:"music_directory"`
-		Conf           string `yaml:"conf"`
-		BinaryLimit    int    `yaml:"binarylimit"`
+		Network        string     `yaml:"network"`
+		Addr           string     `yaml:"addr"`
+		MusicDirectory string     `yaml:"music_directory"`
+		Conf           string     `yaml:"conf"`
+		BinaryLimit    BinarySize `yaml:"binarylimit"`
 	} `yaml:"mpd"`
 	Server struct {
 		Addr           string `yaml:"addr"`
@@ -67,7 +70,7 @@ func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 	ma := flagset.String("mpd.addr", "", "mpd server address to connect")
 	mm := flagset.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
 	mc := flagset.String("mpd.conf", "", "set mpd.conf path to get music_directory and http audio output")
-	mb := flagset.Int("mpd.binarylimit", 0, "set the maximum binary response size of mpd")
+	mb := flagset.String("mpd.binarylimit", "", "set the maximum binary response size of mpd")
 	sa := flagset.String("server.addr", "", "this app serving address")
 	si := flagset.Bool("server.cover.remote", false, "enable coverart via mpd api")
 	d := flagset.BoolP("debug", "d", false, "use local assets if exists")
@@ -84,8 +87,12 @@ func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 	if len(*mc) != 0 {
 		c.MPD.Conf = *mc
 	}
-	if *mb != 0 {
-		c.MPD.BinaryLimit = *mb
+	if len(*mb) != 0 {
+		var bl BinarySize
+		if err := bl.UnmarshalText([]byte(*mb)); err != nil {
+			return nil, date, err
+		}
+		c.MPD.BinaryLimit = bl
 	}
 	if len(*sa) != 0 {
 		c.Server.Addr = *sa
@@ -196,4 +203,55 @@ func toTree(t map[string]*ConfigListNode) vv.Tree {
 		}
 	}
 	return ret
+}
+
+// BinarySize represents a number of binary size.
+type BinarySize uint64
+
+// MarshalText returns number as IEC prefixed binary size.
+func (b BinarySize) MarshalText() ([]byte, error) {
+	buf := &bytes.Buffer{}
+	if b%1024 != 0 {
+		fmt.Fprintf(buf, "%d B", b)
+		return buf.Bytes(), nil
+	}
+	k := b / 1024
+	if k%1024 != 0 {
+		fmt.Fprintf(buf, "%d KiB", k)
+		return buf.Bytes(), nil
+	}
+	m := k / 1024
+	fmt.Fprintf(buf, "%d MiB", m)
+	return buf.Bytes(), nil
+}
+
+// UnmarshalText parses binary size with suffix like KiB, MB, m.
+func (b *BinarySize) UnmarshalText(text []byte) error {
+	text = bytes.TrimSpace(text)
+	var num []byte
+	var suffixB []byte
+	f := true
+	for _, l := range text {
+		if f && '0' <= l && l <= '9' {
+			num = append(num, l)
+		} else {
+			f = false
+			suffixB = append(suffixB, l)
+		}
+	}
+	n, err := strconv.ParseUint(string(num), 10, 64)
+	if err != nil {
+		return err
+	}
+	suffix := strings.TrimSpace(string(suffixB))
+	if suffix == "k" || suffix == "K" || suffix == "KiB" || suffix == "KB" || suffix == "kB" {
+		*b = BinarySize(n) * 1024
+	} else if suffix == "m" || suffix == "M" || suffix == "MiB" || suffix == "MB" {
+		*b = BinarySize(n) * 1024 * 1024
+	} else if suffix == "" || suffix == "B" {
+		*b = BinarySize(n)
+	} else {
+		return fmt.Errorf("unknown size suffix: %s", suffix)
+	}
+	return nil
 }
