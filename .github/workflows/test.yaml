@@ -6,16 +6,19 @@ on:
     branches: [master]
 jobs:
   test:
-    name: Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ '1.15', '1.16' ]
+    name: Test Go ${{ matrix.go }}
     steps:
-    - name: Set up Go 1.13
+    - name: Set up Go ${{ matrix.go }}
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: ${{ matrix.go }}
       id: go
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: gofmt
       run: test -z "$(gofmt -s -l . | tee /dev/stderr)"
     - name: golint

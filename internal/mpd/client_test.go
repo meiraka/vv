@@ -303,7 +303,8 @@ func TestClientCloseNetworkError(t *testing.T) {
 	go func() {
 		conn, err := ln.Accept()
 		if err != nil {
-			t.Fatalf("failed to accept by mock server: %v", err)
+			t.Errorf("failed to accept by mock server: %v", err)
+			return
 		}
 		fmt.Fprintln(conn, "OK MPD 0.19")
 		<-svr
