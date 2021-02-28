@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/songs"
-	"github.com/meiraka/vv/internal/songs/cover"
 )
 
 // api caches mpd data and generate http.Handler for mpd.
@@ -21,7 +20,7 @@ type api struct {
 	watcher   *mpd.Watcher
 	jsonCache *jsonCache
 	upgrader  websocket.Upgrader
-	covers    *cover.Batch
+	imgBatch  *imgBatch
 
 	playlist     []map[string][]string
 	library      []map[string][]string
@@ -35,7 +34,7 @@ type api struct {
 }
 
 // newAPI creates api.
-func newAPI(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, b *cover.Batch, c *Config) (*api, error) {
+func newAPI(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, c *Config) (*api, error) {
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
 	}
@@ -43,7 +42,7 @@ func newAPI(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, b *cover.Batch,
 		config:       c,
 		client:       cl,
 		watcher:      w,
-		covers:       b,
+		imgBatch:     newImgBatch(c.ImageProviders),
 		jsonCache:    newJSONCache(),
 		playlistInfo: &httpPlaylistInfo{},
 		stopCh:       make(chan struct{}),
@@ -72,7 +71,7 @@ func (a *api) runCacheUpdater(ctx context.Context) error {
 	a.jsonCache.SetIfNone(pathAPIMusicImages, &httpImages{})
 	go func() {
 		defer wg.Done()
-		for updating := range a.covers.Event() {
+		for updating := range a.imgBatch.Event() {
 			a.jsonCache.SetIfModified(pathAPIMusicImages, &httpImages{Updating: updating})
 			if !updating {
 				ctx, cancel := context.WithTimeout(context.Background(), a.config.BackgroundTimeout)
@@ -155,7 +154,7 @@ func (a *api) Stop() {
 func (a *api) convSong(s map[string][]string) (map[string][]string, bool) {
 	s = songs.AddTags(s)
 	delete(s, "cover")
-	cover, updated := a.covers.GetURLs(s)
+	cover, updated := a.imgBatch.GetURLs(s)
 	if len(cover) != 0 {
 		s["cover"] = cover
 	}
@@ -173,7 +172,7 @@ func (a *api) convSongs(s []map[string][]string) []map[string][]string {
 		}
 	}
 	if len(needUpdates) != 0 {
-		a.covers.Update(needUpdates)
+		a.imgBatch.Update(needUpdates)
 	}
 	return ret
 }

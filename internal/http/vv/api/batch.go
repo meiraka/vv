@@ -1,8 +1,7 @@
-package cover
+package api
 
 import (
 	"context"
-	"errors"
 	"log"
 	"path"
 	"sync"
@@ -10,34 +9,27 @@ import (
 	"github.com/meiraka/vv/internal/songs"
 )
 
-// Cover represents cover api.
-type Cover interface {
+// ImageProvider represents http cover image image url api.
+type ImageProvider interface {
 	Rescan(context.Context, map[string][]string) error
 	GetURLs(map[string][]string) ([]string, bool)
 }
 
-var (
-	// ErrAlreadyShutdown returns if already Shutdown is called
-	ErrAlreadyShutdown = errors.New("cover: already shutdown")
-	// ErrAlreadyUpdating returns if already Update is called
-	ErrAlreadyUpdating = errors.New("cover: update already started")
-)
-
-// Batch provides background updater for cover api.
-type Batch struct {
-	covers []Cover
-	sem    chan struct{}
-	e      chan bool
+// imgBatch provides background updater for cover image api.
+type imgBatch struct {
+	apis []ImageProvider
+	sem  chan struct{}
+	e    chan bool
 
 	shutdownMu sync.Mutex
 	shutdownCh chan struct{}
 	shutdownB  bool
 }
 
-// NewBatch creates Batch from some cover api.
-func NewBatch(covers []Cover) *Batch {
-	ret := &Batch{
-		covers:     covers,
+// newImgBatch creates Batch from some cover image api.
+func newImgBatch(apis []ImageProvider) *imgBatch {
+	ret := &imgBatch{
+		apis:       apis,
 		sem:        make(chan struct{}, 1),
 		e:          make(chan bool, 1),
 		shutdownCh: make(chan struct{}),
@@ -47,15 +39,15 @@ func NewBatch(covers []Cover) *Batch {
 }
 
 // Event returns event chan which returns bool updating or not.
-func (b *Batch) Event() <-chan bool {
+func (b *imgBatch) Event() <-chan bool {
 	return b.e
 }
 
 // GetURLs returns images url list.
-func (b *Batch) GetURLs(song map[string][]string) (urls []string, updated bool) {
+func (b *imgBatch) GetURLs(song map[string][]string) (urls []string, updated bool) {
 	allUpdated := true
-	for _, cover := range b.covers {
-		urls, updated = cover.GetURLs(song)
+	for _, api := range b.apis {
+		urls, updated = api.GetURLs(song)
 		if len(urls) != 0 {
 			return
 		}
@@ -69,14 +61,14 @@ func (b *Batch) GetURLs(song map[string][]string) (urls []string, updated bool) 
 var songsTag = songs.Tag
 
 // Update updates image url database.
-func (b *Batch) Update(songs []map[string][]string) error {
+func (b *imgBatch) Update(songs []map[string][]string) error {
 	select {
 	case _, ok := <-b.sem:
 		if !ok {
 			return ErrAlreadyShutdown
 		}
 	default:
-		return ErrAlreadyUpdating
+		return errAlreadyUpdating
 	}
 	go func() {
 		select {
@@ -100,9 +92,9 @@ func (b *Batch) Update(songs []map[string][]string) error {
 			}
 		}
 		for _, song := range targets {
-			for _, c := range b.covers {
+			for _, c := range b.apis {
 				if err := c.Rescan(ctx, song); err != nil {
-					log.Printf("cover: %v: %v", songsTag(song, "file"), err)
+					log.Printf("api: %v: %v", songsTag(song, "file"), err)
 					// use previous rescanned result
 				}
 				urls, _ := c.GetURLs(song)
@@ -120,8 +112,8 @@ func (b *Batch) Update(songs []map[string][]string) error {
 	return nil
 }
 
-// Shutdown  gracefully shuts down cover updater.
-func (b *Batch) Shutdown(ctx context.Context) error {
+// Shutdown gracefully shuts down cover image updater.
+func (b *imgBatch) Shutdown(ctx context.Context) error {
 	b.shutdownMu.Lock()
 	if !b.shutdownB {
 		close(b.shutdownCh)

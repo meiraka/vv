@@ -13,9 +13,9 @@ import (
 
 	"github.com/meiraka/vv/internal/http/vv"
 	"github.com/meiraka/vv/internal/http/vv/api"
+	"github.com/meiraka/vv/internal/http/vv/api/images"
 	"github.com/meiraka/vv/internal/http/vv/assets"
 	"github.com/meiraka/vv/internal/mpd"
-	"github.com/meiraka/vv/internal/songs/cover"
 )
 
 const (
@@ -97,12 +97,12 @@ func v2() {
 		}
 	}
 	m := http.NewServeMux()
-	covers := make([]cover.Cover, 0, 2)
+	covers := make([]api.ImageProvider, 0, 2)
 	if config.Server.Cover.Local {
 		if len(config.MPD.MusicDirectory) == 0 {
 			log.Println("config.server.cover.local is disabled: mpd.music_directory is empty")
 		} else {
-			c, err := cover.NewLocal("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
+			c, err := images.NewLocal("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
 			if err != nil {
 				log.Fatalf("failed to initialize coverart: %v", err)
 			}
@@ -115,7 +115,7 @@ func v2() {
 		if !contains(commands, "albumart") {
 			log.Println("config.server.cover.remote is disabled: mpd does not support albumart command")
 		} else {
-			c, err := cover.NewRemote("/api/music/images/remote/", client, filepath.Join(config.Server.CacheDirectory, "imgcache"))
+			c, err := images.NewRemote("/api/music/images/remote/", client, filepath.Join(config.Server.CacheDirectory, "imgcache"))
 			if err != nil {
 				log.Fatalf("failed to initialize coverart: %v", err)
 			}
@@ -124,7 +124,6 @@ func v2() {
 			defer c.Close()
 		}
 	}
-	batch := cover.NewBatch(covers)
 	root, err := vv.NewHTMLHander(&vv.HTMLConfig{
 		Tree:      toTree(config.Playlist.Tree),
 		TreeOrder: config.Playlist.TreeOrder,
@@ -139,9 +138,10 @@ func v2() {
 	if err != nil {
 		log.Fatalf("failed to initialize assets handler: %v", err)
 	}
-	api, err := api.NewHandler(ctx, client, watcher, batch, &api.Config{
-		AppVersion: version,
-		AudioProxy: proxy,
+	api, err := api.NewHandler(ctx, client, watcher, &api.Config{
+		AppVersion:     version,
+		AudioProxy:     proxy,
+		ImageProviders: covers,
 	})
 	if err != nil {
 		log.Fatalf("failed to initialize api handler: %v", err)
@@ -180,8 +180,8 @@ func v2() {
 	if err := watcher.Close(ctx); err != nil {
 		log.Printf("failed to close mpd connection(event): %v", err)
 	}
-	if err := batch.Shutdown(ctx); err != nil {
-		log.Printf("failed to stop image api: %v", err)
+	if err := api.Shutdown(ctx); err != nil {
+		log.Printf("failed to stop api background task: %v", err)
 	}
 }
 

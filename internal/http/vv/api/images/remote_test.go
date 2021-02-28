@@ -1,4 +1,4 @@
-package cover
+package images
 
 import (
 	"context"
@@ -73,7 +73,7 @@ func TestRemoteRescan(t *testing.T) {
 		t.Fatalf("failed to cleanup test dir")
 	}
 	defer os.RemoveAll(testDir)
-	png := readFile(t, filepath.Join(path, "..", "..", "..", "assets", "app.png"))
+	png := readFile(t, filepath.Join(path, "..", "..", "..", "..", "..", "assets", "app.png"))
 
 	for rescanIndex, label := range []string{"empty db", "use db"} {
 		t.Run(label, func(t *testing.T) {

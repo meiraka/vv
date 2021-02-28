@@ -32,7 +32,7 @@ func (a *api) ImagesHandler() http.HandlerFunc {
 			writeHTTPError(w, http.StatusBadRequest, errors.New("requires updating=true"))
 			return
 		}
-		a.covers.Update(a.library)
+		a.imgBatch.Update(a.library)
 		now := time.Now().UTC()
 		r.Method = http.MethodGet
 		get.ServeHTTP(w, setUpdateTime(r, now))

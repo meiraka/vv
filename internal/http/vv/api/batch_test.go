@@ -1,4 +1,4 @@
-package cover
+package api
 
 import (
 	"context"
@@ -6,11 +6,7 @@ import (
 	"time"
 )
 
-const (
-	testTimeout = time.Second
-)
-
-func TestBatch(t *testing.T) {
+func TestImgBatch(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
@@ -26,12 +22,12 @@ func TestBatch(t *testing.T) {
 				<-c2
 				return nil
 			})
-		batch := NewBatch([]Cover{cov1, cov2})
+		batch := newImgBatch([]ImageProvider{cov1, cov2})
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("first batch.Update() = %v; want %v", err, nil)
 		}
-		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != ErrAlreadyUpdating {
-			t.Errorf("second batch.Update() = %v; want %v", err, ErrAlreadyUpdating)
+		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != errAlreadyUpdating {
+			t.Errorf("second batch.Update() = %v; want %v", err, errAlreadyUpdating)
 		}
 		testEvent(ctx, t, batch.Event(), true, true)
 		c1 <- struct{}{}
@@ -62,7 +58,7 @@ func TestBatch(t *testing.T) {
 				<-ctx.Done()
 				return nil
 			})
-		batch := NewBatch([]Cover{cov})
+		batch := newImgBatch([]ImageProvider{cov})
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Update() = %v; want nil", err)
 		}
@@ -80,7 +76,7 @@ func TestBatch(t *testing.T) {
 				<-ctx.Done()
 				return nil
 			})
-		batch := NewBatch([]Cover{cov})
+		batch := newImgBatch([]ImageProvider{cov})
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Update() = err; want nil")
 		}
@@ -94,7 +90,7 @@ func TestBatch(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
-		batch := NewBatch([]Cover{})
+		batch := newImgBatch([]ImageProvider{})
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Update() = err; want nil")
 		}

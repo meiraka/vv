@@ -1,4 +1,4 @@
-package cover
+package images
 
 import (
 	"context"

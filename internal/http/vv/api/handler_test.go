@@ -18,7 +18,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
-	"github.com/meiraka/vv/internal/songs/cover"
 )
 
 const (
@@ -926,8 +925,7 @@ func TestHandler(t *testing.T) {
 			if tt.initFunc != nil {
 				go tt.initFunc(ctx, main)
 			}
-			b := cover.NewBatch([]cover.Cover{})
-			h, err := NewHandler(ctx, c, wl, b, &tt.config)
+			h, err := NewHandler(ctx, c, wl, &tt.config)
 			defer h.Stop()
 			if err != nil {
 				t.Fatalf("NewHTTPHandler got error %v; want nil", err)
@@ -1006,8 +1004,8 @@ func TestHandler(t *testing.T) {
 					}
 				})
 			}
-			if err := b.Shutdown(ctx); err != nil {
-				t.Errorf("cover.Batch.Shutdown got err %v; want nil", err)
+			if err := h.Shutdown(ctx); err != nil {
+				t.Errorf("Handler.Shutdown got err %v; want nil", err)
 			}
 			go func() {
 				sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: ""})
@@ -1068,7 +1066,7 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 		}
 	}))
 	defer audioProxy.Close()
-	h, err := NewHandler(ctx, c, wl, cover.NewBatch([]cover.Cover{}), &Config{
+	h, err := NewHandler(ctx, c, wl, &Config{
 		skipInit:   true,
 		AudioProxy: map[string]string{"My / HTTP / Stream": audioProxy.URL},
 	})

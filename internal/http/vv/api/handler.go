@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/meiraka/vv/internal/mpd"
-	"github.com/meiraka/vv/internal/songs/cover"
 )
 
 // Config is options for api Handler.
@@ -15,6 +14,7 @@ type Config struct {
 	BackgroundTimeout time.Duration     // timeout for background mpd cache updating jobs
 	AudioProxy        map[string]string // audio device - mpd http server addr pair to proxy
 	skipInit          bool              // do not initialize mpd cache(for test)
+	ImageProviders    []ImageProvider
 }
 
 // Handler implements http.Handler for vv json api.
@@ -35,8 +35,8 @@ type Handler struct {
 }
 
 // NewHandler creates json api handler.
-func NewHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, b *cover.Batch, c *Config) (*Handler, error) {
-	a, err := newAPI(ctx, cl, w, b, c)
+func NewHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, c *Config) (*Handler, error) {
+	a, err := newAPI(ctx, cl, w, c)
 	if err != nil {
 		return nil, err
 	}
@@ -95,4 +95,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Stop stops internal goroutine and html audio connection.
 func (h *Handler) Stop() {
 	h.api.Stop()
+}
+
+// Shutdown stops background api.
+func (h *Handler) Shutdown(ctx context.Context) error {
+	return h.api.imgBatch.Shutdown(ctx)
 }
