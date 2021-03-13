@@ -92,7 +92,7 @@ func (a *api) OutputsStreamHandler() http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(r.Context())
 		defer cancel()
 		pr, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
