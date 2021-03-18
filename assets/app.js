@@ -109,7 +109,6 @@ class MPDAudio {
                 return;
             }
             p.then(() => {
-                UINotification.hide("client-output-temporary");
                 UINotification.hide("client-output");
                 err.textContent = "";
             }).catch((e) => {
@@ -118,17 +117,14 @@ class MPDAudio {
                 }
                 switch (e.name) {
                     case "NotAllowedError":
-                        UINotification.show("client-output-temporary", "notAllowed", true);
-                        UINotification.hide("client-output");
+                        UINotification.show("client-output", "notAllowed", { ttl: Infinity });
                         err.textContent = err.dataset["notAllowed"];
                         break;
                     case "NotSupportedError":
-                        UINotification.hide("client-output-temporary");
-                        UINotification.show("client-output", "unsupportedSource", true);
+                        UINotification.show("client-output", "unsupportedSource", { ttl: Infinity });
                         err.textContent = err.dataset["unsupportedSource"];
                         break;
                     default:
-                        UINotification.hide("client-output-temporary");
                         UINotification.show("client-output", e.message);
                         err.textContent = e.message;
                         break;
@@ -146,18 +142,15 @@ class MPDAudio {
             err.textContent = "";
             switch (e.target.error.code) {
                 case e.target.error.MEDIA_ERR_NETWORK:
-                    UINotification.show("client-output-temporary", "networkError", true);
-                    UINotification.hide("client-output");
+                    UINotification.show("client-output", "networkError", { ttl: Infinity });
                     err.textContent = err.dataset["networkError"];
                     break;
                 case e.target.error.MEDIA_ERR_DECODE:
-                    UINotification.show("client-output-temporary", "decodeError", true);
-                    UINotification.hide("client-output");
+                    UINotification.show("client-output", "decodeError", { ttl: Infinity });
                     err.textContent = err.dataset["decodeError"];
                     break;
                 case e.target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                    UINotification.hide("client-output-temporary");
-                    UINotification.show("client-output", "unsupportedSource", true);
+                    UINotification.show("client-output", "unsupportedSource", { ttl: Infinity });
                     err.textContent = err.dataset["unsupportedSource"];
                     break;
 
@@ -2721,23 +2714,21 @@ class UINotification {
                 if (mpd.version.mpd) {
                     UINotification.hide("mpd-connection");
                 } else {
-                    UINotification.show("mpd-connection", "reconnecting", true);
+                    UINotification.show("mpd-connection", "reconnecting", { ttl: Infinity });
                 }
             });
-            document.getElementById("popup-client-output-temporary-button-retry").addEventListener("click", () => {
-                UINotification.hide("client-output-temporary");
+            document.getElementById("popup-client-output-button-retry").addEventListener("click", () => {
+                UINotification.hide("client-output");
                 audio.load();
             });
             const openOutputSettings = () => {
                 UINotification.hide("client-output");
-                UINotification.hide("client-output-temporary");
                 systemWindow.show();
                 let e = document.createEvent("HTMLEvents");
                 e.initEvent("click", false, true);
                 document.getElementById("system-nav-outputs").dispatchEvent(e);
             };
-            document.getElementById("popup-client-output-temporary-button-settings").addEventListener("click", openOutputSettings);
-            document.getElementById("popup-client-output-button").addEventListener("click", openOutputSettings);
+            document.getElementById("popup-client-output-button-settings").addEventListener("click", openOutputSettings);
             mpd.addEventListener("library", (e) => {
                 if (!e || !e.old || !e.current) {
                     return;
@@ -2766,7 +2757,7 @@ class UINotification {
             });
         });
     }
-    static show(target, description, never) {
+    static show(target, description, { ttl = 4000 } = {}) {
         const obj = document.getElementById("popup-" + target);
         if (!obj) {
             UINotification.show("fixme", `popup-${target} is not found in html`);
@@ -2780,16 +2771,16 @@ class UINotification {
         obj.classList.remove("hide");
         obj.classList.add("show");
         obj.timestamp = (new Date()).getTime();
-        obj.ttl = obj.timestamp + 4000;
-        if (never) {
+        obj.ttl = obj.timestamp + ttl;
+        if (ttl === Infinity) {
             return;
         }
         setTimeout(() => {
-            if ((new Date()).getTime() - obj.ttl > 0) {
+            if (obj.ttl !== 0 && ((new Date()).getTime() - obj.ttl) > 0) {
                 obj.classList.remove("show");
                 obj.classList.add("hide");
             }
-        }, 5000);
+        }, ttl + 100);
     }
     static hide(target) {
         const obj = document.getElementById("popup-" + target);

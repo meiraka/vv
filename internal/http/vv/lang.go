@@ -144,7 +144,7 @@ var translateData = map[language.Tag]map[string]string{
 		"NotifyClientOutput":                  "クライアント出力",
 		"NotifyClientOutputNetworkError":      "ネットワークエラー",
 		"NotifyClientOutputDeocdeError":       "デコードエラー",
-		"NotifyClientOutputUnsupportedSource": "対応していないオーディオフォーマット",
+		"NotifyClientOutputUnsupportedSource": "未対応のフォーマット又はネットワークエラー",
 		"NotifyClientOutputNotAllowed":        "自動再生が許可されていません",
 		"NotifyClientOutputRetry":             "再試行",
 		"NotifyClientOutputOpenSettings":      "設定を開く",

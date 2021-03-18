@@ -175,27 +175,19 @@ html {
           ></span>
     </div>
   </section>
-  <section id="popup-client-output-temporary" class="popup popup hide">
+  <section id="popup-client-output" class="popup popup hide">
     <div class="popup-area">
       <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
       <span class="popup-description"
             data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
             data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
             data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
+            data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported format or network error" }}"
         ></span>
       <div class="popup-buttons">
-        <button id="popup-client-output-temporary-button-retry" class="popup-button" type="button">{{ or .NotifyClientOutputRetry "Retry" }}</button>
-        <button id="popup-client-output-temporary-button-settings" class="popup-button" type="button">{{ or .NotifyClientOutputOpenSettings "Open settings" }}</button>
+        <button id="popup-client-output-button-retry" class="popup-button" type="button">{{ or .NotifyClientOutputRetry "Retry" }}</button>
+        <button id="popup-client-output-button-settings" class="popup-button" type="button">{{ or .NotifyClientOutputOpenSettings "Open settings" }}</button>
       </div>
-    </div>
-  </section>
-  <section id="popup-client-output" class="popup popup hide">
-    <div class="popup-area">
-      <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
-      <span class="popup-description"
-            data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
-        ></span>
-      <div class="popup-buttons"><button id="popup-client-output-button" class="popup-button" type="button">{{ or .NotifyClientOutputOpenSettings "Open settings" }}</button></div>
     </div>
   </section>
   <section id="popup-library" class="popup hide">
@@ -554,7 +546,7 @@ html {
                 <div class="system-setting-desc-help warning-text" id="httpoutput-error"
                     data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
                     data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
-                    data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported audio format" }}"
+                    data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported format or network error" }}"
                     data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
                     ></div>
               </div>

@@ -103,7 +103,7 @@ func (a *api) OutputsStreamHandler() http.HandlerFunc {
 		resp, err := http.DefaultClient.Do(pr)
 		if err != nil {
 			log.Println(url, err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()
