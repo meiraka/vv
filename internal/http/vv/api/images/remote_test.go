@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"testing"
 
 	"github.com/meiraka/vv/internal/mpd"
@@ -36,6 +35,7 @@ func TestRemote(t *testing.T) {
 		t.Fatalf("failed to cleanup test dir")
 	}
 	defer os.RemoveAll(testDir)
+
 	api, err := NewRemote("/api/images", c, testDir)
 	if err != nil {
 		t.Fatalf("failed to initialize cover.Remote: %v", err)
@@ -48,7 +48,7 @@ func TestRemote(t *testing.T) {
 		t.Run(fmt.Sprint(tt), func(t *testing.T) {
 			covers, ok := api.GetURLs(tt)
 			if len(covers) != 0 || ok {
-				t.Errorf("got %v %v; want nil, false", covers, ok)
+				t.Errorf(`GetURLs("%s") = %v %v; want nil, false`, tt, covers, ok)
 			}
 		})
 	}
@@ -73,10 +73,18 @@ func TestRemoteRescan(t *testing.T) {
 		t.Fatalf("failed to cleanup test dir")
 	}
 	defer os.RemoveAll(testDir)
-	png := readFile(t, filepath.Join(path, "..", "..", "..", "..", "..", "assets", "app.png"))
 
-	for rescanIndex, label := range []string{"empty db", "use db"} {
-		t.Run(label, func(t *testing.T) {
+	for _, tt := range []struct {
+		label string
+		path  string
+		query url.Values
+	}{
+		{label: "first", path: "app.png", query: url.Values{"v": {"0"}}},
+		{label: "same image", path: "app.png", query: url.Values{"v": {"0"}}},
+		{label: "different image", path: "app-black.png", query: url.Values{"v": {"1"}}},
+	} {
+		t.Run(tt.label, func(t *testing.T) {
+			png := readFile(t, filepath.Join(path, "..", "..", "..", "..", "..", "assets", tt.path))
 			api, err := NewRemote("/api/images", c, testDir)
 			if err != nil {
 				t.Fatalf("failed to initialize cover.Remote: %v", err)
@@ -87,7 +95,7 @@ func TestRemoteRescan(t *testing.T) {
 				svr.Expect(ctx, &mpdtest.WR{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"})
 			}()
 			defer api.Close()
-			for _, tt := range []struct {
+			for _, tr := range []struct {
 				in         map[string][]string
 				hasCover   bool
 				wantBinary []byte
@@ -104,19 +112,19 @@ func TestRemoteRescan(t *testing.T) {
 					hasCover: false,
 				},
 			} {
-				api.Rescan(context.TODO(), tt.in)
-				t.Logf("rescan: %v", tt.in)
+				api.Rescan(context.TODO(), tr.in)
+				t.Logf("rescan: %v", tr.in)
 				for i := 0; i < 2; i++ {
-					t.Run(fmt.Sprint(tt.in, i), func(t *testing.T) {
-						covers, ok := api.GetURLs(tt.in)
+					t.Run(fmt.Sprint(tr.in, i), func(t *testing.T) {
+						covers, ok := api.GetURLs(tr.in)
 						if !ok {
-							t.Error("cover is not indexed")
+							t.Errorf("cover %s is not indexed", tr.in)
 						}
 						t.Logf("urls: %v", covers)
-						if len(covers) == 0 && tt.hasCover {
+						if len(covers) == 0 && tr.hasCover {
 							t.Fatalf("got no covers; want 1 cover")
 						}
-						if len(covers) == 1 && !tt.hasCover {
+						if len(covers) == 1 && !tr.hasCover {
 							t.Fatalf("got 1 cover %v; want no covers", covers)
 						}
 						if len(covers) == 0 {
@@ -127,9 +135,8 @@ func TestRemoteRescan(t *testing.T) {
 						if err != nil {
 							t.Fatalf("failed to parse url %s: %v", cover, err)
 						}
-						want := url.Values{"v": {strconv.Itoa(rescanIndex)}}
-						if !reflect.DeepEqual(u.Query(), want) {
-							t.Errorf("got query %+v; want %+v", u, want)
+						if !reflect.DeepEqual(u.Query(), tt.query) {
+							t.Errorf("got query %+v; want %+v", u.Query(), tt.query)
 						}
 						req := httptest.NewRequest("GET", cover, nil)
 						w := httptest.NewRecorder()
@@ -138,13 +145,13 @@ func TestRemoteRescan(t *testing.T) {
 						if resp.StatusCode != 200 {
 							t.Errorf("got status %d; want 200", resp.StatusCode)
 						}
-						for k, v := range tt.wantHeader {
+						for k, v := range tr.wantHeader {
 							if !reflect.DeepEqual(resp.Header[k], v) {
 								t.Errorf("got header %s %v; want %v", k, resp.Header[k], v)
 							}
 						}
 						got, _ := ioutil.ReadAll(resp.Body)
-						if !reflect.DeepEqual(got, tt.wantBinary) {
+						if !reflect.DeepEqual(got, tr.wantBinary) {
 							t.Errorf("got invalid binary response")
 						}
 					})
