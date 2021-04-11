@@ -2,6 +2,7 @@ package mpd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -165,7 +166,7 @@ func TestClient(t *testing.T) {
 					go func() {
 						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: "ACK [50@1] {test} test error\n"})
 					}()
-					if got, want := cmd(ctx), newCommandError("ACK [50@1] {test} test error"); !reflect.DeepEqual(got, want) {
+					if got, want := cmd(ctx), newCommandError("ACK [50@1] {test} test error"); !errors.Is(got, want) {
 						t.Errorf("got _, %v; want nil, %v", got, want)
 					}
 				})
@@ -256,7 +257,7 @@ func TestClient(t *testing.T) {
 						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: "ACK [50@1] {test} test error\n"})
 					}()
 					_, err := tt.cmd(ctx)
-					if want := newCommandError("ACK [50@1] {test} test error"); !reflect.DeepEqual(err, want) {
+					if want := newCommandError("ACK [50@1] {test} test error"); !errors.Is(err, want) {
 						t.Errorf("got _, %v; want nil, %v", err, want)
 					}
 				})
