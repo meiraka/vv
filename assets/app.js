@@ -8,11 +8,12 @@ class App {
         this.ui = new UI();
         this.mpdWatcher = new MPDWatcher();
         this.mpd = new MPDClient(this.mpdWatcher);
+        const mainImg = new MainImage(this.mpd);
         this.audio = new MPDAudio(this.mpd, this.preferences);
         this.library = new Library(this.mpd, this.preferences);
-        this.background = new UIBackground(this.ui, this.mpd, this.preferences);
+        this.background = new UIBackground(this.ui, this.mpd, this.preferences, mainImg);
         this.listView = new UIListView(this.ui, this.mpd, this.library, this.preferences);
-        this.mainView = new UIMainView(this.ui, this.mpd, this.library, this.preferences);
+        this.mainView = new UIMainView(this.ui, this.mpd, this.library, this.preferences, mainImg);
         this.systemWindow = new UISystemWindow(this.ui, this.mpd, this.preferences);
         UIModal.init(this.ui);
         UISubModal.init(this.ui);
@@ -1357,25 +1358,123 @@ class UI extends PubSub {
     }
 };
 
+class MainImage extends PubSub {
+    constructor(mpd) {
+        super();
+        this.mpd = mpd;
+        this.image1 = new Image();
+        this.image1.addEventListener("load", (e) => {
+            this.raiseEvent("load", e.currentTarget.dataset.src);
+        })
+        this.image2 = new Image();
+        this.image2.addEventListener("load", (e) => {
+            this.raiseEvent("load", e.currentTarget.dataset.src);
+        })
+        this.mpd.addEventListener("current", () => { this.update(); });
+        this.update();
+    }
+    update() {
+        let cover = "/assets/nocover.svg";
+        if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+            cover = this.mpd.current.cover[0];
+        }
+        if (this.image1.dataset.use !== "false") {
+            if (this.image1.dataset.src === cover) {
+                return;
+            }
+            this.image2.src = cover;
+            this.image2.dataset.src = cover;
+            this.image2.dataset.use = "true";
+            this.image1.dataset.use = "false";
+            this.raiseEvent("loading", cover);
+        }
+        if (this.image2.dataset.use !== "false") {
+            if (this.image2.dataset.src === cover) {
+                return;
+            }
+            this.image1.src = cover;
+            this.image1.dataset.src = cover;
+            this.image1.dataset.use = "true";
+            this.image2.dataset.use = "false";
+            this.raiseEvent("loading", cover);
+        }
+    };
+};
+
 // background
 class UIBackground {
-    constructor(ui, mpd, preferences) {
+    constructor(ui, mpd, preferences, mainImg) {
         this.mpd = mpd;
         this.preferences = preferences;
+        this.mainImg = mainImg;
         this.rgbg = { r: 128, g: 128, b: 128, gray: 128 };
-        this.mpd.addEventListener("current", () => { this.update(); });
-        this.preferences.addEventListener("appearance", (e) => { this.update(e); });
         this.preferences.addEventListener("appearance", (e) => { this.update_theme(e); });
-        ui.addEventListener("load", () => { this.update(); });
-        ui.addEventListener("load", () => {
-            var darkmode = window.matchMedia("(prefers-color-scheme: dark)");
-            if (darkmode.addEventListener) {
-                darkmode.addEventListener("change", () => { this.update_theme(); });
-            } else if (darkmode.addListener) {
-                darkmode.addListener(() => { this.update_theme(); });
-            }
-        });
+        ui.addEventListener("load", () => { this.onStart(); });
     }
+    onStart() {
+        this.mainImg.addEventListener("loading", (path) => { this.onImageLoading(path); });
+        this.mainImg.addEventListener("load", (path) => { this.onImageLoad(path); });
+        document.body.classList.remove("unload");
+        if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+            this.onImageLoading(this.mpd.current.cover[0]);
+            this.onImageLoad(this.mpd.current.cover[0]);
+        }
+        var darkmode = window.matchMedia("(prefers-color-scheme: dark)");
+        if (darkmode.addEventListener) {
+            darkmode.addEventListener("change", () => { this.update_theme(); });
+        } else if (darkmode.addListener) {
+            darkmode.addListener(() => { this.update_theme(); });
+        }
+    };
+    onImageLoading(path) {
+        const e1 = document.getElementById("background-image");
+        const e2 = document.getElementById("background-image2");
+        let coverForCalc = "/assets/nocover.svg";
+        if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+            const imgsize = parseInt(70 * window.devicePixelRatio, 10);
+            const s = (path.lastIndexOf("?") == -1) ? "?" : "&";
+            coverForCalc = `${path}${s}width=${imgsize}&height=${imgsize}`;
+        }
+
+        if (!this.preferences.appearance.crossfading_image) {
+            if (e1.dataset.src === path) {
+                return;
+            }
+            e1.dataset.src = path;
+            e2.dataset.src = "";
+            e2.style.opacity = "0";
+            this.calc_color(coverForCalc);
+            return;
+        }
+        if (e1.style.opacity !== "0") {
+            if (e1.dataset.src === path) {
+                return;
+            }
+            e1.style.opacity = "0";
+            e2.dataset.src = path;
+            this.calc_color(coverForCalc);
+            return;
+        }
+        if (e2.dataset.src == path) {
+            return;
+        }
+        e2.style.opacity = "0";
+        e1.dataset.src = path;
+        this.calc_color(coverForCalc);
+
+    };
+    onImageLoad(path) {
+        const e1 = document.getElementById("background-image");
+        const e2 = document.getElementById("background-image2");
+        if (e1.dataset.src === path) {
+            e1.style.backgroundImage = `url("${path}")`;
+            e1.style.opacity = "1";
+        }
+        if (e2.dataset.src === path) {
+            e2.style.backgroundImage = `url("${path}")`;
+            e2.style.opacity = "1";
+        }
+    };
     static mkcolor(rgb, magic) {
         return "#" + (((1 << 24) + (magic(rgb.r) << 16) + (magic(rgb.g) << 8) + magic(rgb.b)).toString(16).slice(1));
     };
@@ -1421,6 +1520,17 @@ class UIBackground {
                 color.setAttribute("content", UIBackground.mkcolor(this.rgbg, UIBackground.lighter));
             }
         }
+        const e1 = document.getElementById("background-image");
+        const e2 = document.getElementById("background-image2");
+        if (!this.preferences.appearance.background_image) {
+            e1.classList.add("hide");
+            e2.classList.add("hide");
+            return;
+        }
+        e1.classList.remove("hide");
+        e2.classList.remove("hide");
+        e1.style.filter = `blur(${this.preferences.appearance.background_image_blur})`;
+        e2.style.filter = `blur(${this.preferences.appearance.background_image_blur})`;
     };
     calc_color(path) {
         const img = new Image();
@@ -1449,59 +1559,10 @@ class UIBackground {
         };
         img.src = path;
     };
-    update() {
-        let cover = "/assets/nocover.svg";
-        if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
-            cover = this.mpd.current.cover[0];
-        }
-        let e = document.getElementById("background-image");
-        const e2 = document.getElementById("background-image2");
-        if (this.preferences.appearance.crossfading_image) {
-            if (e.style.opacity === "0") {
-                if (e2.dataset.src === cover) {
-                    e = e2;
-                } else {
-                    e.style.opacity = "1";
-                    e2.style.opacity = "0";
-                }
-            } else {
-                if (e.dataset.src !== cover) {
-                    e.style.opacity = "0";
-                    e2.style.opacity = "1";
-                    e = e2;
-                }
-            }
-        } else {
-            e.style.opacity = "1";
-            e2.style.opacity = "0";
-        }
-        e.dataset.src = cover;
-        if (this.preferences.appearance.background_image) {
-            e.classList.remove("hide");
-            document.getElementById("background-image").classList.remove("hide");
-            let coverForCalc = "/assets/nocover.svg";
-            if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
-                cover = this.mpd.current.cover[0];
-                const imgsize = parseInt(70 * window.devicePixelRatio, 10);
-                const s = (cover.lastIndexOf("?") == -1) ? "?" : "&";
-                coverForCalc = `${cover}${s}width=${imgsize}&height=${imgsize}`;
-            }
-            const newimage = `url("${cover}")`;
-            if (e.style.backgroundImage !== newimage) {
-                this.calc_color(coverForCalc);
-                e.style.backgroundImage = newimage;
-            }
-            e.style.filter = `blur(${this.preferences.appearance.background_image_blur})`;
-        } else {
-            e.classList.add("hide");
-            document.getElementById("background-image").classList.add("hide");
-        }
-        document.body.classList.remove("unload");
-    };
 };
 
 class UIMainView extends PubSub {
-    constructor(ui, mpd, library, preferences) {
+    constructor(ui, mpd, library, preferences, mainImg) {
         super();
         ui.addEventListener("poll", () => { this.onPoll(); });
         ui.addEventListener("load", () => { this.onStart(); });
@@ -1512,6 +1573,7 @@ class UIMainView extends PubSub {
         this.library = library;
         this.preferences = preferences;
         this.preferences.addEventListener("appearance", () => { this.onPreferences(); });
+        this.mainImg = mainImg;
     }
     onPreferences() {
         const e = document.getElementById("main-cover");
@@ -1560,39 +1622,6 @@ class UIMainView extends PubSub {
         document.getElementById("main-box-title").textContent = this.mpd.current.Title;
         document.getElementById("main-box-artist").textContent = this.mpd.current.Artist;
         document.getElementById("main-seek-label-total").textContent = this.mpd.current.Length;
-        let cover = "/assets/nocover.svg";
-        if (this.mpd.current.cover && this.mpd.current.cover[0]) {
-            cover = this.mpd.current.cover[0];
-        }
-        let e = document.getElementById("main-cover-img");
-        const e2 = document.getElementById("main-cover-img2");
-        if (this.preferences.appearance.crossfading_image) {
-            if (e.style.opacity === "0") {
-                if (e2.dataset.src === cover) {
-                    e = e2;
-                } else {
-                    e.style.opacity = "1";
-                    e2.style.opacity = "0";
-                    e.style.zIndex = "0";
-                    e2.style.zIndex = "-1";
-                }
-            } else {
-                if (e.dataset.src !== cover) {
-                    e.style.opacity = "0";
-                    e2.style.opacity = "1";
-                    e.style.zIndex = "-1";
-                    e2.style.zIndex = "0";
-                    e = e2;
-                }
-            }
-        } else {
-            e.style.opacity = "1";
-            e2.style.opacity = "0";
-            e.style.zIndex = "0";
-            e2.style.zIndex = "-1";
-        }
-        e.src = cover;
-        e.dataset.src = cover;
     }
     onCurrent() { this.update(); }
     onPoll() {
@@ -1631,6 +1660,12 @@ class UIMainView extends PubSub {
         document.getElementById("control-volume").addEventListener("change", e => {
             this.mpd.volume(parseInt(e.currentTarget.value, 10));
         });
+        this.mainImg.addEventListener("loading", (path) => { this.onImageLoading(path); });
+        this.mainImg.addEventListener("load", (path) => { this.onImageLoad(path); });
+        if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+            this.onImageLoading(this.mpd.current.cover[0]);
+            this.onImageLoad(this.mpd.current.cover[0]);
+        }
         UI.click(document.getElementById("main-cover-overlay"), () => {
             if (window.matchMedia("(max-height: 450px) and (orientation: landscape)").matches) {
                 this.mpd.togglePlay();
@@ -1655,6 +1690,51 @@ class UIMainView extends PubSub {
         this.onCurrent();
         this.onPlaylist();
     }
+    onImageLoading(path) {
+        const e1 = document.getElementById("main-cover-img");
+        const e2 = document.getElementById("main-cover-img2");
+        if (!this.preferences.appearance.crossfading_image) {
+            if (e1.dataset.src === path) {
+                return;
+            }
+            e1.dataset.src = path;
+            e2.dataset.src = "";
+            e2.backgroundImage = "";
+            e2.style.opacity = "0";
+            e2.style.zIndex = "-1";
+            return;
+        }
+        if (e1.style.opacity !== "0") {
+            if (e1.dataset.src === path) {
+                return;
+            }
+            e1.style.opacity = "0";
+            e1.style.zIndex = "-1";
+            e2.dataset.src = path;
+            return;
+        }
+        if (e2.dataset.src == path) {
+            return;
+        }
+        e2.style.opacity = "0";
+        e2.style.zIndex = "-1";
+        e1.dataset.src = path;
+
+    };
+    onImageLoad(path) {
+        const e1 = document.getElementById("main-cover-img");
+        const e2 = document.getElementById("main-cover-img2");
+        if (e1.dataset.src === path) {
+            e1.src = path;
+            e1.style.opacity = "1";
+            e1.style.zIndex = "0";
+        }
+        if (e2.dataset.src === path) {
+            e2.src = path;
+            e2.style.opacity = "1";
+            e2.style.zIndex = "0";
+        }
+    };
 };
 
 class UIListView extends PubSub {
