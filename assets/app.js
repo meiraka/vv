@@ -2040,86 +2040,86 @@ class UIListView extends PubSub {
         const style = this.library.list().style;
         const index = this.library.tree.length;
         const scroll = document.getElementById("list" + index);
-        const l = document.getElementById("list-items" + index);
-        let itemcount = parseInt(scroll.clientWidth / 160, 10);
-        if (!this.preferences.appearance.playlist_gridview_album) {
-            itemcount = 1;
-        }
+        const list = document.getElementById("list-items" + index);
         const t = scroll.scrollTop;
         const h = scroll.clientHeight;
-        const s = l.getElementsByClassName("selected");
-        const f = l.getElementsByClassName("playing");
-        let p = 0;
-        let c = null;
-        let n = null;
-        if (s.length === 0 && f.length === 1) {
-            p = f[0].offsetTop;
+        const selected = list.getElementsByClassName("selected");
+        const playing = list.getElementsByClassName("playing");
+        if (selected.length === 0 && playing.length === 1) {
+            const p = playing[0].offsetTop;
             if (t < p && p < t + h) {
-                f[0].classList.add("selected");
+                playing[0].classList.add("selected");
                 return;
             }
         }
-        if (s.length > 0) {
-            p = s[0].offsetTop;
-            if (p < t || t + h < p + s[0].offsetHeight) {
+        if (selected.length > 0) {
+            const p = selected[0].offsetTop;
+            if (p < t || t + h < p + selected[0].offsetHeight) {
                 this._select_near_item();
                 return;
             }
         }
-        if (s.length === 0 && f.length === 0) {
+        if (selected.length === 0 && playing.length === 0) {
             this._select_near_item();
             return;
         }
-        if (s.length > 0) {
-            let selectables = l.getElementsByClassName("selectable");
-            if (target === "up" && selectables[0] === s[0]) {
+        if (selected.length > 0) {
+            const selectables = list.getElementsByClassName("selectable");
+            let itemcount = 1;
+            if (this.preferences.appearance.playlist_gridview_album && style === "album") {
+                if (selectables.length !== 0) {
+                    itemcount = parseInt(scroll.clientWidth / selectables[0].clientWidth, 10);
+                }
+            }
+            if (target === "up" && selectables[0] === selected[0]) {
                 return;
             }
-            if (target === "down" && selectables[selectables.length - 1] === s[0]) {
+            if (target === "down" && selectables[selectables.length - 1] === selected[0]) {
                 return;
             }
             for (let i = 0; i < selectables.length; i++) {
-                c = selectables[i];
-                if (c === s[0]) {
-                    if ((i > 0 && target === "up" && style !== "album") || (i > 0 && target === "left")) {
-                        n = selectables[i - 1];
-                        c.classList.remove("selected");
-                        n.classList.add("selected");
-                        p = n.offsetTop;
+                const item = selectables[i];
+                if (item === selected[0]) {
+                    if (i > 0 && target === "left") {
+                        const left = selectables[i - 1];
+                        item.classList.remove("selected");
+                        left.classList.add("selected");
+                        p = left.offsetTop;
                         if (p < t) {
                             scroll.scrollTop = p;
                         }
                         return;
                     }
-                    if (i > itemcount - 1 && target === "up" && style === "album") {
-                        n = selectables[i - itemcount];
-                        c.classList.remove("selected");
-                        n.classList.add("selected");
-                        p = n.offsetTop;
+                    if (i > itemcount - 1 && target === "up") {
+                        const up = selectables[i - itemcount];
+                        item.classList.remove("selected");
+                        up.classList.add("selected");
+                        p = up.offsetTop;
                         if (p < t) {
                             scroll.scrollTop = p;
                         }
                         return;
                     }
-                    if ((i !== (selectables.length - 1) && target === "down" && style !== "album") || (i !== (selectables.length - 1) && target === "right")) {
-                        n = selectables[i + 1];
-                        c.classList.remove("selected");
-                        n.classList.add("selected");
-                        p = n.offsetTop + n.offsetHeight;
+                    if (i !== (selectables.length - 1) && target === "right") {
+                        const right = selectables[i + 1];
+                        item.classList.remove("selected");
+                        right.classList.add("selected");
+                        p = right.offsetTop + right.offsetHeight;
                         if (t + h < p) {
                             scroll.scrollTop = p - h;
                         }
                         return;
                     }
-                    if ((i < (selectables.length - 1) && target === "down" && style === "album") || (i !== (selectables.length - 1) && target === "right")) {
+                    if (i < (selectables.length - 1) && target === "down") {
+                        let down = null;
                         if (i + itemcount >= selectables.length) {
-                            n = selectables[selectables.length - 1];
+                            down = selectables[selectables.length - 1];
                         } else {
-                            n = selectables[i + itemcount];
+                            down = selectables[i + itemcount];
                         }
-                        c.classList.remove("selected");
-                        n.classList.add("selected");
-                        p = n.offsetTop + n.offsetHeight;
+                        item.classList.remove("selected");
+                        down.classList.add("selected");
+                        p = down.offsetTop + down.offsetHeight;
                         if (t + h < p) {
                             scroll.scrollTop = p - h;
                         }
