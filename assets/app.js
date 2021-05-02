@@ -162,7 +162,7 @@ class MPDAudio {
                 return;
             }
             if (this.mpd.control.state === "play") {
-                if (this.audio.paused) {
+                if (this.audio.paused || this.audio.readyState !== HTMLMediaElement.HAVE_ENOUGH_DATA) {
                     this.load();
                 }
             } else {
