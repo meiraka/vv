@@ -1425,6 +1425,7 @@ class UIBackground {
         } else if (darkmode.addListener) {
             darkmode.addListener(() => { this.update_theme(); });
         }
+        this.update_theme();
     };
     onImageLoading(path) {
         const e1 = document.getElementById("background-image");
