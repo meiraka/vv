@@ -8,7 +8,7 @@ class App {
         this.ui = new UI();
         this.mpdWatcher = new MPDWatcher();
         this.mpd = new MPDClient(this.mpdWatcher);
-        const mainImg = new MainImage(this.mpd);
+        const mainImg = new MainImage(this.ui, this.mpd);
         this.audio = new MPDAudio(this.mpd, this.preferences);
         this.library = new Library(this.mpd, this.preferences);
         this.background = new UIBackground(this.ui, this.mpd, this.preferences, mainImg);
@@ -1359,7 +1359,7 @@ class UI extends PubSub {
 };
 
 class MainImage extends PubSub {
-    constructor(mpd) {
+    constructor(ui, mpd) {
         super();
         this.mpd = mpd;
         this.image1 = new Image();
@@ -1371,7 +1371,7 @@ class MainImage extends PubSub {
             this.raiseEvent("load", e.currentTarget.dataset.src);
         })
         this.mpd.addEventListener("current", () => { this.update(); });
-        this.update();
+        ui.addEventListener("load", () => { this.update(); });
     }
     update() {
         let cover = "/assets/nocover.svg";
