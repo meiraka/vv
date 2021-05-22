@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/meiraka/vv/internal/http/vv/assets"
+	"github.com/meiraka/vv/internal/vv/assets"
 )
 
 // HTMLConfig is options for HTMLHandler.

@@ -85,7 +85,7 @@ func TestRemoteRescan(t *testing.T) {
 		{label: "different image", path: "app-black.png", query: url.Values{"v": {"1"}}},
 	} {
 		t.Run(tt.label, func(t *testing.T) {
-			png := readFile(t, filepath.Join(path, "..", "..", "..", "..", "..", "assets", tt.path))
+			png := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", tt.path))
 			api, err := NewRemote("/api/images", c, testDir)
 			if err != nil {
 				t.Fatalf("failed to initialize cover.Remote: %v", err)
@@ -194,7 +194,7 @@ func TestRemoteUpdate(t *testing.T) {
 		{label: "second", query: url.Values{"v": {"0"}}},
 	} {
 		t.Run(tt.label, func(t *testing.T) {
-			png := readFile(t, filepath.Join(path, "..", "..", "..", "..", "..", "assets", "app.png"))
+			png := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", "app.png"))
 			api, err := NewRemote("/api/images", c, testDir)
 			if err != nil {
 				t.Fatalf("failed to initialize cover.Remote: %v", err)

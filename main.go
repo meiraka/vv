@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/meiraka/vv/internal/http/vv"
-	"github.com/meiraka/vv/internal/http/vv/api"
-	"github.com/meiraka/vv/internal/http/vv/api/images"
-	"github.com/meiraka/vv/internal/http/vv/assets"
 	"github.com/meiraka/vv/internal/mpd"
+	"github.com/meiraka/vv/internal/vv"
+	"github.com/meiraka/vv/internal/vv/api"
+	"github.com/meiraka/vv/internal/vv/api/images"
+	"github.com/meiraka/vv/internal/vv/assets"
 )
 
 const (

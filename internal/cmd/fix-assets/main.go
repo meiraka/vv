@@ -50,7 +50,7 @@ func main() {
 		log.Fatal(err)
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Name() < files[j].Name() })
-	f, err := os.Create(filepath.Join("internal", "http", "vv", "assets", "binary.go"))
+	f, err := os.Create(filepath.Join("internal", "vv", "assets", "binary.go"))
 	if err != nil {
 		log.Fatalf("failed to open file: %v", err)
 	}

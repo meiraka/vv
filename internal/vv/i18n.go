@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/meiraka/vv/internal/gzip"
-	"github.com/meiraka/vv/internal/http/request"
+	"github.com/meiraka/vv/internal/request"
 	"golang.org/x/text/language"
 )
 

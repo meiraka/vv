@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/meiraka/vv/internal/http/vv"
+	"github.com/meiraka/vv/internal/vv"
 	"github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
 )
