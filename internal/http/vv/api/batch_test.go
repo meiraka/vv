@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
@@ -16,12 +17,12 @@ func TestImgBatch(t *testing.T) {
 			func(ctx context.Context, song map[string][]string) error {
 				<-c1
 				return nil
-			})
+			}, func(context.Context, map[string][]string, string) error { return errors.New("must not be called") })
 		cov2 := newCoverFunc(func(map[string][]string) ([]string, bool) { return []string{""}, true },
 			func(ctx context.Context, song map[string][]string) error {
 				<-c2
 				return nil
-			})
+			}, func(context.Context, map[string][]string, string) error { return errors.New("must not be called") })
 		batch := newImgBatch([]ImageProvider{cov1, cov2})
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("first batch.Update() = %v; want %v", err, nil)
@@ -34,10 +35,10 @@ func TestImgBatch(t *testing.T) {
 		c2 <- struct{}{}
 		testEvent(ctx, t, batch.Event(), false, true)
 		if len(c1) != 0 {
-			t.Errorf("cov1.Rescan is not called: %d", len(c1))
+			t.Errorf("cov1.Update is not called: %d", len(c1))
 		}
 		if len(c2) != 1 {
-			t.Errorf("cov2.Rescan called: %d", len(c2))
+			t.Errorf("cov2.Update called: %d", len(c2))
 		}
 		if err := batch.Shutdown(ctx); err != nil {
 			t.Errorf("got first batch.Shutdown() = %v; want nil", err)
@@ -57,7 +58,7 @@ func TestImgBatch(t *testing.T) {
 			func(ctx context.Context, song map[string][]string) error {
 				<-ctx.Done()
 				return nil
-			})
+			}, func(context.Context, map[string][]string, string) error { return errors.New("must not be called") })
 		batch := newImgBatch([]ImageProvider{cov})
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Update() = %v; want nil", err)
@@ -75,7 +76,7 @@ func TestImgBatch(t *testing.T) {
 			func(context.Context, map[string][]string) error {
 				<-ctx.Done()
 				return nil
-			})
+			}, func(context.Context, map[string][]string, string) error { return errors.New("must not be called") })
 		batch := newImgBatch([]ImageProvider{cov})
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Update() = err; want nil")
@@ -92,7 +93,7 @@ func TestImgBatch(t *testing.T) {
 		defer cancel()
 		batch := newImgBatch([]ImageProvider{})
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
-			t.Errorf("batch.Update() = err; want nil")
+			t.Errorf("batch.Update() = %v; want nil", err)
 		}
 		testEvent(ctx, t, batch.Event(), true, true)
 		testEvent(ctx, t, batch.Event(), false, true)
@@ -120,12 +121,15 @@ func testEvent(ctx context.Context, t *testing.T, e <-chan bool, want bool, ok b
 
 type coverFunc struct {
 	getURLs func(map[string][]string) ([]string, bool)
-	rescan  func(context.Context, map[string][]string) error
+	update  func(context.Context, map[string][]string) error
+	rescan  func(context.Context, map[string][]string, string) error
 }
 
-func newCoverFunc(getURLs func(map[string][]string) ([]string, bool), rescan func(context.Context, map[string][]string) error) *coverFunc {
+func newCoverFunc(getURLs func(map[string][]string) ([]string, bool), update func(context.Context, map[string][]string) error,
+	rescan func(context.Context, map[string][]string, string) error) *coverFunc {
 	return &coverFunc{
 		getURLs: getURLs,
+		update:  update,
 		rescan:  rescan,
 	}
 }
@@ -134,6 +138,10 @@ func (c *coverFunc) GetURLs(s map[string][]string) ([]string, bool) {
 	return c.getURLs(s)
 }
 
-func (c *coverFunc) Rescan(ctx context.Context, song map[string][]string) error {
-	return c.rescan(ctx, song)
+func (c *coverFunc) Update(ctx context.Context, song map[string][]string) error {
+	return c.update(ctx, song)
+}
+
+func (c *coverFunc) Rescan(ctx context.Context, song map[string][]string, id string) error {
+	return c.rescan(ctx, song, id)
 }

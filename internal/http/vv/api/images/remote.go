@@ -20,6 +20,7 @@ import (
 var (
 	bucketDirToURL   = []byte("dir")
 	bucketURLToLocal = []byte("url")
+	bucketDirToReqID = []byte("req")
 )
 
 // Remote provides http server and song cover art from mpd albumart api.
@@ -47,7 +48,7 @@ func NewRemote(httpPrefix string, client *mpd.Client, cacheDir string) (*Remote,
 		db:         db,
 	}
 	if err := db.Update(func(tx *bolt.Tx) error {
-		for _, s := range [][]byte{bucketDirToURL, bucketURLToLocal} {
+		for _, s := range [][]byte{bucketDirToURL, bucketURLToLocal, bucketDirToReqID} {
 			_, err := tx.CreateBucketIfNotExists(s)
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
@@ -57,27 +58,65 @@ func NewRemote(httpPrefix string, client *mpd.Client, cacheDir string) (*Remote,
 	}); err != nil {
 		return nil, err
 	}
+
 	return s, nil
 }
 
-// Rescan rescans all songs images.
-func (s *Remote) Rescan(ctx context.Context, song map[string][]string) error {
+// Update rescans song images if not indexed.
+func (s *Remote) Update(ctx context.Context, song map[string][]string) error {
 	k, ok := s.songPath(song)
 	if !ok {
 		return nil
 	}
-	return s.updateCache(ctx, k)
+	if _, ok := s.lastRequestID(k); ok {
+		return nil
+	}
+	if err := s.updateCache(ctx, k); err != nil {
+		return err
+	}
+	if err := s.updateRequestID(k, ""); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (s *Remote) songPath(song map[string][]string) (string, bool) {
-	file, ok := song["file"]
+// Rescan rescans song images.
+func (s *Remote) Rescan(ctx context.Context, song map[string][]string, requestID string) error {
+	k, ok := s.songPath(song)
 	if !ok {
+		return nil
+	}
+	id, ok := s.lastRequestID(k)
+	if ok && id == requestID {
+		return nil
+	}
+	if err := s.updateCache(ctx, k); err != nil {
+		return err
+	}
+	if err := s.updateRequestID(k, requestID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Remote) lastRequestID(k string) (string, bool) {
+	var b []byte
+	if err := s.db.View(func(tx *bolt.Tx) error {
+		b = tx.Bucket(bucketDirToReqID).Get([]byte(path.Dir(k)))
+		return nil
+	}); err != nil {
 		return "", false
 	}
-	if len(file) != 1 {
+	if b == nil {
 		return "", false
 	}
-	return file[0], true
+	return string(b), true
+}
+
+func (s *Remote) updateRequestID(k string, requestID string) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(bucketDirToReqID).Put([]byte(path.Dir(k)), []byte(requestID))
+	})
 }
 
 // Close finalizes cache db, coroutines.
@@ -118,23 +157,15 @@ func (s *Remote) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	serveImage(filepath.Join(s.cacheDir, string(localName)), w, r)
 }
 
-func (s *Remote) getURLPath(songPath string) ([]string, error) {
-	key := []byte(path.Dir(songPath))
-
-	var url []byte
-	if err := s.db.View(func(tx *bolt.Tx) error {
-		url = tx.Bucket(bucketDirToURL).Get(key)
-		return nil
-	}); err != nil {
-		return nil, err
+func (s *Remote) songPath(song map[string][]string) (string, bool) {
+	file, ok := song["file"]
+	if !ok {
+		return "", false
 	}
-	if url == nil {
-		return nil, errNotFound
+	if len(file) != 1 {
+		return "", false
 	}
-	if len(url) == 0 {
-		return []string{}, nil
-	}
-	return []string{path.Join(s.httpPrefix, string(url))}, nil
+	return file[0], true
 }
 
 func (s *Remote) updateCache(ctx context.Context, songPath string) error {
@@ -241,9 +272,19 @@ func (s *Remote) GetURLs(m map[string][]string) ([]string, bool) {
 	if !ok {
 		return nil, true
 	}
-	cover, err := s.getURLPath(songPath)
-	if err == nil {
-		return cover, true
+
+	var url []byte
+	if err := s.db.View(func(tx *bolt.Tx) error {
+		url = tx.Bucket(bucketDirToURL).Get([]byte(path.Dir(songPath)))
+		return nil
+	}); err != nil {
+		return nil, false
 	}
-	return nil, false
+	if url == nil {
+		return nil, false
+	}
+	if len(url) == 0 {
+		return []string{}, true
+	}
+	return []string{path.Join(s.httpPrefix, string(url))}, true
 }

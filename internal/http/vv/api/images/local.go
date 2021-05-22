@@ -19,6 +19,7 @@ type Local struct {
 	files          []string
 	cache          map[string][]string
 	url2img        map[string]string
+	img2req        map[string]string
 	mu             sync.RWMutex
 	event          chan struct{}
 }
@@ -35,6 +36,7 @@ func NewLocal(httpPrefix string, dir string, files []string) (*Local, error) {
 		files:          files,
 		cache:          map[string][]string{},
 		url2img:        map[string]string{},
+		img2req:        map[string]string{},
 	}, nil
 }
 
@@ -50,10 +52,36 @@ func (l *Local) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	serveImage(path, w, r)
 }
 
-// Rescan rescans all songs images.
-func (l *Local) Rescan(ctx context.Context, song map[string][]string) error {
+// Update rescans all songs images.
+func (l *Local) Update(ctx context.Context, song map[string][]string) error {
 	k, ok := l.songDirPath(song)
 	if !ok {
+		return nil
+	}
+
+	l.mu.RLock()
+	_, ok = l.cache[k]
+	l.mu.RUnlock()
+	if ok {
+		return nil
+	}
+
+	l.updateCache(k)
+	return nil
+}
+
+// Rescan rescans song image.
+func (l *Local) Rescan(ctx context.Context, song map[string][]string, reqid string) error {
+	k, ok := l.songDirPath(song)
+	if !ok {
+		return nil
+	}
+
+	l.mu.Lock()
+	lastReq, ok := l.img2req[k]
+	l.img2req[k] = reqid
+	l.mu.Unlock()
+	if ok && lastReq == reqid {
 		return nil
 	}
 	l.updateCache(k)

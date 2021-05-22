@@ -3,15 +3,17 @@ package api
 import (
 	"context"
 	"log"
-	"path"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/meiraka/vv/internal/songs"
 )
 
 // ImageProvider represents http cover image image url api.
 type ImageProvider interface {
-	Rescan(context.Context, map[string][]string) error
+	Update(context.Context, map[string][]string) error
+	Rescan(context.Context, map[string][]string, string) error
 	GetURLs(map[string][]string) ([]string, bool)
 }
 
@@ -62,6 +64,16 @@ var songsTag = songs.Tag
 
 // Update updates image url database.
 func (b *imgBatch) Update(songs []map[string][]string) error {
+	return b.update(songs, false)
+}
+
+// Update updates image url database.
+func (b *imgBatch) Rescan(songs []map[string][]string) error {
+	return b.update(songs, true)
+}
+
+func (b *imgBatch) update(songs []map[string][]string, force bool) error {
+	reqID := strconv.FormatInt(time.Now().UnixNano(), 16)
 	select {
 	case _, ok := <-b.sem:
 		if !ok {
@@ -85,17 +97,19 @@ func (b *imgBatch) Update(songs []map[string][]string) error {
 				cancel()
 			}
 		}()
-		targets := make(map[string]map[string][]string, len(songs))
 		for _, song := range songs {
-			if len(song["file"]) == 1 {
-				targets[path.Dir(song["file"][0])] = song
-			}
-		}
-		for _, song := range targets {
 			for _, c := range b.apis {
-				if err := c.Rescan(ctx, song); err != nil {
-					log.Printf("api: %v: %v", songsTag(song, "file"), err)
-					// use previous rescanned result
+				if force {
+					if err := c.Rescan(ctx, song, reqID); err != nil {
+						log.Printf("api: %v: %v", songsTag(song, "file"), err)
+						// use previous rescanned result
+					}
+				} else {
+					if err := c.Update(ctx, song); err != nil {
+						log.Printf("api: %v: %v", songsTag(song, "file"), err)
+						// use previous rescanned result
+					}
+
 				}
 				urls, _ := c.GetURLs(song)
 				if len(urls) > 0 {
