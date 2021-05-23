@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,12 +19,11 @@ type Song map[string][]string
 
 // Client is a mpd client.
 type Client struct {
-	proto           string
-	addr            string
-	password        string
 	pool            *pool
 	stopHealthCheck func()
 	opts            *ClientOptions
+	commands        []string
+	mu              sync.RWMutex
 }
 
 // Dial connects to mpd server.
@@ -31,16 +31,24 @@ func Dial(proto, addr string, opts *ClientOptions) (*Client, error) {
 	if opts == nil {
 		opts = &ClientOptions{}
 	}
-	pool, err := newPool(proto, addr, opts.Timeout, opts.ReconnectionInterval, opts.connectHook)
+	c := &Client{opts: opts}
+	pool, err := newPool(proto, addr, opts.Timeout, opts.ReconnectionInterval, func(conn *conn) error {
+		if err := opts.connectHook(conn); err != nil {
+			return err
+		}
+		if opts.CacheCommandsResult {
+			if err := c.updateCommands(conn); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 	hCtx, hStop := context.WithCancel(context.Background())
-	c := &Client{
-		pool:            pool,
-		stopHealthCheck: hStop,
-		opts:            opts,
-	}
+	c.pool = pool
+	c.stopHealthCheck = hStop
 	go c.healthCheck(hCtx)
 	return c, nil
 }
@@ -391,28 +399,40 @@ func (c *Client) Config(ctx context.Context) (map[string]string, error) {
 }
 
 // Commands returns which commands the current user has access to.
-func (c *Client) Commands(ctx context.Context) (commands []string, err error) {
-	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := conn.Writeln("commands"); err != nil {
+func (c *Client) Commands(ctx context.Context) ([]string, error) {
+	if !c.opts.CacheCommandsResult {
+		if err := c.pool.Exec(ctx, c.updateCommands); err != nil {
+			return nil, err
+		}
+	}
+	c.mu.RLock()
+	commands := c.commands
+	c.mu.RUnlock()
+	return commands, nil
+}
+
+func (c *Client) updateCommands(conn *conn) error {
+	if _, err := conn.Writeln("commands"); err != nil {
+		return err
+	}
+	commands := []string{}
+	for {
+		line, err := conn.Readln()
+		if err != nil {
 			return err
 		}
-		commands = []string{}
-		for {
-			line, err := conn.Readln()
-			if err != nil {
-				return err
-			}
-			if line == "OK" {
-				return nil
-			}
-			i := strings.Index(line, ": ")
-			if i < 0 {
-				return newCommandError(line)
-			}
-			commands = append(commands, line[i+2:])
+		if line == "OK" {
+			c.mu.Lock()
+			c.commands = commands
+			c.mu.Unlock()
+			return nil
 		}
-	})
-	return
+		i := strings.Index(line, ": ")
+		if i < 0 {
+			return newCommandError(line)
+		}
+		commands = append(commands, line[i+2:])
+	}
 }
 
 func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
@@ -538,6 +558,8 @@ type ClientOptions struct {
 	ReconnectionInterval time.Duration
 	// BinaryLimit sets maximum binary response size.
 	BinaryLimit int
+	// CacheCommandsResult caches mpd command "commands" result
+	CacheCommandsResult bool
 }
 
 func (c *ClientOptions) connectHook(conn *conn) error {

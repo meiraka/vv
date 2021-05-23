@@ -58,12 +58,18 @@ func TestDial(t *testing.T) {
 			want: []*mpdtest.WR{{Read: "binarylimit 64\n", Write: `ACK [5@0] {} unknown command "binarylimit"` + "\n"}},
 			err:  false,
 		},
+		"cache commands result": {
+			url:  ts.URL,
+			opts: &ClientOptions{CacheCommandsResult: true},
+			want: []*mpdtest.WR{{Read: "commands\n", Write: "OK\n"}},
+		},
 		"fulloptions": { // without health check
 			url:  ts.URL,
-			opts: &ClientOptions{Password: "2434", BinaryLimit: 64},
+			opts: &ClientOptions{Password: "2434", BinaryLimit: 64, CacheCommandsResult: true},
 			want: []*mpdtest.WR{
 				{Read: "password 2434\n", Write: "OK\n"},
 				{Read: "binarylimit 64\n", Write: "OK\n"},
+				{Read: "commands\n", Write: "OK\n"},
 			},
 		},
 	} {
