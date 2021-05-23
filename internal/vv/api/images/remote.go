@@ -64,6 +64,11 @@ func NewRemote(httpPrefix string, client *mpd.Client, cacheDir string) (*Remote,
 
 // Update rescans song images if not indexed.
 func (s *Remote) Update(ctx context.Context, song map[string][]string) error {
+	if ok, err := s.supportCommand(ctx); err != nil {
+		return err
+	} else if !ok {
+		return nil
+	}
 	k, ok := s.songPath(song)
 	if !ok {
 		return nil
@@ -82,6 +87,12 @@ func (s *Remote) Update(ctx context.Context, song map[string][]string) error {
 
 // Rescan rescans song images.
 func (s *Remote) Rescan(ctx context.Context, song map[string][]string, requestID string) error {
+	if ok, err := s.supportCommand(ctx); err != nil {
+		return err
+	} else if !ok {
+		return nil
+	}
+
 	k, ok := s.songPath(song)
 	if !ok {
 		return nil
@@ -97,6 +108,19 @@ func (s *Remote) Rescan(ctx context.Context, song map[string][]string, requestID
 		return err
 	}
 	return nil
+}
+
+func (s *Remote) supportCommand(ctx context.Context) (bool, error) {
+	cmds, err := s.client.Commands(ctx)
+	if err != nil {
+		return false, err
+	}
+	for _, cmd := range cmds {
+		if cmd == "albumart" {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (s *Remote) lastRequestID(k string) (string, bool) {

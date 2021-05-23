@@ -48,6 +48,7 @@ func v2() {
 		Timeout:              10 * time.Second,
 		HealthCheckInterval:  time.Second,
 		ReconnectionInterval: 5 * time.Second,
+		CacheCommandsResult:  config.Server.Cover.Remote,
 	})
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
@@ -58,10 +59,6 @@ func v2() {
 	})
 	if err != nil {
 		log.Fatalf("failed to dial mpd: %v", err)
-	}
-	commands, err := client.Commands(ctx)
-	if err != nil {
-		log.Fatalf("failed to check mpd supported functions: %v", err)
 	}
 	// get music dir from local mpd connection
 	if config.MPD.Network == "unix" && config.MPD.MusicDirectory == "" {
@@ -112,17 +109,13 @@ func v2() {
 		}
 	}
 	if config.Server.Cover.Remote {
-		if !contains(commands, "albumart") {
-			log.Println("config.server.cover.remote is disabled: mpd does not support albumart command")
-		} else {
-			c, err := images.NewRemote("/api/music/images/remote/", client, filepath.Join(config.Server.CacheDirectory, "imgcache"))
-			if err != nil {
-				log.Fatalf("failed to initialize coverart: %v", err)
-			}
-			m.Handle("/api/music/images/remote/", c)
-			covers = append(covers, c)
-			defer c.Close()
+		c, err := images.NewRemote("/api/music/images/remote/", client, filepath.Join(config.Server.CacheDirectory, "imgcache"))
+		if err != nil {
+			log.Fatalf("failed to initialize coverart: %v", err)
 		}
+		m.Handle("/api/music/images/remote/", c)
+		covers = append(covers, c)
+		defer c.Close()
 	}
 	root, err := vv.NewHTMLHander(&vv.HTMLConfig{
 		Tree:      toTree(config.Playlist.Tree),

@@ -10,12 +10,14 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"testing"
+	"time"
 
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
 )
+
+const testTimeout = time.Second
 
 func TestRemote(t *testing.T) {
 	svr, err := mpdtest.NewServer("OK MPD 0.19")
@@ -55,13 +57,16 @@ func TestRemote(t *testing.T) {
 	}
 }
 
-func TestRemoteRescan(t *testing.T) {
+func TestRemoteUpdate(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	defer cancel()
 	svr, err := mpdtest.NewServer("OK MPD 0.19")
 	if err != nil {
 		t.Fatalf("failed to create mpd test server: %v", err)
 	}
 	defer svr.Close()
-	c, err := mpd.Dial("tcp", svr.URL, nil)
+	go func() { svr.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "commands: albumart\nOK\n"}) }()
+	c, err := mpd.Dial("tcp", svr.URL, &mpd.ClientOptions{Timeout: testTimeout, CacheCommandsResult: true})
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}
@@ -74,103 +79,114 @@ func TestRemoteRescan(t *testing.T) {
 		t.Fatalf("failed to cleanup test dir")
 	}
 	defer os.RemoveAll(testDir)
+	t.Run("", func(t *testing.T) {
 
-	for id, tt := range []struct {
-		label string
-		path  string
-		query url.Values
+	})
+
+	png1 := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", "app.png"))
+	for _, tt := range []struct {
+		label      string
+		song       map[string][]string
+		mpd        []*mpdtest.WR
+		hasCover   bool
+		query      url.Values
+		respHeader http.Header
+		respBinary []byte
 	}{
-		{label: "first", path: "app.png", query: url.Values{"v": {"0"}}},
-		{label: "same image", path: "app.png", query: url.Values{"v": {"0"}}},
-		{label: "different image", path: "app-black.png", query: url.Values{"v": {"1"}}},
+		{
+			label:    "not found",
+			song:     map[string][]string{"file": {"notfound/test.flac"}},
+			mpd:      []*mpdtest.WR{{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"}},
+			hasCover: false,
+		},
+		{
+			label:    "not found(no mpd request)",
+			song:     map[string][]string{"file": {"notfound/test.flac"}},
+			hasCover: false,
+		},
+		{
+			label:      "found",
+			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			mpd:        []*mpdtest.WR{{Read: `albumart "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png1), len(png1), png1)}},
+			hasCover:   true,
+			query:      url.Values{"v": {"0"}},
+			respBinary: png1,
+			respHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
+		},
+		{
+			label:      "found(no mpd request)",
+			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			hasCover:   true,
+			query:      url.Values{"v": {"0"}},
+			respBinary: png1,
+			respHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
+		},
 	} {
 		t.Run(tt.label, func(t *testing.T) {
-			png := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", tt.path))
+			go func() {
+				for i := range tt.mpd {
+					svr.Expect(ctx, tt.mpd[i])
+				}
+			}()
 			api, err := NewRemote("/api/images", c, testDir)
 			if err != nil {
 				t.Fatalf("failed to initialize cover.Remote: %v", err)
 			}
-			go func() {
-				ctx := context.Background()
-				svr.Expect(ctx, &mpdtest.WR{Read: `albumart "assets/test.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png), len(png), png)})
-				svr.Expect(ctx, &mpdtest.WR{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"})
-			}()
 			defer api.Close()
-			for _, tr := range []struct {
-				in         map[string][]string
-				hasCover   bool
-				wantBinary []byte
-				wantHeader http.Header
-			}{
-				{
-					in:         map[string][]string{"file": {"assets/test.flac"}},
-					hasCover:   true,
-					wantBinary: png,
-					wantHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
-				},
-				{
-					in:       map[string][]string{"file": {"notfound/test.flac"}},
-					hasCover: false,
-				},
-			} {
-				t.Logf("Rescan: %v", tr.in)
-				if err := api.Rescan(context.TODO(), tr.in, strconv.Itoa(id)); err != nil {
-					t.Fatalf("Rescan: %v", err)
+			if err := api.Update(ctx, tt.song); err != nil {
+				t.Fatalf("Update: %v", err)
+			}
+			covers, ok := api.GetURLs(tt.song)
+			if !ok {
+				t.Errorf("cover %s is not indexed", tt.song)
+			}
+			if len(covers) == 0 && tt.hasCover {
+				t.Fatalf("got no covers; want 1 cover")
+			}
+			if len(covers) == 1 && !tt.hasCover {
+				t.Fatalf("got 1 cover %v; want no covers", covers)
+			}
+			if len(covers) == 0 {
+				return
+			}
+			cover := covers[0]
+			u, err := url.Parse(cover)
+			if err != nil {
+				t.Fatalf("failed to parse url %s: %v", cover, err)
+			}
+			if !reflect.DeepEqual(u.Query(), tt.query) {
+				t.Errorf("got query %+v; want %+v", u.Query(), tt.query)
+			}
+			req := httptest.NewRequest("GET", cover, nil)
+			w := httptest.NewRecorder()
+			api.ServeHTTP(w, req)
+			resp := w.Result()
+			if resp.StatusCode != 200 {
+				t.Errorf("got status %d; want 200", resp.StatusCode)
+			}
+			for k, v := range tt.respHeader {
+				if !reflect.DeepEqual(resp.Header[k], v) {
+					t.Errorf("got header %s %v; want %v", k, resp.Header[k], v)
 				}
-				for i := 0; i < 2; i++ {
-					t.Run(fmt.Sprint(tr.in, i), func(t *testing.T) {
-						covers, ok := api.GetURLs(tr.in)
-						if !ok {
-							t.Errorf("cover %s is not indexed", tr.in)
-						}
-						t.Logf("urls: %v", covers)
-						if len(covers) == 0 && tr.hasCover {
-							t.Fatalf("got no covers; want 1 cover")
-						}
-						if len(covers) == 1 && !tr.hasCover {
-							t.Fatalf("got 1 cover %v; want no covers", covers)
-						}
-						if len(covers) == 0 {
-							return
-						}
-						cover := covers[0]
-						u, err := url.Parse(cover)
-						if err != nil {
-							t.Fatalf("failed to parse url %s: %v", cover, err)
-						}
-						if !reflect.DeepEqual(u.Query(), tt.query) {
-							t.Errorf("got query %+v; want %+v", u.Query(), tt.query)
-						}
-						req := httptest.NewRequest("GET", cover, nil)
-						w := httptest.NewRecorder()
-						api.ServeHTTP(w, req)
-						resp := w.Result()
-						if resp.StatusCode != 200 {
-							t.Errorf("got status %d; want 200", resp.StatusCode)
-						}
-						for k, v := range tr.wantHeader {
-							if !reflect.DeepEqual(resp.Header[k], v) {
-								t.Errorf("got header %s %v; want %v", k, resp.Header[k], v)
-							}
-						}
-						got, _ := ioutil.ReadAll(resp.Body)
-						if !reflect.DeepEqual(got, tr.wantBinary) {
-							t.Errorf("got invalid binary response")
-						}
-					})
-				}
+			}
+			got, _ := ioutil.ReadAll(resp.Body)
+			if !reflect.DeepEqual(got, tt.respBinary) {
+				t.Errorf("got invalid binary response")
 			}
 		})
 	}
 }
 
-func TestRemoteUpdate(t *testing.T) {
+func TestRemoteRescan(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	defer cancel()
 	svr, err := mpdtest.NewServer("OK MPD 0.19")
 	if err != nil {
 		t.Fatalf("failed to create mpd test server: %v", err)
 	}
 	defer svr.Close()
-	c, err := mpd.Dial("tcp", svr.URL, nil)
+	go func() { svr.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "commands: albumart\nOK\n"}) }()
+	c, err := mpd.Dial("tcp", svr.URL, &mpd.ClientOptions{Timeout: testTimeout, CacheCommandsResult: true})
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}
@@ -183,93 +199,132 @@ func TestRemoteUpdate(t *testing.T) {
 		t.Fatalf("failed to cleanup test dir")
 	}
 	defer os.RemoveAll(testDir)
+	t.Run("", func(t *testing.T) {
 
+	})
+
+	png1 := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", "app.png"))
+	png2 := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", "app-black.png"))
 	for _, tt := range []struct {
-		label string
-		path  string
-		req   bool
-		query url.Values
+		label      string
+		song       map[string][]string
+		reqid      string
+		mpd        []*mpdtest.WR
+		hasCover   bool
+		query      url.Values
+		respHeader http.Header
+		respBinary []byte
 	}{
-		{label: "first", req: true, query: url.Values{"v": {"0"}}},
-		{label: "second", query: url.Values{"v": {"0"}}},
+		{
+			label:    "not found",
+			song:     map[string][]string{"file": {"notfound/test.flac"}},
+			reqid:    "1",
+			mpd:      []*mpdtest.WR{{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"}},
+			hasCover: false,
+		},
+		{
+			label:    "not found(same request id)",
+			song:     map[string][]string{"file": {"notfound/test.flac"}},
+			reqid:    "1",
+			hasCover: false,
+		},
+		{
+			label:    "not found(different request id)",
+			song:     map[string][]string{"file": {"notfound/test.flac"}},
+			reqid:    "2", // != "1"
+			mpd:      []*mpdtest.WR{{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"}},
+			hasCover: false,
+		},
+		{
+			label:      "found",
+			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			reqid:      "1",
+			mpd:        []*mpdtest.WR{{Read: `albumart "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png1), len(png1), png1)}},
+			hasCover:   true,
+			query:      url.Values{"v": {"0"}},
+			respBinary: png1,
+			respHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
+		},
+		{
+			label:      "found(same request id)",
+			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			reqid:      "1",
+			hasCover:   true,
+			query:      url.Values{"v": {"0"}},
+			respBinary: png1,
+			respHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
+		},
+		{
+			label:      "found(different request id)",
+			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			reqid:      "2", // != "1"
+			mpd:        []*mpdtest.WR{{Read: `albumart "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png1), len(png1), png1)}},
+			hasCover:   true,
+			query:      url.Values{"v": {"0"}},
+			respBinary: png1,
+			respHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
+		},
+		{
+			label:      "found(different request id, different binary)",
+			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			reqid:      "3", // != "2"
+			mpd:        []*mpdtest.WR{{Read: `albumart "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png2), len(png2), png2)}},
+			hasCover:   true,
+			query:      url.Values{"v": {"1"}},
+			respBinary: png2,
+			respHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
+		},
 	} {
 		t.Run(tt.label, func(t *testing.T) {
-			png := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", "app.png"))
+			go func() {
+				for i := range tt.mpd {
+					svr.Expect(ctx, tt.mpd[i])
+				}
+			}()
 			api, err := NewRemote("/api/images", c, testDir)
 			if err != nil {
 				t.Fatalf("failed to initialize cover.Remote: %v", err)
 			}
-			if tt.req {
-				go func() {
-					ctx := context.Background()
-					svr.Expect(ctx, &mpdtest.WR{Read: `albumart "assets/test.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png), len(png), png)})
-					svr.Expect(ctx, &mpdtest.WR{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"})
-				}()
-			}
 			defer api.Close()
-			for _, tr := range []struct {
-				in         map[string][]string
-				hasCover   bool
-				wantBinary []byte
-				wantHeader http.Header
-			}{
-				{
-					in:         map[string][]string{"file": {"assets/test.flac"}},
-					hasCover:   true,
-					wantBinary: png,
-					wantHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
-				},
-				{
-					in:       map[string][]string{"file": {"notfound/test.flac"}},
-					hasCover: false,
-				},
-			} {
-				t.Logf("Update: %v", tr.in)
-				if err := api.Update(context.TODO(), tr.in); err != nil {
-					t.Fatalf("Update: %v", err)
+			if err := api.Rescan(ctx, tt.song, tt.reqid); err != nil {
+				t.Fatalf("Rescan: %v", err)
+			}
+			covers, ok := api.GetURLs(tt.song)
+			if !ok {
+				t.Errorf("cover %s is not indexed", tt.song)
+			}
+			if len(covers) == 0 && tt.hasCover {
+				t.Fatalf("got no covers; want 1 cover")
+			}
+			if len(covers) == 1 && !tt.hasCover {
+				t.Fatalf("got 1 cover %v; want no covers", covers)
+			}
+			if len(covers) == 0 {
+				return
+			}
+			cover := covers[0]
+			u, err := url.Parse(cover)
+			if err != nil {
+				t.Fatalf("failed to parse url %s: %v", cover, err)
+			}
+			if !reflect.DeepEqual(u.Query(), tt.query) {
+				t.Errorf("got query %+v; want %+v", u.Query(), tt.query)
+			}
+			req := httptest.NewRequest("GET", cover, nil)
+			w := httptest.NewRecorder()
+			api.ServeHTTP(w, req)
+			resp := w.Result()
+			if resp.StatusCode != 200 {
+				t.Errorf("got status %d; want 200", resp.StatusCode)
+			}
+			for k, v := range tt.respHeader {
+				if !reflect.DeepEqual(resp.Header[k], v) {
+					t.Errorf("got header %s %v; want %v", k, resp.Header[k], v)
 				}
-				for i := 0; i < 2; i++ {
-					t.Run(fmt.Sprint(tr.in, i), func(t *testing.T) {
-						covers, ok := api.GetURLs(tr.in)
-						if !ok {
-							t.Errorf("cover %s is not indexed", tr.in)
-						}
-						t.Logf("urls: %v", covers)
-						if len(covers) == 0 && tr.hasCover {
-							t.Fatalf("got no covers; want 1 cover")
-						}
-						if len(covers) == 1 && !tr.hasCover {
-							t.Fatalf("got 1 cover %v; want no covers", covers)
-						}
-						if len(covers) == 0 {
-							return
-						}
-						cover := covers[0]
-						u, err := url.Parse(cover)
-						if err != nil {
-							t.Fatalf("failed to parse url %s: %v", cover, err)
-						}
-						if !reflect.DeepEqual(u.Query(), tt.query) {
-							t.Errorf("got query %+v; want %+v", u.Query(), tt.query)
-						}
-						req := httptest.NewRequest("GET", cover, nil)
-						w := httptest.NewRecorder()
-						api.ServeHTTP(w, req)
-						resp := w.Result()
-						if resp.StatusCode != 200 {
-							t.Errorf("got status %d; want 200", resp.StatusCode)
-						}
-						for k, v := range tr.wantHeader {
-							if !reflect.DeepEqual(resp.Header[k], v) {
-								t.Errorf("got header %s %v; want %v", k, resp.Header[k], v)
-							}
-						}
-						got, _ := ioutil.ReadAll(resp.Body)
-						if !reflect.DeepEqual(got, tr.wantBinary) {
-							t.Errorf("got invalid binary response")
-						}
-					})
-				}
+			}
+			got, _ := ioutil.ReadAll(resp.Body)
+			if !reflect.DeepEqual(got, tt.respBinary) {
+				t.Errorf("got invalid binary response")
 			}
 		})
 	}
