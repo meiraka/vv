@@ -33,7 +33,7 @@ func newImgBatch(apis []ImageProvider) *imgBatch {
 	ret := &imgBatch{
 		apis:       apis,
 		sem:        make(chan struct{}, 1),
-		e:          make(chan bool, 1),
+		e:          make(chan bool, 2), // 2: first updating/updated event
 		shutdownCh: make(chan struct{}),
 	}
 	ret.sem <- struct{}{}
@@ -101,15 +101,14 @@ func (b *imgBatch) update(songs []map[string][]string, force bool) error {
 			for _, c := range b.apis {
 				if force {
 					if err := c.Rescan(ctx, song, reqID); err != nil {
-						log.Printf("api: %v: %v", songsTag(song, "file"), err)
+						log.Printf("rescan: %v: %v", songsTag(song, "file"), err)
 						// use previous rescanned result
 					}
 				} else {
 					if err := c.Update(ctx, song); err != nil {
-						log.Printf("api: %v: %v", songsTag(song, "file"), err)
+						log.Printf("update: %v: %v", songsTag(song, "file"), err)
 						// use previous rescanned result
 					}
-
 				}
 				urls, _ := c.GetURLs(song)
 				if len(urls) > 0 {
@@ -121,6 +120,7 @@ func (b *imgBatch) update(songs []map[string][]string, force bool) error {
 		case <-ctx.Done():
 		case b.e <- false:
 		default:
+			log.Println("fixme: batch: event buffer is too small")
 		}
 	}()
 	return nil
