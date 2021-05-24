@@ -2,28 +2,28 @@ package images
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"path"
 	"strings"
 
 	"github.com/meiraka/vv/internal/mpd"
+	"github.com/meiraka/vv/internal/songs"
 )
 
-// Remote provides http album art server from mpd albumart api.
-type Remote struct {
+// Embed provides http album art server from mpd readpicture api.
+type Embed struct {
 	httpPrefix string
 	cache      *cache
 	client     *mpd.Client
 }
 
-// NewRemote initializes Remote with cacheDir.
-func NewRemote(httpPrefix string, client *mpd.Client, cacheDir string) (*Remote, error) {
+// NewEmbed initializes Embed Cover Art provider with cacheDir.
+func NewEmbed(httpPrefix string, client *mpd.Client, cacheDir string) (*Embed, error) {
 	cache, err := newCache(cacheDir)
 	if err != nil {
 		return nil, err
 	}
-	s := &Remote{
+	s := &Embed{
 		httpPrefix: httpPrefix,
 		cache:      cache,
 		client:     client,
@@ -32,7 +32,7 @@ func NewRemote(httpPrefix string, client *mpd.Client, cacheDir string) (*Remote,
 }
 
 // Update rescans song images if not indexed.
-func (s *Remote) Update(ctx context.Context, song map[string][]string) error {
+func (s *Embed) Update(ctx context.Context, song map[string][]string) error {
 	if ok, err := s.isSupported(ctx); err != nil {
 		return err
 	} else if !ok {
@@ -54,7 +54,7 @@ func (s *Remote) Update(ctx context.Context, song map[string][]string) error {
 }
 
 // Rescan rescans song images.
-func (s *Remote) Rescan(ctx context.Context, song map[string][]string, reqid string) error {
+func (s *Embed) Rescan(ctx context.Context, song map[string][]string, reqid string) error {
 	if ok, err := s.isSupported(ctx); err != nil {
 		return err
 	} else if !ok {
@@ -76,14 +76,12 @@ func (s *Remote) Rescan(ctx context.Context, song map[string][]string, reqid str
 }
 
 // Close finalizes cache db, coroutines.
-func (s *Remote) Close() error {
+func (s *Embed) Close() error {
 	return s.cache.Close()
 }
 
-var errNotFound = errors.New("not found")
-
 // ServeHTTP serves local cover art with httpPrefix
-func (s *Remote) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Embed) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// strip httpPrefix
 	p := s.httpPrefix
 	if p[len(p)-1] != '/' {
@@ -105,7 +103,7 @@ func (s *Remote) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetURLs returns cover path for song
-func (s *Remote) GetURLs(song map[string][]string) ([]string, bool) {
+func (s *Embed) GetURLs(song map[string][]string) ([]string, bool) {
 	if s == nil {
 		return nil, true
 	}
@@ -123,39 +121,39 @@ func (s *Remote) GetURLs(song map[string][]string) ([]string, bool) {
 	return []string{path.Join(s.httpPrefix, url)}, true
 }
 
-func (s *Remote) isSupported(ctx context.Context) (bool, error) {
+func (s *Embed) isSupported(ctx context.Context) (bool, error) {
 	cmds, err := s.client.Commands(ctx)
 	if err != nil {
 		return false, err
 	}
 	for _, cmd := range cmds {
-		if cmd == "albumart" {
+		if cmd == "readpicture" {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-// key returns cache key and albumart command file path.
-func (s *Remote) key(song map[string][]string) (key, file string, ok bool) {
-	f, ok := song["file"]
-	if !ok {
+func (s *Embed) key(song map[string][]string) (key string, path string, ok bool) {
+	file, ok := song["file"]
+	if !ok || len(file) != 1 {
 		return "", "", false
 	}
-	if len(f) != 1 {
+	path = file[0]
+	key = strings.Join(songs.Tags(song, "AlbumArtist-Album-Date-Label"), ",")
+	if len(key) == 0 {
 		return "", "", false
 	}
-	return path.Dir(f[0]), f[0], true
+	return key, path, true
 }
 
-func (s *Remote) updateCache(ctx context.Context, key, file, reqid string) error {
-	b, err := s.client.AlbumArt(ctx, file)
+func (s *Embed) updateCache(ctx context.Context, key, file, reqid string) error {
+	b, err := s.client.ReadPicture(ctx, file)
 	if err != nil {
-		// set zero value for not found
-		if errors.Is(err, mpd.ErrNoExist) {
-			return s.cache.SetEmpty(key, reqid)
-		}
 		return err
+	}
+	if b == nil {
+		return s.cache.SetEmpty(key, reqid)
 	}
 	return s.cache.Set(key, reqid, b)
 }

@@ -230,9 +230,15 @@ func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string,
 
 // The music database
 
-// AlbumArt locates album art for the given song and return a chunk of an album art image file at offset.
+// AlbumArt locates album art for the given song.
 func (c *Client) AlbumArt(ctx context.Context, uri string) ([]byte, error) {
 	return c.readBinary(ctx, "albumart", quote(uri))
+}
+
+// ReadPicture locates picture for the given song.
+// If song has no picture, returns nil, nil.
+func (c *Client) ReadPicture(ctx context.Context, uri string) ([]byte, error) {
+	return c.readBinary(ctx, "readpicture", quote(uri))
 }
 
 // ListAllInfo lists all songs and directories in uri.
@@ -454,6 +460,9 @@ func (c *Client) readBinary(ctx context.Context, cmd, uri string) ([]byte, error
 	m, b, err := c.readBinaryPart(ctx, cmd, uri, 0)
 	if err != nil {
 		return nil, err
+	}
+	if len(b) == 0 {
+		return nil, nil
 	}
 	size, err := strconv.Atoi(m["size"])
 	if err != nil {

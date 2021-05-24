@@ -12,15 +12,12 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
 )
 
-const testTimeout = time.Second
-
-func TestRemote(t *testing.T) {
+func TestEmbed(t *testing.T) {
 	svr, err := mpdtest.NewServer("OK MPD 0.19")
 	if err != nil {
 		t.Fatalf("failed to create mpd test server: %v", err)
@@ -40,14 +37,14 @@ func TestRemote(t *testing.T) {
 	}
 	defer os.RemoveAll(testDir)
 
-	api, err := NewRemote("/api/images", c, testDir)
+	api, err := NewEmbed("/api/images", c, testDir)
 	if err != nil {
-		t.Fatalf("failed to initialize cover.Remote: %v", err)
+		t.Fatalf("failed to initialize cover.Embed: %v", err)
 	}
 	defer api.Close()
 	for _, tt := range []map[string][]string{
-		{"file": {"assets/test.flac"}},
-		{"file": {"notfound/test.flac"}},
+		{"Album": {"foo"}, "file": {"assets/test.flac"}},
+		{"Album": {"notfound"}, "file": {"notfound/test.flac"}},
 	} {
 		t.Run(fmt.Sprint(tt), func(t *testing.T) {
 			covers, ok := api.GetURLs(tt)
@@ -58,7 +55,7 @@ func TestRemote(t *testing.T) {
 	}
 }
 
-func TestRemoteUpdate(t *testing.T) {
+func TestEmbedUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	svr, err := mpdtest.NewServer("OK MPD 0.19")
@@ -66,7 +63,7 @@ func TestRemoteUpdate(t *testing.T) {
 		t.Fatalf("failed to create mpd test server: %v", err)
 	}
 	defer svr.Close()
-	go func() { svr.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "commands: albumart\nOK\n"}) }()
+	go func() { svr.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "commands: readpicture\nOK\n"}) }()
 	c, err := mpd.Dial("tcp", svr.URL, &mpd.ClientOptions{Timeout: testTimeout, CacheCommandsResult: true})
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
@@ -94,31 +91,36 @@ func TestRemoteUpdate(t *testing.T) {
 	}{
 		{
 			label:   "unknown error",
-			song:    map[string][]string{"file": {"error/test.flac"}},
-			mpd:     []*mpdtest.WR{{Read: `albumart "error/test.flac" 0` + "\n", Write: "ACK [5@0] {albumart} Unknown error\n"}},
-			err:     &mpd.CommandError{ID: 5, Index: 0, Command: "albumart", Message: "Unknown error"},
+			song:    map[string][]string{"Album": {"error"}, "file": {"error/test.flac"}},
+			mpd:     []*mpdtest.WR{{Read: `readpicture "error/test.flac" 0` + "\n", Write: "ACK [5@0] {readpicture} Unknown error\n"}},
+			err:     &mpd.CommandError{ID: 5, Index: 0, Command: "readpicture", Message: "Unknown error"},
 			indexed: true,
 		},
 		{
 			label:   "unknown error(indexed: no mpd request)",
-			song:    map[string][]string{"file": {"error/test.flac"}},
+			song:    map[string][]string{"Album": {"error"}, "file": {"error/test.flac"}},
 			indexed: true,
 		},
 		{
 			label:   "not found",
-			song:    map[string][]string{"file": {"notfound/test.flac"}},
-			mpd:     []*mpdtest.WR{{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"}},
+			song:    map[string][]string{"Album": {"notfound"}, "file": {"notfound/test.flac"}},
+			mpd:     []*mpdtest.WR{{Read: `readpicture "notfound/test.flac" 0` + "\n", Write: "OK\n"}},
 			indexed: true,
 		},
 		{
 			label:   "not found(indexed: no mpd request)",
-			song:    map[string][]string{"file": {"notfound/test.flac"}},
+			song:    map[string][]string{"Album": {"notfound"}, "file": {"notfound/test.flac"}},
+			indexed: true,
+		},
+		{
+			label:   "no tags",
+			song:    map[string][]string{"file": {"notag/test.flac"}},
 			indexed: true,
 		},
 		{
 			label:      "found",
-			song:       map[string][]string{"file": {"foo/bar.flac"}},
-			mpd:        []*mpdtest.WR{{Read: `albumart "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png1), len(png1), png1)}},
+			song:       map[string][]string{"Album": {"foo"}, "file": {"foo/bar.flac"}},
+			mpd:        []*mpdtest.WR{{Read: `readpicture "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png1), len(png1), png1)}},
 			indexed:    true,
 			query:      []url.Values{{"v": {"0"}}},
 			respBinary: [][]byte{png1},
@@ -126,7 +128,7 @@ func TestRemoteUpdate(t *testing.T) {
 		},
 		{
 			label:      "found(indexed: no mpd request)",
-			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			song:       map[string][]string{"Album": {"foo"}, "file": {"foo/bar.flac"}},
 			indexed:    true,
 			query:      []url.Values{{"v": {"0"}}},
 			respBinary: [][]byte{png1},
@@ -139,9 +141,9 @@ func TestRemoteUpdate(t *testing.T) {
 					svr.Expect(ctx, tt.mpd[i])
 				}
 			}()
-			api, err := NewRemote("/api/images", c, testDir)
+			api, err := NewEmbed("/api/images", c, testDir)
 			if err != nil {
-				t.Fatalf("failed to initialize cover.Remote: %v", err)
+				t.Fatalf("failed to initialize cover.Embed: %v", err)
 			}
 			defer api.Close()
 			if err := api.Update(ctx, tt.song); !errors.Is(err, tt.err) {
@@ -182,7 +184,7 @@ func TestRemoteUpdate(t *testing.T) {
 	}
 }
 
-func TestRemoteRescan(t *testing.T) {
+func TestEmbedRescan(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	svr, err := mpdtest.NewServer("OK MPD 0.19")
@@ -190,7 +192,7 @@ func TestRemoteRescan(t *testing.T) {
 		t.Fatalf("failed to create mpd test server: %v", err)
 	}
 	defer svr.Close()
-	go func() { svr.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "commands: albumart\nOK\n"}) }()
+	go func() { svr.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "commands: readpicture\nOK\n"}) }()
 	c, err := mpd.Dial("tcp", svr.URL, &mpd.ClientOptions{Timeout: testTimeout, CacheCommandsResult: true})
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
@@ -220,43 +222,48 @@ func TestRemoteRescan(t *testing.T) {
 	}{
 		{
 			label: "unknown error",
-			song:  map[string][]string{"file": {"error/test.flac"}},
-			mpd:   []*mpdtest.WR{{Read: `albumart "error/test.flac" 0` + "\n", Write: "ACK [5@0] {albumart} Unknown error\n"}},
-			err:   &mpd.CommandError{ID: 5, Index: 0, Command: "albumart", Message: "Unknown error"},
+			song:  map[string][]string{"Album": {"error"}, "file": {"error/test.flac"}},
+			mpd:   []*mpdtest.WR{{Read: `readpicture "error/test.flac" 0` + "\n", Write: "ACK [5@0] {readpicture} Unknown error\n"}},
+			err:   &mpd.CommandError{ID: 5, Index: 0, Command: "readpicture", Message: "Unknown error"},
 			reqid: "1",
 		},
 		{
 			label: "unknown error(same request id)",
-			song:  map[string][]string{"file": {"error/test.flac"}},
-			mpd:   []*mpdtest.WR{{Read: `albumart "error/test.flac" 0` + "\n", Write: "ACK [5@0] {albumart} Unknown error\n"}},
-			err:   &mpd.CommandError{ID: 5, Index: 0, Command: "albumart", Message: "Unknown error"},
+			song:  map[string][]string{"Album": {"error"}, "file": {"error/test.flac"}},
+			mpd:   []*mpdtest.WR{{Read: `readpicture "error/test.flac" 0` + "\n", Write: "ACK [5@0] {readpicture} Unknown error\n"}},
+			err:   &mpd.CommandError{ID: 5, Index: 0, Command: "readpicture", Message: "Unknown error"},
 			reqid: "1",
 		},
 		{
 			label:   "not found",
-			song:    map[string][]string{"file": {"notfound/test.flac"}},
+			song:    map[string][]string{"Album": {"notfound"}, "file": {"notfound/test.flac"}},
 			reqid:   "1",
-			mpd:     []*mpdtest.WR{{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"}},
+			mpd:     []*mpdtest.WR{{Read: `readpicture "notfound/test.flac" 0` + "\n", Write: "OK\n"}},
 			indexed: true,
 		},
 		{
 			label:   "not found(same request id: indexed: no mpd request)",
-			song:    map[string][]string{"file": {"notfound/test.flac"}},
+			song:    map[string][]string{"Album": {"notfound"}, "file": {"notfound/test.flac"}},
 			reqid:   "1",
 			indexed: true,
 		},
 		{
+			label:   "no tags",
+			song:    map[string][]string{"file": {"notag/test.flac"}},
+			indexed: true,
+		},
+		{
 			label:   "not found(different request id)",
-			song:    map[string][]string{"file": {"notfound/test.flac"}},
+			song:    map[string][]string{"Album": {"notfound"}, "file": {"notfound/test.flac"}},
 			reqid:   "2", // != "1"
-			mpd:     []*mpdtest.WR{{Read: `albumart "notfound/test.flac" 0` + "\n", Write: "ACK [50@0] {albumart} No file exists\n"}},
+			mpd:     []*mpdtest.WR{{Read: `readpicture "notfound/test.flac" 0` + "\n", Write: "OK\n"}},
 			indexed: true,
 		},
 		{
 			label:      "found",
-			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			song:       map[string][]string{"Album": {"foo"}, "file": {"foo/bar.flac"}},
 			reqid:      "1",
-			mpd:        []*mpdtest.WR{{Read: `albumart "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png1), len(png1), png1)}},
+			mpd:        []*mpdtest.WR{{Read: `readpicture "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png1), len(png1), png1)}},
 			indexed:    true,
 			query:      []url.Values{{"v": {"0"}}},
 			respBinary: [][]byte{png1},
@@ -264,7 +271,7 @@ func TestRemoteRescan(t *testing.T) {
 		},
 		{
 			label:      "found(same request id: indexed: no mpd request)",
-			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			song:       map[string][]string{"Album": {"foo"}, "file": {"foo/bar.flac"}},
 			reqid:      "1",
 			indexed:    true,
 			query:      []url.Values{{"v": {"0"}}},
@@ -273,9 +280,9 @@ func TestRemoteRescan(t *testing.T) {
 		},
 		{
 			label:      "found(different request id)",
-			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			song:       map[string][]string{"Album": {"foo"}, "file": {"foo/bar.flac"}},
 			reqid:      "2", // != "1"
-			mpd:        []*mpdtest.WR{{Read: `albumart "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png1), len(png1), png1)}},
+			mpd:        []*mpdtest.WR{{Read: `readpicture "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png1), len(png1), png1)}},
 			indexed:    true,
 			query:      []url.Values{{"v": {"0"}}},
 			respBinary: [][]byte{png1},
@@ -283,9 +290,9 @@ func TestRemoteRescan(t *testing.T) {
 		},
 		{
 			label:      "found(different request id, different binary)",
-			song:       map[string][]string{"file": {"foo/bar.flac"}},
+			song:       map[string][]string{"Album": {"foo"}, "file": {"foo/bar.flac"}},
 			reqid:      "3", // != "2"
-			mpd:        []*mpdtest.WR{{Read: `albumart "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png2), len(png2), png2)}},
+			mpd:        []*mpdtest.WR{{Read: `readpicture "foo/bar.flac" 0` + "\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", len(png2), len(png2), png2)}},
 			indexed:    true,
 			query:      []url.Values{{"v": {"1"}}},
 			respBinary: [][]byte{png2},
@@ -298,9 +305,9 @@ func TestRemoteRescan(t *testing.T) {
 					svr.Expect(ctx, tt.mpd[i])
 				}
 			}()
-			api, err := NewRemote("/api/images", c, testDir)
+			api, err := NewEmbed("/api/images", c, testDir)
 			if err != nil {
-				t.Fatalf("failed to initialize cover.Remote: %v", err)
+				t.Fatalf("failed to initialize cover.Embed: %v", err)
 			}
 			defer api.Close()
 			if err := api.Rescan(ctx, tt.song, tt.reqid); !errors.Is(err, tt.err) {

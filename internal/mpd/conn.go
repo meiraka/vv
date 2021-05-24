@@ -95,6 +95,9 @@ func (c *conn) ReadBinary(cmd ...interface{}) (map[string]string, []byte, error)
 		if line == "OK" {
 			return m, nil, nil
 		}
+		if strings.HasPrefix(line, "ACK ") {
+			return nil, nil, newCommandError(line)
+		}
 		i := strings.Index(line, ": ")
 		if i < 0 {
 			return nil, nil, newCommandError(line)

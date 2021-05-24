@@ -109,13 +109,20 @@ func v2() {
 		}
 	}
 	if config.Server.Cover.Remote {
-		c, err := images.NewRemote("/api/music/images/remote/", client, filepath.Join(config.Server.CacheDirectory, "imgcache"))
+		a, err := images.NewRemote("/api/music/images/albumart/", client, filepath.Join(config.Server.CacheDirectory, "albumart"))
 		if err != nil {
 			log.Fatalf("failed to initialize coverart: %v", err)
 		}
-		m.Handle("/api/music/images/remote/", c)
-		covers = append(covers, c)
-		defer c.Close()
+		m.Handle("/api/music/images/albumart/", a)
+		covers = append(covers, a)
+		defer a.Close()
+		e, err := images.NewEmbed("/api/music/images/embed/", client, filepath.Join(config.Server.CacheDirectory, "embed"))
+		if err != nil {
+			log.Fatalf("failed to initialize coverart: %v", err)
+		}
+		m.Handle("/api/music/images/embed/", e)
+		covers = append(covers, e)
+		defer e.Close()
 	}
 	root, err := vv.NewHTMLHander(&vv.HTMLConfig{
 		Tree:      toTree(config.Playlist.Tree),
