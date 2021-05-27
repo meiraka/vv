@@ -8,7 +8,7 @@ import (
 )
 
 func TestImgBatch(t *testing.T) {
-	t.Run("normal", func(t *testing.T) {
+	t.Run("update", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
 		c1 := make(chan struct{}, 1)
@@ -23,12 +23,16 @@ func TestImgBatch(t *testing.T) {
 				<-c2
 				return nil
 			}, func(context.Context, map[string][]string, string) error { return errors.New("must not be called") })
+
 		batch := newImgBatch([]ImageProvider{cov1, cov2})
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
-			t.Errorf("first batch.Update() = %v; want %v", err, nil)
+			t.Errorf("batch.Update() = %v; want %v", err, nil)
 		}
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != errAlreadyUpdating {
-			t.Errorf("second batch.Update() = %v; want %v", err, errAlreadyUpdating)
+			t.Errorf("batch.Update() = %v; want %v", err, errAlreadyUpdating)
+		}
+		if err := batch.Rescan([]map[string][]string{{"file": {"/foo/bar"}}}); err != errAlreadyUpdating {
+			t.Errorf("batch.Rescan() = %v; want %v", err, errAlreadyUpdating)
 		}
 		testEvent(ctx, t, batch.Event(), true, true)
 		c1 <- struct{}{}
@@ -51,6 +55,56 @@ func TestImgBatch(t *testing.T) {
 			t.Errorf("shutdown batch.Update() = %v; want %v", err, ErrAlreadyShutdown)
 		}
 	})
+	t.Run("rescan", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+		defer cancel()
+		c1 := make(chan struct{}, 1)
+		c2 := make(chan struct{}, 1)
+		cov1 := newCoverFunc(func(map[string][]string) ([]string, bool) { return []string{""}, true },
+			func(context.Context, map[string][]string) error { return errors.New("must not be called") },
+			func(ctx context.Context, song map[string][]string, _ string) error {
+				<-c1
+				return nil
+			})
+		cov2 := newCoverFunc(func(map[string][]string) ([]string, bool) { return []string{""}, true },
+			func(context.Context, map[string][]string) error { return errors.New("must not be called") },
+			func(ctx context.Context, song map[string][]string, _ string) error {
+				<-c2
+				return nil
+			})
+
+		batch := newImgBatch([]ImageProvider{cov1, cov2})
+		if err := batch.Rescan([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
+			t.Errorf("batch.Rescan() = %v; want %v", err, nil)
+		}
+		if err := batch.Rescan([]map[string][]string{{"file": {"/foo/bar"}}}); err != errAlreadyUpdating {
+			t.Errorf("batch.Rescan() = %v; want %v", err, errAlreadyUpdating)
+		}
+		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != errAlreadyUpdating {
+			t.Errorf("batch.Update() = %v; want %v", err, errAlreadyUpdating)
+		}
+		testEvent(ctx, t, batch.Event(), true, true)
+		c1 <- struct{}{}
+		c2 <- struct{}{}
+		testEvent(ctx, t, batch.Event(), false, true)
+		if len(c1) != 0 {
+			t.Errorf("cov1.Rescan is not called: %d", len(c1))
+		}
+		if len(c2) != 1 {
+			t.Errorf("cov2.Rescan called: %d", len(c2))
+		}
+		if err := batch.Shutdown(ctx); err != nil {
+			t.Errorf("got first batch.Shutdown() = %v; want nil", err)
+		}
+		testEvent(ctx, t, batch.Event(), false, false)
+		if err := batch.Shutdown(ctx); err != nil {
+			t.Errorf("got second batch.Shutdown() = %v; want nil", err)
+		}
+		if err := batch.Rescan([]map[string][]string{{"file": {"/foo/bar"}}}); err != ErrAlreadyShutdown {
+			t.Errorf("shutdown batch.Rescan() = %v; want %v", err, ErrAlreadyShutdown)
+		}
+	})
+
 	t.Run("shutdown at update", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
