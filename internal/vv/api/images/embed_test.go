@@ -15,6 +15,7 @@ import (
 
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
+	"github.com/meiraka/vv/internal/vv/assets"
 )
 
 func TestEmbed(t *testing.T) {
@@ -78,7 +79,7 @@ func TestEmbedUpdate(t *testing.T) {
 	}
 	defer os.RemoveAll(testDir)
 
-	png1 := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", "app.png"))
+	png1 := assets.AppPNG
 	for _, tt := range []struct {
 		label      string
 		song       map[string][]string
@@ -207,8 +208,8 @@ func TestEmbedRescan(t *testing.T) {
 	}
 	defer os.RemoveAll(testDir)
 
-	png1 := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", "app.png"))
-	png2 := readFile(t, filepath.Join(path, "..", "..", "..", "..", "assets", "app-black.png"))
+	png1 := assets.AppPNG
+	png2 := assets.AppBlackPNG
 	for _, tt := range []struct {
 		label      string
 		song       map[string][]string
