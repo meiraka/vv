@@ -61,7 +61,8 @@ func (s *Server) Expect(ctx context.Context, m *WR) {
 	case r := <-s.rc:
 		w := m.Write
 		if r.read != m.Read {
-			w = fmt.Sprintf("ACK [5@0] {} got %s; want %s\n", strings.TrimSuffix(m.Read, "\n"), strings.TrimSuffix(r.read, "\n"))
+			got, want := strings.TrimSuffix(r.read, "\n"), strings.TrimSuffix(m.Read, "\n")
+			w = fmt.Sprintf("ACK [5@0] {%s} got %q; want %q\n", got, got, want)
 		}
 		select {
 		case <-ctx.Done():

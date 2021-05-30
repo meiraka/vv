@@ -2,6 +2,7 @@ package mpd
 
 import (
 	"context"
+	"fmt"
 )
 
 // CommandList represents Client commandlist.
@@ -10,11 +11,13 @@ type CommandList struct {
 	parser   []func(*conn) error
 }
 
+const responseListOK = "list_OK"
+
 // Clear clears playlist
 func (cl *CommandList) Clear() {
 	cl.commands = append(cl.commands, []interface{}{"clear"})
 	cl.parser = append(cl.parser, func(c *conn) error {
-		return c.ReadEnd("list_OK")
+		return parseEnd(c, responseListOK)
 	})
 }
 
@@ -22,7 +25,7 @@ func (cl *CommandList) Clear() {
 func (cl *CommandList) Add(uri string) {
 	cl.commands = append(cl.commands, []interface{}{"add", quote(uri)})
 	cl.parser = append(cl.parser, func(c *conn) error {
-		return c.ReadEnd("list_OK")
+		return parseEnd(c, responseListOK)
 	})
 }
 
@@ -30,7 +33,7 @@ func (cl *CommandList) Add(uri string) {
 func (cl *CommandList) Play(pos int) {
 	cl.commands = append(cl.commands, []interface{}{"play", pos})
 	cl.parser = append(cl.parser, func(c *conn) error {
-		return c.ReadEnd("list_OK")
+		return parseEnd(c, responseListOK)
 	})
 }
 
@@ -44,15 +47,18 @@ func (c *Client) ExecCommandList(ctx context.Context, cl *CommandList) error {
 	}()
 	return c.pool.Exec(ctx, func(conn *conn) error {
 		for i := range commands {
-			if _, err := conn.Writeln(commands[i]...); err != nil {
+			if _, err := fmt.Fprintln(conn, commands[i]...); err != nil {
 				return err
 			}
 		}
 		for i := range cl.parser {
 			if err := cl.parser[i](conn); err != nil {
-				return err
+				return addCommandInfo(err, cl.commands[i][0].(string))
 			}
 		}
-		return conn.ReadEnd("OK")
+		if err := parseEnd(conn, responseOK); err != nil {
+			return addCommandInfo(err, "command_list_end")
+		}
+		return nil
 	})
 }

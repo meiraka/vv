@@ -61,7 +61,7 @@ func TestDial(t *testing.T) {
 		"cache commands result": {
 			url:  ts.URL,
 			opts: &ClientOptions{CacheCommandsResult: true},
-			want: []*mpdtest.WR{{Read: "commands\n", Write: "OK\n"}},
+			want: []*mpdtest.WR{{Read: "commands\n", Write: "command: foo\nOK\n"}},
 		},
 		"fulloptions": { // without health check
 			url:  ts.URL,
@@ -97,6 +97,9 @@ func TestDial(t *testing.T) {
 	}
 }
 
+var img = []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\b\x06\x00\x00\x00\x1f\x15ĉ\x00\x00\x00\x11IDATx\x9cbb```\x00\x04\x00\x00\xff\xff\x00\x0f\x00\x03\xfe\x8f\xeb\xcf\x00\x00\x00\x00IEND\xaeB`\x82")
+var imgSize = len(img)
+
 func TestClient(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
@@ -124,176 +127,271 @@ func TestClient(t *testing.T) {
 	if g, w := c.Version(), "0.19"; g != w {
 		t.Errorf("Version() got `%s`; want `%s`", g, w)
 	}
-	for k, v := range map[string]func(t *testing.T){
-		"one": func(t *testing.T) {
-			testsets := map[string]func(context.Context) error{
-				"play -1\n":        func(ctx context.Context) error { return c.Play(ctx, -1) },
-				"next\n":           c.Next,
-				"previous\n":       c.Previous,
-				"pause 1\n":        func(ctx context.Context) error { return c.Pause(ctx, true) },
-				"random 1\n":       func(ctx context.Context) error { return c.Random(ctx, true) },
-				"random 0\n":       func(ctx context.Context) error { return c.Random(ctx, false) },
-				"single 1\n":       func(ctx context.Context) error { return c.Single(ctx, true) },
-				"single oneshot\n": c.OneShot,
-				"repeat 1\n":       func(ctx context.Context) error { return c.Repeat(ctx, true) },
-				"setvol 100\n":     func(ctx context.Context) error { return c.SetVol(ctx, 100) },
+	for read, tt := range map[string]struct {
+		cmd1 func(context.Context) error
+		cmd2 func(context.Context) (interface{}, error)
+		wr   []*mpdtest.WR
+		want interface{}
+	}{
+		// Querying MPD’s status
+		"currentsong": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.CurrentSong(ctx) },
+			wr:   []*mpdtest.WR{{Read: "currentsong\n", Write: "file: foo\nOK\n"}},
+			want: map[string][]string{"file": {"foo"}},
+		},
+		"status": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.Status(ctx) },
+			wr:   []*mpdtest.WR{{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"}},
+			want: map[string]string{"volume": "-1", "song": "1", "elapsed": "1.1", "repeat": "0", "random": "0", "single": "0", "consume": "0", "state": "pause"},
+		},
+		"stats": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.Stats(ctx) },
+			wr:   []*mpdtest.WR{{Read: "stats\n", Write: "uptime: 506282\nplaytime: 45148\nartists: 981\nalbums: 597\nsongs: 6411\ndb_playtime: 1659296\ndb_update: 1610585747\nOK\n"}},
+			want: map[string]string{"uptime": "506282", "playtime": "45148", "artists": "981", "albums": "597", "songs": "6411", "db_playtime": "1659296", "db_update": "1610585747"},
+		},
+		// Playback options
+		"consume 1": {
+			cmd1: func(ctx context.Context) error { return c.Consume(ctx, true) },
+			wr:   []*mpdtest.WR{{Read: "consume 1\n", Write: "OK\n"}},
+		},
+		"consume 0": {
+			cmd1: func(ctx context.Context) error { return c.Consume(ctx, false) },
+			wr:   []*mpdtest.WR{{Read: "consume 0\n", Write: "OK\n"}},
+		},
+		"crossfade 10": {
+			cmd1: func(ctx context.Context) error { return c.Crossfade(ctx, 10*time.Second) },
+			wr:   []*mpdtest.WR{{Read: "crossfade 10\n", Write: "OK\n"}},
+		},
+		"crossfade 0": {
+			cmd1: func(ctx context.Context) error { return c.Crossfade(ctx, 0) },
+			wr:   []*mpdtest.WR{{Read: "crossfade 0\n", Write: "OK\n"}},
+		},
+		"random 1": {
+			cmd1: func(ctx context.Context) error { return c.Random(ctx, true) },
+			wr:   []*mpdtest.WR{{Read: "random 1\n", Write: "OK\n"}},
+		},
+		"random 0": {
+			cmd1: func(ctx context.Context) error { return c.Random(ctx, false) },
+			wr:   []*mpdtest.WR{{Read: "random 0\n", Write: "OK\n"}},
+		},
+		"repeat 1": {
+			cmd1: func(ctx context.Context) error { return c.Repeat(ctx, true) },
+			wr:   []*mpdtest.WR{{Read: "repeat 1\n", Write: "OK\n"}},
+		},
+		"single 1": {
+			cmd1: func(ctx context.Context) error { return c.Single(ctx, true) },
+			wr:   []*mpdtest.WR{{Read: "single 1\n", Write: "OK\n"}},
+		},
+		"single oneshot": {
+			cmd1: c.OneShot,
+			wr:   []*mpdtest.WR{{Read: "single oneshot\n", Write: "OK\n"}},
+		},
+		"setvol 100": {
+			cmd1: func(ctx context.Context) error { return c.SetVol(ctx, 100) },
+			wr:   []*mpdtest.WR{{Read: "setvol 100\n", Write: "OK\n"}},
+		},
+		"replay_gain_mode album": {
+			cmd1: func(ctx context.Context) error { return c.ReplayGainMode(ctx, "album") },
+			wr:   []*mpdtest.WR{{Read: "replay_gain_mode album\n", Write: "OK\n"}},
+		},
+		"replay_gain_status": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.ReplayGainStatus(ctx) },
+			wr:   []*mpdtest.WR{{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"}},
+			want: map[string]string{"replay_gain_mode": "off"},
+		},
+		// Controlling playback
+		"next": {
+			cmd1: c.Next,
+			wr:   []*mpdtest.WR{{Read: "next\n", Write: "OK\n"}},
+		},
+		"pause 1": {
+			cmd1: func(ctx context.Context) error { return c.Pause(ctx, true) },
+			wr:   []*mpdtest.WR{{Read: "pause 1\n", Write: "OK\n"}},
+		},
+		"play -1": {
+			cmd1: func(ctx context.Context) error { return c.Play(ctx, -1) },
+			wr:   []*mpdtest.WR{{Read: "play -1\n", Write: "OK\n"}},
+		},
+		"previous": {
+			cmd1: c.Previous,
+			wr:   []*mpdtest.WR{{Read: "previous\n", Write: "OK\n"}},
+		},
+		// The Queue
+		"playlistinfo": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.PlaylistInfo(ctx) },
+			wr:   []*mpdtest.WR{{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"}},
+			want: []map[string][]string{{"file": {"foo"}}, {"file": {"bar"}}},
+		},
+		// The music database
+		"albumart": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.AlbumArt(ctx, "foo/bar.flac") },
+			wr:   []*mpdtest.WR{{Read: "albumart \"foo/bar.flac\" 0\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", imgSize, imgSize, img)}},
+			want: img,
+		},
+		"albumart(part)": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.AlbumArt(ctx, "foo/bar.flac") },
+			wr: []*mpdtest.WR{
+				{Read: "albumart \"foo/bar.flac\" 0\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", imgSize, 10, img[:10])},
+				{Read: "albumart \"foo/bar.flac\" 10\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", imgSize, imgSize-10, img[10:])},
+			},
+			want: img,
+		},
+		"listallinfo /": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.ListAllInfo(ctx, "/") },
+			wr:   []*mpdtest.WR{{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"}},
+			want: []map[string][]string{{"file": {"foo"}}, {"file": {"bar"}}, {"file": {"baz"}}},
+		},
+		"readpicture": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.ReadPicture(ctx, "foo/bar.flac") },
+			wr:   []*mpdtest.WR{{Read: "readpicture \"foo/bar.flac\" 0\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", imgSize, imgSize, img)}},
+			want: img,
+		},
+		"readpicture(part)": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.ReadPicture(ctx, "foo/bar.flac") },
+			wr: []*mpdtest.WR{
+				{Read: "readpicture \"foo/bar.flac\" 0\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", imgSize, 10, img[:10])},
+				{Read: "readpicture \"foo/bar.flac\" 10\n", Write: fmt.Sprintf("size: %d\nbinary: %d\n%s\nOK\n", imgSize, imgSize-10, img[10:])},
+			},
+			want: img,
+		},
+		"update /": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.Update(ctx, "/") },
+			wr:   []*mpdtest.WR{{Read: "update \"/\"\n", Write: "updating_db: 1\nOK\n"}},
+			want: map[string]string{"updating_db": "1"},
+		},
+		// Mounts and neighbors
+		"mount": {
+			cmd1: func(ctx context.Context) error { return c.Mount(ctx, "xxx", "xxx") },
+			wr:   []*mpdtest.WR{{Read: "mount \"xxx\" \"xxx\"\n", Write: "OK\n"}},
+		},
+		"unmount": {
+			cmd1: func(ctx context.Context) error { return c.Unmount(ctx, "xxx") },
+			wr:   []*mpdtest.WR{{Read: "unmount \"xxx\"\n", Write: "OK\n"}},
+		},
+		"listmounts": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.ListMounts(ctx) },
+			wr:   []*mpdtest.WR{{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"}},
+			want: []map[string]string{{"mount": "", "storage": "/home/foo/music"}, {"mount": "foo", "storage": "nfs://192.168.1.4/export/mp3"}},
+		},
+		// Audio output devices
+		"disableoutput": {
+			cmd1: func(ctx context.Context) error { return c.DisableOutput(ctx, "1") },
+			wr:   []*mpdtest.WR{{Read: "disableoutput 1\n", Write: "OK\n"}},
+		},
+		"enableoutput": {
+			cmd1: func(ctx context.Context) error { return c.EnableOutput(ctx, "1") },
+			wr:   []*mpdtest.WR{{Read: "enableoutput 1\n", Write: "OK\n"}},
+		},
+		"outputs": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.Outputs(ctx) },
+			wr:   []*mpdtest.WR{{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n"}},
+			want: []*Output{{ID: "0", Name: "My ALSA Device", Plugin: "alsa", Enabled: false, Attributes: map[string]string{"dop": "0"}}},
+		},
+		"outputset": {
+			cmd1: func(ctx context.Context) error { return c.OutputSet(ctx, "0", "dop", "1") },
+			wr:   []*mpdtest.WR{{Read: "outputset \"0\" \"dop\" \"1\"\n", Write: "OK\n"}},
+		},
+		// Reflection
+		"config": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.Config(ctx) },
+			wr:   []*mpdtest.WR{{Read: "config\n", Write: "music_directory: /var/lib/mpd/music\nOK\n"}},
+			want: map[string]string{"music_directory": "/var/lib/mpd/music"},
+		},
+		"commands": {
+			cmd2: func(ctx context.Context) (interface{}, error) { return c.Commands(ctx) },
+			wr:   []*mpdtest.WR{{Read: "commands\n", Write: "command: foobar\nOK\n"}},
+			want: []string{"foobar"},
+		},
+	} {
+		t.Run(read, func(t *testing.T) {
+			if tt.cmd1 == nil && tt.cmd2 == nil {
+				t.Fatalf("no test function: cmd1 and cmd2 are nil")
 			}
-			for read, cmd := range testsets {
-				t.Run(read, func(t *testing.T) {
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: "OK\n"})
-					}()
-					if err := cmd(ctx); err != nil {
+			t.Run("ok", func(t *testing.T) {
+				go func() {
+					for _, wr := range tt.wr {
+						ts.Expect(ctx, wr)
+					}
+				}()
+				if tt.cmd1 != nil {
+					if err := tt.cmd1(ctx); err != nil {
 						t.Errorf("got %v; want <nil>", err)
 					}
-				})
-				t.Run(read+" network read error", func(t *testing.T) {
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: read})
-						ts.Disconnect(ctx)
-					}()
-					cmdCtx, cmdCancel := context.WithTimeout(ctx, testTimeout/100)
-					defer cmdCancel()
-					err := cmd(cmdCtx)
-					if _, ok := err.(net.Error); !ok {
-						if err != io.EOF {
-							t.Errorf("got %v; want %v or net.Error", err, io.EOF)
-						}
-					}
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
-						ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
-					}()
-					if err := c.Ping(ctx); err != nil {
-						t.Errorf("ping got %v; want <nil>", err)
-					}
-				})
-				t.Run(read+" command error", func(t *testing.T) {
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: "ACK [50@1] {test} test error\n"})
-					}()
-					if got, want := cmd(ctx), newCommandError("ACK [50@1] {test} test error"); !errors.Is(got, want) {
-						t.Errorf("got _, %v; want nil, %v", got, want)
-					}
-				})
-				t.Run(read+" context cancel", func(t *testing.T) {
-					cmdCtx, cmdCancel := context.WithCancel(ctx)
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: read})
-						cmdCancel()
-					}()
-					if err := cmd(cmdCtx); err != context.Canceled {
-						t.Errorf("got _, %v; want nil, %v", err, io.EOF)
-					}
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
-						ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
-					}()
-					if err := c.Ping(ctx); err != nil {
-						t.Errorf("ping got %v; want <nil>", err)
-					}
-				})
-			}
-
-		},
-		"get": func(t *testing.T) {
-			for read, tt := range map[string]struct {
-				cmd   func(context.Context) (interface{}, error)
-				write string
-				want  interface{}
-			}{
-				"currentsong\n": {
-					cmd:   func(ctx context.Context) (interface{}, error) { return c.CurrentSong(ctx) },
-					write: "file: foo\nOK\n",
-					want:  map[string][]string{"file": {"foo"}},
-				},
-				"status\n": {
-					cmd:   func(ctx context.Context) (interface{}, error) { return c.Status(ctx) },
-					write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n",
-					want:  map[string]string{"volume": "-1", "song": "1", "elapsed": "1.1", "repeat": "0", "random": "0", "single": "0", "consume": "0", "state": "pause"},
-				},
-				"playlistinfo\n": {
-					cmd:   func(ctx context.Context) (interface{}, error) { return c.PlaylistInfo(ctx) },
-					write: "file: foo\nfile: bar\nOK\n",
-					want:  []map[string][]string{{"file": {"foo"}}, {"file": {"bar"}}},
-				},
-				"listallinfo /\n": {
-					cmd:   func(ctx context.Context) (interface{}, error) { return c.ListAllInfo(ctx, "/") },
-					write: "file: foo\nfile: bar\nfile: baz\nOK\n",
-					want:  []map[string][]string{{"file": {"foo"}}, {"file": {"bar"}}, {"file": {"baz"}}},
-				},
-				"outputs\n": {
-					cmd:   func(ctx context.Context) (interface{}, error) { return c.Outputs(ctx) },
-					write: "outputid: 0\noutputname: My ALSA Device\nplugin: alsa\noutputenabled: 0\nattribute: dop=0\nOK\n",
-					want:  []*Output{{ID: "0", Name: "My ALSA Device", Plugin: "alsa", Enabled: false, Attributes: map[string]string{"dop": "0"}}},
-				},
-			} {
-				t.Run(read, func(t *testing.T) {
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: tt.write})
-					}()
-					got, err := tt.cmd(ctx)
+				} else if tt.cmd2 != nil {
+					got, err := tt.cmd2(ctx)
 					if !reflect.DeepEqual(got, tt.want) || err != nil {
 						t.Errorf("got %v, %v; want %v, <nil>", got, err, tt.want)
 					}
-				})
-				t.Run(read+" network read error", func(t *testing.T) {
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: read})
-						ts.Disconnect(ctx)
-					}()
-					cmdCtx, cmdCancel := context.WithTimeout(ctx, testTimeout/100)
-					defer cmdCancel()
-					got, err := tt.cmd(cmdCtx)
+				}
+			})
+			t.Run("network read error", func(t *testing.T) {
+				go func() {
+					ts.Expect(ctx, &mpdtest.WR{Read: tt.wr[0].Read})
+					ts.Disconnect(ctx)
+				}()
+				cmdCtx, cmdCancel := context.WithTimeout(ctx, testTimeout/100)
+				defer cmdCancel()
+				if tt.cmd1 != nil {
+					err := tt.cmd1(cmdCtx)
 					if _, ok := err.(net.Error); !ok {
-						if err != io.EOF {
+						if !errors.Is(err, io.EOF) {
+							t.Errorf("got %v; want nil, %v or net.Error", err, io.EOF)
+						}
+					}
+				} else if tt.cmd2 != nil {
+					got, err := tt.cmd2(cmdCtx)
+					if _, ok := err.(net.Error); !ok {
+						if !errors.Is(err, io.EOF) {
 							t.Errorf("got %v, %v; want nil, %v or net.Error", got, err, io.EOF)
 						}
 					}
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
-						ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
-					}()
-					if err := c.Ping(ctx); err != nil {
-						t.Errorf("ping got %v; want <nil>", err)
-					}
-				})
-				t.Run(read+" command error", func(t *testing.T) {
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: read, Write: "ACK [50@1] {test} test error\n"})
-					}()
-					_, err := tt.cmd(ctx)
-					if want := newCommandError("ACK [50@1] {test} test error"); !errors.Is(err, want) {
-						t.Errorf("got _, %v; want nil, %v", err, want)
-					}
-				})
-				t.Run(read+" context cancel", func(t *testing.T) {
-					cmdCtx, cmdCancel := context.WithCancel(ctx)
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: read})
-						cmdCancel()
-					}()
-					got, err := tt.cmd(cmdCtx)
-					if err != context.Canceled {
-						t.Errorf("got %v, %v; want nil, %v", got, err, io.EOF)
-					}
-					go func() {
-						ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
-						ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
-					}()
-					if err := c.Ping(ctx); err != nil {
-						t.Errorf("ping got %v; want <nil>", err)
-					}
-				})
-			}
-		},
-	} {
-		select {
-		case <-ctx.Done():
-			t.Fatalf("test timeout")
-		default:
-			t.Run(k, v)
-		}
+				}
+				go func() {
+					ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+					ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
+				}()
+				if err := c.Ping(ctx); err != nil {
+					t.Errorf("ping got %v; want <nil>", err)
+				}
+			})
+			t.Run("command error", func(t *testing.T) {
+				go func() {
+					ts.Expect(ctx, &mpdtest.WR{Read: tt.wr[0].Read, Write: "ACK [50@1] {test} test error\n"})
+				}()
+				var err error
+				if tt.cmd1 != nil {
+					err = tt.cmd1(ctx)
+				} else if tt.cmd2 != nil {
+					_, err = tt.cmd2(ctx)
+				}
+				if want := parseCommandError("ACK [50@1] {test} test error"); !errors.Is(err, want) {
+					t.Errorf("got _, %v; want _, %v", err, want)
+				}
+			})
+			t.Run("context cancel", func(t *testing.T) {
+				cmdCtx, cmdCancel := context.WithCancel(ctx)
+				go func() {
+					ts.Expect(ctx, &mpdtest.WR{Read: tt.wr[0].Read})
+					cmdCancel()
+				}()
+				var err error
+				if tt.cmd1 != nil {
+					err = tt.cmd1(cmdCtx)
+				} else if tt.cmd2 != nil {
+					_, err = tt.cmd2(cmdCtx)
+				}
+				if !errors.Is(err, context.Canceled) {
+					t.Errorf("got _, %v; want nil, %v", err, context.Canceled)
+				}
+				go func() {
+					ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+					ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
+				}()
+				if err := c.Ping(ctx); err != nil {
+					t.Errorf("ping got %v; want <nil>", err)
+				}
+			})
+		})
 	}
 }
 
@@ -326,10 +424,10 @@ func TestClientCloseNetworkError(t *testing.T) {
 	}
 	svr <- struct{}{}
 	<-cli
-	if err := c.Ping(ctx); err != io.EOF {
+	if err := c.Ping(ctx); !errors.Is(err, io.EOF) {
 		t.Errorf("Ping(ctx) got %v; want %v", err, io.EOF)
 	}
-	if err := c.Close(ctx); err != ErrClosed {
+	if err := c.Close(ctx); !errors.Is(err, ErrClosed) {
 		t.Errorf("got %v; want %v", err, ErrClosed)
 	}
 

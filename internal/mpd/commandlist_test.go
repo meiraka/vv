@@ -63,7 +63,8 @@ func TestCommandListCommandError(t *testing.T) {
 	cl.Clear()
 	cl.Play(0)
 	cl.Add("/foo/bar")
-	if err, want := c.ExecCommandList(ctx, cl), newCommandError("ACK [2@1] {} Bad song index"); !errors.Is(err, want) {
+	want := &CommandError{ID: 2, Index: 1, Message: "Bad song index"}
+	if err := c.ExecCommandList(ctx, cl); !errors.Is(err, want) {
 		t.Errorf("CommandList got error %v; want %v", err, want)
 	}
 	if err := c.Close(ctx); err != nil {

@@ -2,6 +2,7 @@ package mpd
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -53,7 +54,7 @@ func NewWatcher(proto, addr string, opts *WatcherOptions) (*Watcher, error) {
 					default:
 					}
 				}
-				if _, err := conn.Writeln(cmd...); err != nil {
+				if _, err := fmt.Fprintln(conn, cmd...); err != nil {
 					return err
 				}
 				readCtx, writeCancel := context.WithCancel(context.Background())
@@ -67,7 +68,7 @@ func NewWatcher(proto, addr string, opts *WatcherOptions) (*Watcher, error) {
 							return
 						default:
 						}
-						_, _ = conn.Writeln("noidle")
+						_, _ = fmt.Fprintln(conn, "noidle")
 						return
 					case <-readCtx.Done():
 						return
@@ -75,7 +76,7 @@ func NewWatcher(proto, addr string, opts *WatcherOptions) (*Watcher, error) {
 
 				}()
 				for {
-					line, err := conn.Readln()
+					line, err := readln(conn)
 					writeCancel()
 					if err != nil {
 						return err
@@ -86,7 +87,7 @@ func NewWatcher(proto, addr string, opts *WatcherOptions) (*Watcher, error) {
 						default:
 						}
 					} else if line != "OK" {
-						return newCommandError(line[0 : len(line)-1])
+						return parseCommandError(line[0 : len(line)-1])
 					} else {
 						return nil
 					}
@@ -134,7 +135,7 @@ type WatcherOptions struct {
 
 func (c *WatcherOptions) connectHook(conn *conn) error {
 	if len(c.Password) > 0 {
-		if err := conn.OK("password", c.Password); err != nil {
+		if err := execOK(conn, "password", c.Password); err != nil {
 			return err
 		}
 	}

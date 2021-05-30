@@ -3,6 +3,7 @@ package mpd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,8 +15,9 @@ var (
 	ErrClosed = errors.New("mpd: connection closed")
 )
 
-// Song represents song tag.
-type Song map[string][]string
+const (
+	responseOK = "OK"
+)
 
 // Client is a mpd client.
 type Client struct {
@@ -69,30 +71,15 @@ func (c *Client) Version() string {
 // CurrentSong displays the song info of the current song
 func (c *Client) CurrentSong(ctx context.Context) (song map[string][]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := conn.Writeln("currentsong"); err != nil {
+		if _, err := fmt.Fprintln(conn, "currentsong"); err != nil {
 			return err
 		}
-		song = map[string][]string{}
-		for {
-			line, err := conn.Readln()
-			if err != nil {
-				return err
-			}
-			if line == "OK" {
-				return nil
-			}
-			i := strings.Index(line, ": ")
-			if i < 0 {
-				return newCommandError(line)
-			}
-			key := line[0:i]
-			if _, found := song[key]; !found {
-				song[key] = []string{line[i+2:]}
-			} else {
-				song[key] = append(song[key], line[i+2:])
-			}
-		}
+		song, err = parseSong(conn, responseOK)
+		return err
 	})
+	if err != nil {
+		return nil, addCommandInfo(err, "currentsong")
+	}
 	return
 }
 
@@ -194,37 +181,15 @@ func (c *Client) SeekCur(ctx context.Context, t float64) error {
 // PlaylistInfo displays a list of all songs in the playlist.
 func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := conn.Writeln("playlistinfo"); err != nil {
+		if _, err := fmt.Fprintln(conn, "playlistinfo"); err != nil {
 			return err
 		}
-		var song map[string][]string
-		for {
-			line, err := conn.Readln()
-			if err != nil {
-				return err
-			}
-			if line == "OK" {
-				return nil
-			}
-			if strings.HasPrefix(line, "file: ") {
-				song = map[string][]string{}
-				songs = append(songs, song)
-			}
-			if len(songs) == 0 {
-				return newCommandError(line)
-			}
-			i := strings.Index(line, ": ")
-			if i < 0 {
-				return newCommandError(line)
-			}
-			key := line[0:i]
-			if _, found := song[key]; !found {
-				song[key] = []string{line[i+2:]}
-			} else {
-				song[key] = append(song[key], line[i+2:])
-			}
-		}
+		songs, err = parseSongs(conn, responseOK)
+		return err
 	})
+	if err != nil {
+		return nil, addCommandInfo(err, "playlistinfo")
+	}
 	return
 }
 
@@ -232,58 +197,27 @@ func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string,
 
 // AlbumArt locates album art for the given song.
 func (c *Client) AlbumArt(ctx context.Context, uri string) ([]byte, error) {
-	return c.readBinary(ctx, "albumart", quote(uri))
+	return c.binary(ctx, "albumart", quote(uri))
 }
 
 // ReadPicture locates picture for the given song.
 // If song has no picture, returns nil, nil.
 func (c *Client) ReadPicture(ctx context.Context, uri string) ([]byte, error) {
-	return c.readBinary(ctx, "readpicture", quote(uri))
+	return c.binary(ctx, "readpicture", quote(uri))
 }
 
 // ListAllInfo lists all songs and directories in uri.
 func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[string][]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := conn.Writeln("listallinfo", uri); err != nil {
+		if _, err := fmt.Fprintln(conn, "listallinfo", uri); err != nil {
 			return err
 		}
-		var song map[string][]string
-		var inEntry bool
-		for {
-			line, err := conn.Readln()
-			if err != nil {
-				return err
-			}
-			if line == "OK" {
-				return nil
-			}
-			if strings.HasPrefix(line, "file: ") {
-				song = map[string][]string{}
-				songs = append(songs, song)
-				inEntry = true
-			} else if strings.HasPrefix(line, "directory: ") {
-				inEntry = false
-
-			}
-			if inEntry {
-				if len(songs) == 0 {
-					return newCommandError(line)
-				}
-				i := strings.Index(line, ": ")
-				if i < 0 {
-					return newCommandError(line)
-				}
-				key := line[0:i]
-				if _, found := song[key]; !found {
-					song[key] = []string{line[i+2:]}
-				} else {
-					song[key] = append(song[key], line[i+2:])
-				}
-			} else if strings.HasPrefix(line, "ACK [") {
-				return newCommandError(line)
-			}
-		}
+		songs, err = parseSongs(conn, responseOK)
+		return err
 	})
+	if err != nil {
+		return nil, addCommandInfo(err, "listallinfo")
+	}
 	return
 }
 
@@ -332,37 +266,16 @@ type Output struct {
 
 // Outputs shows information about all outputs.
 func (c *Client) Outputs(ctx context.Context) (outputs []*Output, err error) {
-	var output *Output
-	err = c.listFunc(ctx, func(line string) error {
-		if strings.HasPrefix(line, "outputid:") {
-			output = &Output{}
-			outputs = append(outputs, output)
+	err = c.pool.Exec(ctx, func(conn *conn) error {
+		if _, err := fmt.Fprintln(conn, "outputs"); err != nil {
+			return err
 		}
-		i := strings.Index(line, ": ")
-		if i < 0 {
-			return newCommandError(line)
-		}
-		key, value := line[0:i], line[i+2:]
-		if key == "outputid" {
-			output.ID = value
-		} else if key == "outputname" {
-			output.Name = value
-		} else if key == "outputenabled" {
-			output.Enabled = (value == "1")
-		} else if key == "plugin" {
-			output.Plugin = value
-		} else if key == "attribute" {
-			i := strings.Index(value, "=")
-			if i < 0 {
-				return nil
-			}
-			if output.Attributes == nil {
-				output.Attributes = make(map[string]string)
-			}
-			output.Attributes[value[0:i]] = value[i+1:]
-		}
-		return nil
-	}, "outputs")
+		outputs, err = parseOutputs(conn, responseOK)
+		return err
+	})
+	if err != nil {
+		return nil, addCommandInfo(err, "outputs")
+	}
 	return
 }
 
@@ -405,59 +318,62 @@ func (c *Client) Config(ctx context.Context) (map[string]string, error) {
 }
 
 // Commands returns which commands the current user has access to.
-func (c *Client) Commands(ctx context.Context) ([]string, error) {
+func (c *Client) Commands(ctx context.Context) (commands []string, err error) {
 	if !c.opts.CacheCommandsResult {
-		if err := c.pool.Exec(ctx, c.updateCommands); err != nil {
-			return nil, err
+		err = c.pool.Exec(ctx, func(conn *conn) error {
+			if _, err := fmt.Fprintln(conn, "commands"); err != nil {
+				return err
+			}
+			commands, err = parseList(conn, responseOK, "command")
+			return err
+		})
+		if err != nil {
+			return nil, addCommandInfo(err, "commands")
 		}
+		return
 	}
 	c.mu.RLock()
-	commands := c.commands
+	commands = c.commands
 	c.mu.RUnlock()
 	return commands, nil
 }
 
 func (c *Client) updateCommands(conn *conn) error {
-	if _, err := conn.Writeln("commands"); err != nil {
+	if _, err := fmt.Fprintln(conn, "commands"); err != nil {
 		return err
 	}
-	commands := []string{}
-	for {
-		line, err := conn.Readln()
-		if err != nil {
-			return err
-		}
-		if line == "OK" {
-			c.mu.Lock()
-			c.commands = commands
-			c.mu.Unlock()
-			return nil
-		}
-		i := strings.Index(line, ": ")
-		if i < 0 {
-			return newCommandError(line)
-		}
-		commands = append(commands, line[i+2:])
+	commands, err := parseList(conn, responseOK, "command")
+	if err != nil {
+		return addCommandInfo(err, "commands")
 	}
+	c.mu.Lock()
+	c.commands = commands
+	c.mu.Unlock()
+	return nil
 }
 
 func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
 	return c.pool.Exec(ctx, func(conn *conn) error {
-		return conn.OK(cmd...)
+		return execOK(conn, cmd...)
 	})
 }
 
-func (c *Client) readBinaryPart(ctx context.Context, cmd, uri string, pos int) (m map[string]string, b []byte, err error) {
+func (c *Client) binaryPart(ctx context.Context, cmd, uri string, pos int) (m map[string]string, b []byte, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		m, b, err = conn.ReadBinary(cmd, uri, pos)
+		if _, err := fmt.Fprintln(conn, cmd, uri, pos); err != nil {
+			return err
+		}
+		m, b, err = parseBinary(conn, responseOK)
 		return err
 	})
+	if err != nil {
+		return nil, nil, addCommandInfo(err, cmd)
+	}
 	return
-
 }
 
-func (c *Client) readBinary(ctx context.Context, cmd, uri string) ([]byte, error) {
-	m, b, err := c.readBinaryPart(ctx, cmd, uri, 0)
+func (c *Client) binary(ctx context.Context, cmd, uri string) ([]byte, error) {
+	m, b, err := c.binaryPart(ctx, cmd, uri, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -475,7 +391,7 @@ func (c *Client) readBinary(ctx context.Context, cmd, uri string) ([]byte, error
 		if size < len(b) {
 			return nil, errors.New("oversize")
 		}
-		_, nb, err := c.readBinaryPart(ctx, cmd, uri, len(b))
+		_, nb, err := c.binaryPart(ctx, cmd, uri, len(b))
 		if err != nil {
 			return nil, err
 		}
@@ -485,77 +401,30 @@ func (c *Client) readBinary(ctx context.Context, cmd, uri string) ([]byte, error
 
 func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := conn.Writeln(cmd...); err != nil {
+		if _, err := fmt.Fprintln(conn, cmd...); err != nil {
 			return err
 		}
-		m = map[string]string{}
-		for {
-			line, err := conn.Readln()
-			if err != nil {
-				return err
-			}
-			if line == "OK" {
-				return nil
-			}
-			i := strings.Index(line, ": ")
-			if i < 0 {
-				return newCommandError(line)
-			}
-			m[line[0:i]] = line[i+2:]
-		}
+		m, err = parseMap(conn, responseOK)
+		return err
 	})
+	if err != nil {
+		return nil, addCommandInfo(err, cmd[0].(string))
+	}
 	return
 }
 
 func (c *Client) listMap(ctx context.Context, newKey string, cmd ...interface{}) (l []map[string]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := conn.Writeln(cmd...); err != nil {
+		if _, err := fmt.Fprintln(conn, cmd...); err != nil {
 			return err
 		}
-		var m map[string]string
-		for {
-			line, err := conn.Readln()
-			if err != nil {
-				return err
-			}
-			if line == "OK" {
-				return nil
-			}
-			if strings.HasPrefix(line, newKey) {
-				m = map[string]string{}
-				l = append(l, m)
-			}
-			if m == nil {
-				return newCommandError(line)
-			}
-			i := strings.Index(line, ": ")
-			if i < 0 {
-				return newCommandError(line)
-			}
-			m[line[0:i]] = line[i+2:]
-		}
+		l, err = parseListMap(conn, responseOK, newKey)
+		return err
 	})
+	if err != nil {
+		return nil, addCommandInfo(err, cmd[0].(string))
+	}
 	return
-}
-
-func (c *Client) listFunc(ctx context.Context, f func(string) error, cmd ...interface{}) error {
-	return c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := conn.Writeln(cmd...); err != nil {
-			return err
-		}
-		for {
-			line, err := conn.Readln()
-			if err != nil {
-				return err
-			}
-			if line == "OK" {
-				return nil
-			}
-			if err := f(line); err != nil {
-				return err
-			}
-		}
-	})
 }
 
 // ClientOptions contains options for mpd client connection.
@@ -573,12 +442,12 @@ type ClientOptions struct {
 
 func (c *ClientOptions) connectHook(conn *conn) error {
 	if len(c.Password) > 0 {
-		if err := conn.OK("password", c.Password); err != nil {
+		if err := execOK(conn, "password", c.Password); err != nil {
 			return err
 		}
 	}
 	if c.BinaryLimit > 0 {
-		err := conn.OK("binarylimit", c.BinaryLimit)
+		err := execOK(conn, "binarylimit", c.BinaryLimit)
 		if err != nil && !errors.Is(err, ErrUnknown) { // MPD-0.22.3 or earlier returns ErrUnknown
 			return err
 		}
@@ -591,4 +460,14 @@ func quote(s string) string {
 	return `"` + strings.Replace(
 		strings.Replace(s, "\\", "\\\\", -1),
 		`"`, `\"`, -1) + `"`
+}
+
+func execOK(c *conn, cmd ...interface{}) error {
+	if _, err := fmt.Fprintln(c, cmd...); err != nil {
+		return err
+	}
+	if err := parseEnd(c, responseOK); err != nil {
+		return addCommandInfo(err, cmd[0].(string))
+	}
+	return nil
 }

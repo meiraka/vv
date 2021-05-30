@@ -928,7 +928,7 @@ func TestHandler(t *testing.T) {
 			h, err := NewHandler(ctx, c, wl, &tt.config)
 			defer h.Stop()
 			if err != nil {
-				t.Fatalf("NewHTTPHandler got error %v; want nil", err)
+				t.Fatalf("NewHTTPHandler got error = %v; want <nil>", err)
 			}
 			ts := httptest.NewServer(h)
 			defer ts.Close()

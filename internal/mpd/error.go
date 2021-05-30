@@ -3,8 +3,6 @@ package mpd
 import (
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 )
 
 // Predefined error codes in https://github.com/MusicPlayerDaemon/MPD/blob/master/src/protocol/Ack.hxx
@@ -64,42 +62,6 @@ type CommandError struct {
 	Index   int
 	Command string
 	Message string
-}
-
-func newCommandError(s string) error {
-	if len(s) < 5 {
-		return fmt.Errorf("unknown error: %s", s)
-	}
-	if !strings.HasPrefix(s, "ACK [") {
-		return fmt.Errorf("unknown error: %s", s)
-	}
-	u := s[5:]
-	at := strings.IndexRune(u, '@')
-	if at < 0 {
-		return errors.New(s)
-	}
-	id, err := strconv.Atoi(u[:at])
-	if err != nil {
-		return errors.New(s)
-	}
-	b := strings.IndexRune(u, ']')
-	if b < 0 {
-		return errors.New(s)
-	}
-	index, err := strconv.Atoi(u[at+1 : b])
-	if err != nil {
-		return errors.New(s)
-	}
-	bb := strings.IndexRune(u, '}')
-	if bb < 0 {
-		return errors.New(s)
-	}
-	return &CommandError{
-		ID:      AckError(id),
-		Index:   index,
-		Command: u[b+3 : bb],
-		Message: u[bb+2:],
-	}
 }
 
 func (f *CommandError) Error() string {
