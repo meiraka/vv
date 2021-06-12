@@ -91,14 +91,27 @@ class MPDAudio {
         this.preferences = preferences;
         this.src = this.preferences.httpoutput.stream;
         this.audio = new Audio();
+        this.audio.preload = "metadata";
         // firefox's load() function does not fire canplaythrough event without autoplay is enabled.
         this.audio.autoplay = true;
+        this.stopped = true;
+        this._preparePlay = false;
+        this.audio.addEventListener("ended", () => { // connection lost
+            if (!this.stopped) {
+                this.stop();
+            }
+            UINotification.show("client-output", "networkError", { ttl: Infinity });
+        });
         this.audio.addEventListener("loadeddata", () => {
             // prevent autoplay to use play() function in canplaythrough event.
             this.audio.pause();
+            this._preparePlay = true;
         });
         this.audio.addEventListener("canplaythrough", () => {
-            const err = document.getElementById("httpoutput-error");
+            if (!this._preparePlay) {
+                return;
+            }
+            this._preparePlay = false;
             const p = this.audio.play();
             if (!p) {
                 return;
@@ -109,12 +122,16 @@ class MPDAudio {
             if (document.readyState === "loading") {
                 return;
             }
+            const err = document.getElementById("httpoutput-error");
             p.then(() => {
                 UINotification.hide("client-output");
                 err.textContent = "";
             }).catch((e) => {
                 if (this.preferences.httpoutput.stream === "") {
                     return;
+                }
+                if (!this.audio.stopped) {
+                    this.stop();
                 }
                 switch (e.name) {
                     case "NotAllowedError":
@@ -139,6 +156,10 @@ class MPDAudio {
             if (this.preferences.httpoutput.stream === "") {
                 return;
             }
+            if (this.audio.stopped) {
+                return;
+            }
+            this.stop();
             const err = document.getElementById("httpoutput-error");
             err.textContent = "";
             switch (e.target.error.code) {
@@ -157,41 +178,46 @@ class MPDAudio {
 
             }
         });
-        this.mpd.addEventListener("control", () => {
-            if (this.preferences.httpoutput.stream === "") {
-                return;
-            }
-            if (this.mpd.control.state === "play") {
-                if (this.audio.paused || this.audio.readyState !== HTMLMediaElement.HAVE_ENOUGH_DATA) {
-                    this.load();
-                }
-            } else {
-                this.audio.pause();
-            }
-        });
+        this.mpd.addEventListener("control", () => { this.sync(); });
         this.preferences.addEventListener("httpoutput", () => {
             this.audio.volume = this.preferences.httpoutput.volume;
-            if (this.src !== this.preferences.httpoutput.stream) {
-                this.load();
-            }
+            this.sync();
         });
         this.audio.volume = this.preferences.httpoutput.volume;
+    }
+    play() {
+        this.audio.pause();
+        this.stopped = false;
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
+        // add cache-busting query
+        this.audio.src = this.preferences.httpoutput.stream + "&cb=" + Math.random();
+        this.audio.load();
+    }
+    stop() {
+        this.audio.pause();
+        this.stopped = true;
+        this.audio.removeAttribute("src");
+    }
+    sync() {
         if (this.preferences.httpoutput.stream === "") {
             return;
         }
-        this.load();
-    }
-    load() {
-        this.audio.pause();
-        this.src = this.preferences.httpoutput.stream;
-        if (this.preferences.httpoutput.stream === "") {
-            this.audio.removeAttribute("src");
+        if (this.mpd.control.state === "play") {
+            if (this.src !== this.preferences.httpoutput.stream) {
+                this.src = this.preferences.httpoutput.stream;
+                if (this.src === "" && !this.stopped) { // disable output
+                    this.stop();
+                } else if (this.src !== "") { // enable or change output
+                    this.play();
+                }
+            } else if (this.stopped) {
+                this.play();
+            }
         } else {
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
-            // add cache-busting query
-            this.audio.src = this.preferences.httpoutput.stream + "&cb=" + Math.random();
+            if (!this.stopped) {
+                this.stop();
+            }
         }
-        this.audio.load();
     }
 };
 
@@ -2800,7 +2826,7 @@ class UINotification {
             });
             document.getElementById("popup-client-output-button-retry").addEventListener("click", () => {
                 UINotification.hide("client-output");
-                audio.load();
+                audio.play();
             });
             const openOutputSettings = () => {
                 UINotification.hide("client-output");
