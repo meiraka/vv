@@ -22,7 +22,7 @@ const (
 	defaultConfigDir = "/etc/xdg/vv"
 )
 
-var version = "v0.10.4+"
+var version = "v0.11.0+"
 
 //go:generate go run internal/cmd/fix-assets/main.go
 func main() {
