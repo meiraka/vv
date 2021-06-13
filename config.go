@@ -255,3 +255,12 @@ func (b *BinarySize) UnmarshalText(text []byte) error {
 	}
 	return nil
 }
+
+func contains(list []string, item string) bool {
+	for _, n := range list {
+		if item == n {
+			return true
+		}
+	}
+	return false
+}
