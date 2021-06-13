@@ -184,12 +184,3 @@ func v2() {
 		log.Printf("failed to stop api background task: %v", err)
 	}
 }
-
-func contains(list []string, item string) bool {
-	for _, n := range list {
-		if item == n {
-			return true
-		}
-	}
-	return false
-}
