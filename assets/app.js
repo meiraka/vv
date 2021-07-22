@@ -1496,10 +1496,12 @@ class UIBackground {
         if (e1.dataset.src === path) {
             e1.style.backgroundImage = `url("${path}")`;
             e1.style.opacity = "1";
+            e2.style.opacity = "0";
         }
         if (e2.dataset.src === path) {
             e2.style.backgroundImage = `url("${path}")`;
             e2.style.opacity = "1";
+            e1.style.opacity = "0";
         }
     };
     static mkcolor(rgb, magic) {
@@ -1755,11 +1757,15 @@ class UIMainView extends PubSub {
             e1.src = path;
             e1.style.opacity = "1";
             e1.style.zIndex = "0";
+            e2.style.opacity = "0";
+            e2.style.zIndex = "-1";
         }
         if (e2.dataset.src === path) {
             e2.src = path;
             e2.style.opacity = "1";
             e2.style.zIndex = "0";
+            e1.style.opacity = "0";
+            e1.style.zIndex = "-1";
         }
     };
 };
