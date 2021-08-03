@@ -101,7 +101,8 @@ header {
   height: calc(100% + 128px);
   width: calc(100% + 128px);
   transition: opacity 0.2s 0s ease-out;
-  opacity: 1;
+  opacity: 0;
+  z-index: -1;
   transform: translate3d(0, 0, 0);
 }
 
@@ -508,6 +509,11 @@ svg .stroke {
 
 .background-image {
   background-size: cover;
+}
+
+.show.background-image{
+    opacity: 1;
+    z-index: 0;
 }
 
 .background-image.hide {
@@ -921,8 +927,14 @@ button:hover:not(:disabled) {
   overflow: hidden;
   object-fit: contain;
   object-position: center bottom;
-  opacity: 1;
+  opacity: 0;
+  z-index: -1;
   transition: opacity 0.2s 0s ease-out;
+}
+
+.show.main-cover-img {
+  opacity: 1;
+  z-index: 0;
 }
 
 .circled .main-cover-img {

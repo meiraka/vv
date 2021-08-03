@@ -8,12 +8,11 @@ class App {
         this.ui = new UI();
         this.mpdWatcher = new MPDWatcher();
         this.mpd = new MPDClient(this.mpdWatcher);
-        const mainImg = new MainImage(this.ui, this.mpd);
         this.audio = new MPDAudio(this.mpd, this.preferences);
         this.library = new Library(this.mpd, this.preferences);
-        this.background = new UIBackground(this.ui, this.mpd, this.preferences, mainImg);
+        this.background = new UIBackground(this.ui, this.mpd, this.preferences);
         this.listView = new UIListView(this.ui, this.mpd, this.library, this.preferences);
-        this.mainView = new UIMainView(this.ui, this.mpd, this.library, this.preferences, mainImg);
+        this.mainView = new UIMainView(this.ui, this.mpd, this.library, this.preferences);
         this.systemWindow = new UISystemWindow(this.ui, this.mpd, this.preferences);
         UIModal.init(this.ui);
         UISubModal.init(this.ui);
@@ -1384,67 +1383,99 @@ class UI extends PubSub {
     }
 };
 
-class MainImage extends PubSub {
-    constructor(ui, mpd) {
-        super();
-        this.mpd = mpd;
-        this.image1 = new Image();
-        this.image1.addEventListener("load", (e) => {
-            this.raiseEvent("load", e.currentTarget.dataset.src);
-        })
-        this.image2 = new Image();
-        this.image2.addEventListener("load", (e) => {
-            this.raiseEvent("load", e.currentTarget.dataset.src);
-        })
-        this.mpd.addEventListener("current", () => { this.update(); });
-        ui.addEventListener("load", () => { this.update(); });
+class ImageFader {
+    constructor(preferences, e1, e2) {
+        this.preferences = preferences;
+        this.e1 = e1;
+        this.e2 = e2;
+        this.path = "";
+        if (e1.nodeName.toLowerCase() === "img") {
+            this.t1 = e1;
+            this.t1.addEventListener("load", (e) => { this._onImages(e.currentTarget) });
+        } else {
+            this.t1 = new Image();
+            this.t1.addEventListener("load", (e) => {
+                this._onImages(e1);
+                e1.style.backgroundImage = `url("${this.path}")`;
+            });
+        }
+        this.t1.addEventListener("load", (e) => { this._onImages(this.e1) });
+        if (e2.nodeName.toLowerCase() === "img") {
+            this.t2 = e2;
+            this.t2.addEventListener("load", (e) => { this._onImages(e.currentTarget) });
+        } else {
+            this.t2 = new Image();
+            this.t2.addEventListener("load", (e) => {
+                this._onImages(e2);
+                e2.style.backgroundImage = `url("${this.path}")`;
+            });
+        }
     }
-    update() {
-        let cover = "/assets/nocover.svg";
-        if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
-            cover = this.mpd.current.cover[0];
+    _onImages(o) {
+        if (o.classList.contains("current") && o.dataset.src === this.path) {
+            o.classList.add("show");
+            if (o.isEqualNode(this.e1)) {
+                this.e2.dataset.src = "";
+            } else {
+                this.e1.dataset.src = "";
+            }
         }
-        if (this.image1.dataset.use !== "false") {
-            if (this.image1.dataset.src === cover) {
+    }
+    show(path) {
+        this.path = path;
+        if (!this.preferences.appearance.crossfading_image) {
+
+            this.e2.classList.remove("current");
+            this.e2.classList.remove("show");
+            this.e1.classList.add("current");
+            this.t1.src = path;
+            this.e1.dataset.src = path;
+            return;
+        }
+        if (this.e1.classList.contains("current")) {
+            if (this.e1.dataset.src === path) {
                 return;
             }
-            this.image2.src = cover;
-            this.image2.dataset.src = cover;
-            this.image2.dataset.use = "true";
-            this.image1.dataset.use = "false";
-            this.raiseEvent("loading", cover);
+            this.e1.classList.remove("current")
+            this.e1.classList.remove("show")
+            this.e2.classList.add("current")
+            this.e2.classList.remove("show")
+            this.t2.src = path;
+            this.e2.dataset.src = path;
+            return;
         }
-        if (this.image2.dataset.use !== "false") {
-            if (this.image2.dataset.src === cover) {
-                return;
-            }
-            this.image1.src = cover;
-            this.image1.dataset.src = cover;
-            this.image1.dataset.use = "true";
-            this.image2.dataset.use = "false";
-            this.raiseEvent("loading", cover);
+        if (this.e2.dataset.src === path) {
+            return;
         }
-    };
-};
+        this.e2.classList.remove("current")
+        this.e2.classList.remove("show")
+        this.e1.classList.add("current")
+        this.e1.classList.remove("show")
+        this.t1.src = path;
+        this.e1.dataset.src = path;
+    }
+}
 
 // background
 class UIBackground {
-    constructor(ui, mpd, preferences, mainImg) {
+    constructor(ui, mpd, preferences) {
         this.mpd = mpd;
         this.preferences = preferences;
-        this.mainImg = mainImg;
         this.rgbg = { r: 128, g: 128, b: 128, gray: 128 };
         this.preferences.addEventListener("appearance", (e) => { this.update_theme(e); });
         ui.addEventListener("load", () => { this.onStart(); });
     }
     onStart() {
-        this.mainImg.addEventListener("loading", (path) => { this.onImageLoading(path); });
-        this.mainImg.addEventListener("load", (path) => { this.onImageLoad(path); });
         document.body.classList.remove("unload");
+        const img = new ImageFader(this.preferences, document.getElementById("background-image"), document.getElementById("background-image2"));
         if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
-            this.onImageLoading(this.mpd.current.cover[0]);
-            this.onImageLoad(this.mpd.current.cover[0]);
+            img.show(this.mpd.current.cover[0]);
         }
+        this.mpd.addEventListener("current", () => {
+            if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+                img.show(this.mpd.current.cover[0]);
+            }
+        });
         var darkmode = window.matchMedia("(prefers-color-scheme: dark)");
         if (darkmode.addEventListener) {
             darkmode.addEventListener("change", () => { this.update_theme(); });
@@ -1452,57 +1483,6 @@ class UIBackground {
             darkmode.addListener(() => { this.update_theme(); });
         }
         this.update_theme();
-    };
-    onImageLoading(path) {
-        const e1 = document.getElementById("background-image");
-        const e2 = document.getElementById("background-image2");
-        let coverForCalc = "/assets/nocover.svg";
-        if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
-            const imgsize = parseInt(70 * window.devicePixelRatio, 10);
-            const s = (path.lastIndexOf("?") == -1) ? "?" : "&";
-            coverForCalc = `${path}${s}width=${imgsize}&height=${imgsize}`;
-        }
-
-        if (!this.preferences.appearance.crossfading_image) {
-            if (e1.dataset.src === path) {
-                return;
-            }
-            e1.dataset.src = path;
-            e2.dataset.src = "";
-            e2.style.opacity = "0";
-            this.calc_color(coverForCalc);
-            return;
-        }
-        if (e1.style.opacity !== "0") {
-            if (e1.dataset.src === path) {
-                return;
-            }
-            e1.style.opacity = "0";
-            e2.dataset.src = path;
-            this.calc_color(coverForCalc);
-            return;
-        }
-        if (e2.dataset.src == path) {
-            return;
-        }
-        e2.style.opacity = "0";
-        e1.dataset.src = path;
-        this.calc_color(coverForCalc);
-
-    };
-    onImageLoad(path) {
-        const e1 = document.getElementById("background-image");
-        const e2 = document.getElementById("background-image2");
-        if (e1.dataset.src === path) {
-            e1.style.backgroundImage = `url("${path}")`;
-            e1.style.opacity = "1";
-            e2.style.opacity = "0";
-        }
-        if (e2.dataset.src === path) {
-            e2.style.backgroundImage = `url("${path}")`;
-            e2.style.opacity = "1";
-            e1.style.opacity = "0";
-        }
     };
     static mkcolor(rgb, magic) {
         return "#" + (((1 << 24) + (magic(rgb.r) << 16) + (magic(rgb.g) << 8) + magic(rgb.b)).toString(16).slice(1));
@@ -1591,7 +1571,7 @@ class UIBackground {
 };
 
 class UIMainView extends PubSub {
-    constructor(ui, mpd, library, preferences, mainImg) {
+    constructor(ui, mpd, library, preferences) {
         super();
         ui.addEventListener("poll", () => { this.onPoll(); });
         ui.addEventListener("load", () => { this.onStart(); });
@@ -1602,7 +1582,6 @@ class UIMainView extends PubSub {
         this.library = library;
         this.preferences = preferences;
         this.preferences.addEventListener("appearance", () => { this.onPreferences(); });
-        this.mainImg = mainImg;
     }
     onPreferences() {
         const e = document.getElementById("main-cover");
@@ -1689,12 +1668,16 @@ class UIMainView extends PubSub {
         document.getElementById("control-volume").addEventListener("change", e => {
             this.mpd.volume(parseInt(e.currentTarget.value, 10));
         });
-        this.mainImg.addEventListener("loading", (path) => { this.onImageLoading(path); });
-        this.mainImg.addEventListener("load", (path) => { this.onImageLoad(path); });
+        const img = new ImageFader(this.preferences, document.getElementById("main-cover-img"), document.getElementById("main-cover-img2"));
+
         if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
-            this.onImageLoading(this.mpd.current.cover[0]);
-            this.onImageLoad(this.mpd.current.cover[0]);
+            img.show(this.mpd.current.cover[0]);
         }
+        this.mpd.addEventListener("current", () => {
+            if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+                img.show(this.mpd.current.cover[0]);
+            }
+        });
         UI.click(document.getElementById("main-cover-overlay"), () => {
             if (window.matchMedia("(max-height: 450px) and (orientation: landscape)").matches) {
                 this.mpd.togglePlay();
@@ -1719,55 +1702,6 @@ class UIMainView extends PubSub {
         this.onCurrent();
         this.onPlaylist();
     }
-    onImageLoading(path) {
-        const e1 = document.getElementById("main-cover-img");
-        const e2 = document.getElementById("main-cover-img2");
-        if (!this.preferences.appearance.crossfading_image) {
-            if (e1.dataset.src === path) {
-                return;
-            }
-            e1.dataset.src = path;
-            e2.dataset.src = "";
-            e2.backgroundImage = "";
-            e2.style.opacity = "0";
-            e2.style.zIndex = "-1";
-            return;
-        }
-        if (e1.style.opacity !== "0") {
-            if (e1.dataset.src === path) {
-                return;
-            }
-            e1.style.opacity = "0";
-            e1.style.zIndex = "-1";
-            e2.dataset.src = path;
-            return;
-        }
-        if (e2.dataset.src == path) {
-            return;
-        }
-        e2.style.opacity = "0";
-        e2.style.zIndex = "-1";
-        e1.dataset.src = path;
-
-    };
-    onImageLoad(path) {
-        const e1 = document.getElementById("main-cover-img");
-        const e2 = document.getElementById("main-cover-img2");
-        if (e1.dataset.src === path) {
-            e1.src = path;
-            e1.style.opacity = "1";
-            e1.style.zIndex = "0";
-            e2.style.opacity = "0";
-            e2.style.zIndex = "-1";
-        }
-        if (e2.dataset.src === path) {
-            e2.src = path;
-            e2.style.opacity = "1";
-            e2.style.zIndex = "0";
-            e1.style.opacity = "0";
-            e1.style.zIndex = "-1";
-        }
-    };
 };
 
 class UIListView extends PubSub {
