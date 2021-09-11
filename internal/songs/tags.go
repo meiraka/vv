@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // AddTags adds tags to song for vv
@@ -16,6 +17,12 @@ func AddTags(m map[string][]string) map[string][]string {
 	m["DiscNumber"] = []string{fmt.Sprintf("%04d", disc)}
 	t := getIntTag(m, "Time", 0)
 	m["Length"] = []string{fmt.Sprintf("%02d:%02d", t/60, t%60)}
+	if l, ok := m["Last-Modified"]; ok && len(l) == 1 {
+		if lt, err := time.Parse(time.RFC3339, l[0]); err == nil {
+			m["LastModifiedDate"] = []string{lt.Format("2006.01.02")}
+
+		}
+	}
 	return m
 }
 

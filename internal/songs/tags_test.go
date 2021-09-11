@@ -15,8 +15,8 @@ func TestAddTags(t *testing.T) {
 			want: map[string][]string{"file": {"hoge"}, "TrackNumber": {"0000"}, "DiscNumber": {"0001"}, "Length": {"00:00"}},
 		},
 		{
-			in:   map[string][]string{"file": {"appendix/hoge"}, "Track": {"1"}, "Disc": {"2"}, "Time": {"121"}},
-			want: map[string][]string{"file": {"appendix/hoge"}, "Track": {"1"}, "Disc": {"2"}, "Time": {"121"}, "TrackNumber": {"0001"}, "DiscNumber": {"0002"}, "Length": {"02:01"}},
+			in:   map[string][]string{"file": {"appendix/hoge"}, "Track": {"1"}, "Disc": {"2"}, "Time": {"121"}, "Last-Modified": {"2008-09-28T20:04:57Z"}},
+			want: map[string][]string{"file": {"appendix/hoge"}, "Track": {"1"}, "Disc": {"2"}, "Time": {"121"}, "Last-Modified": {"2008-09-28T20:04:57Z"}, "TrackNumber": {"0001"}, "DiscNumber": {"0002"}, "Length": {"02:01"}, "LastModifiedDate": {"2008.09.28"}},
 		},
 	} {
 		if got := AddTags(tt.in); !reflect.DeepEqual(got, tt.want) {

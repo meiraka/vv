@@ -40,7 +40,11 @@ var (
 			Sort: []string{"Performer", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
 			Tree: [][2]string{{"Performer", "plain"}, {"Album", "album"}, {"Title", "song"}},
 		},
+		"LastModified": {
+			Sort: []string{"LastModifiedDate", "Date", "Album", "DiscNumber", "TrackNumber", "Title", "file"},
+			Tree: [][2]string{{"LastModifiedDate", "plain"}, {"Album", "album"}, {"Title", "song"}},
+		},
 	}
 	// DefaultTreeOrder is a default TreeOrder for HTMLConfig.
-	DefaultTreeOrder = []string{"AlbumArtist", "Album", "Artist", "Genre", "Date", "Composer", "Performer"}
+	DefaultTreeOrder = []string{"AlbumArtist", "Album", "Artist", "Genre", "Date", "Composer", "Performer", "LastModified"}
 )
