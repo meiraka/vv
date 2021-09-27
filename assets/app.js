@@ -1469,10 +1469,12 @@ class UIBackground {
         document.body.classList.remove("unload");
         const img = new ImageFader(this.preferences, document.getElementById("background-image"), document.getElementById("background-image2"));
         if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+            this.update_color(this.mpd.current.cover[0]);
             img.show(this.mpd.current.cover[0]);
         }
         this.mpd.addEventListener("current", () => {
             if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
+                this.update_color(this.mpd.current.cover[0]);
                 img.show(this.mpd.current.cover[0]);
             }
         });
@@ -1541,7 +1543,7 @@ class UIBackground {
         e1.style.filter = `blur(${this.preferences.appearance.background_image_blur})`;
         e2.style.filter = `blur(${this.preferences.appearance.background_image_blur})`;
     };
-    calc_color(path) {
+    update_color(path) {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement("canvas");
