@@ -1,6 +1,6 @@
 VERSION=$(shell git describe)
 BUILDDIR = build
-TARGETS = linux-amd64 linux-armv6 linux-armv7 darwin-amd64
+TARGETS = linux-amd64 linux-armv6 linux-armv7 linux-arm64 darwin-amd64
 APP = vv
 BINARIES = $(patsubst %, $(BUILDDIR)/%/$(APP), $(TARGETS))
 ARCHIVES = $(patsubst %, $(BUILDDIR)/$(APP)-%.tar.gz, $(TARGETS))
