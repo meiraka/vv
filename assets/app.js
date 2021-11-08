@@ -648,6 +648,9 @@ class Preferences extends PubSub {
             localStorage.setItem("preferences", json);
         } catch (_) { }
     }
+    nocover() {
+        return "/assets/nocover.svg";
+    }
 };
 
 class MPDClient extends PubSub {
@@ -1471,11 +1474,15 @@ class UIBackground {
         if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
             this.update_color(this.mpd.current.cover[0]);
             img.show(this.mpd.current.cover[0]);
+        } else {
+            img.show(this.preferences.nocover());
         }
         this.mpd.addEventListener("current", () => {
             if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
                 this.update_color(this.mpd.current.cover[0]);
                 img.show(this.mpd.current.cover[0]);
+            } else {
+                img.show(this.preferences.nocover());
             }
         });
         var darkmode = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1674,10 +1681,14 @@ class UIMainView extends PubSub {
 
         if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
             img.show(this.mpd.current.cover[0]);
+        } else {
+            img.show(this.preferences.nocover());
         }
         this.mpd.addEventListener("current", () => {
             if (this.mpd.current !== null && this.mpd.current.cover && this.mpd.current.cover[0]) {
                 img.show(this.mpd.current.cover[0]);
+            } else {
+                img.show(this.preferences.nocover());
             }
         });
         UI.click(document.getElementById("main-cover-overlay"), () => {
@@ -1687,7 +1698,7 @@ class UIMainView extends PubSub {
         });
         UI.click(document.getElementById("main-box-title"), () => {
             if (this.mpd.current !== null) {
-                UIModal.song(this.mpd.current, this.library);
+                UIModal.song(this.mpd.current, this.library, this.preferences);
             }
         });
         UI.disableSwipe(document.getElementById("main-seek"));
@@ -1902,8 +1913,8 @@ class UIListView extends PubSub {
                 mediumCover.width = mediumImgsize;
                 mediumCover.height = mediumImgsize;
             } else {
-                smallCover.src = "/assets/nocover.svg";
-                mediumCover.src = "/assets/nocover.svg";
+                smallCover.src = this.preferences.nocover();
+                mediumCover.src = this.preferences.nocover();
             }
             smallCover.alt = `Cover art: ${Song.get(song, "Album")} ` + `by ${Song.get(song, "AlbumArtist")}`;
             mediumCover.alt = smallCover.alt;
@@ -2907,7 +2918,7 @@ class UIModal {
         document.getElementById("modal-outer").classList.remove("hide");
         document.getElementById("modal-help").classList.remove("hide");
     }
-    static song(song, library) {
+    static song(song, library, preferences) {
         const mustkeys = ["Title", "Artist", "Album", "Date", "AlbumArtist", "Genre", "Performer", "Disc", "Track", "Composer", "Length"];
         for (const key of mustkeys) {
             const doc = document.getElementById("modal-song-box-" + key);
@@ -2961,7 +2972,7 @@ class UIModal {
             const s = (song.cover[0].lastIndexOf("?") == -1) ? "?" : "&";
             cover.src = `${song.cover[0]}${s}width=${imgsize}&height=${imgsize}`;
         } else {
-            cover.src = "/assets/nocover.svg";
+            cover.src = preferences.nocover();
         }
         document.getElementById("modal-background").classList.remove("hide");
         document.getElementById("modal-outer").classList.remove("hide");
