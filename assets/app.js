@@ -242,6 +242,10 @@ class Song {
             return Song.tag(song, ["AlbumArtist", "Artist"], other);
         } else if (key === "AlbumSort") {
             return Song.tag(song, ["Album"], other);
+        } else if (key === "Date") {
+            return Song.tag(song, ["OriginalDate"], other);
+        } else if (key === "OriginalDate") {
+            return Song.tag(song, ["Date"], other);
         }
         return other;
     }

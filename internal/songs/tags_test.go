@@ -58,6 +58,12 @@ func TestSongTag(t *testing.T) {
 		{song: map[string][]string{"Artist": {"foobar"}}, input: "AlbumArtistSort", want: []string{"foobar"}},
 		{song: map[string][]string{"Album": {"foobar"}}, input: "AlbumSort", want: []string{"foobar"}},
 		{song: map[string][]string{"Album": {"foobar"}}, input: "Album", want: []string{"foobar"}},
+		{song: map[string][]string{"Album": {"foobar"}}, input: "Date", want: nil},
+		{song: map[string][]string{"Date": {"foobar"}}, input: "Date", want: []string{"foobar"}},
+		{song: map[string][]string{"OriginalDate": {"foobar"}}, input: "Date", want: []string{"foobar"}},
+		{song: map[string][]string{"Album": {"foobar"}}, input: "OriginalDate", want: nil},
+		{song: map[string][]string{"Date": {"foobar"}}, input: "OriginalDate", want: []string{"foobar"}},
+		{song: map[string][]string{"OriginalDate": {"foobar"}}, input: "OriginalDate", want: []string{"foobar"}},
 	}
 	for _, tt := range testsets {
 		if got := Tag(tt.song, tt.input); !reflect.DeepEqual(got, tt.want) {

@@ -71,6 +71,14 @@ func Tag(s map[string][]string, key string) []string {
 		return Tag(s, "Artist")
 	} else if key == "AlbumArtistSort" {
 		return TagSearch(s, []string{"AlbumArtist", "Artist"})
+	} else if key == "Date" {
+		if v, found := s["OriginalDate"]; found {
+			return v
+		}
+	} else if key == "OriginalDate" {
+		if v, found := s["Date"]; found {
+			return v
+		}
 	}
 	return nil
 }
