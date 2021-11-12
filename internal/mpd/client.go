@@ -243,6 +243,11 @@ func (c *Client) ListMounts(ctx context.Context) ([]map[string]string, error) {
 	return c.listMap(ctx, "mount", "listmounts")
 }
 
+// ListNeighbors queries a list of “neighbors” (e.g. accessible file servers on the local net).
+func (c *Client) ListNeighbors(ctx context.Context) ([]map[string]string, error) {
+	return c.listMap(ctx, "neighbor", "listneighbors")
+}
+
 // Audio output devices
 
 // DisableOutput turns an output off.

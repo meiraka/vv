@@ -55,6 +55,7 @@ func TestHandler(t *testing.T) {
 				main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My HTTP Stream\noutputenabled: 0\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "listneighbors\n", Write: "neighbor: smb://FOO\nname: FOO (Samba 4.1.11-Debian)\nOK\n"})
 			},
 			tests: []*testRequest{
 				{
@@ -147,6 +148,7 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 0\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "listneighbors\n", Write: "neighbor: smb://FOO\nname: FOO (Samba 4.1.11-Debian)\nOK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 					},
 					preWebSocket: []string{"/api/version", "/api/version", "/api/music/library/songs", "/api/music/playlist", "/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/outputs", "/api/music/stats", "/api/music/storage"},
@@ -766,6 +768,7 @@ func TestHandler(t *testing.T) {
 				main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 0\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "mount: \nstorage: /home/foo/music\nmount: foo\nstorage: nfs://192.168.1.4/export/mp3\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "listneighbors\n", Write: "neighbor: smb://FOO\nname: FOO (Samba 4.1.11-Debian)\nOK\n"})
 			},
 			tests: []*testRequest{
 				{ // update playlist and current song
@@ -926,10 +929,10 @@ func TestHandler(t *testing.T) {
 				go tt.initFunc(ctx, main)
 			}
 			h, err := NewHandler(ctx, c, wl, &tt.config)
-			defer h.Stop()
 			if err != nil {
 				t.Fatalf("NewHTTPHandler got error = %v; want <nil>", err)
 			}
+			defer h.Stop()
 			ts := httptest.NewServer(h)
 			defer ts.Close()
 

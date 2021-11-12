@@ -15,7 +15,7 @@ class App {
         this.mainView = new UIMainView(this.ui, this.mpd, this.library, this.preferences);
         this.systemWindow = new UISystemWindow(this.ui, this.mpd, this.preferences);
         UIModal.init(this.ui);
-        UISubModal.init(this.ui);
+        UISubModal.init(this.ui, this.mpd);
         UIHeader.init(this.ui, this.mpd, this.library, this.listView, this.mainView, this.systemWindow);
         UIFooter.init(this.ui, this.mpd, this.preferences);
         UINotification.init(this.ui, this.mpd, this.audio, this.systemWindow);
@@ -669,6 +669,7 @@ class MPDClient extends PubSub {
         this.images = {};
         this.outputs = [];
         this.storage = {};
+        this.neighbors = {};
         this.stats = {};
         this.last_modified = {};
         this.etag = {};
@@ -704,6 +705,7 @@ class MPDClient extends PubSub {
         mpdWatcher.addEventListener("/api/music/playlist", () => { this._fetch("/api/music/playlist", "playlist"); });
         mpdWatcher.addEventListener("/api/music/images", () => { this._fetch("/api/music/images", "images"); });
         mpdWatcher.addEventListener("/api/music/storage", () => { this._fetch("/api/music/storage", "storage"); });
+        mpdWatcher.addEventListener("/api/music/storage/neighbors", () => { this._fetch("/api/music/storage/neighbors", "neighbors"); });
         mpdWatcher.addEventListener("/api/version", () => { this._fetch("/api/version", "version"); });
     }
     rescanLibrary() {
@@ -828,6 +830,7 @@ class MPDClient extends PubSub {
         this._fetch("/api/music/stats", "stats");
         this._fetch("/api/music/images", "images");
         this._fetch("/api/music/storage", "storage");
+        this._fetch("/api/music/storage/neighbors", "neighbors");
     }
     _fetch(target, store) {
         HTTP.get(
@@ -2257,7 +2260,7 @@ class UISystemWindow {
                 const s = this.mpd.storage[path];
                 const c = document.querySelector("#storage-template").content;
                 const e = c.querySelector("li");
-                e.querySelector(".system-setting-desc").textContent = path;
+                e.querySelector(".path").textContent = path;
                 e.querySelector(".uri").textContent = s.uri;
                 e.querySelector(".unmount").dataset.path = path;
                 const d = document.importNode(c, true);
@@ -2285,7 +2288,7 @@ class UISystemWindow {
                 const o = this.mpd.outputs[id];
                 const c = document.querySelector("#device-template").content;
                 const e = c.querySelector("li");
-                e.querySelector(".system-setting-desc").textContent = o.name;
+                e.querySelector(".name").textContent = o.name;
                 if (o.plugin) {
                     e.querySelector(".plugin").textContent = o.plugin;
                     e.querySelector(".plugin").classList.remove("hide");
@@ -2985,7 +2988,7 @@ class UIModal {
 };
 
 class UISubModal {
-    static init(ui) {
+    static init(ui, mpd, mpdWatcher) {
         ui.addEventListener("load", () => {
             for (const w of Array.from(document.getElementsByClassName("submodal-window-close"))) {
                 w.addEventListener("click", () => { UISubModal.hide(); });
@@ -3003,6 +3006,58 @@ class UISubModal {
                     }
                     UISubModal.hide();
                 });
+            });
+            document.getElementById("storage-uri").addEventListener("input", (e) => {
+                const v = e.currentTarget.value;
+                for (const n of document.getElementById("list-neighbors").querySelectorAll(".select-item")) {
+                    if (n.querySelector(".uri").textContent === v) {
+                        n.classList.add("selected");
+                        console.log("sel");
+                    } else {
+                        n.classList.remove("selected");
+                        console.log("no");
+                    }
+                }
+            });
+            // neighbors
+            mpd.addEventListener("neighbors", () => {
+                const v = document.getElementById("storage-uri").value;
+                const newul = document.createDocumentFragment();
+                for (const path in mpd.neighbors) {
+                    if (path !== "" && mpd.neighbors.hasOwnProperty(path)) {
+                        const s = mpd.neighbors[path];
+                        const c = document.querySelector("#neighbors-template").content;
+                        const e = c.querySelector("li");
+                        e.querySelector(".path").textContent = path;
+                        e.querySelector(".uri").textContent = s.uri;
+                        if (s.uri === v) {
+                            e.classList.add("selected");
+                        } else {
+                            e.classList.remove("selected");
+                        }
+                        const d = document.importNode(c, true);
+                        d.querySelector(".select-item").addEventListener("click", (e) => {
+                            // use basename as path
+                            // https://github.com/MusicPlayerDaemon/MPD/blob/a8c77a6fba49d3f06a1e24a134cfe8db1e3c951c/src/command/StorageCommands.cxx#L180-L188
+                            const path = e.currentTarget.querySelector(".path").textContent.split('/').reverse()[0];
+                            document.getElementById("storage-path").value = path;
+                            document.getElementById("storage-uri").value = e.currentTarget.querySelector(".uri").textContent;
+                            for (const n of document.getElementById("list-neighbors").querySelectorAll(".select-item")) {
+                                if (e.currentTarget === n) {
+                                    n.classList.add("selected");
+                                } else {
+                                    n.classList.remove("selected");
+                                }
+                            }
+                        });
+                        newul.appendChild(d);
+                    }
+                }
+                const ul = document.getElementById("list-neighbors");
+                while (ul.lastChild) {
+                    ul.removeChild(ul.lastChild);
+                }
+                ul.appendChild(newul);
             });
             // allowed formats
             const allowedFormats = document.getElementById("submodal-allowed-formats");
@@ -3087,6 +3142,9 @@ class UISubModal {
         document.getElementById("submodal-background").classList.remove("hide");
         document.getElementById("submodal-outer").classList.remove("hide");
         document.getElementById("submodal-storage-mount").classList.remove("hide");
+        for (const n of document.getElementById("list-neighbors").querySelectorAll(".select-item")) {
+            n.classList.remove("selected");
+        }
     }
     static showAllowedFormats(t, mpd) {
         if (!mpd.outputs[t] || !mpd.outputs[t].attributes || !mpd.outputs[t].attributes.allowed_formats) {

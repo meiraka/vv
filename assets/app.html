@@ -401,7 +401,7 @@ html {
               <ul class="system-setting-group" id="playlist-playback-range">
                 <li class="system-setting">
                   <div class="system-setting-desc-box">
-                    <div class="system-setting-desc-boxed" id="playlist-playback-tracks">{{ or .PlaybackRange "Playback Range" }}</div>
+                    <div class="system-setting-desc system-setting-desc-boxed" id="playlist-playback-tracks">{{ or .PlaybackRange "Playback Range" }}</div>
                     <div class="system-setting-desc-help">{{ or .PlaybackRangeHelp "This settings will applied from the next track selection." }}</div>
                   </div>
                   <div class="radio-box">
@@ -452,7 +452,7 @@ html {
           <template id="storage-template">
             <li class="system-setting list-item">
               <div class="system-setting-desc-box">
-                <div class="system-setting-desc system-setting-desc-boxed"></div>
+                <div class="system-setting-desc system-setting-desc-boxed path"></div>
                 <div class="system-setting-desc-help uri"></div>
               </div>
               <button class="system-setting-value button-simple unmount" type="button">{{ or .UnmountStorage "Unmount" }}</button>
@@ -512,7 +512,7 @@ html {
               <ul class="system-setting-group">
                 <li class="system-setting">
                   <div class="system-setting-desc-box">
-                    <div class="system-setting-desc system-setting-desc-boxed"></div>
+                    <div class="system-setting-desc system-setting-desc-boxed name"></div>
                     <div class="system-setting-desc-help plugin"></div>
                   </div>
                   <input class="slideswitch device-switch" type="checkbox">
@@ -700,6 +700,16 @@ html {
       </svg>
     </button>
     <h1 class="modal-window-header">{{ or .Storage "Storage" }}</h1>
+    <template id="neighbors-template">
+      <li class="select-item">
+        <div class="system-setting-desc-box">
+          <div class="path system-setting-desc system-setting-desc-boxed"></div>
+          <div class="uri system-setting-desc-help"></div>
+        </div>
+      </li>
+    </template>
+    <ul id="list-neighbors" class="select-list list-neighbors scrollable">
+    </ul>
     <ul class="modal-input-list">
       <li class="modal-input-box">
         <label class="modal-input-label" for="storage-path">{{ or .StoragePath "Name" }}</label>

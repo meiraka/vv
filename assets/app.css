@@ -243,8 +243,6 @@ body {
   color-scheme: light dark;
   /* default text color*/
   --text-color: #303030;
-  /* license link text color*/
-  --sub-text-color: #404040;
   /* default text underline*/
   --border-color: #404040;
   /* default app body background color */
@@ -269,7 +267,6 @@ body {
 @media (prefers-color-scheme: dark) {
   :root {
     --text-color: #d0d0d0;
-    --sub-text-color: #c0c0c0;
     --border-color: #e0e0e0;
     --bg-color: #000000;
     --bg-color-rgb: 0, 0, 0;
@@ -1185,6 +1182,7 @@ button:hover:not(:disabled) {
   padding: 0;
   margin: 0;
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 .system-setting-desc-box {
@@ -1192,21 +1190,14 @@ button:hover:not(:disabled) {
   display: flex;
   flex-flow: column wrap;
   padding: 8px 8px 8px 0;
-}
-.system-setting-desc {
-  font-size: 18px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1 1 auto;
-  padding: 8px 8px 8px 0;
+  min-width: 0;
 }
 .system-setting-desc,
-.system-setting-desc-sub {
+.system-setting-desc-sub,
+.system-setting-desc-boxed {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   flex: 1 1 auto;
+  max-width: 100%;
   padding: 8px 8px 8px 0;
 }
 .system-setting-desc {
@@ -1221,7 +1212,7 @@ button:hover:not(:disabled) {
   flex: 1 1 100%;
 }
 .system-setting-desc-help {
-  color: var(--sub-text-color);
+  opacity: 0.8;
   font-size: 12px;
   overflow: hidden;
   padding: 0;
@@ -1268,7 +1259,7 @@ time.system-setting-value {
 .product-version,
 .product-link,
 .license-link {
-  color: var(--sub-text-color);
+  opacity: 0.8;
 }
 
 .product-version {
@@ -2036,6 +2027,37 @@ footer {
   .modal-song {
     width: 90%;
   }
+}
+
+
+.select-list {
+  display: flex;
+  flex-flow: column nowrap;
+  width: 100%;
+  padding: 0;
+  background-color: var(--bg-color);
+  border-radius: 3px;
+}
+
+.hide.select-list {
+  display: none;
+}
+
+.list-neighbors {
+  flex: 1 1 auto;
+}
+
+.select-item {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  max-width: 100%;
+  padding: 0 0 0 8px;
+  box-sizing: border-box;
+}
+
+.selected.select-item {
+  color: var(--bg-color);
+  background-color: var(--text-color);
 }
 
 .modal-input-list,

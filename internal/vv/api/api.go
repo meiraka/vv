@@ -22,6 +22,8 @@ type api struct {
 	upgrader  websocket.Upgrader
 	imgBatch  *imgBatch
 
+	neighbors *neighbors
+
 	playlist     []map[string][]string
 	library      []map[string][]string
 	librarySort  []map[string][]string
@@ -38,12 +40,15 @@ func newAPI(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, c *Config) (*ap
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
 	}
+	cache := newJSONCache()
 	a := &api{
-		config:       c,
-		client:       cl,
-		watcher:      w,
-		imgBatch:     newImgBatch(c.ImageProviders),
-		jsonCache:    newJSONCache(),
+		config:    c,
+		client:    cl,
+		watcher:   w,
+		imgBatch:  newImgBatch(c.ImageProviders),
+		jsonCache: cache,
+		neighbors: newNeighbors(cl, cache),
+
 		playlistInfo: &httpPlaylistInfo{},
 		stopCh:       make(chan struct{}),
 	}
@@ -58,7 +63,7 @@ func (a *api) runCacheUpdater(ctx context.Context) error {
 	if err := a.updateVersion(); err != nil {
 		return err
 	}
-	all := []func(context.Context) error{a.updateLibrarySongs, a.updatePlaylistSongs, a.updateOptions, a.updateStatus, a.updatePlaylistSongsCurrent, a.updateOutputs, a.updateStats, a.updateStorage}
+	all := []func(context.Context) error{a.updateLibrarySongs, a.updatePlaylistSongs, a.updateOptions, a.updateStatus, a.updatePlaylistSongsCurrent, a.updateOutputs, a.updateStats, a.updateStorage, a.neighbors.Update}
 	if !a.config.skipInit {
 		for _, v := range all {
 			if err := v(ctx); err != nil {
@@ -118,6 +123,8 @@ func (a *api) runCacheUpdater(ctx context.Context) error {
 				a.updateOutputs(ctx)
 			case "mount":
 				a.updateStorage(ctx)
+			case "neighbor":
+				a.neighbors.Update(ctx)
 			}
 			cancel()
 		}

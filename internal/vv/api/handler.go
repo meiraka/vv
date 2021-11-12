@@ -32,6 +32,7 @@ type Handler struct {
 	apiMusicOutputsStream        http.Handler
 	apiMusicImages               http.Handler
 	apiMusicStorage              http.Handler
+	apiMusicStorageNeighbors     http.Handler
 }
 
 // NewHandler creates json api handler.
@@ -54,6 +55,7 @@ func NewHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, c *Config) 
 		apiMusicOutputsStream:        a.OutputsStreamHandler(),
 		apiMusicImages:               a.ImagesHandler(),
 		apiMusicStorage:              a.StorageHandler(),
+		apiMusicStorageNeighbors:     a.neighbors,
 	}
 	a.ClearEvent()
 
@@ -87,6 +89,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.apiMusicImages.ServeHTTP(w, r)
 	case pathAPIMusicStorage:
 		h.apiMusicStorage.ServeHTTP(w, r)
+	case pathAPIMusicStorageNeighbors:
+		h.apiMusicStorageNeighbors.ServeHTTP(w, r)
 	default:
 		http.NotFound(w, r)
 	}
