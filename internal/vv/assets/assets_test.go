@@ -39,7 +39,7 @@ func TestLocalHandler(t *testing.T) {
 				t.Fatalf("failed to init hander: %v", err)
 			}
 			for _, path := range assets {
-				t.Run(fmt.Sprintf(path), func(t *testing.T) {
+				t.Run(fmt.Sprint(path), func(t *testing.T) {
 					req := httptest.NewRequest(http.MethodGet, path, nil)
 					w := httptest.NewRecorder()
 					h(w, req)

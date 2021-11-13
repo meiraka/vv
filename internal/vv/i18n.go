@@ -105,7 +105,6 @@ func i18nLocalHandler(rpath string, date time.Time, extra map[string]string) (ht
 		w.Header().Add("Last-Modified", l.Format(http.TimeFormat))
 		w.Header().Add("Vary", "Accept-Encoding, Accept-Language")
 		w.Write(data)
-		return
 	}, nil
 }
 

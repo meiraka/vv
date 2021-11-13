@@ -104,13 +104,11 @@ func TestNeighbors(t *testing.T) {
 				for i := range tt {
 					t.Run(fmt.Sprint(i), func(t *testing.T) {
 						h := newNeighbors(tt[i].mpd, cache)
-						r := httptest.NewRequest(http.MethodGet, "/", nil)
-						w := httptest.NewRecorder()
 						if err := h.Update(context.TODO()); !errors.Is(err, tt[i].err) {
 							t.Errorf("Update(ctx) = %v; want %v", err, tt[i].err)
 						}
-						r = httptest.NewRequest(http.MethodGet, "/", nil)
-						w = httptest.NewRecorder()
+						r := httptest.NewRequest(http.MethodGet, "/", nil)
+						w := httptest.NewRecorder()
 						h.ServeHTTP(w, r)
 						if got := w.Body.String(); got != tt[i].want {
 							t.Errorf("ServeHTTP(updated) got %q; want %q", got, tt[i].want)

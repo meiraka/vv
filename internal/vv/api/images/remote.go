@@ -80,8 +80,6 @@ func (s *Remote) Close() error {
 	return s.cache.Close()
 }
 
-var errNotFound = errors.New("not found")
-
 // ServeHTTP serves local cover art with httpPrefix
 func (s *Remote) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// strip httpPrefix

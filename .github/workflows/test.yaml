@@ -21,8 +21,12 @@ jobs:
       uses: actions/checkout@v2
     - name: gofmt
       run: test -z "$(gofmt -s -l . | tee /dev/stderr)"
-    - name: golint
-      run: test -z "$(go run golang.org/x/lint/golint ./... | tee /dev/stderr)"
+    - name: staticcheck
+      uses: reviewdog/action-staticcheck@v1
+      with:
+        fail_on_error: true
+        filter_mode: nofilter
+        reporter: github-check
     - name: go vet
       run: go vet ./...
     - name: go test
