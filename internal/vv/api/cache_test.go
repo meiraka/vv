@@ -75,6 +75,9 @@ func TestJSONCacheHandler(t *testing.T) {
 			}
 			defer resp.Body.Close()
 			got, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Errorf("got resp.Body error: %v", err)
+			}
 			if !bytes.Equal(got, tt.want) || resp.StatusCode != tt.status {
 				t.Errorf("got %d %s; want %d %s", resp.StatusCode, got, tt.status, tt.want)
 			}

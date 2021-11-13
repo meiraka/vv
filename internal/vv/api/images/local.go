@@ -21,7 +21,6 @@ type Local struct {
 	url2img        map[string]string
 	img2req        map[string]string
 	mu             sync.RWMutex
-	event          chan struct{}
 }
 
 // NewLocal creates Local.

@@ -33,7 +33,7 @@ func sortKeys(s map[string][]string, keys []string) []*sorter {
 }
 
 func addAllKeys(sp []*sorter, key string, add []string) []*sorter {
-	if add == nil || len(add) == 0 {
+	if len(add) == 0 {
 		for i := range sp {
 			sp[i].sortkey = sp[i].sortkey + " "
 			sp[i].keys[key] = nil
@@ -88,9 +88,7 @@ func WeakFilterSort(s []map[string][]string, keys []string, filters [][2]*string
 func flat(s []map[string][]string, keys []string) []*sorter {
 	flatten := make([]*sorter, 0, len(s))
 	for _, song := range s {
-		for _, s := range sortKeys(song, keys) {
-			flatten = append(flatten, s)
-		}
+		flatten = append(flatten, sortKeys(song, keys)...)
 	}
 	return flatten
 }

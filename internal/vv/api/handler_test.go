@@ -895,15 +895,15 @@ func TestHandler(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 			defer cancel()
 			main, err := mpdtest.NewServer("OK MPD 0.19")
+			if err != nil {
+				t.Fatalf("failed to create mpd test server: %v", err)
+			}
 			defer main.Close()
-			if err != nil {
-				t.Fatalf("failed to create mpd test server: %v", err)
-			}
 			sub, err := mpdtest.NewServer("OK MPD 0.19")
-			defer sub.Close()
 			if err != nil {
 				t.Fatalf("failed to create mpd test server: %v", err)
 			}
+			defer sub.Close()
 			c, err := mpd.Dial("tcp", main.URL,
 				&mpd.ClientOptions{Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 			if err != nil {
@@ -1024,15 +1024,15 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	main, err := mpdtest.NewServer("OK MPD 0.19")
+	if err != nil {
+		t.Fatalf("failed to create mpd test server: %v", err)
+	}
 	defer main.Close()
-	if err != nil {
-		t.Fatalf("failed to create mpd test server: %v", err)
-	}
 	sub, err := mpdtest.NewServer("OK MPD 0.19")
-	defer sub.Close()
 	if err != nil {
 		t.Fatalf("failed to create mpd test server: %v", err)
 	}
+	defer sub.Close()
 	c, err := mpd.Dial("tcp", main.URL,
 		&mpd.ClientOptions{Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
