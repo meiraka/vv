@@ -10,44 +10,50 @@ import (
 	"time"
 )
 
-func TestJSONCacheSet(t *testing.T) {
-	path := "/test"
+func TestCacheSet(t *testing.T) {
 	var oldDate time.Time
-	b := newJSONCache()
-	if b, gz, date := b.Get(path); b != nil || gz != nil || !date.Equal(time.Time{}) {
-		t.Errorf("got %s, %s, %v; want nil, nil, time.Time{}", b, gz, date)
+	b, err := newCache(nil)
+	if err != nil {
+		t.Fatalf("failed to init cache: %v", err)
 	}
-	b.Set(path, map[string]int{"a": 1})
-	if b, _, date := b.Get(path); string(b) != `{"a":1}` || date.Equal(time.Time{}) {
+
+	if b, _, date := b.get(); string(b) != `null` || date.Equal(time.Time{}) {
+		t.Errorf("got %s, _, %v; want nil, _, not time.Time{}", b, date)
+	}
+	b.Set(map[string]int{"a": 1})
+	if b, _, date := b.get(); string(b) != `{"a":1}` || date.Equal(time.Time{}) {
 		t.Errorf("got %s, _, %v; want %s, _, not time.Time{}", b, date, `{"a":1}`)
 	} else {
 		oldDate = date
 	}
-	b.SetIfModified(path, map[string]int{"a": 1})
-	if b, _, date := b.Get(path); string(b) != `{"a":1}` || !date.Equal(oldDate) {
+	b.SetIfModified(map[string]int{"a": 1})
+	if b, _, date := b.get(); string(b) != `{"a":1}` || !date.Equal(oldDate) {
 		t.Errorf("got %s, _, %v; want %s, _, %v", b, date, `{"a":1}`, oldDate)
 	} else {
 		oldDate = date
 	}
-	b.Set(path, map[string]int{"a": 1})
-	if b, _, date := b.Get(path); string(b) != `{"a":1}` || date.Equal(oldDate) {
+	b.Set(map[string]int{"a": 1})
+	if b, _, date := b.get(); string(b) != `{"a":1}` || date.Equal(oldDate) {
 		t.Errorf("got %s, _, %v; want %s, _, not %v", b, date, `{"a":1}`, oldDate)
 	} else {
 		oldDate = date
 	}
-	b.SetIfModified(path, map[string]int{"a": 2})
-	if b, _, date := b.Get(path); string(b) != `{"a":2}` || date.Equal(oldDate) {
+	b.SetIfModified(map[string]int{"a": 2})
+	if b, _, date := b.get(); string(b) != `{"a":2}` || date.Equal(oldDate) {
 		t.Errorf("got %s, _, %v; want %s, _, not %v", b, date, `{"a":2}`, oldDate)
 	}
 
 }
 
-func TestJSONCacheHandler(t *testing.T) {
-	b := newJSONCache()
-	_ = b.SetIfModified("/test", map[string]int{"a": 1})
-	ts := httptest.NewServer(b.Handler("/test"))
+func TestCacheHandler(t *testing.T) {
+	b, err := newCache(nil)
+	if err != nil {
+		t.Fatalf("failed to init cache: %v", err)
+	}
+	b.SetIfModified(map[string]int{"a": 1})
+	ts := httptest.NewServer(b)
 	defer ts.Close()
-	body, gz, date := b.Get("/test")
+	body, gz, date := b.get()
 	testsets := []struct {
 		header http.Header
 		status int

@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -106,35 +106,35 @@ func TestHandler(t *testing.T) {
 				},
 				{
 					method: http.MethodGet, path: "/api/music/playlist",
-					want: map[int]string{http.StatusOK: ""},
+					want: map[int]string{http.StatusOK: "{}"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/playlist/songs",
-					want: map[int]string{http.StatusOK: ""},
+					want: map[int]string{http.StatusOK: "[]"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/library",
-					want: map[int]string{http.StatusOK: ""},
+					want: map[int]string{http.StatusOK: `{"updating":false}`},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/library/songs",
-					want: map[int]string{http.StatusOK: ""},
+					want: map[int]string{http.StatusOK: "[]"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/playlist/songs/current",
-					want: map[int]string{http.StatusOK: ""},
+					want: map[int]string{http.StatusOK: "{}"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/outputs",
-					want: map[int]string{http.StatusOK: ""},
+					want: map[int]string{http.StatusOK: "{}"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/stats",
-					want: map[int]string{http.StatusOK: ""},
+					want: map[int]string{http.StatusOK: `{"uptime":0,"playtime":0,"artists":0,"albums":0,"songs":0,"library_playtime":0,"library_update":0}`},
 				},
 				{
 					method: http.MethodGet, path: "/api/music/storage",
-					want: map[int]string{http.StatusOK: ""},
+					want: map[int]string{http.StatusOK: "{}"},
 				},
 				{
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -151,7 +151,8 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "listneighbors\n", Write: "neighbor: smb://FOO\nname: FOO (Samba 4.1.11-Debian)\nOK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 					},
-					preWebSocket: []string{"/api/version", "/api/version", "/api/music/library/songs", "/api/music/playlist", "/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/outputs", "/api/music/stats", "/api/music/storage"},
+					// preWebSocket: []string{"/api/version", "/api/version", "/api/music/library/songs", "/api/music/playlist", "/api/music/playlist/songs", "/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/outputs", "/api/music/stats", "/api/music/storage"},
+					preWebSocket: []string{"/api/version", "/api/version", "/api/music/library/songs", "/api/music/playlist/songs", "/api/music", "/api/music/playlist/songs/current", "/api/music/outputs", "/api/music/playlist", "/api/music/stats", "/api/music/storage", "/api/music/storage/neighbors"},
 					method:       http.MethodGet, path: "/api/music",
 					want: map[int]string{http.StatusOK: `{"repeat":false,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
 				},
@@ -199,7 +200,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"repeat":true}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"repeat":true,"random":false,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -208,7 +209,7 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 					},
-					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/library"},
+					postWebSocket: []string{"/api/music", "/api/music/playlist"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
@@ -221,7 +222,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"random":true}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -230,7 +231,7 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 					},
-					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/library"},
+					postWebSocket: []string{"/api/music", "/api/music/playlist"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
@@ -243,7 +244,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"oneshot":true}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -253,7 +254,7 @@ func TestHandler(t *testing.T) {
 
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: oneshot\nconsume: 0\nstate: pause\nOK\n"})
 					},
-					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/library"},
+					postWebSocket: []string{"/api/music", "/api/music/playlist"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
@@ -273,7 +274,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"single":true}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -282,7 +283,7 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 0\nstate: pause\nOK\n"})
 					},
-					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/library"},
+					postWebSocket: []string{"/api/music", "/api/music/playlist"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
@@ -295,7 +296,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"consume":true}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -304,7 +305,7 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
 					},
-					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/library"},
+					postWebSocket: []string{"/api/music", "/api/music/playlist"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
@@ -325,8 +326,8 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"state":"play"}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
-						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"","crossfade":0}`,
+						http.StatusAccepted: "{}",
+						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						main.Expect(ctx, &mpdtest.WR{Read: "play -1\n", Write: "OK\n"})
@@ -335,11 +336,11 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 					},
-					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/stats"},
+					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
-					want: map[int]string{http.StatusOK: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"","crossfade":0}`},
+					want: map[int]string{http.StatusOK: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
 				},
 			}},
 		`POST /api/music {"state":"next"}`: {
@@ -348,8 +349,8 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"state":"next"}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
-						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"","crossfade":0}`,
+						http.StatusAccepted: "{}",
+						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						main.Expect(ctx, &mpdtest.WR{Read: "next\n", Write: "OK\n"})
@@ -358,11 +359,11 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: baz\nPos: 2\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 					},
-					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/stats"},
+					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
-					want: map[int]string{http.StatusOK: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"","crossfade":0}`},
+					want: map[int]string{http.StatusOK: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
 				},
 			}},
 		`POST /api/music {"state":"previous"}`: {
@@ -371,8 +372,8 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"state":"previous"}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
-						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"","crossfade":0}`,
+						http.StatusAccepted: "{}",
+						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						main.Expect(ctx, &mpdtest.WR{Read: "previous\n", Write: "OK\n"})
@@ -381,11 +382,11 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 					},
-					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/stats"},
+					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
-					want: map[int]string{http.StatusOK: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"","crossfade":0}`},
+					want: map[int]string{http.StatusOK: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"play","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
 				},
 			}},
 		`POST /api/music {"state":"pause"}`: {
@@ -394,8 +395,8 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"state":"pause"}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
-						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"","crossfade":0}`,
+						http.StatusAccepted: "{}",
+						http.StatusOK:       `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						main.Expect(ctx, &mpdtest.WR{Read: "pause 1\n", Write: "OK\n"})
@@ -404,11 +405,11 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "currentsong\n", Write: "file: bar\nPos: 1\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 					},
-					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/library", "/api/music/playlist/songs/current", "/api/music/stats"},
+					postWebSocket: []string{"/api/music", "/api/music/playlist", "/api/music/playlist/songs/current", "/api/music/stats"},
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
-					want: map[int]string{http.StatusOK: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"","crossfade":0}`},
+					want: map[int]string{http.StatusOK: `{"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
 				},
 			}},
 		`POST /api/music {"volume":"100"}`: {
@@ -417,8 +418,8 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"volume":100}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
-						http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"","crossfade":0}`,
+						http.StatusAccepted: "{}",
+						http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						main.Expect(ctx, &mpdtest.WR{Read: "setvol 100\n", Write: "OK\n"})
@@ -429,17 +430,17 @@ func TestHandler(t *testing.T) {
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
-					want: map[int]string{http.StatusOK: `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"","crossfade":0}`},
+					want: map[int]string{http.StatusOK: `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
 				},
 			}},
-		`POST /api/music {"song_elapsed":"100.1"}`: {
+		`POST /api/music {"song_elapsed":100.1}`: {
 			config: Config{BackgroundTimeout: time.Second, skipInit: true},
 			tests: []*testRequest{
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"song_elapsed":100.1}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
-						http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":100.1,"replay_gain":"","crossfade":0}`,
+						http.StatusAccepted: "{}",
+						http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":100.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						main.Expect(ctx, &mpdtest.WR{Read: "seekcur 100.1\n", Write: "OK\n"})
@@ -452,7 +453,7 @@ func TestHandler(t *testing.T) {
 				},
 				{
 					method: http.MethodGet, path: "/api/music",
-					want: map[int]string{http.StatusOK: `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"","crossfade":0}`},
+					want: map[int]string{http.StatusOK: `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`},
 				},
 			}},
 		`POST /api/music {"replay_gain":"track"}`: {
@@ -461,7 +462,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"replay_gain":"track"}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"track","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -483,7 +484,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music", body: strings.NewReader(`{"crossfade":1}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"track","crossfade":1}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -516,8 +517,7 @@ func TestHandler(t *testing.T) {
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: mount\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "listmounts\n", Write: "ACK [5@0] {} unknown command \"listmounts\"\nOK\n"})
 					},
-					preWebSocket: []string{"/api/music/storage"},
-					method:       http.MethodGet, path: "/api/music/storage",
+					method: http.MethodGet, path: "/api/music/storage",
 					want: map[int]string{http.StatusOK: `{}`},
 				},
 			},
@@ -548,7 +548,7 @@ func TestHandler(t *testing.T) {
 					},
 					method: http.MethodPost, path: "/api/music/storage", body: strings.NewReader(`{"foo":{"uri":"nfs://192.168.1.4/export/mp3"}}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"":{"uri":"/home/foo/music"},"foo":{"uri":"nfs://192.168.1.4/export/mp3"}}`,
 					},
 					postWebSocket: []string{"/api/music/storage"},
@@ -567,7 +567,7 @@ func TestHandler(t *testing.T) {
 					},
 					method: http.MethodPost, path: "/api/music/storage", body: strings.NewReader(`{"foo":{"uri":null}}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"":{"uri":"/home/foo/music"}}`,
 					},
 					postWebSocket: []string{"/api/music/storage"},
@@ -582,7 +582,7 @@ func TestHandler(t *testing.T) {
 						main.Expect(ctx, &mpdtest.WR{Read: "update \"foo\"\n", Write: "OK\n"})
 					},
 					method: http.MethodPost, path: "/api/music/storage", body: strings.NewReader(`{"foo":{"updating":true}}`),
-					want: map[int]string{http.StatusAccepted: ""},
+					want: map[int]string{http.StatusAccepted: "{}"},
 				},
 			},
 		},
@@ -642,7 +642,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"enabled":true}}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"0":{"name":"My ALSA Device","enabled":true}}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -663,7 +663,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"enabled":false}}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"0":{"name":"My ALSA Device","enabled":false}}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -684,7 +684,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"attributes":{"dop":true}}}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attributes":{"dop":true}}}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -705,7 +705,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"attributes":{"allowed_formats":[]}}}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attributes":{"allowed_formats":[]}}}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -726,7 +726,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music/outputs", body: strings.NewReader(`{"0":{"attributes":{"allowed_formats":["96000:16:*","192000:24:*","dsd32:*=dop"]}}}`),
 					want: map[int]string{
-						http.StatusAccepted: "",
+						http.StatusAccepted: "{}",
 						http.StatusOK:       `{"0":{"name":"My ALSA Device","plugin":"alsa","enabled":false,"attributes":{"allowed_formats":["96000:16:*","192000:24:*","dsd32:*=dop"]}}}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -861,7 +861,7 @@ func TestHandler(t *testing.T) {
 				{
 					method: http.MethodPost, path: "/api/music/library", body: strings.NewReader(`{"updating":true}`),
 					want: map[int]string{
-						http.StatusAccepted: ``,
+						http.StatusAccepted: `{"updating":false}`,
 						http.StatusOK:       `{"updating":true}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
@@ -952,18 +952,19 @@ func TestHandler(t *testing.T) {
 						go test.initFunc(ctx, main, sub)
 					}
 					if len(test.preWebSocket) != 0 {
+						want := sortUniq(test.preWebSocket)
 						got := make([]string, 0, 10)
 						for {
 							_, msg, err := ws.ReadMessage()
 							if err != nil {
-								t.Errorf("failed to get preWebSocket message: %v, got: %v, want: %v", err, got, test.preWebSocket)
+								t.Errorf("failed to get preWebSocket message: %v, got:\n%v, want:\n%v", err, got, want)
 								break
 							}
-							got = append(got, string(msg))
-							if len(got) == len(test.preWebSocket) && !reflect.DeepEqual(got, test.preWebSocket) {
-								t.Errorf("got %v; want %v", got, test.preWebSocket)
+							got = sortUniq(append(got, string(msg)))
+							if len(got) == len(want) && !reflect.DeepEqual(got, want) {
+								t.Errorf("got\n%v; want\n%v", got, want)
 								break
-							} else if reflect.DeepEqual(got, test.preWebSocket) {
+							} else if reflect.DeepEqual(got, want) {
 								break
 							}
 						}
@@ -983,24 +984,25 @@ func TestHandler(t *testing.T) {
 					}
 					want, ok := test.want[resp.StatusCode]
 					if !ok {
-						t.Errorf("got %d %s, want %v", resp.StatusCode, b, test.want)
+						t.Errorf("%s %s =\n%d %s, want\n%v", test.method, test.path, resp.StatusCode, b, test.want)
 					} else if got := string(b); got != want {
-						t.Errorf("got %d %v; want %d %v", resp.StatusCode, got, resp.StatusCode, want)
+						t.Errorf("%s %s =\n%d %v; want\n%d %v", test.method, test.path, resp.StatusCode, got, resp.StatusCode, want)
 					}
 
 					if len(test.postWebSocket) != 0 {
+						want := sortUniq(test.postWebSocket)
 						got := make([]string, 0, 10)
 						for {
 							_, msg, err := ws.ReadMessage()
 							if err != nil {
-								t.Errorf("failed to get postWebSocket message: %v, got: %v, want: %v", err, got, test.postWebSocket)
+								t.Errorf("failed to get postWebSocket message: %v, got: %v, want: %v", err, got, want)
 								break
 							}
-							got = append(got, string(msg))
-							if len(got) == len(test.postWebSocket) && !reflect.DeepEqual(got, test.postWebSocket) {
-								t.Errorf("got %v; want %v", got, test.postWebSocket)
+							got = sortUniq(append(got, string(msg)))
+							if len(got) == len(want) && !reflect.DeepEqual(got, want) {
+								t.Errorf("got %v; want %v", got, want)
 								break
-							} else if reflect.DeepEqual(got, test.postWebSocket) {
+							} else if reflect.DeepEqual(got, want) {
 								break
 							}
 						}
@@ -1019,7 +1021,6 @@ func TestHandler(t *testing.T) {
 }
 
 func TestAPIOutputStreamHandler(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
 	// setup
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
@@ -1152,4 +1153,17 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 		sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: ""})
 		sub.Expect(ctx, &mpdtest.WR{Read: "noidle\n", Write: "OK\n"})
 	}()
+}
+
+func sortUniq(s []string) []string {
+	set := map[string]struct{}{}
+	for i := range s {
+		set[s[i]] = struct{}{}
+	}
+	s = make([]string, 0, len(s))
+	for k := range set {
+		s = append(s, k)
+	}
+	sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+	return s
 }

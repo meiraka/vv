@@ -3,7 +3,19 @@ package mpd
 import (
 	"context"
 	"fmt"
+	"reflect"
 )
+
+// CommandListEqual compares command list a and b.
+func CommandListEqual(a, b *CommandList) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return reflect.DeepEqual(a.commands, b.commands)
+}
 
 // CommandList represents Client commandlist.
 type CommandList struct {

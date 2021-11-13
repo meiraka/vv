@@ -2,12 +2,20 @@ package api
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/meiraka/vv/internal/songs"
+)
+
+var (
+	// ErrAlreadyShutdown returns if already Shutdown is called
+	ErrAlreadyShutdown = errors.New("api: already shutdown")
+	// errAlreadyUpdating returns if already Update is called
+	errAlreadyUpdating = errors.New("api: update already started")
 )
 
 // ImageProvider represents http cover image image url api.
@@ -82,11 +90,11 @@ func (b *imgBatch) update(songs []map[string][]string, force bool) error {
 	default:
 		return errAlreadyUpdating
 	}
+	select {
+	case b.e <- true:
+	default:
+	}
 	go func() {
-		select {
-		case b.e <- true:
-		default:
-		}
 		defer func() { b.sem <- struct{}{} }()
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
