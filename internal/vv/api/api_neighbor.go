@@ -12,13 +12,17 @@ const (
 	pathAPIMusicStorageNeighbors = "/api/music/storage/neighbors"
 )
 
+type mpdNeighbors interface {
+	ListNeighbors(context.Context) ([]map[string]string, error)
+}
+
 type neighbors struct {
-	client    *mpd.Client
+	client    mpdNeighbors
 	jsonCache *jsonCache
 	handler   http.Handler
 }
 
-func newNeighbors(client *mpd.Client, cache *jsonCache) *neighbors {
+func newNeighbors(client mpdNeighbors, cache *jsonCache) *neighbors {
 	return &neighbors{
 		client:    client,
 		jsonCache: cache,
