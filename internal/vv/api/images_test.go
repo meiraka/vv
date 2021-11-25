@@ -308,25 +308,6 @@ func TestImagesHandlerConvSong(t *testing.T) {
 	}
 }
 
-func copySongs(s []map[string][]string) []map[string][]string {
-	n := make([]map[string][]string, len(s))
-	for i := range s {
-		n[i] = copySong(s[i])
-	}
-	return n
-}
-
-func copySong(s map[string][]string) map[string][]string {
-	n := make(map[string][]string, len(s))
-	for k, v := range s {
-		n[k] = make([]string, len(v))
-		for i := range v {
-			n[k][i] = v[i]
-		}
-	}
-	return n
-}
-
 type imageProvider struct {
 	t       *testing.T
 	update  func(context.Context, *testing.T, map[string][]string) error
