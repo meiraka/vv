@@ -39,12 +39,20 @@ type Config struct {
 	debug bool
 }
 
-// ParseConfig parse yaml config and flags.
-func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
+func DefaultConfig() *Config {
 	c := &Config{}
-	c.Server.Cover.Local = true
-	c.Server.CacheDirectory = filepath.Join(os.TempDir(), "vv")
 	c.MPD.Conf = "/etc/mpd.conf"
+	c.MPD.Network = "tcp"
+	c.MPD.Addr = "localhost:6600"
+	c.Server.Addr = ":8080"
+	c.Server.CacheDirectory = filepath.Join(os.TempDir(), "vv")
+	c.Server.Cover.Local = true
+	return c
+}
+
+// ParseConfig parse yaml config and flags.
+func ParseConfig(dir []string, name string, args []string) (*Config, time.Time, error) {
+	c := DefaultConfig()
 	date := time.Time{}
 	for _, d := range dir {
 		path := filepath.Join(d, name)
@@ -65,7 +73,7 @@ func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 			}
 		}
 	}
-	flagset := pflag.NewFlagSet(filepath.Base(os.Args[0]), pflag.ExitOnError)
+	flagset := pflag.NewFlagSet(filepath.Base(args[0]), pflag.ExitOnError)
 	mn := flagset.String("mpd.network", "", "mpd server network to connect")
 	ma := flagset.String("mpd.addr", "", "mpd server address to connect")
 	mm := flagset.String("mpd.music_directory", "", "set music_directory in mpd.conf value to search album cover image")
@@ -74,7 +82,7 @@ func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 	sa := flagset.String("server.addr", "", "this app serving address")
 	si := flagset.Bool("server.cover.remote", false, "enable coverart via mpd api")
 	d := flagset.BoolP("debug", "d", false, "use local assets if exists")
-	flagset.Parse(os.Args)
+	flagset.Parse(args)
 	if len(*mn) != 0 {
 		c.MPD.Network = *mn
 	}
@@ -101,20 +109,7 @@ func ParseConfig(dir []string, name string) (*Config, time.Time, error) {
 		c.Server.Cover.Remote = true
 	}
 	c.debug = *d
-	c.setDefault()
 	return c, date, nil
-}
-
-func (c *Config) setDefault() {
-	if c.MPD.Network == "" {
-		c.MPD.Network = "tcp"
-	}
-	if c.MPD.Addr == "" {
-		c.MPD.Addr = "localhost:6600"
-	}
-	if c.Server.Addr == "" {
-		c.Server.Addr = ":8080"
-	}
 }
 
 // Validate validates config data.

@@ -11,7 +11,7 @@ import (
 )
 
 func TestParseConfigExample(t *testing.T) {
-	config, date, err := ParseConfig([]string{"appendix"}, "example.config.yaml")
+	config, date, err := ParseConfig([]string{"appendix"}, "example.config.yaml", []string{os.Args[0]})
 	if err != nil {
 		t.Fatalf("failed to parse: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestParseConfigExample(t *testing.T) {
 }
 
 func TestParseConfigDefault(t *testing.T) {
-	config, date, err := ParseConfig(nil, "example.config.yaml")
+	config, date, err := ParseConfig(nil, "example.config.yaml", []string{os.Args[0]})
 	if err != nil {
 		t.Fatalf("failed to parse: %v", err)
 	}
@@ -89,9 +89,7 @@ func TestParseConfigDefault(t *testing.T) {
 }
 
 func TestParseConfigOptions(t *testing.T) {
-	origArgs := os.Args
-	defer func() { os.Args = origArgs }()
-	os.Args = []string{origArgs[0],
+	config, date, err := ParseConfig(nil, "example.config.yaml", []string{os.Args[0],
 		"-d",
 		"--mpd.conf", "/local/etc/mpd.conf",
 		"--mpd.network", "unix",
@@ -100,8 +98,7 @@ func TestParseConfigOptions(t *testing.T) {
 		"--mpd.binarylimit", "32k",
 		"--server.addr", ":80",
 		"--server.cover.remote",
-	}
-	config, date, err := ParseConfig(nil, "example.config.yaml")
+	})
 	if err != nil {
 		t.Fatalf("failed to parse: %v", err)
 	}

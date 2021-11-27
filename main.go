@@ -39,7 +39,7 @@ func configDirs() []string {
 
 func v2() {
 	ctx := context.TODO()
-	config, date, err := ParseConfig(configDirs(), "config.yaml")
+	config, date, err := ParseConfig(configDirs(), "config.yaml", os.Args)
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
