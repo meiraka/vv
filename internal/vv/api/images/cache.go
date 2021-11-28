@@ -3,7 +3,6 @@ package images
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -140,12 +139,12 @@ func (c *cache) Set(key, reqid string, b []byte) (err error) {
 	// save image to random filename.
 	var f *os.File
 	if len(filename) == 0 {
-		f, err = ioutil.TempFile(c.cacheDir, "*."+ext)
+		f, err = os.CreateTemp(c.cacheDir, "*."+ext)
 	} else {
 		// compare to old binary
 		path := filepath.Join(c.cacheDir, filename)
 		if _, err := os.Stat(path); err == nil {
-			ob, err := ioutil.ReadFile(path)
+			ob, err := os.ReadFile(path)
 			if err == nil {
 				if bytes.Equal(b, ob) {
 					// same binary

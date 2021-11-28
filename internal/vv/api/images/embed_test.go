@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -176,7 +176,7 @@ func TestEmbedUpdate(t *testing.T) {
 						t.Errorf("%s: got header %s %v; want %v", k, cover, resp.Header[k], v)
 					}
 				}
-				got, _ := ioutil.ReadAll(resp.Body)
+				got, _ := io.ReadAll(resp.Body)
 				if !reflect.DeepEqual(got, tt.respBinary[i]) {
 					t.Errorf("%s: got invalid binary response", cover)
 				}
@@ -340,7 +340,7 @@ func TestEmbedRescan(t *testing.T) {
 						t.Errorf("%s: got header %s %v; want %v", k, cover, resp.Header[k], v)
 					}
 				}
-				got, _ := ioutil.ReadAll(resp.Body)
+				got, _ := io.ReadAll(resp.Body)
 				if !reflect.DeepEqual(got, tt.respBinary[i]) {
 					t.Errorf("%s: got invalid binary response", cover)
 				}

@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -45,7 +44,7 @@ func makeName(p string) string {
 }
 
 func main() {
-	files, err := ioutil.ReadDir("assets")
+	files, err := os.ReadDir("assets")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +58,7 @@ func main() {
 	fmt.Fprintln(f, "var (")
 	for _, file := range files {
 		p := path.Join("assets", file.Name())
-		b, err := ioutil.ReadFile(p)
+		b, err := os.ReadFile(p)
 		if err != nil {
 			log.Fatalf("failed to read %s: %v", p, err)
 		}

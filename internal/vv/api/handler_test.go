@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -978,7 +977,7 @@ func TestHandler(t *testing.T) {
 						t.Fatalf("failed to request: %v", err)
 					}
 					defer resp.Body.Close()
-					b, err := ioutil.ReadAll(resp.Body)
+					b, err := io.ReadAll(resp.Body)
 					if err != nil {
 						t.Fatalf("failed to read response: %v", err)
 					}
@@ -1128,7 +1127,7 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 		}
 		defer resp.Body.Close()
 		cancel() // cancel stops http client
-		if _, err := io.Copy(ioutil.Discard, resp.Body); err != context.Canceled {
+		if _, err := io.Copy(io.Discard, resp.Body); err != context.Canceled {
 			t.Errorf("read http stream %s body got err: %v; want %v", device.Stream, err, context.Canceled)
 		}
 	})
@@ -1145,7 +1144,7 @@ func TestAPIOutputStreamHandler(t *testing.T) {
 		}
 		defer resp.Body.Close()
 		h.Stop() // Shutdown stops http server audio stream
-		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
 			t.Errorf("read http stream %s body got err: %v; want %v", device.Stream, err, nil)
 		}
 	})

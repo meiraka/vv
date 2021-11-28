@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
@@ -88,7 +87,7 @@ func i18nLocalHandler(rpath string, date time.Time, extra map[string]string) (ht
 			return
 		}
 		tag, _ := determineLanguage(r, matcher)
-		data, err := ioutil.ReadFile(rpath)
+		data, err := os.ReadFile(rpath)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

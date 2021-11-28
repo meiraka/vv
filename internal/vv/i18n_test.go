@@ -2,7 +2,7 @@ package vv
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -77,7 +77,7 @@ func TestI18NHandler(t *testing.T) {
 				t.Fatalf("failed to request: %v", err)
 			}
 			defer resp.Body.Close()
-			got, err := ioutil.ReadAll(resp.Body)
+			got, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Fatalf("failed to read response: %v", err)
 			}

@@ -2,7 +2,7 @@ package images
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -55,7 +55,7 @@ func TestLocalCover(t *testing.T) {
 					t.Errorf("got header %s %v; want %v", k, resp.Header[k], v)
 				}
 			}
-			got, _ := ioutil.ReadAll(resp.Body)
+			got, _ := io.ReadAll(resp.Body)
 			if !reflect.DeepEqual(got, tt.wantBinary) {
 				t.Errorf("got invalid binary response")
 			}
@@ -66,7 +66,7 @@ func TestLocalCover(t *testing.T) {
 
 func readFile(t *testing.T, path string) []byte {
 	t.Helper()
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to open file: %v", err)
 	}
