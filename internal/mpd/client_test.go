@@ -8,6 +8,7 @@ import (
 	"net"
 	"reflect"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -33,12 +34,12 @@ func TestDial(t *testing.T) {
 		"password": {
 			url:  ts.URL,
 			opts: &ClientOptions{Password: "2434"},
-			want: []*mpdtest.WR{{Read: "password 2434\n", Write: "OK\n"}},
+			want: []*mpdtest.WR{{Read: "password \"2434\"\n", Write: "OK\n"}},
 		},
 		"password(error)": {
 			url:  ts.URL,
 			opts: &ClientOptions{Password: "2434"},
-			want: []*mpdtest.WR{{Read: "password 2434\n", Write: "ACK [3@1] {password} error\n"}},
+			want: []*mpdtest.WR{{Read: "password \"2434\"\n", Write: "ACK [3@1] {password} error\n"}},
 			err:  true,
 		},
 		"binarylimit": {
@@ -67,7 +68,7 @@ func TestDial(t *testing.T) {
 			url:  ts.URL,
 			opts: &ClientOptions{Password: "2434", BinaryLimit: 64, CacheCommandsResult: true},
 			want: []*mpdtest.WR{
-				{Read: "password 2434\n", Write: "OK\n"},
+				{Read: "password \"2434\"\n", Write: "OK\n"},
 				{Read: "binarylimit 64\n", Write: "OK\n"},
 				{Read: "commands\n", Write: "OK\n"},
 			},
@@ -108,7 +109,7 @@ func TestClient(t *testing.T) {
 		t.Fatalf("failed to create test server: %v", err)
 	}
 	go func() {
-		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+		ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 	}()
 	defer ts.Close()
 	c, err := Dial("tcp", ts.URL,
@@ -184,7 +185,7 @@ func TestClient(t *testing.T) {
 		},
 		"single oneshot": {
 			cmd1: c.OneShot,
-			wr:   []*mpdtest.WR{{Read: "single oneshot\n", Write: "OK\n"}},
+			wr:   []*mpdtest.WR{{Read: "single \"oneshot\"\n", Write: "OK\n"}},
 		},
 		"setvol 100": {
 			cmd1: func(ctx context.Context) error { return c.SetVol(ctx, 100) },
@@ -192,7 +193,7 @@ func TestClient(t *testing.T) {
 		},
 		"replay_gain_mode album": {
 			cmd1: func(ctx context.Context) error { return c.ReplayGainMode(ctx, "album") },
-			wr:   []*mpdtest.WR{{Read: "replay_gain_mode album\n", Write: "OK\n"}},
+			wr:   []*mpdtest.WR{{Read: "replay_gain_mode \"album\"\n", Write: "OK\n"}},
 		},
 		"replay_gain_status": {
 			cmd2: func(ctx context.Context) (interface{}, error) { return c.ReplayGainStatus(ctx) },
@@ -238,7 +239,7 @@ func TestClient(t *testing.T) {
 		},
 		"listallinfo /": {
 			cmd2: func(ctx context.Context) (interface{}, error) { return c.ListAllInfo(ctx, "/") },
-			wr:   []*mpdtest.WR{{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"}},
+			wr:   []*mpdtest.WR{{Read: "listallinfo \"/\"\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"}},
 			want: []map[string][]string{{"file": {"foo"}}, {"file": {"bar"}}, {"file": {"baz"}}},
 		},
 		"readpicture": {
@@ -276,11 +277,11 @@ func TestClient(t *testing.T) {
 		// Audio output devices
 		"disableoutput": {
 			cmd1: func(ctx context.Context) error { return c.DisableOutput(ctx, "1") },
-			wr:   []*mpdtest.WR{{Read: "disableoutput 1\n", Write: "OK\n"}},
+			wr:   []*mpdtest.WR{{Read: "disableoutput \"1\"\n", Write: "OK\n"}},
 		},
 		"enableoutput": {
 			cmd1: func(ctx context.Context) error { return c.EnableOutput(ctx, "1") },
-			wr:   []*mpdtest.WR{{Read: "enableoutput 1\n", Write: "OK\n"}},
+			wr:   []*mpdtest.WR{{Read: "enableoutput \"1\"\n", Write: "OK\n"}},
 		},
 		"outputs": {
 			cmd2: func(ctx context.Context) (interface{}, error) { return c.Outputs(ctx) },
@@ -333,21 +334,17 @@ func TestClient(t *testing.T) {
 				defer cmdCancel()
 				if tt.cmd1 != nil {
 					err := tt.cmd1(cmdCtx)
-					if _, ok := err.(net.Error); !ok {
-						if !errors.Is(err, io.EOF) {
-							t.Errorf("got %v; want nil, %v or net.Error", err, io.EOF)
-						}
+					if _, ok := err.(net.Error); !ok && !errors.Is(err, io.EOF) && !errors.Is(err, context.DeadlineExceeded) {
+						t.Errorf("got %v; want (%v, %v or net.Error)", err, io.EOF, context.DeadlineExceeded)
 					}
 				} else if tt.cmd2 != nil {
 					got, err := tt.cmd2(cmdCtx)
-					if _, ok := err.(net.Error); !ok {
-						if !errors.Is(err, io.EOF) {
-							t.Errorf("got %v, %v; want nil, %v or net.Error", got, err, io.EOF)
-						}
+					if _, ok := err.(net.Error); !ok && !errors.Is(err, io.EOF) && !errors.Is(err, context.DeadlineExceeded) {
+						t.Errorf("got %v, %v; want nil, (%v, %v or net.Error)", got, err, io.EOF, context.DeadlineExceeded)
 					}
 				}
 				go func() {
-					ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+					ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 					ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
 				}()
 				if err := c.Ping(ctx); err != nil {
@@ -384,7 +381,7 @@ func TestClient(t *testing.T) {
 					t.Errorf("got _, %v; want nil, %v", err, context.Canceled)
 				}
 				go func() {
-					ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+					ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 					ts.Expect(ctx, &mpdtest.WR{Read: "ping\n", Write: "OK\n"})
 				}()
 				if err := c.Ping(ctx); err != nil {
@@ -424,8 +421,9 @@ func TestClientCloseNetworkError(t *testing.T) {
 	}
 	svr <- struct{}{}
 	<-cli
-	if err := c.Ping(ctx); !errors.Is(err, io.EOF) {
-		t.Errorf("Ping(ctx) got %v; want %v", err, io.EOF)
+	opErr := &net.OpError{}
+	if err := c.Ping(ctx); !errors.As(err, &opErr) || opErr.Op != "write" {
+		t.Errorf("Ping(ctx) got %v; want %v", err, &net.OpError{Op: "write", Err: syscall.EPIPE})
 	}
 	if err := c.Close(ctx); !errors.Is(err, ErrClosed) {
 		t.Errorf("got %v; want %v", err, ErrClosed)

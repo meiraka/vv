@@ -12,10 +12,9 @@ func NewWatcher(proto, addr string, opts *WatcherOptions) (*Watcher, error) {
 	if opts == nil {
 		opts = &WatcherOptions{}
 	}
-	cmd := make([]interface{}, len(opts.SubSystems)+1)
-	cmd[0] = "idle"
+	args := make([]interface{}, len(opts.SubSystems))
 	for i := range opts.SubSystems {
-		cmd[i+1] = opts.SubSystems[i]
+		args[i] = opts.SubSystems[i]
 	}
 	pool, err := newPool(proto, addr, opts.Timeout, opts.ReconnectionInterval, opts.connectHook)
 	if err != nil {
@@ -54,7 +53,7 @@ func NewWatcher(proto, addr string, opts *WatcherOptions) (*Watcher, error) {
 					default:
 					}
 				}
-				if _, err := fmt.Fprintln(conn, cmd...); err != nil {
+				if err := request(conn, "idle", args...); err != nil {
 					return err
 				}
 				readCtx, writeCancel := context.WithCancel(context.Background())

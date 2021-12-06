@@ -3,9 +3,7 @@ package mpd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -71,7 +69,7 @@ func (c *Client) Version() string {
 // CurrentSong displays the song info of the current song
 func (c *Client) CurrentSong(ctx context.Context) (song map[string][]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := fmt.Fprintln(conn, "currentsong"); err != nil {
+		if err := request(conn, "currentsong"); err != nil {
 			return err
 		}
 		song, err = parseSong(conn, responseOK)
@@ -99,7 +97,7 @@ func (c *Client) Stats(ctx context.Context) (map[string]string, error) {
 
 // Consume sets consume state.
 func (c *Client) Consume(ctx context.Context, state bool) error {
-	return c.ok(ctx, "consume", btoa(state, "1", "0"))
+	return c.ok(ctx, "consume", state)
 }
 
 // Crossfade sets crossfading between song
@@ -107,26 +105,19 @@ func (c *Client) Crossfade(ctx context.Context, t time.Duration) error {
 	return c.ok(ctx, "crossfade", int(t/time.Second))
 }
 
-func btoa(s bool, t string, f string) string {
-	if s {
-		return t
-	}
-	return f
-}
-
 // Random sets random state.
 func (c *Client) Random(ctx context.Context, state bool) error {
-	return c.ok(ctx, "random", btoa(state, "1", "0"))
+	return c.ok(ctx, "random", state)
 }
 
 // Repeat sets repeat state.
 func (c *Client) Repeat(ctx context.Context, state bool) error {
-	return c.ok(ctx, "repeat", btoa(state, "1", "0"))
+	return c.ok(ctx, "repeat", state)
 }
 
 // Single sets single state.
 func (c *Client) Single(ctx context.Context, state bool) error {
-	return c.ok(ctx, "single", btoa(state, "1", "0"))
+	return c.ok(ctx, "single", state)
 }
 
 // OneShot sets single state to oneshot.
@@ -158,7 +149,7 @@ func (c *Client) Next(ctx context.Context) error {
 
 // Pause toggles pause/resumes playing
 func (c *Client) Pause(ctx context.Context, state bool) error {
-	return c.ok(ctx, "pause", btoa(state, "1", "0"))
+	return c.ok(ctx, "pause", state)
 }
 
 // Play Begins playing the playlist at song number pos
@@ -181,7 +172,7 @@ func (c *Client) SeekCur(ctx context.Context, t float64) error {
 // PlaylistInfo displays a list of all songs in the playlist.
 func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := fmt.Fprintln(conn, "playlistinfo"); err != nil {
+		if err := request(conn, "playlistinfo"); err != nil {
 			return err
 		}
 		songs, err = parseSongs(conn, responseOK)
@@ -197,19 +188,19 @@ func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string,
 
 // AlbumArt locates album art for the given song.
 func (c *Client) AlbumArt(ctx context.Context, uri string) ([]byte, error) {
-	return c.binary(ctx, "albumart", quote(uri))
+	return c.binary(ctx, "albumart", uri)
 }
 
 // ReadPicture locates picture for the given song.
 // If song has no picture, returns nil, nil.
 func (c *Client) ReadPicture(ctx context.Context, uri string) ([]byte, error) {
-	return c.binary(ctx, "readpicture", quote(uri))
+	return c.binary(ctx, "readpicture", uri)
 }
 
 // ListAllInfo lists all songs and directories in uri.
 func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[string][]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := fmt.Fprintln(conn, "listallinfo", uri); err != nil {
+		if err := request(conn, "listallinfo", uri); err != nil {
 			return err
 		}
 		songs, err = parseSongs(conn, responseOK)
@@ -223,19 +214,19 @@ func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[strin
 
 // Update updates the music database.
 func (c *Client) Update(ctx context.Context, uri string) (map[string]string, error) {
-	return c.mapStr(ctx, "update", quote(uri))
+	return c.mapStr(ctx, "update", uri)
 }
 
 // Mounts and neighbors
 
 // Mount the specified storage uri at the given path.
 func (c *Client) Mount(ctx context.Context, path, url string) error {
-	return c.ok(ctx, "mount", quote(path), quote(url))
+	return c.ok(ctx, "mount", path, url)
 }
 
 // Unmount the specified path.
 func (c *Client) Unmount(ctx context.Context, path string) error {
-	return c.ok(ctx, "unmount", quote(path))
+	return c.ok(ctx, "unmount", path)
 }
 
 // ListMounts queries a list of all mounts.
@@ -272,7 +263,7 @@ type Output struct {
 // Outputs shows information about all outputs.
 func (c *Client) Outputs(ctx context.Context) (outputs []*Output, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := fmt.Fprintln(conn, "outputs"); err != nil {
+		if err := request(conn, "outputs"); err != nil {
 			return err
 		}
 		outputs, err = parseOutputs(conn, responseOK)
@@ -286,7 +277,7 @@ func (c *Client) Outputs(ctx context.Context) (outputs []*Output, err error) {
 
 // OutputSet sets a runtime attribute.
 func (c *Client) OutputSet(ctx context.Context, id, name, value string) error {
-	return c.ok(ctx, "outputset", quote(id), quote(name), quote(value))
+	return c.ok(ctx, "outputset", id, name, value)
 }
 
 func (c *Client) healthCheck(ctx context.Context) {
@@ -326,7 +317,7 @@ func (c *Client) Config(ctx context.Context) (map[string]string, error) {
 func (c *Client) Commands(ctx context.Context) (commands []string, err error) {
 	if !c.opts.CacheCommandsResult {
 		err = c.pool.Exec(ctx, func(conn *conn) error {
-			if _, err := fmt.Fprintln(conn, "commands"); err != nil {
+			if err := request(conn, "commands"); err != nil {
 				return err
 			}
 			commands, err = parseList(conn, responseOK, "command")
@@ -344,7 +335,7 @@ func (c *Client) Commands(ctx context.Context) (commands []string, err error) {
 }
 
 func (c *Client) updateCommands(conn *conn) error {
-	if _, err := fmt.Fprintln(conn, "commands"); err != nil {
+	if err := request(conn, "commands"); err != nil {
 		return err
 	}
 	commands, err := parseList(conn, responseOK, "command")
@@ -357,15 +348,15 @@ func (c *Client) updateCommands(conn *conn) error {
 	return nil
 }
 
-func (c *Client) ok(ctx context.Context, cmd ...interface{}) error {
+func (c *Client) ok(ctx context.Context, cmd string, args ...interface{}) error {
 	return c.pool.Exec(ctx, func(conn *conn) error {
-		return execOK(conn, cmd...)
+		return execOK(conn, cmd, args...)
 	})
 }
 
-func (c *Client) binaryPart(ctx context.Context, cmd, uri string, pos int) (m map[string]string, b []byte, err error) {
+func (c *Client) binaryPart(ctx context.Context, pos int, cmd string, args ...interface{}) (m map[string]string, b []byte, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := fmt.Fprintln(conn, cmd, uri, pos); err != nil {
+		if err := request(conn, cmd, append(args, pos)...); err != nil {
 			return err
 		}
 		m, b, err = parseBinary(conn, responseOK)
@@ -377,8 +368,8 @@ func (c *Client) binaryPart(ctx context.Context, cmd, uri string, pos int) (m ma
 	return
 }
 
-func (c *Client) binary(ctx context.Context, cmd, uri string) ([]byte, error) {
-	m, b, err := c.binaryPart(ctx, cmd, uri, 0)
+func (c *Client) binary(ctx context.Context, cmd string, args ...interface{}) ([]byte, error) {
+	m, b, err := c.binaryPart(ctx, 0, cmd, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +387,7 @@ func (c *Client) binary(ctx context.Context, cmd, uri string) ([]byte, error) {
 		if size < len(b) {
 			return nil, errors.New("oversize")
 		}
-		_, nb, err := c.binaryPart(ctx, cmd, uri, len(b))
+		_, nb, err := c.binaryPart(ctx, len(b), cmd, args...)
 		if err != nil {
 			return nil, err
 		}
@@ -404,30 +395,30 @@ func (c *Client) binary(ctx context.Context, cmd, uri string) ([]byte, error) {
 	}
 }
 
-func (c *Client) mapStr(ctx context.Context, cmd ...interface{}) (m map[string]string, err error) {
+func (c *Client) mapStr(ctx context.Context, cmd string, args ...interface{}) (m map[string]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := fmt.Fprintln(conn, cmd...); err != nil {
+		if err := request(conn, cmd, args...); err != nil {
 			return err
 		}
 		m, err = parseMap(conn, responseOK)
 		return err
 	})
 	if err != nil {
-		return nil, addCommandInfo(err, cmd[0].(string))
+		return nil, addCommandInfo(err, cmd)
 	}
 	return
 }
 
-func (c *Client) listMap(ctx context.Context, newKey string, cmd ...interface{}) (l []map[string]string, err error) {
+func (c *Client) listMap(ctx context.Context, newKey string, cmd string, args ...interface{}) (l []map[string]string, err error) {
 	err = c.pool.Exec(ctx, func(conn *conn) error {
-		if _, err := fmt.Fprintln(conn, cmd...); err != nil {
+		if err := request(conn, cmd, args...); err != nil {
 			return err
 		}
 		l, err = parseListMap(conn, responseOK, newKey)
 		return err
 	})
 	if err != nil {
-		return nil, addCommandInfo(err, cmd[0].(string))
+		return nil, addCommandInfo(err, cmd)
 	}
 	return
 }
@@ -460,19 +451,12 @@ func (c *ClientOptions) connectHook(conn *conn) error {
 	return nil
 }
 
-// quote escaping strings values for mpd.
-func quote(s string) string {
-	return `"` + strings.Replace(
-		strings.Replace(s, "\\", "\\\\", -1),
-		`"`, `\"`, -1) + `"`
-}
-
-func execOK(c *conn, cmd ...interface{}) error {
-	if _, err := fmt.Fprintln(c, cmd...); err != nil {
+func execOK(c *conn, cmd string, args ...interface{}) error {
+	if err := request(c, cmd, args...); err != nil {
 		return err
 	}
 	if err := parseEnd(c, responseOK); err != nil {
-		return addCommandInfo(err, cmd[0].(string))
+		return addCommandInfo(err, cmd)
 	}
 	return nil
 }

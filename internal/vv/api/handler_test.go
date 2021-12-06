@@ -46,7 +46,7 @@ func TestHandler(t *testing.T) {
 		"init": {
 			config: Config{BackgroundTimeout: time.Second, AudioProxy: map[string]string{"My HTTP Stream": "http://foo/bar"}},
 			initFunc: func(ctx context.Context, main *mpdtest.Server) {
-				main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "listallinfo \"/\"\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
@@ -139,7 +139,7 @@ func TestHandler(t *testing.T) {
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n"})
 						sub.Disconnect(ctx)
-						main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "listallinfo \"/\"\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
@@ -247,7 +247,7 @@ func TestHandler(t *testing.T) {
 						http.StatusOK:       `{"repeat":true,"random":true,"single":false,"oneshot":true,"consume":false,"state":"pause","song_elapsed":1.1,"replay_gain":"off","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
-						main.Expect(ctx, &mpdtest.WR{Read: "single oneshot\n", Write: "OK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "single \"oneshot\"\n", Write: "OK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 
@@ -465,7 +465,7 @@ func TestHandler(t *testing.T) {
 						http.StatusOK:       `{"volume":100,"repeat":true,"random":true,"single":true,"oneshot":false,"consume":true,"state":"pause","song_elapsed":1.1,"replay_gain":"track","crossfade":0}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
-						main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_mode track\n", Write: "OK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_mode \"track\"\n", Write: "OK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: options\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: track\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: 100\nsong: 1\nelapsed: 1.1\nrepeat: 1\nrandom: 1\nsingle: 1\nconsume: 1\nstate: pause\nOK\n"})
@@ -645,7 +645,7 @@ func TestHandler(t *testing.T) {
 						http.StatusOK:       `{"0":{"name":"My ALSA Device","enabled":true}}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
-						main.Expect(ctx, &mpdtest.WR{Read: "enableoutput 0\n", Write: "OK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "enableoutput \"0\"\n", Write: "OK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 1\nOK\n"})
 					},
@@ -666,7 +666,7 @@ func TestHandler(t *testing.T) {
 						http.StatusOK:       `{"0":{"name":"My ALSA Device","enabled":false}}`,
 					},
 					initFunc: func(ctx context.Context, main *mpdtest.Server, sub *mpdtest.Server) {
-						main.Expect(ctx, &mpdtest.WR{Read: "disableoutput 0\n", Write: "OK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "disableoutput \"0\"\n", Write: "OK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: output\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "outputs\n", Write: "outputid: 0\noutputname: My ALSA Device\noutputenabled: 0\nOK\n"})
 					},
@@ -759,7 +759,7 @@ func TestHandler(t *testing.T) {
 		`POST /api/music/playlist {"current":0,"sort":["file"],"filters":[]}`: {
 			config: Config{BackgroundTimeout: time.Second},
 			initFunc: func(ctx context.Context, main *mpdtest.Server) {
-				main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
+				main.Expect(ctx, &mpdtest.WR{Read: "listallinfo \"/\"\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "playlistinfo\n", Write: "file: foo\nfile: bar\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "replay_gain_status\n", Write: "replay_gain_mode: off\nOK\n"})
 				main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
@@ -883,7 +883,7 @@ func TestHandler(t *testing.T) {
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: update\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 						sub.Expect(ctx, &mpdtest.WR{Read: "idle\n", Write: "changed: database\nOK\n"})
-						main.Expect(ctx, &mpdtest.WR{Read: "listallinfo /\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
+						main.Expect(ctx, &mpdtest.WR{Read: "listallinfo \"/\"\n", Write: "file: foo\nfile: bar\nfile: baz\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "status\n", Write: "volume: -1\nsong: 1\nelapsed: 1.1\nrepeat: 0\nrandom: 0\nsingle: 0\nconsume: 0\nstate: pause\nOK\n"})
 						main.Expect(ctx, &mpdtest.WR{Read: "stats\n", Write: "uptime: 667505\nplaytime: 0\nartists: 835\nalbums: 528\nsongs: 5715\ndb_playtime: 1475220\ndb_update: 1560656023\nOK\n"})
 					},

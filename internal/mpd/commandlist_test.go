@@ -18,7 +18,7 @@ func TestCommandList(t *testing.T) {
 		t.Fatalf("failed to create test server: %v", err)
 	}
 	go func() {
-		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+		ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_ok_begin\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "clear\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "add \"/foo/bar\"\n"})
@@ -46,7 +46,7 @@ func TestCommandListCommandError(t *testing.T) {
 	defer cancel()
 	ts, _ := mpdtest.NewServer("OK MPD 0.19")
 	go func() {
-		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+		ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_ok_begin\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "clear\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "play 0\n"})
@@ -80,14 +80,14 @@ func TestCommandListNetworkError(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+		ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_ok_begin\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "clear\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "play 0\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "add \"/foo/bar\"\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_end\n"})
 		ts.Disconnect(ctx)
-		ts.Expect(ctx, &mpdtest.WR{Read: "password 2434\n", Write: "OK\n"})
+		ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 	}()
 	defer ts.Close()
 	c, err := Dial("tcp", ts.URL,
