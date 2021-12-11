@@ -90,25 +90,20 @@ func NewServer(firstResp string) *Server {
 		rc:         rc,
 	}
 	go func(ln net.Listener) {
-		var wg sync.WaitGroup
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
 				return
 			}
-			if _, err := fmt.Fprintln(conn, firstResp); err != nil {
-				break
-			}
-			wg.Add(1)
 			go func(conn net.Conn) {
-				defer wg.Done()
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
-				wg.Add(1)
 				go func() {
-					defer wg.Done()
 					defer cancel()
 					defer conn.Close()
+					if _, err := fmt.Fprintln(conn, firstResp); err != nil {
+						return
+					}
 					r := bufio.NewReader(conn)
 					wc := make(chan string, 1)
 					for {
