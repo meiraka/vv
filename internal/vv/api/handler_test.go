@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	testTimeout = time.Second
+	testTimeout = 10 * time.Second
 )
 
 var (
@@ -38,6 +38,8 @@ type testRequest struct {
 }
 
 func TestHandler(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	defer cancel()
 	for label, tt := range map[string]struct {
 		config   Config
 		initFunc func(ctx context.Context, main *mpdtest.Server)
@@ -890,8 +892,13 @@ func TestHandler(t *testing.T) {
 				},
 			}},
 	} {
+		select {
+		case <-ctx.Done():
+			t.Fatal("test exceeds timeout")
+		default:
+		}
 		t.Run(label, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
 			main, err := mpdtest.NewServer("OK MPD 0.19")
 			if err != nil {

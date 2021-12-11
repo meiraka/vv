@@ -11,7 +11,7 @@ import (
 )
 
 func TestCommandList(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	ts, err := mpdtest.NewServer("OK MPD 0.19")
 	if err != nil {
@@ -42,7 +42,7 @@ func TestCommandList(t *testing.T) {
 }
 
 func TestCommandListCommandError(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	ts, _ := mpdtest.NewServer("OK MPD 0.19")
 	go func() {
@@ -73,7 +73,7 @@ func TestCommandListCommandError(t *testing.T) {
 }
 
 func TestCommandListNetworkError(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	ts, _ := mpdtest.NewServer("OK MPD 0.19")
 	wg := sync.WaitGroup{}

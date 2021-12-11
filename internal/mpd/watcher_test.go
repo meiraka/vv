@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	testTimeout = time.Second
+	testTimeout = 10 * time.Second
 )
 
 func TestWatcher(t *testing.T) {

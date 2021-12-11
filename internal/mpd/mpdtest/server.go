@@ -54,10 +54,10 @@ type WR struct {
 }
 
 // Expect expects mpd read/write message
-func (s *Server) Expect(ctx context.Context, m *WR) {
+func (s *Server) Expect(ctx context.Context, m *WR) error {
 	select {
 	case <-ctx.Done():
-		return
+		return ctx.Err()
 	case r := <-s.rc:
 		w := m.Write
 		if r.read != m.Read {
@@ -69,7 +69,7 @@ func (s *Server) Expect(ctx context.Context, m *WR) {
 		case r.wc <- w:
 		}
 	}
-
+	return nil
 }
 
 // NewServer creates new mpd mock Server for idle command.

@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"path/filepath"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/meiraka/vv/internal/mpd"
@@ -28,13 +28,9 @@ func TestEmbed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}
-	path, err := os.Getwd()
+	testDir, err := os.MkdirTemp(".", "testdata")
 	if err != nil {
-		t.Fatalf("failed to find current directory for test dir: %v", err)
-	}
-	testDir := filepath.Join(path, "testdata")
-	if err := os.RemoveAll(testDir); err != nil {
-		t.Fatalf("failed to cleanup test dir")
+		t.Fatalf("failed to create test dir: %v", err)
 	}
 	defer os.RemoveAll(testDir)
 
@@ -69,13 +65,9 @@ func TestEmbedUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}
-	path, err := os.Getwd()
+	testDir, err := os.MkdirTemp(".", "testdata")
 	if err != nil {
-		t.Fatalf("failed to find current directory for test dir: %v", err)
-	}
-	testDir := filepath.Join(path, "testdata")
-	if err := os.RemoveAll(testDir); err != nil {
-		t.Fatalf("failed to cleanup test dir")
+		t.Fatalf("failed to create test dir: %v", err)
 	}
 	defer os.RemoveAll(testDir)
 
@@ -137,9 +129,17 @@ func TestEmbedUpdate(t *testing.T) {
 		},
 	} {
 		t.Run(tt.label, func(t *testing.T) {
+			var wg sync.WaitGroup
+			defer wg.Wait()
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				for i := range tt.mpd {
-					svr.Expect(ctx, tt.mpd[i])
+					if err := svr.Expect(ctx, tt.mpd[i]); err != nil {
+						t.Errorf("mpd: %v", err)
+					}
 				}
 			}()
 			api, err := NewEmbed("/api/images", c, testDir)
@@ -198,13 +198,9 @@ func TestEmbedRescan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}
-	path, err := os.Getwd()
+	testDir, err := os.MkdirTemp(".", "testdata")
 	if err != nil {
-		t.Fatalf("failed to find current directory for test dir: %v", err)
-	}
-	testDir := filepath.Join(path, "testdata")
-	if err := os.RemoveAll(testDir); err != nil {
-		t.Fatalf("failed to cleanup test dir")
+		t.Fatalf("failed to create test dir: %v", err)
 	}
 	defer os.RemoveAll(testDir)
 
@@ -301,9 +297,17 @@ func TestEmbedRescan(t *testing.T) {
 		},
 	} {
 		t.Run(tt.label, func(t *testing.T) {
+			var wg sync.WaitGroup
+			defer wg.Wait()
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				for i := range tt.mpd {
-					svr.Expect(ctx, tt.mpd[i])
+					if err := svr.Expect(ctx, tt.mpd[i]); err != nil {
+						t.Errorf("mpd: %v", err)
+					}
 				}
 			}()
 			api, err := NewEmbed("/api/images", c, testDir)

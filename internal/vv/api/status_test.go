@@ -475,11 +475,11 @@ func TestStatusHandlerWebSocket(t *testing.T) {
 		t.Fatalf("failed to connect websocket: %v", err)
 	}
 	defer ws.Close()
-	h.BroadCast("test")
-	ws.SetReadDeadline(time.Now().Add(time.Second))
+	ws.SetReadDeadline(time.Now().Add(10 * time.Second))
 	if _, msg, err := ws.ReadMessage(); string(msg) != "ok" || err != nil {
 		t.Fatalf("got message: %s, %v, want: ok <nil>", msg, err)
 	}
+	h.BroadCast("test")
 	if _, msg, err := ws.ReadMessage(); string(msg) != "test" || err != nil {
 		t.Fatalf("got message: %s, %v, want: test <nil>", msg, err)
 	}

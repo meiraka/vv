@@ -304,6 +304,11 @@ func TestClient(t *testing.T) {
 			want: []string{"foobar"},
 		},
 	} {
+		select {
+		case <-ctx.Done():
+			t.Fatal("test exceeds timeout")
+		default:
+		}
 		t.Run(read, func(t *testing.T) {
 			if tt.cmd1 == nil && tt.cmd2 == nil {
 				t.Fatalf("no test function: cmd1 and cmd2 are nil")
@@ -394,7 +399,7 @@ func TestClient(t *testing.T) {
 }
 
 func TestClientCloseNetworkError(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
