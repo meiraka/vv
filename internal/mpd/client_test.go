@@ -332,15 +332,16 @@ func TestClient(t *testing.T) {
 				}()
 				cmdCtx, cmdCancel := context.WithTimeout(ctx, testTimeout/100)
 				defer cmdCancel()
+				opErr := &net.OpError{}
 				if tt.cmd1 != nil {
 					err := tt.cmd1(cmdCtx)
-					if _, ok := err.(net.Error); !ok && !errors.Is(err, io.EOF) && !errors.Is(err, context.DeadlineExceeded) {
-						t.Errorf("got %v; want (%v, %v or net.Error)", err, io.EOF, context.DeadlineExceeded)
+					if !errors.As(err, &opErr) && !errors.Is(err, io.EOF) && !errors.Is(err, context.DeadlineExceeded) {
+						t.Errorf("got %v; want (%v, %v or net.OpError)", err, io.EOF, context.DeadlineExceeded)
 					}
 				} else if tt.cmd2 != nil {
 					got, err := tt.cmd2(cmdCtx)
-					if _, ok := err.(net.Error); !ok && !errors.Is(err, io.EOF) && !errors.Is(err, context.DeadlineExceeded) {
-						t.Errorf("got %v, %v; want nil, (%v, %v or net.Error)", got, err, io.EOF, context.DeadlineExceeded)
+					if !errors.As(err, &opErr) && !errors.Is(err, io.EOF) && !errors.Is(err, context.DeadlineExceeded) {
+						t.Errorf("got %v, %v; want nil, (%v, %v or net.OpError)", got, err, io.EOF, context.DeadlineExceeded)
 					}
 				}
 				go func() {
