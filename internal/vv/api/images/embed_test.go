@@ -19,12 +19,9 @@ import (
 )
 
 func TestEmbed(t *testing.T) {
-	svr, err := mpdtest.NewServer("OK MPD 0.19")
-	if err != nil {
-		t.Fatalf("failed to create mpd test server: %v", err)
-	}
-	defer svr.Close()
-	c, err := mpd.Dial("tcp", svr.URL, nil)
+	ts := mpdtest.NewServer("OK MPD 0.19")
+	defer ts.Close()
+	c, err := mpd.Dial("tcp", ts.URL, nil)
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}
@@ -55,13 +52,10 @@ func TestEmbed(t *testing.T) {
 func TestEmbedUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	svr, err := mpdtest.NewServer("OK MPD 0.19")
-	if err != nil {
-		t.Fatalf("failed to create mpd test server: %v", err)
-	}
-	defer svr.Close()
-	go func() { svr.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "command: readpicture\nOK\n"}) }()
-	c, err := mpd.Dial("tcp", svr.URL, &mpd.ClientOptions{Timeout: testTimeout, CacheCommandsResult: true})
+	ts := mpdtest.NewServer("OK MPD 0.19")
+	defer ts.Close()
+	go func() { ts.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "command: readpicture\nOK\n"}) }()
+	c, err := mpd.Dial("tcp", ts.URL, &mpd.ClientOptions{Timeout: testTimeout, CacheCommandsResult: true})
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}
@@ -137,7 +131,7 @@ func TestEmbedUpdate(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				for i := range tt.mpd {
-					if err := svr.Expect(ctx, tt.mpd[i]); err != nil {
+					if err := ts.Expect(ctx, tt.mpd[i]); err != nil {
 						t.Errorf("mpd: %v", err)
 					}
 				}
@@ -188,13 +182,10 @@ func TestEmbedUpdate(t *testing.T) {
 func TestEmbedRescan(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	svr, err := mpdtest.NewServer("OK MPD 0.19")
-	if err != nil {
-		t.Fatalf("failed to create mpd test server: %v", err)
-	}
-	defer svr.Close()
-	go func() { svr.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "command: readpicture\nOK\n"}) }()
-	c, err := mpd.Dial("tcp", svr.URL, &mpd.ClientOptions{Timeout: testTimeout, CacheCommandsResult: true})
+	ts := mpdtest.NewServer("OK MPD 0.19")
+	defer ts.Close()
+	go func() { ts.Expect(ctx, &mpdtest.WR{Read: "commands\n", Write: "command: readpicture\nOK\n"}) }()
+	c, err := mpd.Dial("tcp", ts.URL, &mpd.ClientOptions{Timeout: testTimeout, CacheCommandsResult: true})
 	if err != nil {
 		t.Fatalf("dial got err: %v", err)
 	}
@@ -305,7 +296,7 @@ func TestEmbedRescan(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				for i := range tt.mpd {
-					if err := svr.Expect(ctx, tt.mpd[i]); err != nil {
+					if err := ts.Expect(ctx, tt.mpd[i]); err != nil {
 						t.Errorf("mpd: %v", err)
 					}
 				}

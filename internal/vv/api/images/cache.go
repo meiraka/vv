@@ -187,6 +187,5 @@ func (c *cache) SetEmpty(key, reqid string) error {
 
 // Close finalizes cache db, coroutines.
 func (c *cache) Close() error {
-	c.db.Close()
-	return nil
+	return c.db.Close()
 }

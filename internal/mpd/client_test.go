@@ -18,10 +18,7 @@ import (
 func TestDial(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	ts, err := mpdtest.NewServer("OK MPD 0.19")
-	if err != nil {
-		t.Fatalf("failed to create test server: %v", err)
-	}
+	ts := mpdtest.NewServer("OK MPD 0.19")
 	defer ts.Close()
 	for label, tt := range map[string]struct {
 		url  string
@@ -104,14 +101,11 @@ var imgSize = len(img)
 func TestClient(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	ts, err := mpdtest.NewServer("OK MPD 0.19")
-	if err != nil {
-		t.Fatalf("failed to create test server: %v", err)
-	}
+	ts := mpdtest.NewServer("OK MPD 0.19")
+	defer ts.Close()
 	go func() {
 		ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 	}()
-	defer ts.Close()
 	c, err := Dial("tcp", ts.URL,
 		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {

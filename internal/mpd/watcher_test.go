@@ -15,10 +15,7 @@ const (
 func TestWatcher(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	ts, err := mpdtest.NewServer("OK MPD 0.19")
-	if err != nil {
-		t.Fatalf("failed to create test server: %v", err)
-	}
+	ts := mpdtest.NewServer("OK MPD 0.19")
 	defer ts.Close()
 	w, err := NewWatcher("tcp", ts.URL,
 		&WatcherOptions{Timeout: testTimeout, ReconnectionInterval: time.Millisecond})

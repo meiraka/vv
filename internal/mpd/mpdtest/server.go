@@ -12,6 +12,7 @@ import (
 // Server is mock mpd server.
 type Server struct {
 	ln         net.Listener
+	Proto      string
 	URL        string
 	disconnect chan struct{}
 	rc         chan *rConn
@@ -39,12 +40,14 @@ func (s *Server) Disconnect(ctx context.Context) {
 }
 
 // Close closes connection
-func (s *Server) Close() error {
+func (s *Server) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.closed = true
-	close(s.disconnect)
-	return s.ln.Close()
+	if !s.closed {
+		s.closed = true
+		close(s.disconnect)
+		s.ln.Close()
+	}
 }
 
 // WR represents testserver Write / Read string
@@ -73,14 +76,15 @@ func (s *Server) Expect(ctx context.Context, m *WR) error {
 }
 
 // NewServer creates new mpd mock Server for idle command.
-func NewServer(firstResp string) (*Server, error) {
+func NewServer(firstResp string) *Server {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("mpdtest: failed to listen on a port: %v", err))
 	}
 	rc := make(chan *rConn)
 	s := &Server{
 		ln:         ln,
+		Proto:      "tcp",
 		URL:        ln.Addr().String(),
 		disconnect: make(chan struct{}, 1),
 		rc:         rc,
@@ -136,5 +140,5 @@ func NewServer(firstResp string) (*Server, error) {
 			}(conn)
 		}
 	}(ln)
-	return s, nil
+	return s
 }

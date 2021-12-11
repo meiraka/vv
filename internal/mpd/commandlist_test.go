@@ -13,10 +13,8 @@ import (
 func TestCommandList(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	ts, err := mpdtest.NewServer("OK MPD 0.19")
-	if err != nil {
-		t.Fatalf("failed to create test server: %v", err)
-	}
+	ts := mpdtest.NewServer("OK MPD 0.19")
+	defer ts.Close()
 	go func() {
 		ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_ok_begin\n"})
@@ -24,7 +22,6 @@ func TestCommandList(t *testing.T) {
 		ts.Expect(ctx, &mpdtest.WR{Read: "add \"/foo/bar\"\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_end\n", Write: "list_OK\nlist_OK\nOK\n"})
 	}()
-	defer ts.Close()
 	c, err := Dial("tcp", ts.URL,
 		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
@@ -44,7 +41,8 @@ func TestCommandList(t *testing.T) {
 func TestCommandListCommandError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	ts, _ := mpdtest.NewServer("OK MPD 0.19")
+	ts := mpdtest.NewServer("OK MPD 0.19")
+	defer ts.Close()
 	go func() {
 		ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_ok_begin\n"})
@@ -53,7 +51,6 @@ func TestCommandListCommandError(t *testing.T) {
 		ts.Expect(ctx, &mpdtest.WR{Read: "add \"/foo/bar\"\n"})
 		ts.Expect(ctx, &mpdtest.WR{Read: "command_list_end\n", Write: "list_OK\nACK [2@1] {} Bad song index\n"})
 	}()
-	defer ts.Close()
 	c, err := Dial("tcp", ts.URL,
 		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
@@ -75,7 +72,8 @@ func TestCommandListCommandError(t *testing.T) {
 func TestCommandListNetworkError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 	defer cancel()
-	ts, _ := mpdtest.NewServer("OK MPD 0.19")
+	ts := mpdtest.NewServer("OK MPD 0.19")
+	defer ts.Close()
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -89,7 +87,6 @@ func TestCommandListNetworkError(t *testing.T) {
 		ts.Disconnect(ctx)
 		ts.Expect(ctx, &mpdtest.WR{Read: "password \"2434\"\n", Write: "OK\n"})
 	}()
-	defer ts.Close()
 	c, err := Dial("tcp", ts.URL,
 		&ClientOptions{Password: "2434", Timeout: testTimeout, ReconnectionInterval: time.Millisecond})
 	if err != nil {
