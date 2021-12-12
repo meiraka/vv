@@ -397,7 +397,9 @@ func TestClientCloseNetworkError(t *testing.T) {
 	defer cancel()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("failed to listen mock server addr: %v", err)
+		if ln, err = net.Listen("tcp6", "[::1]:0"); err != nil {
+			t.Fatalf("failed to listen mock server addr: %v", err)
+		}
 	}
 	svr := make(chan struct{})
 	cli := make(chan struct{})

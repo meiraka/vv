@@ -79,7 +79,9 @@ func (s *Server) Expect(ctx context.Context, m *WR) error {
 func NewServer(firstResp string) *Server {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		panic(fmt.Sprintf("mpdtest: failed to listen on a port: %v", err))
+		if ln, err = net.Listen("tcp6", "[::1]:0"); err != nil {
+			panic(fmt.Sprintf("mpdtest: failed to listen on a port: %v", err))
+		}
 	}
 	rc := make(chan *rConn)
 	s := &Server{
