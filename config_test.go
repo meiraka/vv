@@ -10,6 +10,42 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func TestParseConfigMPDAddrDefault(t *testing.T) {
+	for network, want := range map[string][2]string{
+		"tcp":  {"tcp", "localhost:6600"},
+		"tcp4": {"tcp4", "localhost:6600"},
+		"tcp6": {"tcp6", "localhost:6600"},
+		"unix": {"unix", "/var/run/mpd/socket"},
+	} {
+		t.Run(network, func(t *testing.T) {
+			config, _, err := ParseConfig(nil, "", []string{os.Args[0], "--mpd.network", network})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := [2]string{config.MPD.Network, config.MPD.Addr}; got != want {
+				t.Errorf("got %s, %s; want %s, %s", got[0], got[1], want[0], want[1])
+			}
+		})
+	}
+}
+func TestParseConfigMPDNetworkDefault(t *testing.T) {
+	for addr, want := range map[string][2]string{
+		"":                    {"tcp", "localhost:6600"},
+		"/var/run/mpd/socket": {"unix", "/var/run/mpd/socket"},
+		"@mpd":                {"unix", "@mpd"},
+	} {
+		t.Run(addr, func(t *testing.T) {
+			config, _, err := ParseConfig(nil, "", []string{os.Args[0], "--mpd.addr", addr})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := [2]string{config.MPD.Network, config.MPD.Addr}; got != want {
+				t.Errorf("got %s, %s; want %s, %s", got[0], got[1], want[0], want[1])
+			}
+		})
+	}
+}
+
 func TestParseConfigExample(t *testing.T) {
 	config, date, err := ParseConfig([]string{"appendix"}, "example.config.yaml", []string{os.Args[0]})
 	if err != nil {

@@ -42,12 +42,28 @@ type Config struct {
 func DefaultConfig() *Config {
 	c := &Config{}
 	c.MPD.Conf = "/etc/mpd.conf"
-	c.MPD.Network = "tcp"
-	c.MPD.Addr = "localhost:6600"
 	c.Server.Addr = ":8080"
 	c.Server.CacheDirectory = filepath.Join(os.TempDir(), "vv")
 	c.Server.Cover.Local = true
 	return c
+}
+
+func fillConfig(c *Config) {
+	if c.MPD.Network == "" {
+		if strings.HasPrefix(c.MPD.Addr, "/") || strings.HasPrefix(c.MPD.Addr, "@") {
+			c.MPD.Network = "unix"
+		} else {
+			c.MPD.Network = "tcp"
+		}
+	}
+	if c.MPD.Addr == "" {
+		switch c.MPD.Network {
+		case "tcp", "tcp4", "tcp6":
+			c.MPD.Addr = "localhost:6600"
+		case "unix":
+			c.MPD.Addr = "/var/run/mpd/socket"
+		}
+	}
 }
 
 // ParseConfig parse yaml config and flags.
@@ -109,6 +125,7 @@ func ParseConfig(dir []string, name string, args []string) (*Config, time.Time, 
 		c.Server.Cover.Remote = true
 	}
 	c.debug = *d
+	fillConfig(c)
 	return c, date, nil
 }
 
