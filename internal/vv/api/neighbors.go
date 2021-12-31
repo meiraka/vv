@@ -13,20 +13,22 @@ type NeighborsHandler struct {
 	mpd interface {
 		ListNeighbors(context.Context) ([]map[string]string, error)
 	}
-	cache *cache
+	cache  *cache
+	logger Logger
 }
 
 // NewNeighborsHandler initilize Neighbors cache with mpd connection.
 func NewNeighborsHandler(mpd interface {
 	ListNeighbors(context.Context) ([]map[string]string, error)
-}) (*NeighborsHandler, error) {
+}, logger Logger) (*NeighborsHandler, error) {
 	c, err := newCache(map[string]*httpStorage{})
 	if err != nil {
 		return nil, err
 	}
 	return &NeighborsHandler{
-		mpd:   mpd,
-		cache: c,
+		mpd:    mpd,
+		cache:  c,
+		logger: logger,
 	}, nil
 }
 
@@ -39,6 +41,7 @@ func (a *NeighborsHandler) Update(ctx context.Context) error {
 		var perr *mpd.CommandError
 		if errors.As(err, &perr) {
 			a.cache.SetIfModified(ret)
+			a.logger.Debugf("vv/api: neighbors: %v", err)
 			return nil
 		}
 		return err

@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/meiraka/vv/internal/log"
 	"github.com/meiraka/vv/internal/vv/api"
 )
 
@@ -110,7 +111,7 @@ func TestImagesHandler(t *testing.T) {
 	} {
 		t.Run(label, func(t *testing.T) {
 			img := &imageProvider{t: t}
-			h, err := api.NewImagesHandler([]api.ImageProvider{img})
+			h, err := api.NewImagesHandler([]api.ImageProvider{img}, log.NewTestLogger(t))
 			if err != nil {
 				t.Fatalf("api.NewLibraryHandler(mpd) = %v", err)
 			}
@@ -216,7 +217,7 @@ func TestImagesHandlerConvSongs(t *testing.T) {
 	} {
 		t.Run(label, func(t *testing.T) {
 			img := &imageProvider{t: t}
-			h, err := api.NewImagesHandler([]api.ImageProvider{img})
+			h, err := api.NewImagesHandler([]api.ImageProvider{img}, log.NewTestLogger(t))
 			if err != nil {
 				t.Fatalf("api.NewLibraryHandler(mpd) = %v", err)
 			}
@@ -289,7 +290,7 @@ func TestImagesHandlerConvSong(t *testing.T) {
 	} {
 		t.Run(label, func(t *testing.T) {
 			img := &imageProvider{t: t}
-			h, err := api.NewImagesHandler([]api.ImageProvider{img})
+			h, err := api.NewImagesHandler([]api.ImageProvider{img}, log.NewTestLogger(t))
 			if err != nil {
 				t.Fatalf("api.NewLibraryHandler(mpd) = %v", err)
 			}

@@ -25,18 +25,20 @@ type MPDStorage interface {
 
 // StorageHandler provides mount, unmount, list storage api.
 type StorageHandler struct {
-	mpd   MPDStorage
-	cache *cache
+	mpd    MPDStorage
+	cache  *cache
+	logger Logger
 }
 
-func NewStorageHandler(mpd MPDStorage) (*StorageHandler, error) {
+func NewStorageHandler(mpd MPDStorage, logger Logger) (*StorageHandler, error) {
 	c, err := newCache(map[string]*httpStorage{})
 	if err != nil {
 		return nil, err
 	}
 	return &StorageHandler{
-		mpd:   mpd,
-		cache: c,
+		mpd:    mpd,
+		cache:  c,
+		logger: logger,
 	}, nil
 }
 
@@ -48,6 +50,7 @@ func (a *StorageHandler) Update(ctx context.Context) error {
 		var perr *mpd.CommandError
 		if errors.As(err, &perr) {
 			a.cache.SetIfModified(ret)
+			a.logger.Debugf("vv/api: storage: %v", err)
 			return nil
 		}
 		return err

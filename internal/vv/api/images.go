@@ -19,17 +19,19 @@ type ImagesHandler struct {
 	mu       sync.RWMutex
 	library  []map[string][]string
 	changed  chan bool
+	logger   Logger
 }
 
-func NewImagesHandler(img []ImageProvider) (*ImagesHandler, error) {
+func NewImagesHandler(img []ImageProvider, logger Logger) (*ImagesHandler, error) {
 	c, err := newCache(&httpImages{})
 	if err != nil {
 		return nil, err
 	}
 	ret := &ImagesHandler{
 		cache:    c,
-		imgBatch: newImgBatch(img),
+		imgBatch: newImgBatch(img, logger),
 		changed:  make(chan bool, 10),
+		logger:   logger,
 	}
 	go func() {
 		for e := range ret.imgBatch.Event() {
@@ -61,7 +63,9 @@ func (a *ImagesHandler) ConvSongs(s []map[string][]string) []map[string][]string
 		}
 	}
 	if len(needUpdates) != 0 {
-		a.imgBatch.Update(needUpdates)
+		if err := a.imgBatch.Update(needUpdates); err != nil {
+			a.logger.Debugf("vv/api: images: %v", err)
+		}
 	}
 	return ret
 }

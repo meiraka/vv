@@ -136,7 +136,7 @@ func (a *PlaylistHandler) UpdateCurrent(pos int) error {
 	return nil
 }
 
-func (a *PlaylistHandler) updateSort(sort []string, filters [][2]*string, must int) error {
+func (a *PlaylistHandler) updateSort(sort []string, filters [][2]*string, must int) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	data := &httpPlaylistInfo{
@@ -145,12 +145,8 @@ func (a *PlaylistHandler) updateSort(sort []string, filters [][2]*string, must i
 		Filters: filters,
 		Must:    must,
 	}
-	// _, err := a.cache.SetIfModified(data)
-	// if err != nil {
-	// 	return err
-	// }
 	a.data = data
-	return nil
+	return
 }
 
 func (a *PlaylistHandler) UpdatePlaylistSongs(i []map[string][]string) {

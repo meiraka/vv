@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/meiraka/vv/internal/log"
 )
 
 func TestImgBatch(t *testing.T) {
@@ -24,7 +26,7 @@ func TestImgBatch(t *testing.T) {
 				return nil
 			}, func(context.Context, map[string][]string, string) error { return errors.New("must not be called") })
 
-		batch := newImgBatch([]ImageProvider{cov1, cov2})
+		batch := newImgBatch([]ImageProvider{cov1, cov2}, log.NewTestLogger(t))
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Update() = %v; want %v", err, nil)
 		}
@@ -73,7 +75,7 @@ func TestImgBatch(t *testing.T) {
 				return nil
 			})
 
-		batch := newImgBatch([]ImageProvider{cov1, cov2})
+		batch := newImgBatch([]ImageProvider{cov1, cov2}, log.NewTestLogger(t))
 		if err := batch.Rescan([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Rescan() = %v; want %v", err, nil)
 		}
@@ -113,7 +115,7 @@ func TestImgBatch(t *testing.T) {
 				<-ctx.Done()
 				return nil
 			}, func(context.Context, map[string][]string, string) error { return errors.New("must not be called") })
-		batch := newImgBatch([]ImageProvider{cov})
+		batch := newImgBatch([]ImageProvider{cov}, log.NewTestLogger(t))
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Update() = %v; want nil", err)
 		}
@@ -131,7 +133,7 @@ func TestImgBatch(t *testing.T) {
 				<-ctx.Done()
 				return nil
 			}, func(context.Context, map[string][]string, string) error { return errors.New("must not be called") })
-		batch := newImgBatch([]ImageProvider{cov})
+		batch := newImgBatch([]ImageProvider{cov}, log.NewTestLogger(t))
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Update() = err; want nil")
 		}
@@ -145,7 +147,7 @@ func TestImgBatch(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
-		batch := newImgBatch([]ImageProvider{})
+		batch := newImgBatch([]ImageProvider{}, log.NewTestLogger(t))
 		if err := batch.Update([]map[string][]string{{"file": {"/foo/bar"}}}); err != nil {
 			t.Errorf("batch.Update() = %v; want nil", err)
 		}

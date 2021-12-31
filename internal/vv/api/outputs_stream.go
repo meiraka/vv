@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"io"
-	"log"
 	"net/http"
 	"sync"
 )
@@ -14,13 +13,15 @@ type OutputsStreamHandler struct {
 	stopCh chan struct{}
 	stopMu sync.Mutex
 	stopB  bool
+	logger Logger
 }
 
 // NewOutputsStreamHandler initilize OutputsStreamHandler cache with mpd connection.
-func NewOutputsStreamHandler(proxy map[string]string) (*OutputsStreamHandler, error) {
+func NewOutputsStreamHandler(proxy map[string]string, logger Logger) (*OutputsStreamHandler, error) {
 	return &OutputsStreamHandler{
 		proxy:  proxy,
 		stopCh: make(chan struct{}),
+		logger: logger,
 	}, nil
 }
 
@@ -36,13 +37,13 @@ func (a *OutputsStreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	defer cancel()
 	pr, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		log.Println(url, err)
+		a.logger.Println("vv/api: stream:", url, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	resp, err := http.DefaultClient.Do(pr)
 	if err != nil {
-		log.Println("vv: api: stream:", url, err)
+		a.logger.Println("vv/api: stream:", url, err)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/meiraka/vv/internal/log"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/vv/api"
 )
@@ -77,7 +78,7 @@ func TestStorageHandlerGET(t *testing.T) {
 	} {
 		t.Run(label, func(t *testing.T) {
 			mpd := &mpdStorage{t: t}
-			h, err := api.NewStorageHandler(mpd)
+			h, err := api.NewStorageHandler(mpd, log.NewTestLogger(t))
 			if err != nil {
 				t.Fatalf("failed to init Storage: %v", err)
 			}
@@ -295,7 +296,7 @@ func TestStorageHandlerPOST(t *testing.T) {
 	} {
 		t.Run(label, func(t *testing.T) {
 			mpd := &mpdStorage{t: t, listMounts: tt.listMounts, mount: tt.mount, unmount: tt.unmount, update: tt.update}
-			h, err := api.NewStorageHandler(mpd)
+			h, err := api.NewStorageHandler(mpd, log.NewTestLogger(t))
 			if err != nil {
 				t.Fatalf("failed to init Storage: %v", err)
 			}

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/meiraka/vv/internal/log"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/vv/api"
 )
@@ -88,7 +89,7 @@ func TestNeighborsHandlerGET(t *testing.T) {
 	} {
 		t.Run(label, func(t *testing.T) {
 			mpd := &mpdNeighbors{t: t}
-			h, err := api.NewNeighborsHandler(mpd)
+			h, err := api.NewNeighborsHandler(mpd, log.NewTestLogger(t))
 			if err != nil {
 				t.Fatalf("failed to init Neighbors: %v", err)
 			}

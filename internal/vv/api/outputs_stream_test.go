@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/meiraka/vv/internal/log"
 	"github.com/meiraka/vv/internal/vv/api"
 )
 
@@ -21,7 +22,7 @@ func TestOutputsStreamHandlerGET(t *testing.T) {
 	h, err := api.NewOutputsStreamHandler(map[string]string{
 		"normal": normal.URL,
 		"slow":   slow.URL,
-	})
+	}, log.NewTestLogger(t))
 	if err != nil {
 		t.Fatalf("failed to init OutputsStreamHandler: %v", err)
 	}

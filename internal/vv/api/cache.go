@@ -57,7 +57,7 @@ func (c *cache) Set(i interface{}) error {
 	return err
 }
 
-func (c *cache) SetIfModified(i interface{}) (bool, error) {
+func (c *cache) SetIfModified(i interface{}) (changed bool, err error) {
 	return c.set(i, false)
 }
 

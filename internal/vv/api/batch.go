@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"errors"
-	"log"
 	"strconv"
 	"sync"
 	"time"
@@ -34,15 +33,17 @@ type imgBatch struct {
 	shutdownMu sync.Mutex
 	shutdownCh chan struct{}
 	shutdownB  bool
+	logger     Logger
 }
 
 // newImgBatch creates Batch from some cover image api.
-func newImgBatch(apis []ImageProvider) *imgBatch {
+func newImgBatch(apis []ImageProvider, logger Logger) *imgBatch {
 	ret := &imgBatch{
 		apis:       apis,
 		sem:        make(chan struct{}, 1),
 		e:          make(chan bool, 2), // 2: first updating/updated event
 		shutdownCh: make(chan struct{}),
+		logger:     logger,
 	}
 	ret.sem <- struct{}{}
 	return ret
@@ -109,12 +110,12 @@ func (b *imgBatch) update(songs []map[string][]string, force bool) error {
 			for _, c := range b.apis {
 				if force {
 					if err := c.Rescan(ctx, song, reqID); err != nil {
-						log.Printf("rescan: %v: %v", songsTag(song, "file"), err)
+						b.logger.Printf("vv/api: batch: rescan: %v: %v", songsTag(song, "file"), err)
 						// use previous rescanned result
 					}
 				} else {
 					if err := c.Update(ctx, song); err != nil {
-						log.Printf("update: %v: %v", songsTag(song, "file"), err)
+						b.logger.Printf("vv/api: batch: update: %v: %v", songsTag(song, "file"), err)
 						// use previous rescanned result
 					}
 				}
@@ -128,7 +129,7 @@ func (b *imgBatch) update(songs []map[string][]string, force bool) error {
 		case <-ctx.Done():
 		case b.e <- false:
 		default:
-			log.Println("fixme: batch: event buffer is too small")
+			b.logger.Println("vv/api: batch: fixme: event buffer is too small")
 		}
 	}()
 	return nil

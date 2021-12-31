@@ -3,11 +3,13 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/meiraka/vv/internal/log"
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/songs"
 )
@@ -35,6 +37,7 @@ type Config struct {
 	AudioProxy        map[string]string // audio device - mpd http server addr pair to proxy
 	skipInit          bool              // do not initialize mpd cache(for test)
 	ImageProviders    []ImageProvider
+	Logger            Logger
 }
 
 // Handler implements http.Handler for vv json api.
@@ -67,6 +70,9 @@ func NewHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, c *Config) 
 	if c.BackgroundTimeout == 0 {
 		c.BackgroundTimeout = 30 * time.Second
 	}
+	if c.Logger == nil {
+		c.Logger = log.New(io.Discard)
+	}
 	h := &Handler{}
 	var err error
 	if h.apiMusic, err = NewStatusHandler(cl); err != nil {
@@ -74,7 +80,7 @@ func NewHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, c *Config) 
 	}
 	h.closable = append(h.closable, h.apiMusic)
 
-	if h.apiMusicImages, err = NewImagesHandler(c.ImageProviders); err != nil {
+	if h.apiMusicImages, err = NewImagesHandler(c.ImageProviders, c.Logger); err != nil {
 		return nil, err
 	}
 	h.songHooks = append(h.songHooks, func(s map[string][]string) map[string][]string { s, _ = h.apiMusicImages.ConvSong(s); return s })
@@ -97,7 +103,7 @@ func NewHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, c *Config) 
 	}
 	h.closable = append(h.closable, h.apiMusicOutputs)
 
-	if h.apiMusicOutputsStream, err = NewOutputsStreamHandler(c.AudioProxy); err != nil {
+	if h.apiMusicOutputsStream, err = NewOutputsStreamHandler(c.AudioProxy, c.Logger); err != nil {
 		return nil, err
 	}
 	h.stoppable = append(h.stoppable, h.apiMusicOutputsStream)
@@ -123,11 +129,11 @@ func NewHandler(ctx context.Context, cl *mpd.Client, w *mpd.Watcher, c *Config) 
 	}
 	h.closable = append(h.closable, h.apiMusicStats)
 
-	if h.apiMusicStorage, err = NewStorageHandler(cl); err != nil {
+	if h.apiMusicStorage, err = NewStorageHandler(cl, c.Logger); err != nil {
 		return nil, err
 	}
 	h.closable = append(h.closable, h.apiMusicStorage)
-	if h.apiMusicStorageNeighbors, err = NewNeighborsHandler(cl); err != nil {
+	if h.apiMusicStorageNeighbors, err = NewNeighborsHandler(cl, c.Logger); err != nil {
 		return nil, err
 	}
 	h.closable = append(h.closable, h.apiMusicStorageNeighbors)
@@ -223,9 +229,13 @@ func (h *Handler) hookEvent(ctx context.Context, w *mpd.Watcher, c *Config) erro
 	go func() {
 		for range h.apiMusic.Changed() {
 			h.apiMusic.BroadCast(pathAPIMusicStatus)
-			h.apiMusicLibrary.UpdateStatus(h.apiMusic.Cache().Updating)
+			if err := h.apiMusicLibrary.UpdateStatus(h.apiMusic.Cache().Updating); err != nil {
+				c.Logger.Printf("vv/api: %v", err)
+			}
 			if pos := h.apiMusic.Cache().Song; pos != nil {
-				h.apiMusicPlaylist.UpdateCurrent(*pos)
+				if err := h.apiMusicPlaylist.UpdateCurrent(*pos); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			}
 		}
 	}()
@@ -234,8 +244,12 @@ func (h *Handler) hookEvent(ctx context.Context, w *mpd.Watcher, c *Config) erro
 			h.apiMusic.BroadCast(pathAPIMusicImages)
 			if !updating {
 				ctx, cancel := context.WithTimeout(context.Background(), c.BackgroundTimeout)
-				h.apiMusicPlaylistSongsCurrent.Update(ctx)
-				h.apiMusicLibrarySongs.Update(ctx)
+				if err := h.apiMusicPlaylistSongsCurrent.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
+				if err := h.apiMusicLibrarySongs.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 				cancel()
 			}
 		}
@@ -308,36 +322,68 @@ func (h *Handler) hookEvent(ctx context.Context, w *mpd.Watcher, c *Config) erro
 			ctx, cancel := context.WithTimeout(context.Background(), c.BackgroundTimeout)
 			switch e {
 			case "reconnecting":
-				h.apiVersion.UpdateNoMPD()
+				if err := h.apiVersion.UpdateNoMPD(); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			case "reconnect":
-				h.apiVersion.Update()
+				if err := h.apiVersion.Update(); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 				for _, v := range all {
-					v(ctx)
+					if err := v(ctx); err != nil {
+						c.Logger.Printf("vv/api: %v", err)
+					}
 				}
 			case "database":
-				h.apiMusicLibrarySongs.Update(ctx)
-				h.apiMusic.Update(ctx)
+				if err := h.apiMusicLibrarySongs.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
+				if err := h.apiMusic.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 				// h.apiMusicPlaylistSongsCurrent.Update(ctx) // "currentsong" metadata did not updated until song changes
 				// h.apiMusicPlaylistSongs.Update(ctx) // client does not use this api
-				h.apiMusicStats.Update(ctx)
+				if err := h.apiMusicStats.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			case "playlist":
-				h.apiMusicPlaylistSongs.Update(ctx)
+				if err := h.apiMusicPlaylistSongs.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			case "player":
-				h.apiMusic.Update(ctx)
-				h.apiMusicPlaylistSongsCurrent.Update(ctx)
-				h.apiMusicStats.Update(ctx)
+				if err := h.apiMusic.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
+				if err := h.apiMusicPlaylistSongsCurrent.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
+				if err := h.apiMusicStats.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			case "mixer":
-				h.apiMusic.Update(ctx)
+				if err := h.apiMusic.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			case "options":
-				h.apiMusic.UpdateOptions(ctx)
+				if err := h.apiMusic.UpdateOptions(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			case "update":
-				h.apiMusic.Update(ctx)
+				if err := h.apiMusic.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			case "output":
-				h.apiMusicOutputs.Update(ctx)
+				if err := h.apiMusicOutputs.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			case "mount":
-				h.apiMusicStorage.Update(ctx)
+				if err := h.apiMusicStorage.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			case "neighbor":
-				h.apiMusicStorageNeighbors.Update(ctx)
+				if err := h.apiMusicStorageNeighbors.Update(ctx); err != nil {
+					c.Logger.Printf("vv/api: %v", err)
+				}
 			default:
 			}
 			cancel()
@@ -357,7 +403,9 @@ func (h *Handler) hookEvent(ctx context.Context, w *mpd.Watcher, c *Config) erro
 	// update handler cache before return.
 	// for test stability only
 	if pos := h.apiMusic.Cache().Song; pos != nil {
-		h.apiMusicPlaylist.UpdateCurrent(*pos)
+		if err := h.apiMusicPlaylist.UpdateCurrent(*pos); err != nil {
+			return err
+		}
 		clearChan(h.apiMusicPlaylist.Changed())
 	}
 	return nil
