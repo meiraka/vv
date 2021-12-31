@@ -146,7 +146,6 @@ func (a *PlaylistHandler) updateSort(sort []string, filters [][2]*string, must i
 		Must:    must,
 	}
 	a.data = data
-	return
 }
 
 func (a *PlaylistHandler) UpdatePlaylistSongs(i []map[string][]string) {
