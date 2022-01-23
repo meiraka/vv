@@ -987,10 +987,16 @@ button:hover:not(:disabled) {
   .main-seek {
     flex: 1 1 auto;
   }
+  .main-seek-label-elapsed {
+    text-align: right;
+  }
+  .main-seek-label-total {
+    text-align: left;
+  }
   .main-seek-label-elapsed,
   .main-seek-label-total {
-    text-align: center;
     flex: 0 1 62px;
+    padding: 0 10px;
   }
 }
 
