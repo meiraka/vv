@@ -16,7 +16,7 @@ Installation
 
 .. code-block:: shell
 
-  go get github.com/meiraka/vv
+  go install github.com/meiraka/vv@latest
 
 Or get pre-built binary from `GitHub Releases page <https://github.com/meiraka/vv/releases>`_ and extract to somewhere you want.
 
