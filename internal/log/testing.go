@@ -15,7 +15,7 @@ func NewTestLogger(tb testing.TB) *TestLogger {
 
 func (l *TestLogger) Printf(format string, v ...interface{}) {
 	l.tb.Helper()
-	l.tb.Log(fmt.Sprintf(format, v...))
+	l.tb.Logf(format, v...)
 }
 
 func (l *TestLogger) Println(v ...interface{}) {
@@ -30,7 +30,7 @@ func (l *TestLogger) Print(v ...interface{}) {
 
 func (l *TestLogger) Debugf(format string, v ...interface{}) {
 	l.tb.Helper()
-	l.tb.Log("debug: " + fmt.Sprintf(format, v...))
+	l.tb.Logf("debug: "+format, v...)
 }
 
 func (l *TestLogger) Debugln(v ...interface{}) {
