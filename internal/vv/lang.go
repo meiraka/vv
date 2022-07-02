@@ -1,15 +1,25 @@
 package vv
 
 import (
+	"net/http"
+
 	"golang.org/x/text/language"
 )
 
-var translatePrio = []language.Tag{
+var langPrio = []language.Tag{
 	language.AmericanEnglish,
 	language.Japanese,
 }
 
-var translateData = map[language.Tag]map[string]string{
+var langMatcher = language.NewMatcher(langPrio)
+
+func determineLang(r *http.Request) (language.Tag, int) {
+	t, _, _ := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
+	_, i, _ := langMatcher.Match(t...)
+	return langPrio[i], i
+}
+
+var langData = map[language.Tag]map[string]string{
 	language.AmericanEnglish: {},
 	language.Japanese: {
 		"lang":                                "ja",

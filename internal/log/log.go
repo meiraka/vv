@@ -42,7 +42,7 @@ func (l *Logger) Println(v ...interface{}) { l.l.Output(2, fmt.Sprintln(v...)) }
 //Debugf calls l.Output to print to the logger.
 // Arguments are handled in the manner of fmt.Printf.
 func (l *Logger) Debugf(format string, v ...interface{}) {
-	if l.debug {
+	if !l.debug {
 		return
 	}
 	l.l.Output(2, "debug: "+fmt.Sprintf(format, v...))
@@ -51,7 +51,7 @@ func (l *Logger) Debugf(format string, v ...interface{}) {
 //Debug calls l.Output to print to the logger.
 // Arguments are handled in the manner of fmt.Print.
 func (l *Logger) Debug(v ...interface{}) {
-	if l.debug {
+	if !l.debug {
 		return
 	}
 	l.l.Output(2, "debug: "+fmt.Sprint(v...))
@@ -60,7 +60,7 @@ func (l *Logger) Debug(v ...interface{}) {
 //Debugln calls l.Output to print to the logger.
 // Arguments are handled in the manner of fmt.Println.
 func (l *Logger) Debugln(v ...interface{}) {
-	if l.debug {
+	if !l.debug {
 		return
 	}
 	l.l.Output(2, "debug: "+fmt.Sprintln(v...))

@@ -24,7 +24,6 @@ const (
 
 var version = "v0.12.0+"
 
-//go:generate go run internal/cmd/fix-assets/main.go
 func main() {
 	v2()
 }
@@ -40,9 +39,14 @@ func configDirs() []string {
 func v2() {
 	ctx := context.TODO()
 	logger := log.New(os.Stderr)
-	config, date, err := ParseConfig(configDirs(), "config.yaml", os.Args)
+
+	lastModified := time.Now()
+	config, configDate, err := ParseConfig(configDirs(), "config.yaml", os.Args)
 	if err != nil {
 		logger.Fatalf("failed to load config: %v", err)
+	}
+	if lastModified.Before(configDate) {
+		lastModified = configDate
 	}
 	if config.debug {
 		logger = log.NewDebugLogger(os.Stderr)
@@ -128,16 +132,20 @@ func v2() {
 		covers = append(covers, e)
 		defer e.Close()
 	}
-	root, err := vv.NewHTMLHander(&vv.HTMLConfig{
-		Tree:      toTree(config.Playlist.Tree),
-		TreeOrder: config.Playlist.TreeOrder,
-		Local:     config.debug,
-		LocalDate: date})
+	root, err := vv.New(&vv.Config{
+		Tree:         toTree(config.Playlist.Tree),
+		TreeOrder:    config.Playlist.TreeOrder,
+		Local:        config.debug,
+		LastModified: lastModified,
+		Logger:       logger,
+	})
 	if err != nil {
 		logger.Fatalf("failed to initialize root handler: %v", err)
 	}
 	assets, err := assets.NewHandler(&assets.Config{
-		Local: config.debug,
+		Local:        config.debug,
+		LastModified: lastModified,
+		Logger:       logger,
 	})
 	if err != nil {
 		logger.Fatalf("failed to initialize assets handler: %v", err)

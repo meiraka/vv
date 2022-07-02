@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ or .lang "en" }}" dir="{{ or .direction "auto" }}">
+<html lang="{{ or .Message.lang "en" }}" dir="{{ or .Message.direction "auto" }}">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
@@ -15,7 +15,7 @@ html {
 }
 </style>
 <!-- <link rel="preload" as="style" href="assets/app.css" type="text/css" media="all" onload="this.rel='stylesheet'"> -->
-<link rel="stylesheet" href="assets/app.css?h={{ or .AssetsAppCSSHash "" }}">
+<link rel="stylesheet" href="assets/app.css?h={{ or .Hash.AppCSS "" }}">
 <link rel="manifest" href="/assets/manifest.json">
 <meta name="theme-color" content="#ffffff"/>
 <meta name="Description" content="Music Player Daemon Client">
@@ -23,11 +23,11 @@ html {
 <link rel="apple-touch-startup-image" href="/assets/w.png">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" sizes="192x192" href="/assets/app.png">
-<script>const TREE = JSON.parse({{ or .TREE "{}" }});const TREE_ORDER = JSON.parse({{ or .TREE_ORDER "[]" }});</script>
-<script src="/assets/app.js?h={{ or .AssetsAppJSHash "" }}" async></script>
+<script>const TREE = JSON.parse({{ or .Config.Tree "{}" }});const TREE_ORDER = JSON.parse({{ or .Config.TreeOrder "[]" }});</script>
+<script src="/assets/app.js?h={{ or .Hash.AppCSS "" }}" async></script>
 <title>vv</title>
 </head>
-<body class="unload light {{ or .direction "ltr" }}">
+<body class="unload light {{ or .Message.direction "ltr" }}">
 <div id="background" class="background">
   <div id="background-image" class="background-image show"></div>
   <div id="background-image2" class="background-image"></div>
@@ -35,7 +35,7 @@ html {
 </div>
 <header>
   <nav class="header-items">
-    <button type="button" id="header-back" class="header-item header-back header-iconlabel" data-title-format="{{ or .titleFormatBackTo "Back to %s" }}" data-aria-label-format="{{ or .ariaLabelBackTo "Back to %s" }}">
+    <button type="button" id="header-back" class="header-item header-back header-iconlabel" data-title-format="{{ or .Message.titleFormatBackTo "Back to %s" }}" data-aria-label-format="{{ or .Message.ariaLabelBackTo "Back to %s" }}">
       <span class="header-item-iconlabel">
         <svg class="header-item-icon reversible-icon" width="24" height="32" viewBox="0 0 150 200">
           <path class="stroke" d="M 100,40 40,100 100,160"/>
@@ -44,12 +44,12 @@ html {
       </span>
     </button>
     <div class="header-item header-space"></div>
-    <button type="button" id="header-main" class="header-item header-main" title="{{ or .titleShowNowPlayingItem "Show now playing item" }}" aria-label="{{ or .ariaLabelShowNowPlayingItem "Show now playing item" }}">
+    <button type="button" id="header-main" class="header-item header-main" title="{{ or .Message.titleShowNowPlayingItem "Show now playing item" }}" aria-label="{{ or .Message.ariaLabelShowNowPlayingItem "Show now playing item" }}">
       <svg class=header-item-icon width="32" height="32" viewBox="0 0 200 200">
         <path class="stroke" d="M 100,40 160,100 160,160 40,160 40,100 z"/>
       </svg>
     </button>
-    <button type="button" id="header-system" class="header-item" title="{{ or .titleShowSettingsWindow "Settings" }}" aria-label="{{ or .ariaLabelShowSettingsWindow "Show settings window" }}">
+    <button type="button" id="header-system" class="header-item" title="{{ or .Message.titleShowSettingsWindow "Settings" }}" aria-label="{{ or .Message.ariaLabelShowSettingsWindow "Show settings window" }}">
       <svg class=header-item-icon width="32" height="32" viewBox="0 0 200 200">
         <path class="stroke"
          d="M 100,30 100,60 z
@@ -147,64 +147,64 @@ html {
 </main>
 <div id="popup-box" class="popup-box">
   <section id="popup-fixme" class="popup hide">
-    <h3 class="popup-title">{{ or .NotifyFixme "FIXME" }}</h3>
+    <h3 class="popup-title">{{ or .Message.NotifyFixme "FIXME" }}</h3>
     <span class="popup-description"></span>
   </section>
   <section id="popup-network" class="popup hide">
     <div class="popup-area">
-      <h3 class="popup-title">{{ or .NotifyNetwork "Network" }}</h3>
+      <h3 class="popup-title">{{ or .Message.NotifyNetwork "Network" }}</h3>
       <span class="popup-description"
-            data-timeout-retry="{{ or .NotifyNetworkTimeoutRetry "Request timeout. Retrying..." }}"
-            data-timeout="{{ or .NotifyNetworkTimeout "Request timeout." }}"
-            data-closed="{{ or .NotifyNetworkClosed "Closed. Reconnecting..." }}"
-            data-does-not-respond="{{ or .NotifyNetworkDoesNotRespond "does not respond properly. Reconnecting..." }}"
+            data-timeout-retry="{{ or .Message.NotifyNetworkTimeoutRetry "Request timeout. Retrying..." }}"
+            data-timeout="{{ or .Message.NotifyNetworkTimeout "Request timeout." }}"
+            data-closed="{{ or .Message.NotifyNetworkClosed "Closed. Reconnecting..." }}"
+            data-does-not-respond="{{ or .Message.NotifyNetworkDoesNotRespond "does not respond properly. Reconnecting..." }}"
         ></span>
     </div>
   </section>
   <section id="popup-mpd" class="popup popup hide">
     <div class="popup-area">
-      <h3 class="popup-title">{{ or .NotifyMPD "Music Player Daemon" }}</h3>
+      <h3 class="popup-title">{{ or .Message.NotifyMPD "Music Player Daemon" }}</h3>
       <span class="popup-description popup-description-multiline"></span>
     </div>
   </section>
   <section id="popup-mpd-connection" class="popup popup hide">
     <div class="popup-area">
-      <h3 class="popup-title">{{ or .NotifyMPD "Music Player Daemon" }}</h3>
+      <h3 class="popup-title">{{ or .Message.NotifyMPD "Music Player Daemon" }}</h3>
       <span class="popup-description popup-description-multiline"
-            data-reconnecting="{{ or .NotifyMPDReconnecting "Reconnecting..." }}"
+            data-reconnecting="{{ or .Message.NotifyMPDReconnecting "Reconnecting..." }}"
           ></span>
     </div>
   </section>
   <section id="popup-client-output" class="popup popup hide">
     <div class="popup-area">
-      <h3 class="popup-title">{{ or .NotifyClientOutput "Client output" }}</h3>
+      <h3 class="popup-title">{{ or .Message.NotifyClientOutput "Client output" }}</h3>
       <span class="popup-description"
-            data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
-            data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
-            data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
-            data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported format or network error" }}"
+            data-network-error="{{ or .Message.NotifyClientOutputNetworkError "Network error" }}"
+            data-decode-error="{{ or .Message.NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
+            data-not-allowed="{{ or .Message.NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
+            data-unsupported-source="{{ or .Message.NotifyClientOutputUnsupportedSource "Unsupported format or network error" }}"
         ></span>
       <div class="popup-buttons">
-        <button id="popup-client-output-button-retry" class="popup-button" type="button">{{ or .NotifyClientOutputRetry "Retry" }}</button>
-        <button id="popup-client-output-button-settings" class="popup-button" type="button">{{ or .NotifyClientOutputOpenSettings "Open settings" }}</button>
+        <button id="popup-client-output-button-retry" class="popup-button" type="button">{{ or .Message.NotifyClientOutputRetry "Retry" }}</button>
+        <button id="popup-client-output-button-settings" class="popup-button" type="button">{{ or .Message.NotifyClientOutputOpenSettings "Open settings" }}</button>
       </div>
     </div>
   </section>
   <section id="popup-library" class="popup hide">
     <div class="popup-area">
-      <h3 class="popup-title">{{ or .NotifyLibrary "Library" }}</h3>
+      <h3 class="popup-title">{{ or .Message.NotifyLibrary "Library" }}</h3>
       <span class="popup-description popup-description-multiline"
-            data-updating="{{ or .NotifyLibraryUpdating "Updating library database..." }}"
-            data-updated="{{ or .NotifyLibraryUpdated "Library database was updated" }}"
+            data-updating="{{ or .Message.NotifyLibraryUpdating "Updating library database..." }}"
+            data-updated="{{ or .Message.NotifyLibraryUpdated "Library database was updated" }}"
         ></span>
     </div>
   </section>
   <section id="popup-coverart" class="popup hide">
     <div class="popup-area">
-      <h3 class="popup-title">{{ or .NotifyCoverArt "CoverArt" }}</h3>
+      <h3 class="popup-title">{{ or .Message.NotifyCoverArt "CoverArt" }}</h3>
       <span class="popup-description popup-description-multiline"
-            data-updating="{{ or .NotifyCoverArtUpdating "Updating coverart cache..." }}"
-            data-updated="{{ or .NotifyCoverArtUpdated "CoverArt cache was updated" }}"
+            data-updating="{{ or .Message.NotifyCoverArtUpdating "Updating coverart cache..." }}"
+            data-updated="{{ or .Message.NotifyCoverArtUpdated "CoverArt cache was updated" }}"
         ></span>
     </div>
   </section>
@@ -214,43 +214,43 @@ html {
 <div id=modal-outer class="modal-outer hide">
 
   <div id=modal-help class="modal-window modal-help hide">
-    <button id=modal-help-close class=modal-window-close type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
+    <button id=modal-help-close class=modal-window-close type="button" value="" title="{{ or .Message.titleClose "Close" }}" aria-label="{{ or .Message.ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
     </button>
-    <h1 class="modal-window-header">{{ or .Help "Help" }}</h1>
-    <h2 class="modal-window-header-sub">{{ or .KeyboardShortcuts "Keyboard Shortcuts" }}</h2>
+    <h1 class="modal-window-header">{{ or .Message.Help "Help" }}</h1>
+    <h2 class="modal-window-header-sub">{{ or .Message.KeyboardShortcuts "Keyboard Shortcuts" }}</h2>
     <table class="modal-window-table">
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>space</kbd></kbd></th><td class=modal-window-table-value>{{ or .PlayOrPauseSong "play or pause song" }}</td>
+        <th class=modal-window-tablekey><kbd><kbd>space</kbd></kbd></th><td class=modal-window-table-value>{{ or .Message.PlayOrPauseSong "play or pause song" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>{{ or .GoToNextSong "go to next song" }}</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>{{ or .Message.GoToNextSong "go to next song" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2190;</kbd></kbd></th><td class=modal-window-table-value>{{ or .GoToPreviousSong "go to previous song" }}</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x2303;</kbd>+<kbd>&#x21E7;</kbd>+<kbd>&#x2190;</kbd></kbd></th><td class=modal-window-table-value>{{ or .Message.GoToPreviousSong "go to previous song" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x2190;</kbd></kbd><kbd><kbd>&#x2191;</kbd></kbd><kbd><kbd>&#x2192;</kbd></kbd><kbd><kbd>&#x2193;</kbd></kbd></th><td class=modal-window-table-value>{{ or .MoveListViewCursor "move list-view cursor" }}</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x2190;</kbd></kbd><kbd><kbd>&#x2191;</kbd></kbd><kbd><kbd>&#x2192;</kbd></kbd><kbd><kbd>&#x2193;</kbd></kbd></th><td class=modal-window-table-value>{{ or .Message.MoveListViewCursor "move list-view cursor" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x23ce;</kbd></kbd></th><td class=modal-window-table-value>{{ or .ActivateListViewCursorItem "activate list-view cursor item" }}</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x23ce;</kbd></kbd></th><td class=modal-window-table-value>{{ or .Message.ActivateListViewCursorItem "activate list-view cursor item" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2190;</kbd></kbd>or<kbd><kbd>&#x232b;</kbd></kbd></th><td class=modal-window-table-value>{{ or .ShowListParent "show list / parent" }}</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2190;</kbd></kbd>or<kbd><kbd>&#x232b;</kbd></kbd></th><td class=modal-window-table-value>{{ or .Message.ShowListParent "show list / parent" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>{{ or .ShowNowPlayingItem "show now playing item" }}</td>
+        <th class=modal-window-tablekey><kbd><kbd>&#x25c7;</kbd>+<kbd>&#x2192;</kbd></kbd></th><td class=modal-window-table-value>{{ or .Message.ShowNowPlayingItem "show now playing item" }}</td>
       </tr>
       <tr class=modal-window-tableitem>
-        <th class=modal-window-tablekey><kbd><kbd>?</kbd></kbd></th><td class=modal-window-table-value>{{ or .ShowThisHelp "show this help" }}</td>
+        <th class=modal-window-tablekey><kbd><kbd>?</kbd></kbd></th><td class=modal-window-table-value>{{ or .Message.ShowThisHelp "show this help" }}</td>
       </tr>
     </table>
   </div>
 
   <div id=modal-song class="modal-window modal-song hide">
-    <button id=modal-song-close class=modal-window-close type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
+    <button id=modal-song-close class=modal-window-close type="button" value="" title="{{ or .Message.titleClose "Close" }}" aria-label="{{ or .Message.ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
@@ -258,56 +258,56 @@ html {
     <div class="scrollable modal-song-box">
       <ol class="modal-song-box-main modal-song-box-items">
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoTitle "Title" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoTitle "Title" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-Title"></div>
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoArtist "Artist" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoArtist "Artist" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-Artist"></div>
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoAlbum "Album" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoAlbum "Album" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-Album"></div>
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoAlbumArtist "AlbumArtist" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoAlbumArtist "AlbumArtist" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-AlbumArtist"></div>
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoGenre "Genre" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoGenre "Genre" }}</div>
           <div class="modal-song-box-item-values wrappable" id="modal-song-box-Genre"></div>
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoComposer "Composer" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoComposer "Composer" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-Composer"></div>
       </ol>
       <ol class="modal-song-box-sub modal-song-box-items">
         <li class="modal-song-box-bigitem">
           <img class="modal-song-box-item-img" id="modal-song-box-cover" src="/assets/nocover.svg" alt="cover"/>
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoDate "Date" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoDate "Date" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-Date"></div>
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoLength "Length" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoLength "Length" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-Length"></div>
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoDisc "Disc" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoDisc "Disc" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-Disc"></div>
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoTrack "Track" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoTrack "Track" }}</div>
           <div class="modal-song-box-item-values" id="modal-song-box-Track"></div>
       </ol>
       <ol class="modal-song-box-other modal-song-box-items">
         <li class="modal-song-box-item">
-          <div class="modal-song-box-item-key">{{ or .SongInfoPerformer "Performer" }}</div>
+          <div class="modal-song-box-item-key">{{ or .Message.SongInfoPerformer "Performer" }}</div>
           <div class="modal-song-box-item-values wrappable" id="modal-song-box-Performer"></div>
       </ol>
     </div>
   </div>
 
   <div id="modal-system" class="modal-window hide modal-system">
-    <button id="modal-system-close" class="modal-window-close" type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
+    <button id="modal-system-close" class="modal-window-close" type="button" value="" title="{{ or .Message.titleClose "Close" }}" aria-label="{{ or .Message.ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
     </button>
     <nav class="system-box-nav">
-      <button type="button" id="system-box-nav-back" class="header-item system-box-nav-back root" title="{{ or .titletBack "Back" }}" aria-label="{{ or .ariaLabelBack "Back" }}">
+      <button type="button" id="system-box-nav-back" class="header-item system-box-nav-back root" title="{{ or .Message.titletBack "Back" }}" aria-label="{{ or .Message.ariaLabelBack "Back" }}">
         <span class="header-item-iconlabel">
           <svg class="header-item-icon reversible-icon" width="24" height="32" viewBox="0 0 150 200">
             <path class="stroke" d="M 100,40 40,100 100,160"/>
@@ -317,40 +317,40 @@ html {
     </nav>
     <div class="system-box">
       <nav id="system-nav" class="system-nav on">
-        <button class="system-nav-item fallback" id="system-nav-appearance" data-target="system-appearance" type="button">{{ or .Appearance "Appearance" }}</button>
-        <button class="system-nav-item" id="system-nav-playlist" data-target="system-playlist" type="button">{{ or .Playlist "Playlist" }}</button>
-        <button class="system-nav-item" id="system-nav-database" data-target="system-database" type="button">{{ or .Database "Database" }}</button>
-        <button class="system-nav-item" id="system-nav-outputs" data-target="system-outputs" type="button">{{ or .Outputs "Outputs" }}</button>
-        <button class="system-nav-item" id="system-nav-info" data-target="system-info" type="button">{{ or .Information "Information" }}</button>
+        <button class="system-nav-item fallback" id="system-nav-appearance" data-target="system-appearance" type="button">{{ or .Message.Appearance "Appearance" }}</button>
+        <button class="system-nav-item" id="system-nav-playlist" data-target="system-playlist" type="button">{{ or .Message.Playlist "Playlist" }}</button>
+        <button class="system-nav-item" id="system-nav-database" data-target="system-database" type="button">{{ or .Message.Database "Database" }}</button>
+        <button class="system-nav-item" id="system-nav-outputs" data-target="system-outputs" type="button">{{ or .Message.Outputs "Outputs" }}</button>
+        <button class="system-nav-item" id="system-nav-info" data-target="system-info" type="button">{{ or .Message.Information "Information" }}</button>
       </nav>
 
       <article id="system-appearance" class="scrollable system-article fallback">
         <div class="system-article-sub">
-          <h2 class="system-article-sub-header">{{ or .General "General" }}</h2>
+          <h2 class="system-article-sub-header">{{ or .Message.General "General" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
               <ul class="system-setting-group">
                 <li class="system-setting">
-                  <div class="system-setting-desc" id="appearance-theme-label">{{ or .Theme "Theme" }}</div>
+                  <div class="system-setting-desc" id="appearance-theme-label">{{ or .Message.Theme "Theme" }}</div>
                   <div class="radio-box">
                     <input type="radio" name="appearance-theme" id="appearance-theme_light" value="light"/>
-                    <label class="radio-check" for="appearance-theme_light">{{ or .ThemeLight "Light" }}</label>
+                    <label class="radio-check" for="appearance-theme_light">{{ or .Message.ThemeLight "Light" }}</label>
                     <input type="radio" name="appearance-theme" id="appearance-theme_dark" value="dark"/>
-                    <label class="radio-check" for="appearance-theme_dark">{{ or .ThemeDark "Dark" }}</label>
+                    <label class="radio-check" for="appearance-theme_dark">{{ or .Message.ThemeDark "Dark" }}</label>
                     <input type="radio" name="appearance-theme" id="appearance-theme_prefer-system" value="prefer-system"/>
-                    <label class="radio-check" for="appearance-theme_prefer-system">{{ or .ThemeSystem "Prefer System" }}</label>
+                    <label class="radio-check" for="appearance-theme_prefer-system">{{ or .Message.ThemeSystem "Prefer System" }}</label>
                     <input type="radio" name="appearance-theme" id="appearance-theme_prefer-coverart" value="prefer-coverart"/>
-                    <label class="radio-check" for="appearance-theme_prefer-coverart">{{ or .ThemeCoverArt "Prefer CoverArt" }}</label>
+                    <label class="radio-check" for="appearance-theme_prefer-coverart">{{ or .Message.ThemeCoverArt "Prefer CoverArt" }}</label>
                   </div>
                 <li class="system-setting" id="config-appearance-color-threshold">
-                  <div class="system-setting-desc-sub system-setting-desc" id="appearance-color-threshold-label">{{ or .CoverArtColorThreshold "Threshold" }}</div>
+                  <div class="system-setting-desc-sub system-setting-desc" id="appearance-color-threshold-label">{{ or .Message.CoverArtColorThreshold "Threshold" }}</div>
                   <input id=appearance-color-threshold type="range" min=0 max=256 step=1 class="config-range" aria-labelledby="appearance-color-threshold-label">
               </ul>
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-background-image-label">{{ or .BackgroundImage "Background image" }}</div>
+              <div class="system-setting-desc" id="appearance-background-image-label">{{ or .Message.BackgroundImage "Background image" }}</div>
               <input type="checkbox" id="appearance-background-image" class="slideswitch" aria-labelledby="appearance-background-image-label">
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-background-image-blur-label">{{ or .BackgroundImageBlur "Background blur" }}</div>
+              <div class="system-setting-desc" id="appearance-background-image-blur-label">{{ or .Message.BackgroundImageBlur "Background blur" }}</div>
               <select class="tool-select value" id="appearance-background-image-blur" aria-labelledby="appearance-background-image-blur-label">
                 <option value="0px">0px</option>
                 <option value="1px">1px</option>
@@ -365,26 +365,26 @@ html {
                 <option value="512px">512px</option>
               </select>
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-circled-image-label">{{ or .CircledImage "Circled image" }}</div>
+              <div class="system-setting-desc" id="appearance-circled-image-label">{{ or .Message.CircledImage "Circled image" }}</div>
               <input type="checkbox" id="appearance-circled-image" class="slideswitch" aria-labelledby="appearance-circled-image-label">
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-crossfading-image-label">{{ or .CrossfadingImage "Crossfading image" }}</div>
+              <div class="system-setting-desc" id="appearance-crossfading-image-label">{{ or .Message.CrossfadingImage "Crossfading image" }}</div>
               <input type="checkbox" id="appearance-crossfading-image" class="slideswitch" aria-labelledby="appearance-crossfading-image-label">
           </ul>
         </div>
         <div class="system-article-sub">
-          <h2 class="system-article-sub-header">{{ or .Playlist "Playlist" }}</h2>
+          <h2 class="system-article-sub-header">{{ or .Message.Playlist "Playlist" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-playlist-gridview-album-label">{{ or .GridviewAlbum "Gridview album" }}</div>
+              <div class="system-setting-desc" id="appearance-playlist-gridview-album-label">{{ or .Message.GridviewAlbum "Gridview album" }}</div>
               <input type="checkbox" id="appearance-playlist-gridview-album" class="slideswitch" aria-labelledby="appearance-playlist-gridview-album-label">
           </ul>
         </div>
         <div id="appearance-volume-box" class="system-article-sub">
-          <h2 class="system-article-sub-header">{{ or .Volume "Volume" }}</h2>
+          <h2 class="system-article-sub-header">{{ or .Message.Volume "Volume" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-volume-label">{{ or .ShowVolumeNob "Show volume nob" }}</div>
+              <div class="system-setting-desc" id="appearance-volume-label">{{ or .Message.ShowVolumeNob "Show volume nob" }}</div>
               <input type="checkbox" id="appearance-volume" class="slideswitch" aria-labelledby="appearance-volume-label">
           </ul>
         </div>
@@ -392,31 +392,31 @@ html {
 
       <article id="system-playlist" class="scrollable system-article">
         <div class="system-article-sub">
-          <h2 class="system-article-sub-header">{{ or .Playback "Playback" }}</h2>
+          <h2 class="system-article-sub-header">{{ or .Message.Playback "Playback" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="appearance-playlist-follows-playback-label">{{ or .ListviewFollowsPlayback "Listview follows playback" }}</div>
+              <div class="system-setting-desc" id="appearance-playlist-follows-playback-label">{{ or .Message.ListviewFollowsPlayback "Listview follows playback" }}</div>
               <input type="checkbox" id="appearance-playlist-follows-playback" class="slideswitch" aria-labelledby="appearance-playlist-follows-playback-label">
             <li class="list-item system-setting">
               <ul class="system-setting-group" id="playlist-playback-range">
                 <li class="system-setting">
                   <div class="system-setting-desc-box">
-                    <div class="system-setting-desc system-setting-desc-boxed" id="playlist-playback-tracks">{{ or .PlaybackRange "Playback Range" }}</div>
-                    <div class="system-setting-desc-help">{{ or .PlaybackRangeHelp "This settings will applied from the next track selection." }}</div>
+                    <div class="system-setting-desc system-setting-desc-boxed" id="playlist-playback-tracks">{{ or .Message.PlaybackRange "Playback Range" }}</div>
+                    <div class="system-setting-desc-help">{{ or .Message.PlaybackRangeHelp "This settings will applied from the next track selection." }}</div>
                   </div>
                   <div class="radio-box">
                     <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_all" value="all"/>
-                    <label class="radio-check" for="playlist-playback-tracks_all">{{ or .PlayAllTracks "All tracks" }}</label>
+                    <label class="radio-check" for="playlist-playback-tracks_all">{{ or .Message.PlayAllTracks "All tracks" }}</label>
                     <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_list" value="list"/>
-                    <label class="radio-check" for="playlist-playback-tracks_list">{{ or .PlaySelectedList "Selected list" }}</label>
+                    <label class="radio-check" for="playlist-playback-tracks_list">{{ or .Message.PlaySelectedList "Selected list" }}</label>
                     <input type="radio" name="playlist-playback-tracks" id="playlist-playback-tracks_custom" value="custom"/>
-                    <label class="radio-check" for="playlist-playback-tracks_custom">{{ or .PlayCustomList "Custom" }}</label>
+                    <label class="radio-check" for="playlist-playback-tracks_custom">{{ or .Message.PlayCustomList "Custom" }}</label>
                   </div>
                 </li>
                 <template id="playlist-playback-tracks-custom-template">
                   <li class="system-setting playlist-playback-tracks-custom">
-                      <div class="system-setting-desc system-setting-desc-sub" data-prefix="{{ or .playbackTreeLabelPrefix "" }}" data-suffix="{{ or .playbackTreeLabelSuffix " Tree" }}"></div>
-                      <select class="tool-select value big" data-all-tracks="{{ or .allTracks "All tracks" }}"></select>
+                      <div class="system-setting-desc system-setting-desc-sub" data-prefix="{{ or .Message.playbackTreeLabelPrefix "" }}" data-suffix="{{ or .Message.playbackTreeLabelSuffix " Tree" }}"></div>
+                      <select class="tool-select value big" data-all-tracks="{{ or .Message.allTracks "All tracks" }}"></select>
                   </li>
                 </template>
               </ul>
@@ -428,66 +428,66 @@ html {
 
       <article id="system-database" class="scrollable system-article">
         <div class="system-article-sub">
-          <h2 class="system-article-sub-header">{{ or .Library "Library" }}</h2>
+          <h2 class="system-article-sub-header">{{ or .Message.Library "Library" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <div class="system-setting-desc">{{ or .Songs "Songs" }}</div><button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .RescanSongs "Rescan" }}</button>
+              <div class="system-setting-desc">{{ or .Message.Songs "Songs" }}</div><button id=library-rescan class="system-setting-value button-simple" type="button">{{ or .Message.RescanSongs "Rescan" }}</button>
             <li class="list-item system-setting">
-              <div class="system-setting-desc">{{ or .CoverArt "Cover art" }}</div><button id=library-rescan-images class="system-setting-value button-simple" type="button">{{ or .RescanCoverArt "Rescan" }}</button>
+              <div class="system-setting-desc">{{ or .Message.CoverArt "Cover art" }}</div><button id=library-rescan-images class="system-setting-value button-simple" type="button">{{ or .Message.RescanCoverArt "Rescan" }}</button>
             <li class="list-item system-setting">
-              <div class="system-setting-desc">{{ or .LastLibraryUpdate "Last update:" }}</div><div class="system-setting-value" id="stat-db-update">0</div>
+              <div class="system-setting-desc">{{ or .Message.LastLibraryUpdate "Last update:" }}</div><div class="system-setting-value" id="stat-db-update">0</div>
             <li class="list-item system-setting">
-              <div class="system-setting-desc">{{ or .Tracks "Tracks:" }}</div><div class="system-setting-value" id=stat-tracks></div>
+              <div class="system-setting-desc">{{ or .Message.Tracks "Tracks:" }}</div><div class="system-setting-value" id=stat-tracks></div>
             <li class="list-item system-setting">
-              <div class="system-setting-desc">{{ or .Artists "Artists:" }}</div><div class="system-setting-value" id=stat-artists></div>
+              <div class="system-setting-desc">{{ or .Message.Artists "Artists:" }}</div><div class="system-setting-value" id=stat-artists></div>
             <li class="list-item system-setting">
-              <div class="system-setting-desc">{{ or .Albums "Albums:" }}</div><div class="system-setting-value" id=stat-albums></div>
+              <div class="system-setting-desc">{{ or .Message.Albums "Albums:" }}</div><div class="system-setting-value" id=stat-albums></div>
             <li class="list-item system-setting">
-              <div class="system-setting-desc">{{ or .TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
+              <div class="system-setting-desc">{{ or .Message.TotalLength "Total length:" }}</div><div class="system-setting-value" id=stat-db-playtime></div>
           </ul>
         </div>
 
         <div id="storage" class="system-article-sub">
-          <h2 id="storage-header" class="system-article-sub-header">{{ or .Storage "Storage" }}</h2>
+          <h2 id="storage-header" class="system-article-sub-header">{{ or .Message.Storage "Storage" }}</h2>
           <template id="storage-template">
             <li class="system-setting list-item">
               <div class="system-setting-desc-box">
                 <div class="system-setting-desc system-setting-desc-boxed path"></div>
                 <div class="system-setting-desc-help uri"></div>
               </div>
-              <button class="system-setting-value button-simple unmount" type="button">{{ or .UnmountStorage "Unmount" }}</button>
+              <button class="system-setting-value button-simple unmount" type="button">{{ or .Message.UnmountStorage "Unmount" }}</button>
             </li>
           </template>
           <ul id="storage-list" class="system-settings">
           </ul>
           <div class="system-settings">
-            <button id="storage-mount" class="system-setting-value button-simple" type="button">{{ or .MountStorage "Mount storage" }}</button>
+            <button id="storage-mount" class="system-setting-value button-simple" type="button">{{ or .Message.MountStorage "Mount storage" }}</button>
           </div>
         </div>
       </article>
 
       <article id="system-outputs" class="scrollable system-article">
         <div class="system-article-sub">
-          <h2 class="system-article-sub-header">{{ or .Options "Options" }}</h2>
+          <h2 class="system-article-sub-header">{{ or .Message.Options "Options" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="outputs-replay-gain-label">{{ or .ReplayGain "Replay gain" }}</div>
+              <div class="system-setting-desc" id="outputs-replay-gain-label">{{ or .Message.ReplayGain "Replay gain" }}</div>
               <select class="tool-select value" id="outputs-replay-gain" aria-labelledby="outputs-replay-gain-label">
-                <option value="off">{{ or .ReplayGainOff "off" }}</option>
-                <option value="track">{{ or .ReplayGainTrack "track" }}</option>
-                <option value="album">{{ or .ReplayGainAlbum "album" }}</option>
+                <option value="off">{{ or .Message.ReplayGainOff "off" }}</option>
+                <option value="track">{{ or .Message.ReplayGainTrack "track" }}</option>
+                <option value="album">{{ or .Message.ReplayGainAlbum "album" }}</option>
               </select>
             <li class="list-item system-setting">
-              <div class="system-setting-desc" id="outputs-crossfade-label">{{ or .Crossfade "Crossfade" }}</div>
+              <div class="system-setting-desc" id="outputs-crossfade-label">{{ or .Message.Crossfade "Crossfade" }}</div>
               <input type="number" min="0" step="1" value="0" class="tool-input-number value" id="outputs-crossfade" aria-labelledby="outputs-crossfade">
             <li class="system-setting list-item" id="outputs-volume-box">
               <ul class="system-setting-group">
                 <li class="system-setting">
-                  <div class="system-setting-desc" id="outputs-volume-label">{{ or .Volume "Volume" }}</div>
+                  <div class="system-setting-desc" id="outputs-volume-label">{{ or .Message.Volume "Volume" }}</div>
                   <input id="outputs-volume" type="range" min=0 max=1 step=1 class="config-range" aria-labelledby="outputs-volume-label">
                   <label class="config-range-string" for="outputs-volume" id="outputs-volume-string">100</label>
                 <li class="system-setting">
-                  <div class="system-setting-desc-sub" id="outputs-volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
+                  <div class="system-setting-desc-sub" id="outputs-volume-max-label">{{ or .Message.MaxVolume "Max volume" }}</div>
                   <select class="tool-select value" id="outputs-volume-max" aria-labelledby="outputs-volume-max">
                     <option value="100">100%</option>
                     <option value="90">90%</option>
@@ -505,7 +505,7 @@ html {
         </div>
 
         <div class="system-article-sub">
-          <h2 class="system-article-sub-header">{{ or .Devices "Devices" }}</h2>
+          <h2 class="system-article-sub-header">{{ or .Message.Devices "Devices" }}</h2>
           <ul class="system-settings" id="devices"></ul>
           <template id="device-template">
             <li class="system-setting list-item">
@@ -519,17 +519,17 @@ html {
                 </li>
                 <li class="system-setting device-dop">
                   <div class="system-setting-desc-box">
-                    <div class="system-setting-desc-sub system-setting-desc-boxed">{{ or .DeviceDoP "DSD over PCM" }}</div>
-                    <div class="system-setting-desc-help">{{ or .DeviceDoPHelp "This wraps DSD samples in fake PCM frames, then DoP-compatible DAC reassembles the original DSD data stream. Do not enable if this DAC does not support DoP." }}</div>
+                    <div class="system-setting-desc-sub system-setting-desc-boxed">{{ or .Message.DeviceDoP "DSD over PCM" }}</div>
+                    <div class="system-setting-desc-help">{{ or .Message.DeviceDoPHelp "This wraps DSD samples in fake PCM frames, then DoP-compatible DAC reassembles the original DSD data stream. Do not enable if this DAC does not support DoP." }}</div>
                   </div>
                   <input class="slideswitch device-dop-switch" type="checkbox">
                 </li>
                 <li class="system-setting device-allowed-formats">
                   <div class="system-setting-desc-box">
-                    <div class="system-setting-desc-sub system-setting-desc-boxed">{{ or .DeviceAllowedFormats "Allowed formats" }}</div>
-                    <div class="system-setting-desc-help">{{ or .DeviceAllowedFormatsHelp "Specifies a list of allowed audio formats." }}</div>
+                    <div class="system-setting-desc-sub system-setting-desc-boxed">{{ or .Message.DeviceAllowedFormats "Allowed formats" }}</div>
+                    <div class="system-setting-desc-help">{{ or .Message.DeviceAllowedFormatsHelp "Specifies a list of allowed audio formats." }}</div>
                   </div>
-                  <button class="system-setting-value button-simple device-allowed-formats-button" type="button">{{ or .Configure "Configure" }}</button>
+                  <button class="system-setting-value button-simple device-allowed-formats-button" type="button">{{ or .Message.Configure "Configure" }}</button>
                 </li>
               </ul>
             </li>
@@ -537,30 +537,30 @@ html {
         </div>
 
         <div class="system-article-sub" id="httpoutput">
-          <h2 class="system-article-sub-header">{{ or .ClientOutput "Client output" }}</h2>
+          <h2 class="system-article-sub-header">{{ or .Message.ClientOutput "Client output" }}</h2>
           <ul class="system-settings">
             <li class="list-item system-setting">
               <div class="system-setting-desc-box">
-                <div class="system-setting-desc system-setting-desc-boxed" id="httpoutput-stream-label">{{ or .ClientOutputSource "Source" }}</div>
-                <div class="system-setting-desc-help">{{ or .ClientOutputSourceHelp "Play HTTP stream from selected device" }}</div>
+                <div class="system-setting-desc system-setting-desc-boxed" id="httpoutput-stream-label">{{ or .Message.ClientOutputSource "Source" }}</div>
+                <div class="system-setting-desc-help">{{ or .Message.ClientOutputSourceHelp "Play HTTP stream from selected device" }}</div>
                 <div class="system-setting-desc-help warning-text" id="httpoutput-error"
-                    data-network-error="{{ or .NotifyClientOutputNetworkError "Network error" }}"
-                    data-decode-error="{{ or .NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
-                    data-unsupported-source="{{ or .NotifyClientOutputUnsupportedSource "Unsupported format or network error" }}"
-                    data-not-allowed="{{ or .NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
+                    data-network-error="{{ or .Message.NotifyClientOutputNetworkError "Network error" }}"
+                    data-decode-error="{{ or .Message.NotifyClientOutputDeocdeError "Failed to decode audio stream" }}"
+                    data-unsupported-source="{{ or .Message.NotifyClientOutputUnsupportedSource "Unsupported format or network error" }}"
+                    data-not-allowed="{{ or .Message.NotifyClientOutputNotAllowed "Autoplay is not allowed" }}"
                     ></div>
               </div>
-              <select class="tool-select big value" id="httpoutput-stream" data-disabled-label="{{ or .HTTPStreamDisabled "disabled" }}" aria-labelledby="httpoutput-stream">
-                <option value="">{{ or .HTTPStreamDisabled "disabled" }}</option>
+              <select class="tool-select big value" id="httpoutput-stream" data-disabled-label="{{ or .Message.HTTPStreamDisabled "disabled" }}" aria-labelledby="httpoutput-stream">
+                <option value="">{{ or .Message.HTTPStreamDisabled "disabled" }}</option>
               </select>
             <li class="system-setting list-item" id="httpoutput-volume-group">
               <ul class="system-setting-group">
                 <li class="system-setting">
-                  <div class="system-setting-desc" id="httpoutput-volume-label">{{ or .Volume "Volume" }}</div>
+                  <div class="system-setting-desc" id="httpoutput-volume-label">{{ or .Message.Volume "Volume" }}</div>
                   <input id="httpoutput-volume" type="range" min=0 max=1 step=0.001 class="config-range" aria-labelledby="httpoutput-volume-label">
                   <label class="config-range-string" for="httpoutput-volume" id="httpoutput-volume-string">100</label>
                 <li class="system-setting">
-                  <div class="system-setting-desc-sub" id="httpoutput-volume-max-label">{{ or .MaxVolume "Max volume" }}</div>
+                  <div class="system-setting-desc-sub" id="httpoutput-volume-max-label">{{ or .Message.MaxVolume "Max volume" }}</div>
                   <select class="tool-select value" id="httpoutput-volume-max" aria-labelledby="httpoutput-volume-max">
                     <option value="1">100%</option>
                     <option value="0.5">50%</option>
@@ -577,7 +577,7 @@ html {
       </article>
 
       <article id="system-info" class="scrollable system-article">
-        <h2 class="system-article-sub-header">{{ or .ThisApplication "This Application" }}</h2>
+        <h2 class="system-article-sub-header">{{ or .Message.ThisApplication "This Application" }}</h2>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -586,10 +586,10 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/meiraka/vv">https://github.com/meiraka/vv</a>
-              <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
+              <a class="license-link" href="https://github.com/meiraka/vv/blob/master/LICENSE">{{ or .Message.MITLicense "MIT license" }}</a>
             </div>
         </ul>
-        <h2 class="system-article-sub-header">{{ or .Compiler "Compiler" }}</h2>
+        <h2 class="system-article-sub-header">{{ or .Message.Compiler "Compiler" }}</h2>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -598,17 +598,17 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://golang.org/">https://golang.org/</a>
-              <a class="license-link" href="https://golang.org/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+              <a class="license-link" href="https://golang.org/LICENSE">{{ or .Message.BSD3ClauseLicense "BSD 3-clause license" }}</a>
             </div>
         </ul>
-        <h2 class="system-article-sub-header">{{ or .Renderer "Renderer" }}</h2>
+        <h2 class="system-article-sub-header">{{ or .Message.Renderer "Renderer" }}</h2>
         <ul class="information-list">
           <li>
             <div class="information-box" id=user-agent></div>
           <li>
-            <button id=system-reload class="system-setting-value button-simple" type="button">{{ or .ReloadApplication "Reload Application" }}</button>
+            <button id=system-reload class="system-setting-value button-simple" type="button">{{ or .Message.ReloadApplication "Reload Application" }}</button>
         </ul>
-        <h2 class="system-article-sub-header">{{ or .Credits "Credits" }}</h2>
+        <h2 class="system-article-sub-header">{{ or .Message.Credits "Credits" }}</h2>
         <ul class="information-list">
           <li class="license-box information-box">
             <div>
@@ -617,7 +617,7 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://www.musicpd.org">https://www.musicpd.org</a>
-              <a class="license-link" href="https://github.com/MusicPlayerDaemon/MPD/blob/master/COPYING">{{ or .GPLv2 "GNU General Public License v2.0" }}</a>
+              <a class="license-link" href="https://github.com/MusicPlayerDaemon/MPD/blob/master/COPYING">{{ or .Message.GPLv2 "GNU General Public License v2.0" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -625,7 +625,7 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/gorilla/websocket">https://github.com/gorilla/websocket</a>
-              <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">{{ or .BSD2ClauseLicense "BSD 2-clause license" }}</a>
+              <a class="license-link" href="https://github.com/gorilla/websocket/blob/master/LICENSE">{{ or .Message.BSD2ClauseLicense "BSD 2-clause license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -633,7 +633,7 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/spf13/pflag">https://github.com/spf13/pflag</a>
-              <a class="license-link" href="https://github.com/spf13/pflag/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+              <a class="license-link" href="https://github.com/spf13/pflag/blob/master/LICENSE">{{ or .Message.BSD3ClauseLicense "BSD 3-clause license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -641,7 +641,7 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/etcd-io/bbolt">https://github.com/etcd-io/bbolt</a>
-              <a class="license-link" href="https://github.com/etcd-io/bbolt/blob/master/LICENSE">{{ or .MITLicense "MIT license" }}</a>
+              <a class="license-link" href="https://github.com/etcd-io/bbolt/blob/master/LICENSE">{{ or .Message.MITLicense "MIT license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -649,7 +649,7 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/golang/image">https://github.com/golang/image</a>
-              <a class="license-link" href="https://github.com/golang/image/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+              <a class="license-link" href="https://github.com/golang/image/blob/master/LICENSE">{{ or .Message.BSD3ClauseLicense "BSD 3-clause license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -657,7 +657,7 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://go.googlesource.com/text">https://go.googlesource.com/text</a>
-              <a class="license-link" href="https://go.googlesource.com/text/+/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+              <a class="license-link" href="https://go.googlesource.com/text/+/master/LICENSE">{{ or .Message.BSD3ClauseLicense "BSD 3-clause license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -665,8 +665,8 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/go-yaml/yaml">https://github.com/go-yaml/yaml</a>
-              <a class="license-link" href="https://github.com/go-yaml/yaml/blob/v2/LICENSE">{{ or .ApacheLicense2_0 "Apache License 2.0" }}</a>
-              <a class="license-link" href="https://github.com/go-yaml/yaml/blob/v2/LICENSE.libyaml">{{ or .MITLicense "MIT license" }}</a>
+              <a class="license-link" href="https://github.com/go-yaml/yaml/blob/v2/LICENSE">{{ or .Message.ApacheLicense2_0 "Apache License 2.0" }}</a>
+              <a class="license-link" href="https://github.com/go-yaml/yaml/blob/v2/LICENSE.libyaml">{{ or .Message.MITLicense "MIT license" }}</a>
             </div>
 
           <li class="license-box information-box">
@@ -675,7 +675,7 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/golang/sys">https://github.com/golang/sys</a>
-              <a class="license-link" href="https://github.com/golang/sys/blob/master/LICENSE">{{ or .BSD3ClauseLicense "BSD 3-clause license" }}</a>
+              <a class="license-link" href="https://github.com/golang/sys/blob/master/LICENSE">{{ or .Message.BSD3ClauseLicense "BSD 3-clause license" }}</a>
             </div>
           <li class="license-box information-box">
             <div>
@@ -683,7 +683,7 @@ html {
             </div>
             <div class="link">
               <a class="product-link" href="https://github.com/go-check/check">https://github.com/go-check/check</a>
-              <a class="license-link" href="https://github.com/go-check/check/blob/v1/LICENSE">{{ or .BSD2ClauseLicense "BSD 2-clause license" }}</a>
+              <a class="license-link" href="https://github.com/go-check/check/blob/v1/LICENSE">{{ or .Message.BSD2ClauseLicense "BSD 2-clause license" }}</a>
             </div>
         </ul>
       </article>
@@ -694,12 +694,12 @@ html {
 <div id=submodal-background class="submodal-background hide"></div>
 <div id="submodal-outer" class="submodal-outer hide">
   <div id="submodal-storage-mount" class="submodal-window hide">
-    <button class="submodal-window-close" type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
+    <button class="submodal-window-close" type="button" value="" title="{{ or .Message.titleClose "Close" }}" aria-label="{{ or .Message.ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
     </button>
-    <h1 class="modal-window-header">{{ or .Storage "Storage" }}</h1>
+    <h1 class="modal-window-header">{{ or .Message.Storage "Storage" }}</h1>
     <template id="neighbors-template">
       <li class="select-item">
         <div class="system-setting-desc-box">
@@ -712,35 +712,35 @@ html {
     </ul>
     <ul class="modal-input-list">
       <li class="modal-input-box">
-        <label class="modal-input-label" for="storage-path">{{ or .StoragePath "Name" }}</label>
+        <label class="modal-input-label" for="storage-path">{{ or .Message.StoragePath "Name" }}</label>
         <input class="modal-input-text" type="text" id="storage-path">
       <li class="modal-input-box">
-        <label class="modal-input-label" for="storage-uri">{{ or .StorageURI "URI" }}</label>
+        <label class="modal-input-label" for="storage-uri">{{ or .Message.StorageURI "URI" }}</label>
         <input class="modal-input-text" type="text" id="storage-uri" placeholder="protocol://host/path">
     </ul>
     <span id="storage-error" class="warning-text"></span>
     <footer class="modal-window-footer">
-      <button class="system-setting-value button-simple" id="storage-ok" type="button">{{ or .MountStorage "Mount Storage" }}</button>
+      <button class="system-setting-value button-simple" id="storage-ok" type="button">{{ or .Message.MountStorage "Mount Storage" }}</button>
     </footer>
   </div>
   <div id="submodal-allowed-formats" class="submodal-window submodal-allowed-formats hide">
-    <button class="submodal-window-close" type="button" value="" title="{{ or .titleClose "Close" }}" aria-label="{{ or .ariaLabelCloseThisWindow "Close this window" }}">
+    <button class="submodal-window-close" type="button" value="" title="{{ or .Message.titleClose "Close" }}" aria-label="{{ or .Message.ariaLabelCloseThisWindow "Close this window" }}">
       <svg class="modal-window-close-icon" width="30" height="30" viewBox="0 0 200 200">
         <path class="close-button stroke" d="M 40,40 160,160 M 160,40 40,160"/>
       </svg>
     </button>
-    <h1 class="modal-window-header">{{ or .AllowedFormats "Allowed formats" }}</h1>
+    <h1 class="modal-window-header">{{ or .Message.AllowedFormats "Allowed formats" }}</h1>
     <div class="radio-box">
       <input type="radio" id="allowed-formats-auto" name="allowed-formats" value="auto"/>
-      <label class="radio-check" for="allowed-formats-auto">{{ or .AllowedFormatsAuto "Auto" }}</label>
+      <label class="radio-check" for="allowed-formats-auto">{{ or .Message.AllowedFormatsAuto "Auto" }}</label>
       <input type="radio" id="allowed-formats-custom" name="allowed-formats" value="custom"/>
-      <label class="radio-check" for="allowed-formats-custom">{{ or .AllowedFormatsCustom "Custom" }}</label>
+      <label class="radio-check" for="allowed-formats-custom">{{ or .Message.AllowedFormatsCustom "Custom" }}</label>
     </div>
     <div class="scrollable submodal-scrollable scrollable-centering">
-      <h2 class="modal-window-header-sub">{{ or .DSD "DSD" }}</h2>
+      <h2 class="modal-window-header-sub">{{ or .Message.DSD "DSD" }}</h2>
       <table class="allowed-formats-dsd">
         <tr>
-          <td></td><th>{{ or .Native "Native" }}</th><th>{{ or .DoP "DoP" }}</th>
+          <td></td><th>{{ or .Message.Native "Native" }}</th><th>{{ or .Message.DoP "DoP" }}</th>
         </tr>
         <tr>
           <th>DSD64</th><td><input type="checkbox" name="dsd64:*" class="slideswitch"></td><td><input type="checkbox" name="dsd64:*=dop" class="slideswitch"></td>
@@ -752,7 +752,7 @@ html {
           <th>DSD256</th><td><input type="checkbox" name="dsd256:*" class="slideswitch"></td><td><input type="checkbox" name="dsd256:*=dop" class="slideswitch"></td>
         </tr>
       </table>
-      <h2 class="modal-window-header-sub">{{ or .PCM "PCM" }}</h2>
+      <h2 class="modal-window-header-sub">{{ or .Message.PCM "PCM" }}</h2>
       <table class="allowed-formats-pcm">
         <tr>
           <td></td><th>16bit</th><th>24bit</th><th>32bit</th>
@@ -782,33 +782,33 @@ html {
 
 <footer>
   <nav id="control-playback" class="control-playback">
-    <button class="control-button control-playback-sub prev" id="control-prev" type="button" value="prev" title="{{ or .titlePrevious "Previous" }}" aria-label="{{ or .ariaLabelGoToPreviousSong "Go to previous song" }}">
+    <button class="control-button control-playback-sub prev" id="control-prev" type="button" value="prev" title="{{ or .Message.titlePrevious "Previous" }}" aria-label="{{ or .Message.ariaLabelGoToPreviousSong "Go to previous song" }}">
       <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class="fill" d="M 155,60 85,100 155,140 z M 105,60 35,100 105,140 z"/>
       </svg>
     </button>
-    <button class="control-button control-playback-toggleplay play" id="control-toggleplay" type="button" value="play/pause" title="{{ or .titlePlayOrPause "Play / Pause" }}" data-aria-label-play="{{ or .ariaLabelPlaySong "Play song" }}" data-aria-label-pause="{{ or .ariaLabelPauseSong "Pause song" }}">
+    <button class="control-button control-playback-toggleplay play" id="control-toggleplay" type="button" value="play/pause" title="{{ or .Message.titlePlayOrPause "Play / Pause" }}" data-aria-label-play="{{ or .Message.ariaLabelPlaySong "Play song" }}" data-aria-label-pause="{{ or .Message.ariaLabelPauseSong "Pause song" }}">
       <svg class="control-playback-toggleplay-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class="fill control-playback-play" d="M 70,60 140,100 70,140 z"/>
         <path class="fill control-playback-pause" d="M 75,60 85,60 85,140 75,140 z M 125,60 115,60 115,140 125,140 z"/>
         <path class="stroke" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
       </svg>
     </button>
-    <button class="control-button control-playback-sub next" id="control-next" type="button" value="next" title="{{ or .titleNext "Next" }}" aria-label="{{ or .ariaLabelGoToNextSong "Go to next song" }}">
+    <button class="control-button control-playback-sub next" id="control-next" type="button" value="next" title="{{ or .Message.titleNext "Next" }}" aria-label="{{ or .Message.ariaLabelGoToNextSong "Go to next song" }}">
       <svg class="control-playback-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
         <path class="fill" d="M 45,60 115,100 45,140 z M 95,60 165,100 95,140 z"/>
       </svg>
     </button>
   </nav>
   <input id="control-volume" class="control-volume" type="range" min=0 max=100 step=1 disabled>
-  <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .titleRepeat "Repeat" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRepeat "Turn on repeat" }}" data-aria-label-single-off="{{ or .ariaLabelTurnOnRepeat1 "Turn on repeat1" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRepeat "Turn off repeat" }}">
+  <button class="control-button control-sub control-repeat" id=control-repeat title="{{ or .Message.titleRepeat "Repeat" }}" data-aria-label-off="{{ or .Message.ariaLabelTurnOnRepeat "Turn on repeat" }}" data-aria-label-single-off="{{ or .Message.ariaLabelTurnOnRepeat1 "Turn on repeat1" }}" data-aria-label-on="{{ or .Message.ariaLabelTurnOffRepeat "Turn off repeat" }}">
     <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
       <path class=fill d="M 87.5,30 112.5,45 87.5,60 z M 112.5,145 87.5,160 112.5,175 z"/>
       <rect class="fill control-single" x="97.5" y="75" width="5" height="50"/>
       <rect class=stroke x="40" y="45" width="120" height="110" rx="30" ry="30"/>
     </svg>
   </button>
-  <button class="control-button control-sub" id=control-random title="{{ or .titleRandom "Random" }}" data-aria-label-off="{{ or .ariaLabelTurnOnRandom "Turn on random" }}" data-aria-label-on="{{ or .ariaLabelTurnOffRandom "Turn off random" }}" >
+  <button class="control-button control-sub" id=control-random title="{{ or .Message.titleRandom "Random" }}" data-aria-label-off="{{ or .Message.ariaLabelTurnOnRandom "Turn on random" }}" data-aria-label-on="{{ or .Message.ariaLabelTurnOffRandom "Turn off random" }}" >
     <svg class="control-sub-icon reversible-icon" width="200" height="200" viewBox="0 0 200 200">
       <path class=fill d="M 150,30 170,45 150,60 z M 150,140 170,155 150,170 z"/>
       <path class=stroke d="M 30,45 A 60,55 0 1,1 30,155 M 150,155 A 60,55 0 1,1 150,45 "/>

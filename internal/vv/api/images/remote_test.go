@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"testing"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/meiraka/vv/internal/mpd"
 	"github.com/meiraka/vv/internal/mpd/mpdtest"
-	"github.com/meiraka/vv/internal/vv/assets"
 )
 
 const testTimeout = 10 * time.Second
@@ -68,7 +68,8 @@ func TestRemoteUpdate(t *testing.T) {
 	}
 	defer os.RemoveAll(testDir)
 
-	png1 := assets.AppPNG
+	png1 := readFile(t, filepath.Join("..", "..", "assets", "app.png"))
+
 	for _, tt := range []struct {
 		label      string
 		song       map[string][]string
@@ -193,8 +194,8 @@ func TestRemoteRescan(t *testing.T) {
 	}
 	defer os.RemoveAll(testDir)
 
-	png1 := assets.AppPNG
-	png2 := assets.AppBlackPNG
+	png1 := readFile(t, filepath.Join("..", "..", "assets", "app.png"))
+	png2 := readFile(t, filepath.Join("..", "..", "assets", "app-black.png"))
 	for _, tt := range []struct {
 		label      string
 		song       map[string][]string
