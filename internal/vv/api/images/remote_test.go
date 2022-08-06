@@ -40,7 +40,7 @@ func TestRemote(t *testing.T) {
 	}
 	defer api.Close()
 	for _, tt := range []map[string][]string{
-		{"file": {"assets/test.flac"}},
+		{"file": {"testdata/test.flac"}},
 		{"file": {"notfound/test.flac"}},
 	} {
 		t.Run(fmt.Sprint(tt), func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestRemoteUpdate(t *testing.T) {
 	}
 	defer os.RemoveAll(testDir)
 
-	png1 := readFile(t, filepath.Join("..", "..", "assets", "app.png"))
+	png1 := readFile(t, filepath.Join("testdata", "app.png"))
 
 	for _, tt := range []struct {
 		label      string
@@ -194,8 +194,8 @@ func TestRemoteRescan(t *testing.T) {
 	}
 	defer os.RemoveAll(testDir)
 
-	png1 := readFile(t, filepath.Join("..", "..", "assets", "app.png"))
-	png2 := readFile(t, filepath.Join("..", "..", "assets", "app-black.png"))
+	png1 := readFile(t, filepath.Join("testdata", "app.png"))
+	png2 := readFile(t, filepath.Join("testdata", "app-black.png"))
 	for _, tt := range []struct {
 		label      string
 		song       map[string][]string

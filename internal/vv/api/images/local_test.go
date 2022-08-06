@@ -13,7 +13,7 @@ import (
 )
 
 func TestLocalCover(t *testing.T) {
-	api, err := NewLocal("/foo", filepath.Join("..", ".."), []string{"app.png"})
+	api, err := NewLocal("/foo", ".", []string{"app.png"})
 	if err != nil {
 		t.Fatalf("failed to initialize cover.Local: %v", err)
 	}
@@ -24,10 +24,10 @@ func TestLocalCover(t *testing.T) {
 		wantBinary []byte
 	}{
 		{
-			in:         map[string][]string{"file": {"assets/test.flac"}},
-			want:       []string{"/foo/assets/app.png?d=" + strconv.FormatInt(stat(t, filepath.Join("..", "..", "assets", "app.png")).ModTime().Unix(), 10)},
+			in:         map[string][]string{"file": {"testdata/test.flac"}},
+			want:       []string{"/foo/testdata/app.png?d=" + strconv.FormatInt(stat(t, filepath.Join("testdata", "app.png")).ModTime().Unix(), 10)},
 			wantHeader: http.Header{"Content-Type": {"image/png"}, "Cache-Control": {"max-age=31536000"}},
-			wantBinary: readFile(t, filepath.Join("..", "..", "assets", "app.png")),
+			wantBinary: readFile(t, filepath.Join("testdata", "app.png")),
 		},
 		{
 			in:   map[string][]string{"file": {"notfound/test.flac"}},

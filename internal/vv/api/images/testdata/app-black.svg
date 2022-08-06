@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 200 200">
+<rect x="0" y="0" width="200" height="200" fill="#000000"/>
+<g stroke="#ffffff" stroke-width="12" fill="#ffffff">
+  <path class="fill play" d="M 70,60 140,100 70,140 z"/>
+</g>
+<g stroke="#ffffff" stroke-width="8" fill="none">
+  <path class="stroke play_circle" d="M 25,100 A 75,75 0 1,1 175,100 A 75,75 0 1,1 25,100 z"/>
+</g>
+</svg>

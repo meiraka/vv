@@ -1,7 +1,9 @@
-SRC=app.svg
-DST=app.jpg app.png app.webp
+DST=app.jpg app.png app.webp app-black.png
 
 convert: $(DST)
 
-$(DST): $(SRC)
+app.jpg app.png app.webp: app.svg
+	convert $< $@
+
+app-black.png : app-black.svg
 	convert $< $@
