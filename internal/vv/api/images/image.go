@@ -16,7 +16,8 @@ import (
 	"path"
 	"strconv"
 
-	_ "golang.org/x/image/bmp" // support bmp cover load
+	_ "golang.org/x/image/bmp"  // support bmp cover load
+	_ "golang.org/x/image/webp" // support webp cover load
 
 	"golang.org/x/image/draw"
 )
@@ -92,7 +93,7 @@ func serveImage(rpath string, w http.ResponseWriter, r *http.Request) {
 	}
 	b, err := resizeImage(f, wi, hi)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	if q := r.URL.Query(); q.Get("d") != "" || q.Get("v") != "" {

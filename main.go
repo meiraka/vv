@@ -107,7 +107,7 @@ func v2() {
 		if len(config.MPD.MusicDirectory) == 0 {
 			logger.Println("config.server.cover.local is disabled: mpd.music_directory is empty")
 		} else {
-			c, err := images.NewLocal("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.png", "cover.gif", "cover.bmp"})
+			c, err := images.NewLocal("/api/music/images/local/", config.MPD.MusicDirectory, []string{"cover.jpg", "cover.jpeg", "cover.webp", "cover.png", "cover.gif", "cover.bmp"})
 			if err != nil {
 				logger.Fatalf("failed to initialize coverart: %v", err)
 			}
