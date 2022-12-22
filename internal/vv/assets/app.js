@@ -14,6 +14,7 @@ class App {
         this.listView = new UIListView(this.ui, this.mpd, this.library, this.preferences);
         this.mainView = new UIMainView(this.ui, this.mpd, this.library, this.preferences);
         this.systemWindow = new UISystemWindow(this.ui, this.mpd, this.preferences);
+        UIMediaSession.init(this.ui, this.mpd, this.preferences);
         UIModal.init(this.ui);
         UISubModal.init(this.ui, this.mpd);
         UIHeader.init(this.ui, this.mpd, this.library, this.listView, this.mainView, this.systemWindow);
@@ -719,6 +720,9 @@ class MPDClient extends PubSub {
         this.raiseEvent("library");
     }
     /*static*/ prev() { HTTP.post("/api/music", { state: "previous" }); }
+    /*static*/ play() { HTTP.post("/api/music", { state: "play" }); }
+    /*static*/ pause() { HTTP.post("/api/music", { state: "pause" }); }
+    /*static*/ stop() { HTTP.post("/api/music", { state: "stopped" }); }
     togglePlay() {
         const state = "state" in this.control ? this.control["state"] : "stopped";
         const action = state === "play" ? "pause" : "play";
@@ -763,6 +767,18 @@ class MPDClient extends PubSub {
     /*static*/ volume(num) { HTTP.post("/api/music", { volume: num }); }
     /*static*/ output(id, on) { HTTP.post(`/api/music/outputs`, { [id]: { enabled: on } }); }
     /*static*/ seek(pos) { HTTP.post("/api/music", { song_elapsed: pos }); }
+    elapsed() {
+        const data = this.control;
+        if ("state" in data) {
+            const elapsed = parseInt(data.song_elapsed * 1000, 10);
+            let current = elapsed;
+            if (data.state === "play") {
+                current += (new Date()).getTime() - this.last_modified_ms.control;
+            }
+            return parseInt(current / 1000, 10);
+        }
+        return 0;
+    }
 
     _idbUpdateTables(e) {
         const db = e.target.result;
@@ -2774,6 +2790,99 @@ class UIFooter {
     }
 };
 
+class UIMediaSession {
+    static init(ui, mpd, preferences) {
+        ui.addEventListener("load", () => { UIMediaSession.onStart(ui, mpd, preferences); });
+    }
+    static onStart(ui, mpd, preferences) {
+        if ('mediaSession' in navigator) {
+            UIMediaSession.update(mpd);
+            mpd.addEventListener("current", () => { UIMediaSession.updateCurrent(mpd, preferences); });
+            mpd.addEventListener("control", () => { UIMediaSession.updateControl(mpd); });
+        }
+    }
+    static update(mpd) {
+        if (!('mediaSession' in navigator)) {
+            return;
+        }
+        UIMediaSession.updateCurrent(mpd);
+        UIMediaSession.updateControl(mpd);
+        navigator.mediaSession.setActionHandler("nexttrack", () => { mpd.next() });
+        navigator.mediaSession.setActionHandler("previoustrack", () => { mpd.prev() });
+        navigator.mediaSession.setActionHandler("play", () => { mpd.play() });
+        navigator.mediaSession.setActionHandler("pause", () => { mpd.pause() });
+        navigator.mediaSession.setActionHandler("stop", () => { mpd.stop() });
+        navigator.mediaSession.setActionHandler("seekto", (e) => { mpd.seek(e.seekTime); });
+        navigator.mediaSession.setActionHandler("seekbackward", (e) => { mpd.seek(Math.max(mpd.elapsed() - 10, 0)); });
+        navigator.mediaSession.setActionHandler("seekforward", (e) => {
+            const duration = Number(mpd.current.duration)
+            if (isNaN(duration)) {
+                return;
+            }
+            mpd.seek(Math.min(mpd.elapsed() + 10, duration));
+        });
+    }
+    static updateCurrent(mpd) {
+        if (!mpd.current) {
+            return;
+        }
+        let covers = [];
+        const song = mpd.current;
+        if (song.cover && song.cover.length !== 0) {
+            const s = (song.cover[0].lastIndexOf("?") == -1) ? "?" : "&";
+            const sizes = [96, 128, 192, 256, 384, 512];
+            for (let size of sizes) {
+                covers.push({
+                    src: `${song.cover[0]}${s}width=${size}&height=${size}`,
+                    sizes: `${size}x${size}`,
+                });
+            }
+        } else {
+            const sizes = [96, 128, 192, 256, 384, 512];
+            for (let size of sizes) {
+                covers.push({
+                    src: nocover(),
+                    sizes: `${size}x${size}`,
+                });
+            }
+        }
+        if (!navigator.mediaSession.metadata) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: Song.get(song, "Title"),
+                artist: Song.get(song, "Artist"),
+                album: Song.get(song, "Album"),
+                artwork: covers
+            });
+        } else {
+            navigator.mediaSession.metadata.title = Song.get(song, "Title");
+            navigator.mediaSession.metadata.artist = Song.get(song, "Artist");
+            navigator.mediaSession.metadata.album = Song.get(song, "Album");
+            if (navigator.mediaSession.metadata.artwork[0] !== covers[0]) {
+                navigator.mediaSession.metadata.artwork = covers;
+            }
+        }
+    }
+    static updateControl(mpd) {
+        if (!mpd.current) {
+            return;
+        }
+        if (mpd.control.state === "play") {
+            navigator.mediaSession.playbackState = "playing";
+        } else {
+            navigator.mediaSession.playbackState = "paused";
+        }
+        const duration = Number(mpd.current.duration)
+        if (isNaN(duration)) {
+            return;
+        }
+        navigator.mediaSession.setPositionState({
+            duration: duration,
+            position: mpd.elapsed()
+        })
+    }
+};
+
+
 class UINotification {
     static init(ui, mpd, audio, systemWindow) {
         ui.addEventListener("load", () => {
@@ -2875,12 +2984,7 @@ class UITimeUpdater {
         const update = () => {
             const data = mpd.control;
             if ("state" in data) {
-                const elapsed = parseInt(data.song_elapsed * 1000, 10);
-                let current = elapsed;
-                if (data.state === "play") {
-                    current += (new Date()).getTime() - mpd.last_modified_ms.control;
-                }
-                current = parseInt(current / 1000, 10);
+                const current = mpd.elapsed();
                 const min = parseInt(current / 60, 10);
                 const sec = current % 60;
                 const label = min + ":" + ("0" + sec).slice(-2);
