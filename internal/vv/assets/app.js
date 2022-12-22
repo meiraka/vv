@@ -569,6 +569,7 @@ class Preferences extends PubSub {
         super();
         this.feature = {
             show_scrollbars_when_scrolling: false,
+            client_volume_control: true,
         };
         this.playlist = {
             playback_tracks: "all",
@@ -626,6 +627,11 @@ class Preferences extends PubSub {
             this.feature.show_scrollbars_when_scrolling = true;
         } else {
             document.body.classList.add("scrollbar-styling");
+        }
+        if (["iPad", "iPod", "iPhone"].includes(navigator.platform)) {
+            // https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/Using_HTML5_Audio_Video/Device-SpecificConsiderations/Device-SpecificConsiderations.html
+            // in 2022: The volume property is settable, but not working.
+            this.feature.client_volume_control = false;
         }
         for (const key in this.playlist.playback_tracks_custom) {
             if (!(key in TREE)) {
@@ -2247,7 +2253,7 @@ class UISystemWindow {
         document.getElementById("outputs-volume").max = this.preferences.outputs.volume_max;
     }
     onPreferencesHTTPOutout() {
-        if (this.preferences.httpoutput.stream === "") {
+        if (this.preferences.httpoutput.stream === "" || !this.preferences.feature.client_volume_control ) {
             document.getElementById("httpoutput-volume-group").classList.add("hide");
         } else {
             document.getElementById("httpoutput-volume-group").classList.remove("hide");
