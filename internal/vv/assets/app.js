@@ -45,7 +45,7 @@ class App {
             this._init();
         }
     }
-};
+}
 
 class PubSub {
     constructor() { this.listeners = {}; }
@@ -83,7 +83,7 @@ class PubSub {
             f(o);
         }
     }
-};
+}
 
 class MPDAudio {
     constructor(mpd, preferences) {
@@ -219,7 +219,7 @@ class MPDAudio {
             }
         }
     }
-};
+}
 
 class Song {
     static tag(song, keys, other) {
@@ -241,8 +241,6 @@ class Song {
             return Song.tag(song, ["Artist"], other);
         } else if (key === "AlbumArtistSort") {
             return Song.tag(song, ["AlbumArtist", "Artist"], other);
-        } else if (key === "AlbumSort") {
-            return Song.tag(song, ["Album"], other);
         } else if (key === "Date") {
             return Song.tag(song, ["OriginalDate"], other);
         } else if (key === "OriginalDate") {
@@ -327,7 +325,7 @@ class Song {
         }
         return songs;
     }
-};
+}
 
 class Songs {
     static sort(songs, keys, memo) {
@@ -359,7 +357,7 @@ class Songs {
     static filter(songs, filters) {
         return songs.filter(song => {
             for (const key in filters) {
-                if (filters.hasOwnProperty(key)) {
+                if (hasOwnProperty.call(filters, key)) {
                     if (Song.getOne(song, key) !== filters[key]) {
                         return false;
                     }
@@ -395,14 +393,14 @@ class Songs {
         }
         return songs;
     }
-};
+}
 
 const _requests = {};
 class HTTP {
     static abortAll(options) {
         const opts = options || {};
         for (const key in _requests) {
-            if (_requests.hasOwnProperty(key)) {
+            if (hasOwnProperty.call(_requests, key)) {
                 if (opts.stop) {
                     _requests[key].onabort = () => { };
                 }
@@ -499,7 +497,7 @@ class HTTP {
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(JSON.stringify(obj));
     }
-};
+}
 
 class MPDWatcher extends PubSub {
     constructor() { super(); }
@@ -562,7 +560,7 @@ class MPDWatcher extends PubSub {
         listennotify();
         polling();
     }
-};
+}
 
 class Preferences extends PubSub {
     constructor() {
@@ -602,14 +600,14 @@ class Preferences extends PubSub {
         let storedPreferences = null;
         try {
             storedPreferences = localStorage.getItem("preferences");
-        } catch (_) { }
+        } catch (_) { /* private browsing */ }
         if (storedPreferences !== null) {
             const c = JSON.parse(storedPreferences);
             for (const i in c) {
-                if (c.hasOwnProperty(i) && permitted.includes(i)) {
+                if (hasOwnProperty.call(c, i) && permitted.includes(i)) {
                     for (const j in c[i]) {
-                        if (c[i].hasOwnProperty(j)) {
-                            if (this[i].hasOwnProperty(j)) {
+                        if (hasOwnProperty.call(c[i], j)) {
+                            if (hasOwnProperty.call(this[i], j)) {
                                 this[i][j] = c[i][j];
                             }
                         }
@@ -657,12 +655,12 @@ class Preferences extends PubSub {
         });
         try {
             localStorage.setItem("preferences", json);
-        } catch (_) { }
+        } catch (_) { /* private browsing */ }
     }
     nocover() {
         return "/assets/nocover.svg";
     }
-};
+}
 
 class MPDClient extends PubSub {
     constructor(mpdWatcher) {
@@ -688,14 +686,14 @@ class MPDClient extends PubSub {
                 try {
                     localStorage.setItem("current", json);
                     localStorage.setItem("current_last_modified", that.last_modified.current);
-                } catch (_) { }
+                } catch (_) { /* private browsing */ }
             },
             playlist() {
                 const json = JSON.stringify(that.playlist);
                 try {
                     localStorage.setItem("playlist", json);
                     localStorage.setItem("playlist_last_modified", that.last_modified.playlist);
-                } catch (_) { }
+                } catch (_) { /* private browsing */ }
             },
             librarySongs() {
                 that._cacheSave("library", that.librarySongs, that.last_modified.librarySongs);
@@ -717,7 +715,7 @@ class MPDClient extends PubSub {
     }
     rescanLibrary() {
         for (const path in this.storage) {
-            if (path !== "" && this.storage.hasOwnProperty(path)) {
+            if (path !== "" && hasOwnProperty.call(this.storage, path)) {
                 HTTP.post("/api/music/storage", { [path]: { updating: true } });
             }
         }
@@ -896,7 +894,7 @@ class MPDClient extends PubSub {
             storedCurrent_last_modified = localStorage.getItem("current_last_modified");
             storedPlaylist = localStorage.getItem("playlist");
             storedPlaylist_last_modified = localStorage.getItem("playlist_last_modified");
-        } catch (_) { }
+        } catch (_) { /* private browsing */ }
         if (storedCurrent !== null && storedCurrent_last_modified !== null) {
             const current = JSON.parse(storedCurrent);
             if (Object.prototype.toString.call(current.file) === "[object Array]") {
@@ -917,7 +915,7 @@ class MPDClient extends PubSub {
             this.raiseEvent("load");
         });
     }
-};
+}
 
 class Library extends PubSub {
     constructor(mpd, preferences) {
@@ -972,14 +970,13 @@ class Library extends PubSub {
             if (!TREE_ORDER.includes(this._lastRoot)) {
                 this._lastRoot = "root";
             }
-        } catch (_) { }
+        } catch (_) { /* private browsing */ }
         this._autoFocus();
     }
     save() {
         try {
             localStorage.setItem("root", this._root);
-        } catch (e) {
-        }
+        } catch (_) { /* private browsing */ }
     }
     static _mkmemo(key) {
         const ret = [];
@@ -1049,7 +1046,7 @@ class Library extends PubSub {
             this._list_child_cache[i] = {};
         }
         for (const key in TREE) {
-            if (TREE.hasOwnProperty(key)) {
+            if (hasOwnProperty.call(TREE, key)) {
                 if (key === this._root) {
                     this._roots[key] = Songs.sort(data, TREE[key].sort, Library._mkmemo(key));
                 } else {
@@ -1168,7 +1165,7 @@ class Library extends PubSub {
         const pos = parseInt(song.Pos[0], 10);
         const keys = this.mpd.playlist.sort.join();
         for (const key in TREE) {
-            if (TREE.hasOwnProperty(key)) {
+            if (hasOwnProperty.call(TREE, key)) {
                 if (TREE[key].sort.join() === keys) {
                     root = key;
                     break;
@@ -1210,7 +1207,7 @@ class Library extends PubSub {
         }
     }
     abs(song) {
-        if (this.mpd.playlist && this.mpd.playlist.hasOwnProperty("sort") && this.mpd.playlist.sort !== null) {
+        if (this.mpd.playlist && hasOwnProperty.call(this.mpd.playlist, "sort") && this.mpd.playlist.sort !== null) {
             this.absSorted(song);
         } else {
             this.absFallback(song);
@@ -1249,7 +1246,7 @@ class Library extends PubSub {
             isdir: true,
         };
     }
-};
+}
 
 class UI extends PubSub {
     constructor() {
@@ -1258,7 +1255,7 @@ class UI extends PubSub {
     polling() {
         this.raiseEvent("poll");
         setTimeout(() => { this.polling(); }, 1000);
-    };
+    }
     static swipe(element, f, resetFunc, leftElement, conditionFunc) {
         element.swipe_target = f;
         let starttime = 0;
@@ -1413,7 +1410,7 @@ class UI extends PubSub {
             element.addEventListener("mouseleave", leave, { passive: true });
         }
     }
-};
+}
 
 class ImageFader {
     constructor(preferences, e1, e2) {
@@ -1426,18 +1423,18 @@ class ImageFader {
             this.t1.addEventListener("load", (e) => { this._onImages(e.currentTarget) });
         } else {
             this.t1 = new Image();
-            this.t1.addEventListener("load", (e) => {
+            this.t1.addEventListener("load", () => {
                 this._onImages(e1);
                 e1.style.backgroundImage = `url("${this.path}")`;
             });
         }
-        this.t1.addEventListener("load", (e) => { this._onImages(this.e1) });
+        this.t1.addEventListener("load", () => { this._onImages(this.e1) });
         if (e2.nodeName.toLowerCase() === "img") {
             this.t2 = e2;
             this.t2.addEventListener("load", (e) => { this._onImages(e.currentTarget) });
         } else {
             this.t2 = new Image();
-            this.t2.addEventListener("load", (e) => {
+            this.t2.addEventListener("load", () => {
                 this._onImages(e2);
                 e2.style.backgroundImage = `url("${this.path}")`;
             });
@@ -1521,23 +1518,23 @@ class UIBackground {
             darkmode.addListener(() => { this.update_theme(); });
         }
         this.update_theme();
-    };
+    }
     static mkcolor(rgb, magic) {
         return "#" + (((1 << 24) + (magic(rgb.r) << 16) + (magic(rgb.g) << 8) + magic(rgb.b)).toString(16).slice(1));
-    };
+    }
     static darker(c) {
         // Vivaldi does not recognize #000000
         if ((c - 20) < 0) {
             return 1;
         }
         return c - 20;
-    };
+    }
     static lighter(c) {
         if ((c + 100) > 255) {
             return 255;
         }
         return c + 100;
-    };
+    }
     update_theme() {
         const color = document.querySelector("meta[name=theme-color]");
         if (this.preferences.appearance.theme === "prefer-system") {
@@ -1578,7 +1575,7 @@ class UIBackground {
         e2.classList.remove("hide");
         e1.style.filter = `blur(${this.preferences.appearance.background_image_blur})`;
         e2.style.filter = `blur(${this.preferences.appearance.background_image_blur})`;
-    };
+    }
     update_color(path) {
         const img = new Image();
         img.onload = () => {
@@ -1605,8 +1602,8 @@ class UIBackground {
             }
         };
         img.src = path;
-    };
-};
+    }
+}
 
 class UIMainView extends PubSub {
     constructor(ui, mpd, library, preferences) {
@@ -1648,7 +1645,7 @@ class UIMainView extends PubSub {
         }
     }
     onPlaylist() {
-        document.getElementById("main-cover-overlay").disabled = !(this.mpd.playlist && this.mpd.playlist.hasOwnProperty("current"));
+        document.getElementById("main-cover-overlay").disabled = !(this.mpd.playlist && hasOwnProperty.call(this.mpd.playlist, "current"));
     }
     show() {
         document.body.classList.add("view-main");
@@ -1744,7 +1741,7 @@ class UIMainView extends PubSub {
         this.onCurrent();
         this.onPlaylist();
     }
-};
+}
 
 class UIListView extends PubSub {
     constructor(ui, mpd, library, preferences) {
@@ -1817,7 +1814,7 @@ class UIListView extends PubSub {
                 listitem.classList.remove("selected");
             }
             let treeFocused = true;
-            if (this.mpd.playlist && this.mpd.playlist.hasOwnProperty("sort") && this.mpd.playlist.sort !== null) {
+            if (this.mpd.playlist && hasOwnProperty.call(this.mpd.playlist, "sort") && this.mpd.playlist.sort !== null) {
                 if (rootname === "root") {
                     treeFocused = false;
                 } else if (this.mpd.playlist.sort.join() !== TREE[rootname].sort.join()) {
@@ -2093,7 +2090,7 @@ class UIListView extends PubSub {
                         const left = selectables[i - 1];
                         item.classList.remove("selected");
                         left.classList.add("selected");
-                        p = left.offsetTop;
+                        const p = left.offsetTop;
                         if (p < t) {
                             scroll.scrollTop = p;
                         }
@@ -2103,7 +2100,7 @@ class UIListView extends PubSub {
                         const up = selectables[i - itemcount];
                         item.classList.remove("selected");
                         up.classList.add("selected");
-                        p = up.offsetTop;
+                        const p = up.offsetTop;
                         if (p < t) {
                             scroll.scrollTop = p;
                         }
@@ -2113,7 +2110,7 @@ class UIListView extends PubSub {
                         const right = selectables[i + 1];
                         item.classList.remove("selected");
                         right.classList.add("selected");
-                        p = right.offsetTop + right.offsetHeight;
+                        const p = right.offsetTop + right.offsetHeight;
                         if (t + h < p) {
                             scroll.scrollTop = p - h;
                         }
@@ -2128,7 +2125,7 @@ class UIListView extends PubSub {
                         }
                         item.classList.remove("selected");
                         down.classList.add("selected");
-                        p = down.offsetTop + down.offsetHeight;
+                        const p = down.offsetTop + down.offsetHeight;
                         if (t + h < p) {
                             scroll.scrollTop = p - h;
                         }
@@ -2174,7 +2171,7 @@ class UIListView extends PubSub {
         UI.swipe(list[5], () => { this.library.up(); }, () => { this._updatepos(); }, list[4]);
         this.onCurrent();
     }
-};
+}
 
 class UISystemWindow {
     constructor(ui, mpd, preferences) {
@@ -2278,7 +2275,7 @@ class UISystemWindow {
         }
         const newul = document.createDocumentFragment();
         for (const path in this.mpd.storage) {
-            if (path !== "" && this.mpd.storage.hasOwnProperty(path)) {
+            if (path !== "" && hasOwnProperty.call(this.mpd.storage, path)) {
                 const s = this.mpd.storage[path];
                 const c = document.querySelector("#storage-template").content;
                 const e = c.querySelector("li");
@@ -2306,7 +2303,7 @@ class UISystemWindow {
         let streamChanged = false;
         let streams = {};
         for (const id in this.mpd.outputs) {
-            if (this.mpd.outputs.hasOwnProperty(id)) {
+            if (hasOwnProperty.call(this.mpd.outputs, id)) {
                 const o = this.mpd.outputs[id];
                 const c = document.querySelector("#device-template").content;
                 const e = c.querySelector("li");
@@ -2329,11 +2326,11 @@ class UISystemWindow {
                 allowedFormats.classList.add("hide");
                 e.querySelector(".device-allowed-formats").dataset.deviceid = id;
                 if (o.attributes) {
-                    if (o.attributes.hasOwnProperty("dop") && o.enabled) {
+                    if (hasOwnProperty.call(o.attributes, "dop") && o.enabled) {
                         dop.classList.remove("hide");
                         dopSW.checked = o.attributes.dop;
                     }
-                    if (o.attributes.hasOwnProperty("allowed_formats") && o.enabled) {
+                    if (hasOwnProperty.call(o.attributes, "allowed_formats") && o.enabled) {
                         allowedFormats.classList.remove("hide");
                     }
                 }
@@ -2384,7 +2381,6 @@ class UISystemWindow {
                 document.getElementById("httpoutput").classList.remove("hide");
             }
             inputs.value = this.preferences.httpoutput.stream;
-            inputs.value = inputs.value;
             this.preferences.httpoutput.streams = streams;
             if (this.preferences.httpoutput.stream !== inputs.value) {
                 this.preferences.httpoutput.stream = inputs.value;
@@ -2415,7 +2411,7 @@ class UISystemWindow {
         }
     }
     onControl() {
-        if (this.mpd.control.hasOwnProperty("volume") && this.mpd.control.volume !== null) {
+        if (hasOwnProperty.call(this.mpd.control, "volume") && this.mpd.control.volume !== null) {
             document.getElementById("outputs-volume").value = this.mpd.control.volume;
             document.getElementById("outputs-volume-string").textContent = this.mpd.control.volume + "%";
             document.getElementById("outputs-volume-box").classList.remove("hide");
@@ -2522,7 +2518,7 @@ class UISystemWindow {
         const newul = document.createDocumentFragment();
         for (let i = 0, imax = TREE_ORDER.length; i < imax; i++) {
             const label = TREE_ORDER[i];
-            if (this.preferences.playlist.playback_tracks_custom.hasOwnProperty(label)) {
+            if (hasOwnProperty.call(this.preferences.playlist.playback_tracks_custom, label)) {
                 const c = document.querySelector("#playlist-playback-tracks-custom-template").content;
                 const e = c.querySelector("li");
                 const l = e.querySelector(".system-setting-desc");
@@ -2572,7 +2568,7 @@ class UISystemWindow {
         const newInputs = document.createDocumentFragment();
         let streamCnt = 0;
         for (const name in this.preferences.httpoutput.streams) {
-            if (this.preferences.httpoutput.streams.hasOwnProperty(name)) {
+            if (hasOwnProperty.call(this.preferences.httpoutput.streams, name)) {
                 const on = document.createElement("option");
                 on.value = this.preferences.httpoutput.streams[name];
                 on.textContent = name;
@@ -2585,7 +2581,6 @@ class UISystemWindow {
         }
         inputs.appendChild(newInputs);
         inputs.value = this.preferences.httpoutput.stream;
-        inputs.value = inputs.value;
         if (this.preferences.httpoutput.stream !== inputs.value) {
             this.preferences.httpoutput.stream = inputs.value;
             this.preferences.raiseEvent("httpoutput");
@@ -2639,7 +2634,7 @@ class UISystemWindow {
         document.getElementById("modal-outer").classList.remove("hide");
         document.getElementById("modal-system").classList.remove("hide");
     }
-};
+}
 
 // header
 class UIHeader {
@@ -2695,7 +2690,7 @@ class UIHeader {
             library.addEventListener("update", update);
         });
     }
-};
+}
 
 class UIFooter {
     static init(ui, mpd, preferences) {
@@ -2729,7 +2724,7 @@ class UIFooter {
             e.stopPropagation();
         });
         const c = document.getElementById("control-volume");
-        if (mpd.control.hasOwnProperty("volume") && mpd.control.volume !== null) {
+        if (hasOwnProperty.call(mpd.control, "volume") && mpd.control.volume !== null) {
             c.value = mpd.control.volume;
             c.disabled = false;
         } else {
@@ -2745,7 +2740,7 @@ class UIFooter {
         });
     }
     static onPlaylist(mpd) {
-        const disabled = !(mpd.playlist && mpd.playlist.hasOwnProperty("current"));
+        const disabled = !(mpd.playlist && hasOwnProperty.call(mpd.playlist, "current"));
         document.getElementById("control-prev").disabled = disabled;
         document.getElementById("control-toggleplay").disabled = disabled;
         document.getElementById("control-next").disabled = disabled;
@@ -2794,7 +2789,7 @@ class UIFooter {
             random.classList.remove("on");
         }
     }
-};
+}
 
 class UIMediaSession {
     static init(ui, mpd, preferences) {
@@ -2810,8 +2805,8 @@ class UIMediaSession {
             navigator.mediaSession.setActionHandler("pause", () => { mpd.pause() });
             navigator.mediaSession.setActionHandler("stop", () => { mpd.stop() });
             navigator.mediaSession.setActionHandler("seekto", (e) => { mpd.seek(e.seekTime); });
-            navigator.mediaSession.setActionHandler("seekbackward", (e) => { mpd.seek(Math.max(mpd.elapsed() - 10, 0)); });
-            navigator.mediaSession.setActionHandler("seekforward", (e) => {
+            navigator.mediaSession.setActionHandler("seekbackward", () => { mpd.seek(Math.max(mpd.elapsed() - 10, 0)); });
+            navigator.mediaSession.setActionHandler("seekforward", () => {
             const duration = Number(mpd.current.duration)
             if (isNaN(duration)) {
                 return;
@@ -2876,7 +2871,7 @@ class UIMediaSession {
             position: mpd.elapsed()
         })
     }
-};
+}
 
 
 class UINotification {
@@ -2910,7 +2905,7 @@ class UINotification {
                 }
                 if (e.current.updating) {
                     UINotification.show("library", "updating");
-                } else if (e.old.hasOwnProperty("updating") && !e.current.updating) {
+                } else if (hasOwnProperty.call(e.old, "updating") && !e.current.updating) {
                     UINotification.show("library", "updated");
                 }
             });
@@ -2923,7 +2918,7 @@ class UINotification {
                 }
                 if (e.current.updating) {
                     UINotification.show("coverart", "updating");
-                } else if (e.old.hasOwnProperty("updating") && !e.current.updating) {
+                } else if (hasOwnProperty.call(e.old, "updating") && !e.current.updating) {
                     UINotification.show("coverart", "updated");
                 }
             });
@@ -2973,7 +2968,7 @@ class UINotification {
             }
         }
     }
-};
+}
 
 class UITimeUpdater {
     static init(ui, mpd) {
@@ -2994,7 +2989,7 @@ class UITimeUpdater {
         mpd.addEventListener("control", update);
         ui.addEventListener("poll", update);
     }
-};
+}
 
 class UIModal {
     static init(ui) {
@@ -3085,10 +3080,10 @@ class UIModal {
         document.getElementById("modal-outer").classList.remove("hide");
         document.getElementById("modal-song").classList.remove("hide");
     }
-};
+}
 
 class UISubModal {
-    static init(ui, mpd, mpdWatcher) {
+    static init(ui, mpd) {
         ui.addEventListener("load", () => {
             for (const w of Array.from(document.getElementsByClassName("submodal-window-close"))) {
                 w.addEventListener("click", () => { UISubModal.hide(); });
@@ -3124,7 +3119,7 @@ class UISubModal {
                 const v = document.getElementById("storage-uri").value;
                 const newul = document.createDocumentFragment();
                 for (const path in mpd.neighbors) {
-                    if (path !== "" && mpd.neighbors.hasOwnProperty(path)) {
+                    if (path !== "" && hasOwnProperty.call(mpd.neighbors, path)) {
                         const s = mpd.neighbors[path];
                         const c = document.querySelector("#neighbors-template").content;
                         const e = c.querySelector("li");
@@ -3283,7 +3278,7 @@ class UISubModal {
             w.classList.add("hide");
         }
     }
-};
+}
 
 class KeyboardShortCuts {
     static init(ui, mpd, library, listView, mainView) {
@@ -3367,7 +3362,7 @@ class KeyboardShortCuts {
             });
         });
     }
-};
+}
 
 const app = new App();
 app.start();

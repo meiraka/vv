@@ -1,0 +1,18 @@
+{
+    "extends": ["eslint:recommended"],
+    "plugins": [],
+    "parserOptions": {},
+    "globals": {},
+    "rules": {},
+    "parserOptions": {
+        "ecmaVersion": "latest"
+    },
+    "globals": {
+        "TREE": false,
+        "TREE_ORDER": false
+    },
+    "env": {
+        "es6": true,
+        "browser": true
+    }
+}
