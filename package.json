@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "lint": "eslint internal/vv/assets/app.js"
+  },
+  "devDependencies": {
+    "eslint": "^8.30.0"
+  }
+}
