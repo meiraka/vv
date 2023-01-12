@@ -2,11 +2,13 @@ package images
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -26,8 +28,11 @@ func newCache(cacheDir string) (*cache, error) {
 	if err := os.MkdirAll(cacheDir, 0766); err != nil {
 		return nil, err
 	}
-	db, err := bolt.Open(filepath.Join(cacheDir, "db4"), 0666, nil)
+	db, err := bolt.Open(filepath.Join(cacheDir, "db4"), 0666, &bolt.Options{Timeout: time.Second})
 	if err != nil {
+		if errors.Is(err, bolt.ErrTimeout) {
+			return nil, fmt.Errorf("obtain cache lock: %w", err)
+		}
 		return nil, err
 	}
 
