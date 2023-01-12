@@ -566,7 +566,6 @@ class Preferences extends PubSub {
     constructor() {
         super();
         this.feature = {
-            show_scrollbars_when_scrolling: false,
             client_volume_control: true,
         };
         this.playlist = {
@@ -618,13 +617,6 @@ class Preferences extends PubSub {
             if (c.appearance && c.appearance.volume_max) {
                 this.preferences.outputs.volume_max = c.appearance.volume_max;
             }
-        }
-        if (navigator.userAgent.indexOf("Mobile") > 1) {
-            this.feature.show_scrollbars_when_scrolling = true;
-        } else if (navigator.userAgent.indexOf("Macintosh") > 1) {
-            this.feature.show_scrollbars_when_scrolling = true;
-        } else {
-            document.body.classList.add("scrollbar-styling");
         }
         if (["iPad", "iPod", "iPhone"].includes(navigator.platform)) {
             // https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/Using_HTML5_Audio_Video/Device-SpecificConsiderations/Device-SpecificConsiderations.html
@@ -2250,7 +2242,7 @@ class UISystemWindow {
         document.getElementById("outputs-volume").max = this.preferences.outputs.volume_max;
     }
     onPreferencesHTTPOutout() {
-        if (this.preferences.httpoutput.stream === "" || !this.preferences.feature.client_volume_control ) {
+        if (this.preferences.httpoutput.stream === "" || !this.preferences.feature.client_volume_control) {
             document.getElementById("httpoutput-volume-group").classList.add("hide");
         } else {
             document.getElementById("httpoutput-volume-group").classList.remove("hide");
@@ -2807,12 +2799,12 @@ class UIMediaSession {
             navigator.mediaSession.setActionHandler("seekto", (e) => { mpd.seek(e.seekTime); });
             navigator.mediaSession.setActionHandler("seekbackward", () => { mpd.seek(Math.max(mpd.elapsed() - 10, 0)); });
             navigator.mediaSession.setActionHandler("seekforward", () => {
-            const duration = Number(mpd.current.duration)
-            if (isNaN(duration)) {
-                return;
-            }
-            mpd.seek(Math.min(mpd.elapsed() + 10, duration));
-        });
+                const duration = Number(mpd.current.duration)
+                if (isNaN(duration)) {
+                    return;
+                }
+                mpd.seek(Math.min(mpd.elapsed() + 10, duration));
+            });
             mpd.addEventListener("current", () => { UIMediaSession.updateCurrent(mpd, preferences); });
             mpd.addEventListener("control", () => { UIMediaSession.updateControl(mpd); });
         }

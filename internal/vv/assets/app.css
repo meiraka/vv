@@ -77,10 +77,27 @@ header {
 .scrollable {
   position: relative;
   overflow-x: hidden;
-  overflow-y: scroll;
-  -webkit-overflow-scrolling: touch;
-  overflow-scrolling: touch;
+  overflow-y: auto;
   min-height: 0;
+}
+
+.scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0);
+  border-radius: 10px;
+  padding: 2px;
+  margin: 2px;
+}
+
+.scrollable:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar);
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-hover);
 }
 
 .background {
@@ -381,32 +398,6 @@ svg .stroke {
 .background-overlay {
   background-color: var(--overlay);
   transition: background-color 0.2s 0s ease-out;
-}
-
-.scrollbar-styling .scrollable {
-  overflow-y: auto;
-  overflow-y: overlay;
-}
-
-.scrollbar-styling .scrollable::-webkit-scrollbar {
-  display: none;
-  overflow: visible;
-  width: 8px;
-}
-
-.scrollbar-styling .scrollable:hover::-webkit-scrollbar {
-  display: initial;
-}
-
-.scrollbar-styling .scrollable::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar);
-  border-radius: 10px;
-  padding: 2px;
-  margin: 2px;
-}
-
-.scrollbar-styling .scrollable::-webkit-scrollbar-thumb:hover {
-  background-color: var(--scrollbar-hover);
 }
 
 .list-item {
