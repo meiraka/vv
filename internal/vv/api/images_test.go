@@ -37,6 +37,7 @@ func TestImagesHandler(t *testing.T) {
 			songs:      songs,
 			want:       `{"updating":false}`,
 			wantStatus: http.StatusOK,
+			img:        &imageProvider{},
 		}},
 		"ok/updating/running": {{
 			label:      `POST/{"updating":true}`,
@@ -100,6 +101,7 @@ func TestImagesHandler(t *testing.T) {
 			songs:      songs,
 			want:       `{"error":"invalid character 'i' looking for beginning of value"}`,
 			wantStatus: http.StatusBadRequest,
+			img:        &imageProvider{},
 		}},
 		`error/POST/{"updating":false}`: {{
 			method:     http.MethodPost,
@@ -107,10 +109,15 @@ func TestImagesHandler(t *testing.T) {
 			songs:      songs,
 			want:       `{"error":"requires updating=true"}`,
 			wantStatus: http.StatusBadRequest,
+			img:        &imageProvider{},
 		}},
 	} {
 		t.Run(label, func(t *testing.T) {
-			img := &imageProvider{t: t}
+			if tt[0].img == nil {
+				t.Fatalf("FIXME: tt[0].img must not be nil")
+			}
+			img := tt[0].img
+			img.SetT(t)
 			h, err := api.NewImagesHandler([]api.ImageProvider{img}, log.NewTestLogger(t))
 			if err != nil {
 				t.Fatalf("api.NewLibraryHandler(mpd) = %v", err)
@@ -119,6 +126,7 @@ func TestImagesHandler(t *testing.T) {
 			defer h.Shutdown(context.TODO())
 			for i := range tt {
 				f := func(t *testing.T) {
+					img.SetT(t)
 					if tt[i].changed != nil {
 						want := *tt[i].changed
 						select {
@@ -132,12 +140,6 @@ func TestImagesHandler(t *testing.T) {
 					}
 					if tt[i].songs != nil {
 						h.UpdateLibrarySongs(tt[i].songs)
-					}
-					img.t = t
-					if tt[i].img != nil {
-						img.rescan = tt[i].img.rescan
-						img.update = tt[i].img.update
-						img.getURLs = tt[i].img.getURLs
 					}
 					if tt[i].method != "" {
 						r := httptest.NewRequest(tt[i].method, "/", tt[i].body)
@@ -216,7 +218,11 @@ func TestImagesHandlerConvSongs(t *testing.T) {
 		}},
 	} {
 		t.Run(label, func(t *testing.T) {
-			img := &imageProvider{t: t}
+			if tt[0].img == nil {
+				t.Fatalf("FIXME: tt[0].img must not be nil")
+			}
+			img := tt[0].img
+			img.SetT(t)
 			h, err := api.NewImagesHandler([]api.ImageProvider{img}, log.NewTestLogger(t))
 			if err != nil {
 				t.Fatalf("api.NewLibraryHandler(mpd) = %v", err)
@@ -225,6 +231,7 @@ func TestImagesHandlerConvSongs(t *testing.T) {
 			defer h.Shutdown(context.TODO())
 			for i := range tt {
 				f := func(t *testing.T) {
+					img.SetT(t)
 					if tt[i].changed != nil {
 						want := *tt[i].changed
 						select {
@@ -235,12 +242,6 @@ func TestImagesHandlerConvSongs(t *testing.T) {
 						case <-time.After(time.Second):
 							t.Errorf("no changed event in 1sec")
 						}
-					}
-					img.t = t
-					if tt[i].img != nil {
-						img.rescan = tt[i].img.rescan
-						img.update = tt[i].img.update
-						img.getURLs = tt[i].img.getURLs
 					}
 					if got, want := h.ConvSongs(tt[i].songs), tt[i].want; !reflect.DeepEqual(got, want) {
 						t.Errorf("got\n%v; want\n%v", got, want)
@@ -314,26 +315,44 @@ type imageProvider struct {
 	update  func(context.Context, *testing.T, map[string][]string) error
 	rescan  func(context.Context, *testing.T, map[string][]string, string) error
 	getURLs func(*testing.T, map[string][]string) ([]string, bool)
+	mu      sync.Mutex
+}
+
+func (i *imageProvider) SetT(t *testing.T) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	i.t = t
 }
 
 func (i *imageProvider) Update(ctx context.Context, a map[string][]string) error {
-	i.t.Helper()
-	if i.update == nil {
-		i.t.Fatal("no Update mock function")
+	i.mu.Lock()
+	t, f := i.t, i.update
+	i.mu.Unlock()
+
+	t.Helper()
+	if f == nil {
+		t.Fatal("no Update mock function")
 	}
-	return i.update(ctx, i.t, a)
+	return f(ctx, t, a)
 }
 func (i *imageProvider) Rescan(ctx context.Context, a map[string][]string, b string) error {
-	i.t.Helper()
-	if i.rescan == nil {
-		i.t.Fatal("no Rescan mock function")
+	i.mu.Lock()
+	t, f := i.t, i.rescan
+	i.mu.Unlock()
+
+	t.Helper()
+	if f == nil {
+		t.Fatal("no Rescan mock function")
 	}
-	return i.rescan(ctx, i.t, a, b)
+	return f(ctx, t, a, b)
 }
 func (i *imageProvider) GetURLs(a map[string][]string) ([]string, bool) {
-	i.t.Helper()
-	if i.getURLs == nil {
-		i.t.Fatal("no GetURLs mock function")
+	i.mu.Lock()
+	t, f := i.t, i.getURLs
+	i.mu.Unlock()
+	t.Helper()
+	if f == nil {
+		t.Fatal("no GetURLs mock function")
 	}
-	return i.getURLs(i.t, a)
+	return f(t, a)
 }

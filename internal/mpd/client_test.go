@@ -298,6 +298,7 @@ func TestClient(t *testing.T) {
 			want: []string{"foobar"},
 		},
 	} {
+		tt := tt
 		select {
 		case <-ctx.Done():
 			t.Fatal("test exceeds timeout")

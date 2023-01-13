@@ -67,18 +67,21 @@ func (c *Client) Version() string {
 // Querying MPD’s status
 
 // CurrentSong displays the song info of the current song
-func (c *Client) CurrentSong(ctx context.Context) (song map[string][]string, err error) {
-	err = c.pool.Exec(ctx, func(conn *conn) error {
+func (c *Client) CurrentSong(ctx context.Context) (map[string][]string, error) {
+	ch := make(chan map[string][]string, 1)
+	err := c.pool.Exec(ctx, func(conn *conn) error {
+		defer close(ch)
 		if err := request(conn, "currentsong"); err != nil {
 			return err
 		}
-		song, err = parseSong(conn, responseOK)
+		song, err := parseSong(conn, responseOK)
+		ch <- song
 		return err
 	})
 	if err != nil {
 		return nil, addCommandInfo(err, "currentsong")
 	}
-	return
+	return <-ch, nil
 }
 
 // Status reports the current status of the player and the volume level.
@@ -170,18 +173,21 @@ func (c *Client) SeekCur(ctx context.Context, t float64) error {
 // The Queue
 
 // PlaylistInfo displays a list of all songs in the playlist.
-func (c *Client) PlaylistInfo(ctx context.Context) (songs []map[string][]string, err error) {
-	err = c.pool.Exec(ctx, func(conn *conn) error {
+func (c *Client) PlaylistInfo(ctx context.Context) ([]map[string][]string, error) {
+	ch := make(chan []map[string][]string, 1)
+	err := c.pool.Exec(ctx, func(conn *conn) error {
+		defer close(ch)
 		if err := request(conn, "playlistinfo"); err != nil {
 			return err
 		}
-		songs, err = parseSongs(conn, responseOK)
+		songs, err := parseSongs(conn, responseOK)
+		ch <- songs
 		return err
 	})
 	if err != nil {
 		return nil, addCommandInfo(err, "playlistinfo")
 	}
-	return
+	return <-ch, nil
 }
 
 // The music database
@@ -198,18 +204,21 @@ func (c *Client) ReadPicture(ctx context.Context, uri string) ([]byte, error) {
 }
 
 // ListAllInfo lists all songs and directories in uri.
-func (c *Client) ListAllInfo(ctx context.Context, uri string) (songs []map[string][]string, err error) {
-	err = c.pool.Exec(ctx, func(conn *conn) error {
+func (c *Client) ListAllInfo(ctx context.Context, uri string) ([]map[string][]string, error) {
+	ch := make(chan []map[string][]string, 1)
+	err := c.pool.Exec(ctx, func(conn *conn) error {
+		defer close(ch)
 		if err := request(conn, "listallinfo", uri); err != nil {
 			return err
 		}
-		songs, err = parseSongs(conn, responseOK)
+		songs, err := parseSongs(conn, responseOK)
+		ch <- songs
 		return err
 	})
 	if err != nil {
 		return nil, addCommandInfo(err, "listallinfo")
 	}
-	return
+	return <-ch, nil
 }
 
 // Update updates the music database.
@@ -261,18 +270,21 @@ type Output struct {
 }
 
 // Outputs shows information about all outputs.
-func (c *Client) Outputs(ctx context.Context) (outputs []*Output, err error) {
-	err = c.pool.Exec(ctx, func(conn *conn) error {
+func (c *Client) Outputs(ctx context.Context) ([]*Output, error) {
+	ch := make(chan []*Output, 1)
+	err := c.pool.Exec(ctx, func(conn *conn) error {
+		defer close(ch)
 		if err := request(conn, "outputs"); err != nil {
 			return err
 		}
-		outputs, err = parseOutputs(conn, responseOK)
+		outputs, err := parseOutputs(conn, responseOK)
+		ch <- outputs
 		return err
 	})
 	if err != nil {
 		return nil, addCommandInfo(err, "outputs")
 	}
-	return
+	return <-ch, nil
 }
 
 // OutputSet sets a runtime attribute.
@@ -314,22 +326,25 @@ func (c *Client) Config(ctx context.Context) (map[string]string, error) {
 }
 
 // Commands returns which commands the current user has access to.
-func (c *Client) Commands(ctx context.Context) (commands []string, err error) {
+func (c *Client) Commands(ctx context.Context) ([]string, error) {
 	if !c.opts.CacheCommandsResult {
-		err = c.pool.Exec(ctx, func(conn *conn) error {
+		ch := make(chan []string, 1)
+		err := c.pool.Exec(ctx, func(conn *conn) error {
+			defer close(ch)
 			if err := request(conn, "commands"); err != nil {
 				return err
 			}
-			commands, err = parseList(conn, responseOK, "command")
+			commands, err := parseList(conn, responseOK, "command")
+			ch <- commands
 			return err
 		})
 		if err != nil {
 			return nil, addCommandInfo(err, "commands")
 		}
-		return
+		return <-ch, nil
 	}
 	c.mu.RLock()
-	commands = c.commands
+	commands := c.commands
 	c.mu.RUnlock()
 	return commands, nil
 }
@@ -354,18 +369,23 @@ func (c *Client) ok(ctx context.Context, cmd string, args ...interface{}) error 
 	})
 }
 
-func (c *Client) binaryPart(ctx context.Context, pos int, cmd string, args ...interface{}) (m map[string]string, b []byte, err error) {
-	err = c.pool.Exec(ctx, func(conn *conn) error {
+func (c *Client) binaryPart(ctx context.Context, pos int, cmd string, args ...interface{}) (map[string]string, []byte, error) {
+	ch1, ch2 := make(chan map[string]string, 1), make(chan []byte, 1)
+	err := c.pool.Exec(ctx, func(conn *conn) error {
+		defer close(ch1)
+		defer close(ch2)
 		if err := request(conn, cmd, append(args, pos)...); err != nil {
 			return err
 		}
-		m, b, err = parseBinary(conn, responseOK)
+		m, b, err := parseBinary(conn, responseOK)
+		ch1 <- m
+		ch2 <- b
 		return err
 	})
 	if err != nil {
 		return nil, nil, addCommandInfo(err, cmd)
 	}
-	return
+	return <-ch1, <-ch2, nil
 }
 
 func (c *Client) binary(ctx context.Context, cmd string, args ...interface{}) ([]byte, error) {
@@ -395,32 +415,38 @@ func (c *Client) binary(ctx context.Context, cmd string, args ...interface{}) ([
 	}
 }
 
-func (c *Client) mapStr(ctx context.Context, cmd string, args ...interface{}) (m map[string]string, err error) {
-	err = c.pool.Exec(ctx, func(conn *conn) error {
+func (c *Client) mapStr(ctx context.Context, cmd string, args ...interface{}) (map[string]string, error) {
+	ch := make(chan map[string]string, 1)
+	err := c.pool.Exec(ctx, func(conn *conn) error {
+		defer close(ch)
 		if err := request(conn, cmd, args...); err != nil {
 			return err
 		}
-		m, err = parseMap(conn, responseOK)
+		m, err := parseMap(conn, responseOK)
+		ch <- m
 		return err
 	})
 	if err != nil {
 		return nil, addCommandInfo(err, cmd)
 	}
-	return
+	return <-ch, nil
 }
 
-func (c *Client) listMap(ctx context.Context, newKey string, cmd string, args ...interface{}) (l []map[string]string, err error) {
-	err = c.pool.Exec(ctx, func(conn *conn) error {
+func (c *Client) listMap(ctx context.Context, newKey string, cmd string, args ...interface{}) ([]map[string]string, error) {
+	ch := make(chan []map[string]string, 1)
+	err := c.pool.Exec(ctx, func(conn *conn) error {
+		defer close(ch)
 		if err := request(conn, cmd, args...); err != nil {
 			return err
 		}
-		l, err = parseListMap(conn, responseOK, newKey)
+		l, err := parseListMap(conn, responseOK, newKey)
+		ch <- l
 		return err
 	})
 	if err != nil {
 		return nil, addCommandInfo(err, cmd)
 	}
-	return
+	return <-ch, nil
 }
 
 // ClientOptions contains options for mpd client connection.

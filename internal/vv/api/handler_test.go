@@ -897,6 +897,7 @@ func TestHandler(t *testing.T) {
 			t.Fatal("test exceeds timeout")
 		default:
 		}
+		tt := tt
 		t.Run(label, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
