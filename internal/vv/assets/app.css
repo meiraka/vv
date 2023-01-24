@@ -1005,15 +1005,16 @@ button:hover:not(:disabled) {
   border: solid 2px var(--button-outline);
   border-radius: 6px;
 }
+
 .main-seek-widget {
   overflow: hidden;
   outline: none;
   width: 100%;
-  margin: 0;
+  margin: -1px;
   -webkit-appearance: none;
   background-color: transparent;
   border: none;
-  border-radius: 0;
+  border-radius: 6px;
 }
 
 .main-seek-widget::-webkit-slider-runnable-track {
