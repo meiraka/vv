@@ -7,8 +7,8 @@ require (
 	github.com/spf13/pflag v1.0.3
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/image v0.0.0-20220722155232-062f8c9fd539
-	golang.org/x/text v0.3.7
+	golang.org/x/text v0.3.8
 	gopkg.in/yaml.v2 v2.2.8
 )
 
-require golang.org/x/sys v0.0.0-20200202164722-d101bd2416d5 // indirect
+require golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
