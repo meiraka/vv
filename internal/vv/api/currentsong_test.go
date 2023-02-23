@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -97,12 +98,19 @@ func (m *mpdPlaylistSongsCurrent) CurrentSong(context.Context) (map[string][]str
 	return m.currentSong()
 }
 
+var (
+	rnd   *rand.Rand
+	rndMu sync.Mutex
+)
+
 func init() {
-	rand.Seed(time.Now().UnixNano())
+	rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 func testSongHook() (func(s map[string][]string) map[string][]string, string) {
-	key := fmt.Sprint(rand.Int())
+	rndMu.Lock()
+	key := fmt.Sprint(rnd.Int())
+	rndMu.Unlock()
 	return func(s map[string][]string) map[string][]string {
 		s[key] = []string{key}
 		return s
