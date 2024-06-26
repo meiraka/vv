@@ -6,8 +6,8 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/spf13/pflag v1.0.3
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/image v0.10.0
-	golang.org/x/text v0.11.0
+	golang.org/x/image v0.18.0
+	golang.org/x/text v0.16.0
 	gopkg.in/yaml.v2 v2.2.8
 )
 
