@@ -7,26 +7,22 @@ on:
 jobs:
   go:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go: [ '1.19', '1.20' ]
-    name: Test Go ${{ matrix.go }}
+    name: Test Go
     steps:
-    - name: Set up Go ${{ matrix.go }}
-      uses: actions/setup-go@v1
+    - name: Set up Go
+      uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go }}
+        go-version: 'stable'
       id: go
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: gofmt
       run: test -z "$(gofmt -s -l . | tee /dev/stderr)"
-    - name: staticcheck
-      uses: reviewdog/action-staticcheck@v1
+    - name: Run Staticcheck
+      uses: dominikh/staticcheck-action@v1
       with:
-        fail_on_error: true
-        filter_mode: nofilter
-        reporter: github-check
+        install-go: false
+        use-cache: true
     - name: go vet
       run: go vet ./...
     - name: go test
@@ -36,7 +32,7 @@ jobs:
   node:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install modules
       run: yarn
     - name: Run ESLint
